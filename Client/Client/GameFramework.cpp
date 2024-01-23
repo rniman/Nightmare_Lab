@@ -9,6 +9,7 @@
  extern UINT gnRtvDescriptorIncrementSize;
  extern UINT gnDsvDescriptorIncrementSize;
 
+
 CGameFramework::CGameFramework()
 {
 	m_nSwapChainBufferIndex = 0;
@@ -29,6 +30,9 @@ CGameFramework::CGameFramework()
 
 CGameFramework::~CGameFramework()
 {
+#ifndef SINGLE_PLAY
+	m_pClientNetwork->Exit();
+#endif // SINGLE_PLAY
 }
 
 bool CGameFramework::OnCreate(HINSTANCE hInstance, HWND hMainWnd)
@@ -44,8 +48,12 @@ bool CGameFramework::OnCreate(HINSTANCE hInstance, HWND hMainWnd)
 
 	CoInitialize(NULL);
 
-	BuildObjects();
+#ifndef SINGLE_PLAY
+	m_pClientNetwork = new TCPClient;
+#endif // SINGLE_PLAY
 
+	BuildObjects();
+	
 	return(true);
 }
 //#define _WITH_CREATE_SWAPCHAIN_FOR_HWND
@@ -379,6 +387,20 @@ void CGameFramework::BuildObjects()
 
 	m_pScene = new CScene();
 	if (m_pScene) m_pScene->BuildObjects(m_d3d12Device.Get(), m_d3dCommandList.Get());
+	m_pCamera = new CCamera();
+	m_pCamera->CreateShaderVariables(m_d3d12Device.Get(), m_d3dCommandList.Get());
+
+#ifndef SINGLE_PLAY
+	for (const auto& [id,info] : m_pClientNetwork->GetClientInfos()) {
+		m_pScene->AddObject(m_d3d12Device.Get(), m_d3dCommandList.Get(),
+			XMFLOAT3(m_pClientNetwork->GetPostion(id)),
+			STANDARD_SHADER, HEXAHEDRONMESH);
+	}
+#else
+	m_pScene->AddObject(m_d3d12Device.Get(), m_d3dCommandList.Get(),
+		XMFLOAT3(m_pClientNetwork->GetPostion(0)),
+		STANDARD_SHADER, HEXAHEDRONMESH);
+#endif // NOT DEFINE SINGLE_PLAY
 
 	m_d3dCommandList->Close();
 	ID3D12CommandList* ppd3dCommandLists[] = { m_d3dCommandList.Get()};
@@ -481,13 +503,19 @@ void CGameFramework::FrameAdvance()
 
 	ProcessInput();
 
+#ifndef SINGLE_PLAY
+	if (!m_pClientNetwork->Logic()) {
+		::PostQuitMessage(0);
+	}
+#endif // SINGLE_PLAY
+
 	AnimateObjects();
 
 	HRESULT hResult = m_d3dCommandAllocator->Reset();
 	hResult = m_d3dCommandList->Reset(m_d3dCommandAllocator.Get(), NULL);
 
-	m_d3dCommandList->RSSetViewports(1, &m_d3dViewport);
-	m_d3dCommandList->RSSetScissorRects(1, &m_d3dScissorRect);
+	//m_d3dCommandList->RSSetViewports(1, &m_d3dViewport);
+	//m_d3dCommandList->RSSetScissorRects(1, &m_d3dScissorRect);
 	//뷰포트와 씨저 사각형을 설정한다.
 
 	D3D12_RESOURCE_BARRIER d3dResourceBarrier;
@@ -511,7 +539,7 @@ void CGameFramework::FrameAdvance()
 
 	m_d3dCommandList->OMSetRenderTargets(1, &d3dRtvCPUDescriptorHandle, TRUE, &d3dDsvCPUDescriptorHandle);
 
-	if (m_pScene) m_pScene->Render(m_d3dCommandList.Get());
+	if (m_pScene) m_pScene->Render(m_d3dCommandList.Get(), m_pCamera);
 
 #ifdef _WITH_PLAYER_TOP
 	m_d3dCommandList->ClearDepthStencilView(d3dDsvCPUDescriptorHandle, D3D12_CLEAR_FLAG_DEPTH | D3D12_CLEAR_FLAG_STENCIL, 1.0f, 0, 0, NULL);

@@ -48,6 +48,7 @@ protected:
 	ID3D12Resource* m_pd3dcbCamera = NULL;
 	VS_CB_CAMERA_INFO* m_pcbMappedCamera = NULL;
 
+	D3D12_GPU_DESCRIPTOR_HANDLE		m_d3dCbvGPUDescriptorHandle;
 public:
 	CCamera();
 	CCamera(CCamera* pCamera);
@@ -103,6 +104,9 @@ public:
 	virtual void Rotate(float fPitch = 0.0f, float fYaw = 0.0f, float fRoll = 0.0f) { }
 	virtual void Update(XMFLOAT3& xmf3LookAt, float fTimeElapsed) { }
 	virtual void SetLookAt(XMFLOAT3& xmf3LookAt) { }
+
+	D3D12_GPU_DESCRIPTOR_HANDLE GetDescriptorHandle();
+	void SetDescriptorHandle(D3D12_GPU_DESCRIPTOR_HANDLE handle);
 };
 
 class CFirstPersonCamera : public CCamera

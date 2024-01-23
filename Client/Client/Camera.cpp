@@ -1,11 +1,13 @@
 #include "stdafx.h"
 //#include "Player.h"
 #include "Camera.h"
+#include "Scene.h"
 
 CCamera::CCamera()
 {
 	m_xmf4x4View = Matrix4x4::Identity();
-	m_xmf4x4Projection = Matrix4x4::Identity();
+	//m_xmf4x4Projection = Matrix4x4::Identity();
+	GenerateProjectionMatrix(1.01f, 5000.0f, ASPECT_RATIO, 60.0f);
 	m_d3dViewport = { 0, 0, FRAME_BUFFER_WIDTH , FRAME_BUFFER_HEIGHT, 0.0f, 1.0f };
 	m_d3dScissorRect = { 0, 0, FRAME_BUFFER_WIDTH , FRAME_BUFFER_HEIGHT };
 	m_xmf3Position = XMFLOAT3(0.0f, 0.0f, 0.0f);
@@ -112,6 +114,8 @@ void CCamera::CreateShaderVariables(ID3D12Device* pd3dDevice, ID3D12GraphicsComm
 	m_pd3dcbCamera = ::CreateBufferResource(pd3dDevice, pd3dCommandList, NULL, ncbElementBytes, D3D12_HEAP_TYPE_UPLOAD, D3D12_RESOURCE_STATE_VERTEX_AND_CONSTANT_BUFFER, NULL);
 
 	m_pd3dcbCamera->Map(0, NULL, (void**)&m_pcbMappedCamera);
+
+	m_d3dCbvGPUDescriptorHandle = CScene::CreateConstantBufferViews(pd3dDevice, 1, m_pd3dcbCamera, ncbElementBytes);
 }
 
 void CCamera::UpdateShaderVariables(ID3D12GraphicsCommandList* pd3dCommandList)
@@ -126,8 +130,9 @@ void CCamera::UpdateShaderVariables(ID3D12GraphicsCommandList* pd3dCommandList)
 
 	::memcpy(&m_pcbMappedCamera->m_xmf3Position, &m_xmf3Position, sizeof(XMFLOAT3));
 
-	D3D12_GPU_VIRTUAL_ADDRESS d3dGpuVirtualAddress = m_pd3dcbCamera->GetGPUVirtualAddress();
-	pd3dCommandList->SetGraphicsRootConstantBufferView(0, d3dGpuVirtualAddress);
+	//D3D12_GPU_VIRTUAL_ADDRESS d3dGpuVirtualAddress = m_pd3dcbCamera->GetGPUVirtualAddress();
+	//pd3dCommandList->SetGraphicsRootConstantBufferView(0, d3dGpuVirtualAddress);
+	pd3dCommandList->SetGraphicsRootDescriptorTable(0, GetDescriptorHandle());
 }
 
 void CCamera::ReleaseShaderVariables()
@@ -143,6 +148,17 @@ void CCamera::SetViewportsAndScissorRects(ID3D12GraphicsCommandList* pd3dCommand
 {
 	pd3dCommandList->RSSetViewports(1, &m_d3dViewport);
 	pd3dCommandList->RSSetScissorRects(1, &m_d3dScissorRect);
+}
+
+
+D3D12_GPU_DESCRIPTOR_HANDLE CCamera::GetDescriptorHandle()
+{
+	return m_d3dCbvGPUDescriptorHandle;
+}
+
+void CCamera::SetDescriptorHandle(D3D12_GPU_DESCRIPTOR_HANDLE handle)
+{
+	m_d3dCbvGPUDescriptorHandle = handle;
 }
 
 /////////////////////////////////////////////////////////////////////////////////////////////////////////////////

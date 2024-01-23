@@ -2,6 +2,7 @@
 
 #include "Timer.h"
 #include "Scene.h"
+#include "TCPClient.h"
 
 class CGameFramework
 {
@@ -79,9 +80,13 @@ private:
 	CGameTimer							m_GameTimer;
 
 	CScene*								m_pScene = NULL;
+	CCamera*							m_pCamera = NULL;
 
 	POINT								m_ptOldCursorPos;
 
 	_TCHAR								m_pszFrameRate[70];
+
+	//TCPClient
+	TCPClient* m_pClientNetwork = NULL;
 };
 

@@ -1,8 +1,14 @@
 ﻿#pragma once
 
 #define WIN32_LEAN_AND_MEAN             // 거의 사용되지 않는 내용은 Windows 헤더에서 제외합니다.
+#define _CRT_SECURE_NO_WARNINGS // 구형 C 함수 사용 시 경고 끄기
+#define _WINSOCK_DEPRECATED_NO_WARNINGS // 구형 소켓 API 사용 시 경고 끄기
 // Windows 헤더 파일:
 #include <windows.h>
+
+#include <winsock2.h> // 윈속2 메인 헤더
+#include <ws2tcpip.h> // 윈속2 확장 헤더
+#include <stdio.h>
 
 // C의 런타임 헤더 파일입니다.
 #include <stdlib.h>
@@ -17,8 +23,10 @@
 
 #include <fstream>
 #include <vector>
+#include <unordered_map>
 
 using namespace std;
+
 
 #include <d3d12.h>
 #include <dxgi1_4.h>
@@ -29,6 +37,7 @@ using namespace std;
 #include <DirectXCollision.h>
 
 #include <Mmsystem.h>
+
 
 #ifdef _DEBUG
 #include <dxgidebug.h>
@@ -49,6 +58,8 @@ extern HINSTANCE						ghAppInstance;
 
 #pragma comment(lib, "dxguid.lib")
 
+#pragma comment(lib, "ws2_32") // ws2_32.lib 링크
+
 // TODO: 프로그램에 필요한 추가 헤더는 여기에서 참조합니다.
 #include "GlobalDefine.h"
 
@@ -68,6 +79,14 @@ extern ID3D12Resource* CreateTextureResourceFromWICFile(ID3D12Device* pd3dDevice
 extern BYTE ReadStringFromFile(FILE* pInFile, char* pstrToken);
 extern int ReadIntegerFromFile(FILE* pInFile);
 extern float ReadFloatFromFile(FILE* pInFile);
+
+// 소켓 함수 오류 출력 후 종료
+extern void err_quit(const char* msg);
+// 소켓 함수 오류 출력
+extern void err_display(const char* msg);
+// 소켓 함수 오류 출력
+extern void err_display(int errcode);
+
 
 inline bool IsZero(float fValue) { return((fabsf(fValue) < EPSILON)); }
 inline bool IsEqual(float fA, float fB) { return(::IsZero(fA - fB)); }
@@ -169,7 +188,9 @@ namespace Vector3
 
 	inline float Angle(XMFLOAT3& xmf3Vector1, XMFLOAT3& xmf3Vector2)
 	{
-		return(Angle(XMLoadFloat3(&xmf3Vector1), XMLoadFloat3(&xmf3Vector2)));
+		XMVECTOR vector1 = XMLoadFloat3(&xmf3Vector1);
+		XMVECTOR vector2 = XMLoadFloat3(&xmf3Vector2);
+		return Angle(vector1, vector2);
 	}
 
 	inline XMFLOAT3 TransformNormal(XMFLOAT3& xmf3Vector, XMMATRIX& xmmtxTransform)
@@ -188,7 +209,8 @@ namespace Vector3
 
 	inline XMFLOAT3 TransformCoord(XMFLOAT3& xmf3Vector, XMFLOAT4X4& xmmtx4x4Matrix)
 	{
-		return(TransformCoord(xmf3Vector, XMLoadFloat4x4(&xmmtx4x4Matrix)));
+		XMMATRIX mtx = XMLoadFloat4x4(&xmmtx4x4Matrix);
+		return(TransformCoord(xmf3Vector, mtx));
 	}
 }
 
