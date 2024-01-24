@@ -1,7 +1,7 @@
 #include "Scene.h"
 #include "Shader.h"
 
-ID3D12DescriptorHeap* CScene::m_pd3dCbvSrvDescriptorHeap = NULL;
+ComPtr<ID3D12DescriptorHeap> CScene::m_pd3dCbvSrvDescriptorHeap;
 
 D3D12_CPU_DESCRIPTOR_HANDLE	CScene::m_d3dCbvCPUDescriptorStartHandle;
 D3D12_GPU_DESCRIPTOR_HANDLE	CScene::m_d3dCbvGPUDescriptorStartHandle;
@@ -118,13 +118,13 @@ void CScene::BuildObjects(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* p
 	int srv_Count = 0;
 	CreateCbvSrvDescriptorHeaps(pd3dDevice, cbv_Count, srv_Count);
 
-	StandardShader* standardShader = new StandardShader;
-	standardShader->CreateShader(pd3dDevice, pd3dCommandList, m_pd3dGraphicsRootSignature);
-	m_vShader.push_back(standardShader);
+	unique_ptr<StandardShader> standardShader = make_unique<StandardShader>();
+	standardShader->CreateShader(pd3dDevice, pd3dCommandList, m_pd3dGraphicsRootSignature.Get());
+	m_vShader.push_back(move(standardShader));
 
 	// ¿∞∏È√º ∏ﬁΩ¨
-	HexahedronMesh* hexahedronMesh = new HexahedronMesh(pd3dDevice, pd3dCommandList, 10.0f, 10.0f, 10.0f);
-	m_vMesh.push_back(hexahedronMesh);
+	shared_ptr<HexahedronMesh> hexahedronMesh = make_shared<HexahedronMesh>(pd3dDevice, pd3dCommandList, 10.0f, 10.0f, 10.0f);
+	m_vMesh.push_back(move(hexahedronMesh));
 	
 
 	CreateShaderVariables(pd3dDevice, pd3dCommandList);
@@ -134,7 +134,7 @@ void CScene::BuildObjects(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* p
 void CScene::AddObject(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dCommandList,XMFLOAT3 position,int shader,int mesh)
 {
 	CGameObject* object = new CGameObject(pd3dDevice, pd3dCommandList);
-	object->SetMesh(m_vMesh[mesh]);
+	object->SetMesh(m_vMesh[mesh].get());
 	object->SetPosition(position);
 
 	m_vShader[shader]->AddGameObject(object);
@@ -225,9 +225,7 @@ D3D12_GPU_DESCRIPTOR_HANDLE CScene::CreateConstantBufferViews(ID3D12Device* pd3d
 
 void CScene::ReleaseObjects()
 {
-	if (m_pd3dGraphicsRootSignature) {
-		m_pd3dGraphicsRootSignature->Release();
-	}
+
 }
 
 bool CScene::OnProcessingMouseMessage(HWND hWnd, UINT nMessageID, WPARAM wParam, LPARAM lParam)
@@ -254,8 +252,8 @@ void CScene::AnimateObjects(float fTimeElapsed)
 
 void CScene::PrepareRender(ID3D12GraphicsCommandList* pd3dCommandList, CCamera* pCamera)
 {
-	if (m_pd3dGraphicsRootSignature) pd3dCommandList->SetGraphicsRootSignature(m_pd3dGraphicsRootSignature);
-	if (m_pd3dCbvSrvDescriptorHeap) pd3dCommandList->SetDescriptorHeaps(1, &m_pd3dCbvSrvDescriptorHeap);
+	if (m_pd3dGraphicsRootSignature) pd3dCommandList->SetGraphicsRootSignature(m_pd3dGraphicsRootSignature.Get());
+	if (m_pd3dCbvSrvDescriptorHeap) pd3dCommandList->SetDescriptorHeaps(1, m_pd3dCbvSrvDescriptorHeap.GetAddressOf());
 
 	pCamera->SetViewportsAndScissorRects(pd3dCommandList);
 	pCamera->UpdateShaderVariables(pd3dCommandList);

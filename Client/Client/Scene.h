@@ -3,10 +3,10 @@
 #include "Shader.h"
 #include <stdexcept>
 
-// 쉐이더에 AddObject 시에 접근할 각 쉐이더 인덱스를 의미
+// m_vShader 쉐이더에 AddObject 시에 접근할 각 쉐이더 인덱스를 의미
 #define STANDARD_SHADER 0
 
-// 메쉬에 접근할 각 인덱스를 의미
+// m_vMesh 메쉬에 접근할 각 인덱스를 의미
 #define HEXAHEDRONMESH 0
 
 class CScene
@@ -41,16 +41,16 @@ public:
 	void AddObject(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dCommandList, XMFLOAT3 position, int shader, int mesh);
 
 	//씬 내 오브젝트(쉐이더)
-	vector<CShader*> m_vShader;
+	vector<unique_ptr<CShader>> m_vShader;
 
 	//메쉬 저장
-	vector<CMesh*> m_vMesh;
+	vector<shared_ptr<CMesh>> m_vMesh;
 
 protected:
-	ID3D12RootSignature* m_pd3dGraphicsRootSignature = NULL;
+	ComPtr<ID3D12RootSignature> m_pd3dGraphicsRootSignature;
 	//루트 시그너처를 나타내는 인터페이스 포인터
 
-	static ID3D12DescriptorHeap* m_pd3dCbvSrvDescriptorHeap;
+	static ComPtr<ID3D12DescriptorHeap> m_pd3dCbvSrvDescriptorHeap;
 
 	static D3D12_CPU_DESCRIPTOR_HANDLE	m_d3dCbvCPUDescriptorStartHandle;
 	static D3D12_GPU_DESCRIPTOR_HANDLE	m_d3dCbvGPUDescriptorStartHandle;

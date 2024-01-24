@@ -215,7 +215,7 @@ void CShader::Render(ID3D12GraphicsCommandList* pd3dCommandList, CCamera* pCamer
 
 void CShader::AddGameObject(CGameObject* object)
 {
-	m_vGameObjects.push_back(object);
+	m_vGameObjects.push_back(shared_ptr<CGameObject>(object));
 }
 
 void CShader::AnimateObjects(float fTimeElapsed)
@@ -232,6 +232,7 @@ StandardShader::StandardShader()
 {
 
 }
+
 
 StandardShader::~StandardShader()
 {

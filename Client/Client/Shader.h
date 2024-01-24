@@ -7,7 +7,7 @@ class CShader
 {
 public:
 	CShader();
-	virtual ~CShader();
+	~CShader();
 
 private:
 	int									m_nReferences = 0;
@@ -47,10 +47,11 @@ public:
 
 protected:
 	// 게임내 오브젝트는 쉐이더가 관리한다.
-	vector<CGameObject*> m_vGameObjects;
+	vector<shared_ptr<CGameObject>> m_vGameObjects;
 
-	ID3DBlob* m_pd3dVertexShaderBlob = NULL;
-	ID3DBlob* m_pd3dPixelShaderBlob = NULL;
+	// m_ppd3dPipelineState 를 만들때 Blob을 사용하므로 ComPtr 사용x (오류발생가능)
+	ID3DBlob* m_pd3dVertexShaderBlob;
+	ID3DBlob* m_pd3dPixelShaderBlob;
 
 	UINT					m_nPipelineState = 1;
 	ID3D12PipelineState**	m_ppd3dPipelineState = NULL;
@@ -72,6 +73,4 @@ public:
 
 	virtual void CreateShader(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dCommandList, ID3D12RootSignature* pd3dGraphicsRootSignature);
 
-protected:
-	//  오브젝트를 담을 컨테이너를 가진다.
 };

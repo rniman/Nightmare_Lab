@@ -1,6 +1,6 @@
 #pragma once
 
-//#define SINGLE_PLAY // define시 싱글로 진행
+#define SINGLE_PLAY // define시 싱글로 진행
 
 #define DIR_FORWARD					0x01
 #define DIR_BACKWARD				0x02

@@ -16,50 +16,6 @@ CGameObject::CGameObject(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd
 	CreateShaderVariables(pd3dDevice, pd3dCommandList);
 }
 
-//// 이동 생성자
-//CGameObject::CGameObject(CGameObject&& other) noexcept {
-//	strcpy(m_pstrFrameName, other.m_pstrFrameName);
-//
-//	m_pMesh = other.m_pMesh;
-//	m_nMaterials = other.m_nMaterials;
-//	// m_ppMaterials = other.m_ppMaterials;
-//
-//	m_xmf4x4ToParent= other.m_xmf4x4ToParent;
-//	m_xmf4x4World = other.m_xmf4x4World;
-//
-//	m_pParent = other.m_pParent;
-//	m_pChild = other.m_pChild;
-//	m_pSibling = other.m_pSibling;
-//
-//	m_d3dcbvObject = other.m_d3dcbvObject;
-//	m_cbMappedObject = other.m_cbMappedObject;
-//	m_d3dCbvGPUDescriptorHandle = other.m_d3dCbvGPUDescriptorHandle;
-//}
-//
-//// 이동 대입 연산자
-//CGameObject& CGameObject::operator=(CGameObject&& other) noexcept {
-//	//std::cout << "Move Assignment Operator" << std::endl;
-//	if (this != &other) {
-//		strcpy(m_pstrFrameName, other.m_pstrFrameName);
-//
-//		SetMesh(other.m_pMesh);
-//		m_nMaterials = other.m_nMaterials;
-//		// m_ppMaterials = other.m_ppMaterials;
-//
-//		m_xmf4x4ToParent = other.m_xmf4x4ToParent;
-//		m_xmf4x4World = other.m_xmf4x4World;
-//
-//		m_pParent = other.m_pParent;
-//		m_pChild = other.m_pChild;
-//		m_pSibling = other.m_pSibling;
-//
-//		m_d3dcbvObject = other.m_d3dcbvObject;
-//		m_cbMappedObject = other.m_cbMappedObject;
-//		m_d3dCbvGPUDescriptorHandle = other.m_d3dCbvGPUDescriptorHandle;
-//	}
-//	return *this;
-//}
-
 CGameObject::CGameObject(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dCommandList,int nMaterials) : CGameObject(pd3dDevice, pd3dCommandList)
 {
 	m_nMaterials = nMaterials;
@@ -71,7 +27,7 @@ CGameObject::CGameObject(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd
 }
 CGameObject::~CGameObject()
 {
-	if (m_pMesh) m_pMesh->Release();
+	//if (m_pMesh) m_pMesh->Release();
 
 	if (m_nMaterials > 0)
 	{
