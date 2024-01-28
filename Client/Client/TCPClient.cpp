@@ -125,7 +125,7 @@ XMFLOAT3& TCPClient::GetPostion(int id)
 #ifndef SINGLE_PLAY
 	XMFLOAT3 position = { client_infos[id].x,client_infos[id].y,client_infos[id].z };
 #else
-	XMFLOAT3 position = { 0.0f,0.0f,300.0f };
+	XMFLOAT3 position = { 0.0f,0.0f,100.0f };
 #endif
 	return position;
 }

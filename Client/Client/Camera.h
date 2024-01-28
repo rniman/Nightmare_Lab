@@ -3,7 +3,6 @@
 #define ASPECT_RATIO				(float(FRAME_BUFFER_WIDTH) / float(FRAME_BUFFER_HEIGHT))
 
 #define FIRST_PERSON_CAMERA			0x01
-#define SPACESHIP_CAMERA			0x02
 #define THIRD_PERSON_CAMERA			0x03
 
 struct VS_CB_CAMERA_INFO
@@ -45,7 +44,7 @@ protected:
 
 	CPlayer* m_pPlayer = NULL;
 
-	ID3D12Resource* m_pd3dcbCamera = NULL;
+	ComPtr<ID3D12Resource> m_pd3dcbCamera;
 	VS_CB_CAMERA_INFO* m_pcbMappedCamera = NULL;
 
 	D3D12_GPU_DESCRIPTOR_HANDLE		m_d3dCbvGPUDescriptorHandle;

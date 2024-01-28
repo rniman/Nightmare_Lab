@@ -37,7 +37,7 @@ public:
 
 	virtual void Render(ID3D12GraphicsCommandList* pd3dCommandList, CCamera* pCamera, int nPipelineState = 0);
 
-	virtual void ReleaseUploadBuffers() { }
+	virtual void ReleaseUploadBuffers();
 
 	//virtual void BuildObjects(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dCommandList, ID3D12RootSignature* pd3dGraphicsRootSignature, CLoadedModelInfo* pModel, void* pContext = NULL) { }
 	virtual void AnimateObjects(float fTimeElapsed);
@@ -61,6 +61,8 @@ protected:
 	float								m_fElapsedTime = 0.0f;
 };
 
+////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
 class StandardShader : public CShader {
 public:
 	StandardShader();
@@ -73,4 +75,15 @@ public:
 
 	virtual void CreateShader(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dCommandList, ID3D12RootSignature* pd3dGraphicsRootSignature);
 
+};
+////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+class CSkinnedAnimationStandardShader : public StandardShader
+{
+public:
+	CSkinnedAnimationStandardShader();
+	virtual ~CSkinnedAnimationStandardShader();
+
+	virtual D3D12_INPUT_LAYOUT_DESC CreateInputLayout();
+	virtual D3D12_SHADER_BYTECODE CreateVertexShader();
 };

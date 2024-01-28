@@ -397,7 +397,7 @@ void CGameFramework::BuildObjects()
 			STANDARD_SHADER, HEXAHEDRONMESH);
 	}
 #else
-	m_pScene->AddObject(m_d3d12Device.Get(), m_d3dCommandList.Get(),
+	m_pScene->AddDefaultObject(m_d3d12Device.Get(), m_d3dCommandList.Get(),
 		XMFLOAT3(m_pClientNetwork->GetPostion(0)),
 		STANDARD_SHADER, HEXAHEDRONMESH);
 #endif // NOT DEFINE SINGLE_PLAY
@@ -407,6 +407,10 @@ void CGameFramework::BuildObjects()
 	m_d3dCommandQueue->ExecuteCommandLists(1, ppd3dCommandLists);
 
 	WaitForGpuComplete();
+
+	if (m_pScene) {
+		m_pScene->ReleaseUploadBuffers();
+	}
 
 	m_GameTimer.Reset();
 }

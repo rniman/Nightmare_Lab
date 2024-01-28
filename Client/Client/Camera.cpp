@@ -115,7 +115,7 @@ void CCamera::CreateShaderVariables(ID3D12Device* pd3dDevice, ID3D12GraphicsComm
 
 	m_pd3dcbCamera->Map(0, NULL, (void**)&m_pcbMappedCamera);
 
-	m_d3dCbvGPUDescriptorHandle = CScene::CreateConstantBufferViews(pd3dDevice, 1, m_pd3dcbCamera, ncbElementBytes);
+	m_d3dCbvGPUDescriptorHandle = CScene::CreateConstantBufferViews(pd3dDevice, 1, m_pd3dcbCamera.Get(), ncbElementBytes);
 }
 
 void CCamera::UpdateShaderVariables(ID3D12GraphicsCommandList* pd3dCommandList)
@@ -130,18 +130,12 @@ void CCamera::UpdateShaderVariables(ID3D12GraphicsCommandList* pd3dCommandList)
 
 	::memcpy(&m_pcbMappedCamera->m_xmf3Position, &m_xmf3Position, sizeof(XMFLOAT3));
 
-	//D3D12_GPU_VIRTUAL_ADDRESS d3dGpuVirtualAddress = m_pd3dcbCamera->GetGPUVirtualAddress();
-	//pd3dCommandList->SetGraphicsRootConstantBufferView(0, d3dGpuVirtualAddress);
 	pd3dCommandList->SetGraphicsRootDescriptorTable(0, GetDescriptorHandle());
 }
 
 void CCamera::ReleaseShaderVariables()
 {
-	if (m_pd3dcbCamera)
-	{
-		m_pd3dcbCamera->Unmap(0, NULL);
-		m_pd3dcbCamera->Release();
-	}
+
 }
 
 void CCamera::SetViewportsAndScissorRects(ID3D12GraphicsCommandList* pd3dCommandList)
@@ -169,14 +163,14 @@ CFirstPersonCamera::CFirstPersonCamera(CCamera* pCamera) : CCamera(pCamera)
 	m_nMode = FIRST_PERSON_CAMERA;
 	if (pCamera)
 	{
-		if (pCamera->GetMode() == SPACESHIP_CAMERA)
+		/*if (pCamera->GetMode() == THIRD_PERSON_CAMERA)
 		{
 			m_xmf3Up = XMFLOAT3(0.0f, 1.0f, 0.0f);
 			m_xmf3Right.y = 0.0f;
 			m_xmf3Look.y = 0.0f;
 			m_xmf3Right = Vector3::Normalize(m_xmf3Right);
 			m_xmf3Look = Vector3::Normalize(m_xmf3Look);
-		}
+		}*/
 	}
 }
 
@@ -218,14 +212,14 @@ CThirdPersonCamera::CThirdPersonCamera(CCamera* pCamera) : CCamera(pCamera)
 	m_nMode = THIRD_PERSON_CAMERA;
 	if (pCamera)
 	{
-		if (pCamera->GetMode() == SPACESHIP_CAMERA)
+		/*if (pCamera->GetMode() == FIRST_PERSON_CAMERA)
 		{
 			m_xmf3Up = XMFLOAT3(0.0f, 1.0f, 0.0f);
 			m_xmf3Right.y = 0.0f;
 			m_xmf3Look.y = 0.0f;
 			m_xmf3Right = Vector3::Normalize(m_xmf3Right);
 			m_xmf3Look = Vector3::Normalize(m_xmf3Look);
-		}
+		}*/
 	}
 }
 
