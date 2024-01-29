@@ -61,6 +61,8 @@ private:
 
 	ComPtr<ID3D12Resource>				m_d3dSwapChainBackBuffers[m_nSwapChainBuffers];
 	ComPtr<ID3D12DescriptorHeap>		m_d3dRtvDescriptorHeap;
+	D3D12_CPU_DESCRIPTOR_HANDLE			m_pd3dSwapChainBackBufferRTVCPUHandles[m_nSwapChainBuffers];
+
 
 	ComPtr<ID3D12Resource>				m_d3dDepthStencilBuffer;
 	ComPtr<ID3D12DescriptorHeap>		m_d3dDsvDescriptorHeap;
@@ -81,6 +83,7 @@ private:
 
 	CScene*								m_pScene = NULL;
 	CCamera*							m_pCamera = NULL;
+	CPostProcessingShader*				m_pPostProcessingShader = NULL;
 
 	POINT								m_ptOldCursorPos;
 

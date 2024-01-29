@@ -118,10 +118,10 @@ void CTexture::LoadBuffer(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* p
 	m_ppd3dTextures[nIndex] = ::CreateBufferResource(pd3dDevice, pd3dCommandList, pData, nElements * nStride, D3D12_HEAP_TYPE_DEFAULT, D3D12_RESOURCE_STATE_GENERIC_READ, &m_ppd3dTextureUploadBuffers[nIndex]);
 }
 
-ID3D12Resource* CTexture::CreateTexture(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dCommandList, UINT nIndex, UINT nResourceType, UINT nWidth, UINT nHeight, UINT nElements, UINT nMipLevels, DXGI_FORMAT dxgiFormat, D3D12_RESOURCE_FLAGS d3dResourceFlags, D3D12_RESOURCE_STATES d3dResourceStates, D3D12_CLEAR_VALUE* pd3dClearValue)
+ID3D12Resource* CTexture::CreateTexture(ID3D12Device* pd3dDevice, UINT nIndex, UINT nResourceType, UINT nWidth, UINT nHeight, UINT nElements, UINT nMipLevels, DXGI_FORMAT dxgiFormat, D3D12_RESOURCE_FLAGS d3dResourceFlags, D3D12_RESOURCE_STATES d3dResourceStates, D3D12_CLEAR_VALUE* pd3dClearValue)
 {
 	m_pnResourceTypes[nIndex] = nResourceType;
-	m_ppd3dTextures[nIndex] = ::CreateTexture2DResource(pd3dDevice, pd3dCommandList, nWidth, nHeight, nElements, nMipLevels, dxgiFormat, d3dResourceFlags, d3dResourceStates, pd3dClearValue);
+	m_ppd3dTextures[nIndex] = ::CreateTexture2DResource(pd3dDevice, nWidth, nHeight, nElements, nMipLevels, dxgiFormat, d3dResourceFlags, d3dResourceStates, pd3dClearValue);
 	return(m_ppd3dTextures[nIndex]);
 }
 
@@ -650,14 +650,6 @@ CGameObject::CGameObject(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd
 		for (int i = 0; i < m_nMaterials; i++) m_ppMaterials[i] = NULL;
 	}
 
-	// 텍스처 1개인 재질 할당
-	m_ppMaterials[0] = new CMaterial(1);
-	m_ppMaterials[0]->SetMaterialType(MATERIAL_ALBEDO_MAP);
-	CTexture* pTexture = new CTexture(1, RESOURCE_TEXTURE2D, 0, 1);
-	pTexture->LoadTextureFromDDSFile(pd3dDevice, pd3dCommandList, (wchar_t*)L"Asset/Textures/나뭇잎.dds", RESOURCE_TEXTURE2D, 0);
-	if (pTexture)pTexture->AddRef();
-	m_ppMaterials[0]->SetTexture(pTexture, 0);
-	CScene::CreateShaderResourceViews(pd3dDevice, pTexture, 0, 3); // 3은 루트시그니처의 Albedo에 해당하는 인덱스
 }
 
 CGameObject::~CGameObject()
@@ -1296,4 +1288,20 @@ CLoadedModelInfo* CGameObject::LoadGeometryAndAnimationFromFile(ID3D12Device* pd
 #endif
 
 	return(pLoadedModel);
+}
+
+CHexahedronObject::CHexahedronObject(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dCommandList, int nMaterials) : CGameObject(pd3dDevice,  pd3dCommandList,  nMaterials)
+{
+	CTexture* pTexture = new CTexture(1, RESOURCE_TEXTURE2D, 0, 1);
+	pTexture->LoadTextureFromDDSFile(pd3dDevice, pd3dCommandList, (wchar_t*)L"Asset/Textures/나뭇잎.dds", RESOURCE_TEXTURE2D, 0);
+	if (pTexture)pTexture->AddRef();
+
+	m_ppMaterials[0] = new CMaterial(1); // 텍스처가 1개
+	m_ppMaterials[0]->SetMaterialType(MATERIAL_ALBEDO_MAP);
+	m_ppMaterials[0]->SetTexture(pTexture, 0);
+	CScene::CreateShaderResourceViews(pd3dDevice, pTexture, 0, 3); // 3은 루트시그니처의 Albedo에 해당하는 인덱스
+}
+
+CHexahedronObject::~CHexahedronObject()
+{
 }

@@ -120,7 +120,7 @@ void TCPClient::Exit()
 	WSACleanup();
 }
 
-XMFLOAT3& TCPClient::GetPostion(int id)
+XMFLOAT3 TCPClient::GetPostion(int id)
 {
 #ifndef SINGLE_PLAY
 	XMFLOAT3 position = { client_infos[id].x,client_infos[id].y,client_infos[id].z };

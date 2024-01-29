@@ -26,7 +26,7 @@ public:
 	bool SendData(char* data, int size);
 	bool RecvData(char* data, int size);
 
-	XMFLOAT3& GetPostion(int id);
+	XMFLOAT3 GetPostion(int id);
 
 	unordered_map<int, Client_INFO>& GetClientInfos();
 	int GetMyId();

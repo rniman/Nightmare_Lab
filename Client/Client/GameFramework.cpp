@@ -192,7 +192,7 @@ void CGameFramework::CreateRtvAndDsvDescriptorHeaps()
 {
 	D3D12_DESCRIPTOR_HEAP_DESC d3dDescriptorHeapDesc;
 	::ZeroMemory(&d3dDescriptorHeapDesc, sizeof(D3D12_DESCRIPTOR_HEAP_DESC));
-	d3dDescriptorHeapDesc.NumDescriptors = m_nSwapChainBuffers;
+	d3dDescriptorHeapDesc.NumDescriptors = m_nSwapChainBuffers + 3;
 	d3dDescriptorHeapDesc.Type = D3D12_DESCRIPTOR_HEAP_TYPE_RTV;
 	d3dDescriptorHeapDesc.Flags = D3D12_DESCRIPTOR_HEAP_FLAG_NONE;
 	d3dDescriptorHeapDesc.NodeMask = 0;
@@ -207,12 +207,19 @@ void CGameFramework::CreateRtvAndDsvDescriptorHeaps()
 
 void CGameFramework::CreateRenderTargetViews()
 {
+	D3D12_RENDER_TARGET_VIEW_DESC d3dRenderTargetViewDesc;
+	d3dRenderTargetViewDesc.Format = DXGI_FORMAT_R8G8B8A8_UNORM;
+	d3dRenderTargetViewDesc.ViewDimension = D3D12_RTV_DIMENSION_TEXTURE2D;
+	d3dRenderTargetViewDesc.Texture2D.MipSlice = 0;
+	d3dRenderTargetViewDesc.Texture2D.PlaneSlice = 0;
+
 	D3D12_CPU_DESCRIPTOR_HANDLE d3dRtvCPUDescriptorHandle = m_d3dRtvDescriptorHeap->GetCPUDescriptorHandleForHeapStart();
 
 	for (UINT i = 0; i < m_nSwapChainBuffers; i++)
 	{
 		m_dxgiSwapChain->GetBuffer(i, __uuidof(ID3D12Resource), (void**)&m_d3dSwapChainBackBuffers[i]);
-		m_d3d12Device->CreateRenderTargetView(m_d3dSwapChainBackBuffers[i].Get(), NULL, d3dRtvCPUDescriptorHandle);
+		m_d3d12Device->CreateRenderTargetView(m_d3dSwapChainBackBuffers[i].Get(), &d3dRenderTargetViewDesc, d3dRtvCPUDescriptorHandle);
+		m_pd3dSwapChainBackBufferRTVCPUHandles[i] = d3dRtvCPUDescriptorHandle;
 		d3dRtvCPUDescriptorHandle.ptr += ::gnRtvDescriptorIncrementSize;
 	}
 }
@@ -392,15 +399,27 @@ void CGameFramework::BuildObjects()
 
 #ifndef SINGLE_PLAY
 	for (const auto& [id,info] : m_pClientNetwork->GetClientInfos()) {
-		m_pScene->AddObject(m_d3d12Device.Get(), m_d3dCommandList.Get(),
-			XMFLOAT3(m_pClientNetwork->GetPostion(id)),
+		m_pScene->AddDefaultObject(m_d3d12Device.Get(), m_d3dCommandList.Get(),
+			ObjectType::HEXAHERON,XMFLOAT3(m_pClientNetwork->GetPostion(id)),
 			STANDARD_SHADER, HEXAHEDRONMESH);
 	}
 #else
 	m_pScene->AddDefaultObject(m_d3d12Device.Get(), m_d3dCommandList.Get(),
-		XMFLOAT3(m_pClientNetwork->GetPostion(0)),
+		ObjectType::HEXAHERON,XMFLOAT3(m_pClientNetwork->GetPostion(0)),
 		STANDARD_SHADER, HEXAHEDRONMESH);
 #endif // NOT DEFINE SINGLE_PLAY
+
+	m_pPostProcessingShader = new CPostProcessingShader();
+	m_pPostProcessingShader->CreateShader(m_d3d12Device.Get(), m_d3dCommandList.Get(), m_pScene->GetGraphicsRootSignature(), 1, NULL, DXGI_FORMAT_D24_UNORM_S8_UINT);
+	
+	D3D12_CPU_DESCRIPTOR_HANDLE d3dRtvCPUDescriptorHandle = m_d3dRtvDescriptorHeap->GetCPUDescriptorHandleForHeapStart();
+	d3dRtvCPUDescriptorHandle.ptr += (::gnRtvDescriptorIncrementSize * m_nSwapChainBuffers);
+
+	DXGI_FORMAT pdxgiResourceFormats[3] = { DXGI_FORMAT_R8G8B8A8_UNORM,  DXGI_FORMAT_R8G8B8A8_UNORM, DXGI_FORMAT_R32_FLOAT };
+	m_pPostProcessingShader->CreateResourcesAndRtvsSrvs(m_d3d12Device.Get(), m_d3dCommandList.Get(), 3, pdxgiResourceFormats, d3dRtvCPUDescriptorHandle); //SRV to (Render Targets) + (Depth Buffer)
+
+	//D3D12_GPU_DESCRIPTOR_HANDLE d3dDsvGPUDescriptorHandle = CScene::CreateShaderResourceView(m_d3d12Device.Get(), m_d3dDepthStencilBuffer.Get(), DXGI_FORMAT_R32_FLOAT);
+
 
 	m_d3dCommandList->Close();
 	ID3D12CommandList* ppd3dCommandLists[] = { m_d3dCommandList.Get()};
@@ -518,42 +537,33 @@ void CGameFramework::FrameAdvance()
 	HRESULT hResult = m_d3dCommandAllocator->Reset();
 	hResult = m_d3dCommandList->Reset(m_d3dCommandAllocator.Get(), NULL);
 
-	//m_d3dCommandList->RSSetViewports(1, &m_d3dViewport);
-	//m_d3dCommandList->RSSetScissorRects(1, &m_d3dScissorRect);
-	//뷰포트와 씨저 사각형을 설정한다.
-
-	D3D12_RESOURCE_BARRIER d3dResourceBarrier;
-	::ZeroMemory(&d3dResourceBarrier, sizeof(D3D12_RESOURCE_BARRIER));
-	d3dResourceBarrier.Type = D3D12_RESOURCE_BARRIER_TYPE_TRANSITION;
-	d3dResourceBarrier.Flags = D3D12_RESOURCE_BARRIER_FLAG_NONE;
-	d3dResourceBarrier.Transition.pResource = m_d3dSwapChainBackBuffers[m_nSwapChainBufferIndex].Get();
-	d3dResourceBarrier.Transition.StateBefore = D3D12_RESOURCE_STATE_PRESENT;
-	d3dResourceBarrier.Transition.StateAfter = D3D12_RESOURCE_STATE_RENDER_TARGET;
-	d3dResourceBarrier.Transition.Subresource = D3D12_RESOURCE_BARRIER_ALL_SUBRESOURCES;
-	m_d3dCommandList->ResourceBarrier(1, &d3dResourceBarrier);
+	SynchronizeResourceTransition(m_d3dCommandList.Get(), m_d3dSwapChainBackBuffers[m_nSwapChainBufferIndex].Get(), D3D12_RESOURCE_STATE_PRESENT, D3D12_RESOURCE_STATE_RENDER_TARGET);
 
 	D3D12_CPU_DESCRIPTOR_HANDLE d3dRtvCPUDescriptorHandle = m_d3dRtvDescriptorHeap->GetCPUDescriptorHandleForHeapStart();
 	d3dRtvCPUDescriptorHandle.ptr += (m_nSwapChainBufferIndex * ::gnRtvDescriptorIncrementSize);
 
-	float pfClearColor[4] = { 0.0f, 0.125f, 0.3f, 1.0f };
-	m_d3dCommandList->ClearRenderTargetView(d3dRtvCPUDescriptorHandle, pfClearColor/*Colors::Azure*/, 0, NULL);
-
 	D3D12_CPU_DESCRIPTOR_HANDLE d3dDsvCPUDescriptorHandle = m_d3dDsvDescriptorHeap->GetCPUDescriptorHandleForHeapStart();
-	m_d3dCommandList->ClearDepthStencilView(d3dDsvCPUDescriptorHandle, D3D12_CLEAR_FLAG_DEPTH | D3D12_CLEAR_FLAG_STENCIL, 1.0f, 0, 0, NULL);
 
-	m_d3dCommandList->OMSetRenderTargets(1, &d3dRtvCPUDescriptorHandle, TRUE, &d3dDsvCPUDescriptorHandle);
+	{
+		m_d3dCommandList->ClearDepthStencilView(d3dDsvCPUDescriptorHandle, D3D12_CLEAR_FLAG_DEPTH | D3D12_CLEAR_FLAG_STENCIL, 1.0f, 0, 0, NULL);
 
-	if (m_pScene) m_pScene->Render(m_d3dCommandList.Get(), m_pCamera);
+		m_pPostProcessingShader->OnPrepareRenderTarget(m_d3dCommandList.Get(), 1, &m_pd3dSwapChainBackBufferRTVCPUHandles[m_nSwapChainBufferIndex], &d3dDsvCPUDescriptorHandle);
+
+		//1차 렌더링
+		if (m_pScene) m_pScene->Render(m_d3dCommandList.Get(), m_pCamera);
 
 #ifdef _WITH_PLAYER_TOP
-	m_d3dCommandList->ClearDepthStencilView(d3dDsvCPUDescriptorHandle, D3D12_CLEAR_FLAG_DEPTH | D3D12_CLEAR_FLAG_STENCIL, 1.0f, 0, 0, NULL);
+		m_d3dCommandList->ClearDepthStencilView(d3dDsvCPUDescriptorHandle, D3D12_CLEAR_FLAG_DEPTH | D3D12_CLEAR_FLAG_STENCIL, 1.0f, 0, 0, NULL);
 #endif
-	//if (m_pPlayer) m_pPlayer->Render(m_d3dCommandList, m_pCamera);
+		//m_pPlayer->Render(m_pd3dCommandList, m_pCamera);
 
-	d3dResourceBarrier.Transition.StateBefore = D3D12_RESOURCE_STATE_RENDER_TARGET;
-	d3dResourceBarrier.Transition.StateAfter = D3D12_RESOURCE_STATE_PRESENT;
-	d3dResourceBarrier.Transition.Subresource = D3D12_RESOURCE_BARRIER_ALL_SUBRESOURCES;
-	m_d3dCommandList->ResourceBarrier(1, &d3dResourceBarrier);
+		m_pPostProcessingShader->OnPostRenderTarget(m_d3dCommandList.Get());
+
+		//최종 렌더링
+		//m_pPostProcessingShader->Render(m_d3dCommandList.Get(), m_pCamera);
+	}
+
+	SynchronizeResourceTransition(m_d3dCommandList.Get(), m_d3dSwapChainBackBuffers[m_nSwapChainBufferIndex].Get(), D3D12_RESOURCE_STATE_RENDER_TARGET, D3D12_RESOURCE_STATE_PRESENT);
 
 	hResult = m_d3dCommandList->Close();
 
