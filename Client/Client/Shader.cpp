@@ -233,10 +233,10 @@ void CShader::AddGameObject(CGameObject* object)
 	m_vGameObjects.push_back(shared_ptr<CGameObject>(object));
 }
 
-void CShader::AnimateObjects(float fTimeElapsed)
+void CShader::AnimateObjects(float fElapsedTime)
 {
 	for (auto& object : m_vGameObjects) {
-		object->Animate(fTimeElapsed);
+		object->Animate(fElapsedTime);
 	}
 }
 /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////

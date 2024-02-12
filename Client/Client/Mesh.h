@@ -16,7 +16,9 @@ public:
 	void Release() { if (--m_nReferences <= 0) delete this; }
 
 	UINT GetType() { return(m_nType); }
-
+	XMFLOAT3 GetAABBCenter()const { return m_xmf3AABBCenter; }
+	XMFLOAT3 GetAABBExtents()const { return m_xmf3AABBExtents; }
+	BoundingOrientedBox GetOOBB() const { return m_OOBB; }
 	/*virtual void CreateShaderVariables(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dCommandList) { }
 	virtual void UpdateShaderVariables(ID3D12GraphicsCommandList* pd3dCommandList) { }
 	virtual void ReleaseShaderVariables() { }*/
@@ -32,6 +34,7 @@ protected:
 
 	XMFLOAT3						m_xmf3AABBCenter = XMFLOAT3(0.0f, 0.0f, 0.0f);
 	XMFLOAT3						m_xmf3AABBExtents = XMFLOAT3(0.0f, 0.0f, 0.0f);
+	BoundingOrientedBox				m_OOBB{ BoundingOrientedBox() };
 
 	D3D12_PRIMITIVE_TOPOLOGY		m_d3dPrimitiveTopology = D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST;
 	UINT							m_nSlot = 0;

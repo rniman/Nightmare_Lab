@@ -25,34 +25,34 @@ void CGameTimer::Tick(float fLockFPS)
 {
 	if (m_bStopped)
 	{
-		m_fTimeElapsed = 0.0f;
+		m_fElapsedTime = 0.0f;
 		return;
 	}
-	float fTimeElapsed;
+	float fElapsedTime;
 
 	::QueryPerformanceCounter((LARGE_INTEGER*)&m_nCurrentPerformanceCounter);
-	fTimeElapsed = float((m_nCurrentPerformanceCounter - m_nLastPerformanceCounter) * m_fTimeScale);
+	fElapsedTime = float((m_nCurrentPerformanceCounter - m_nLastPerformanceCounter) * m_fTimeScale);
 
 	if (fLockFPS > 0.0f)
 	{
-		while (fTimeElapsed < (1.0f / fLockFPS))
+		while (fElapsedTime < (1.0f / fLockFPS))
 		{
 			::QueryPerformanceCounter((LARGE_INTEGER*)&m_nCurrentPerformanceCounter);
-			fTimeElapsed = float((m_nCurrentPerformanceCounter - m_nLastPerformanceCounter) * m_fTimeScale);
+			fElapsedTime = float((m_nCurrentPerformanceCounter - m_nLastPerformanceCounter) * m_fTimeScale);
 		}
 	}
 
 	m_nLastPerformanceCounter = m_nCurrentPerformanceCounter;
 
-	if (fabsf(fTimeElapsed - m_fTimeElapsed) < 1.0f)
+	if (fabsf(fElapsedTime - m_fElapsedTime) < 1.0f)
 	{
 		::memmove(&m_fFrameTime[1], m_fFrameTime, (MAX_SAMPLE_COUNT - 1) * sizeof(float));
-		m_fFrameTime[0] = fTimeElapsed;
+		m_fFrameTime[0] = fElapsedTime;
 		if (m_nSampleCount < MAX_SAMPLE_COUNT) m_nSampleCount++;
 	}
 
 	m_nFramesPerSecond++;
-	m_fFPSTimeElapsed += fTimeElapsed;
+	m_fFPSTimeElapsed += fElapsedTime;
 	if (m_fFPSTimeElapsed > 1.0f)
 	{
 		m_nCurrentFrameRate = m_nFramesPerSecond;
@@ -60,9 +60,9 @@ void CGameTimer::Tick(float fLockFPS)
 		m_fFPSTimeElapsed = 0.0f;
 	}
 
-	m_fTimeElapsed = 0.0f;
-	for (ULONG i = 0; i < m_nSampleCount; i++) m_fTimeElapsed += m_fFrameTime[i];
-	if (m_nSampleCount > 0) m_fTimeElapsed /= m_nSampleCount;
+	m_fElapsedTime = 0.0f;
+	for (ULONG i = 0; i < m_nSampleCount; i++) m_fElapsedTime += m_fFrameTime[i];
+	if (m_nSampleCount > 0) m_fElapsedTime /= m_nSampleCount;
 }
 
 unsigned long CGameTimer::GetFrameRate(LPTSTR lpszString, int nCharacters)
@@ -78,7 +78,7 @@ unsigned long CGameTimer::GetFrameRate(LPTSTR lpszString, int nCharacters)
 
 float CGameTimer::GetTimeElapsed()
 {
-	return(m_fTimeElapsed);
+	return(m_fElapsedTime);
 }
 
 float CGameTimer::GetTotalTime()

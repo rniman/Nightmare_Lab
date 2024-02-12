@@ -3,7 +3,7 @@
 #define ASPECT_RATIO				(float(FRAME_BUFFER_WIDTH) / float(FRAME_BUFFER_HEIGHT))
 
 #define FIRST_PERSON_CAMERA			0x01
-#define THIRD_PERSON_CAMERA			0x03
+#define THIRD_PERSON_CAMERA			0x02
 
 struct VS_CB_CAMERA_INFO
 {
@@ -12,42 +12,10 @@ struct VS_CB_CAMERA_INFO
 	XMFLOAT3						m_xmf3Position;
 };
 
-class CPlayer {
-public:
-	CPlayer() {};
-	~CPlayer() {};
-};
+class CPlayer;
 
 class CCamera
 {
-protected:
-	XMFLOAT3						m_xmf3Position;
-	XMFLOAT3						m_xmf3Right;
-	XMFLOAT3						m_xmf3Up;
-	XMFLOAT3						m_xmf3Look;
-
-	float           				m_fPitch;
-	float           				m_fRoll;
-	float           				m_fYaw;
-
-	DWORD							m_nMode;
-
-	XMFLOAT3						m_xmf3LookAtWorld;
-	XMFLOAT3						m_xmf3Offset;
-	float           				m_fTimeLag;
-
-	XMFLOAT4X4						m_xmf4x4View;
-	XMFLOAT4X4						m_xmf4x4Projection;
-
-	D3D12_VIEWPORT					m_d3dViewport;
-	D3D12_RECT						m_d3dScissorRect;
-
-	CPlayer* m_pPlayer = NULL;
-
-	ComPtr<ID3D12Resource> m_pd3dcbCamera;
-	VS_CB_CAMERA_INFO* m_pcbMappedCamera = NULL;
-
-	D3D12_GPU_DESCRIPTOR_HANDLE		m_d3dCbvGPUDescriptorHandle;
 public:
 	CCamera();
 	CCamera(CCamera* pCamera);
@@ -101,11 +69,40 @@ public:
 
 	virtual void Move(const XMFLOAT3& xmf3Shift) { m_xmf3Position.x += xmf3Shift.x; m_xmf3Position.y += xmf3Shift.y; m_xmf3Position.z += xmf3Shift.z; }
 	virtual void Rotate(float fPitch = 0.0f, float fYaw = 0.0f, float fRoll = 0.0f) { }
-	virtual void Update(XMFLOAT3& xmf3LookAt, float fTimeElapsed) { }
+	virtual void Update(XMFLOAT3& xmf3LookAt, float fElapsedTime) { }
 	virtual void SetLookAt(XMFLOAT3& xmf3LookAt) { }
 
 	D3D12_GPU_DESCRIPTOR_HANDLE GetDescriptorHandle();
 	void SetDescriptorHandle(D3D12_GPU_DESCRIPTOR_HANDLE handle);
+
+protected:
+	XMFLOAT3						m_xmf3Position;
+	XMFLOAT3						m_xmf3Right;
+	XMFLOAT3						m_xmf3Up;
+	XMFLOAT3						m_xmf3Look;
+
+	float           				m_fPitch;
+	float           				m_fRoll;
+	float           				m_fYaw;
+
+	DWORD							m_nMode;
+
+	XMFLOAT3						m_xmf3LookAtWorld;
+	XMFLOAT3						m_xmf3Offset;
+	float           				m_fTimeLag;
+
+	XMFLOAT4X4						m_xmf4x4View;
+	XMFLOAT4X4						m_xmf4x4Projection;
+
+	D3D12_VIEWPORT					m_d3dViewport;
+	D3D12_RECT						m_d3dScissorRect;
+
+	ComPtr<ID3D12Resource> m_pd3dcbCamera;
+	VS_CB_CAMERA_INFO* m_pcbMappedCamera = NULL;
+
+	D3D12_GPU_DESCRIPTOR_HANDLE		m_d3dCbvGPUDescriptorHandle;
+
+	CPlayer* m_pPlayer = NULL;
 };
 
 class CFirstPersonCamera : public CCamera
@@ -123,7 +120,7 @@ public:
 	CThirdPersonCamera(CCamera* pCamera);
 	virtual ~CThirdPersonCamera() { }
 
-	virtual void Update(XMFLOAT3& xmf3LookAt, float fTimeElapsed);
+	virtual void Update(XMFLOAT3& xmf3LookAt, float fElapsedTime);
 	virtual void SetLookAt(XMFLOAT3& vLookAt);
 };
 
