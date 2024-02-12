@@ -68,9 +68,6 @@ void CTexture::UpdateShaderVariables(ID3D12GraphicsCommandList* pd3dCommandList)
 	{
 		for (int i = 0; i < m_nRootParameters; i++)
 		{
-			if (m_pnRootParameterIndices[i] >= 4) {
-				continue;
-			}
 			pd3dCommandList->SetGraphicsRootDescriptorTable(m_pnRootParameterIndices[i], m_pd3dSrvGpuDescriptorHandles[i]);
 		}
 	}
@@ -97,6 +94,16 @@ void CTexture::ReleaseUploadBuffers()
 		delete[] m_ppd3dTextureUploadBuffers;
 		m_ppd3dTextureUploadBuffers = NULL;
 	}
+}
+
+void CTexture::SetName(_TCHAR* s)
+{
+	_tcscpy(m_sTextureName, s);
+	//m_sTextureName = s;
+}
+_TCHAR* CTexture::GetName()
+{
+	return m_sTextureName;
 }
 
 //void CTexture::LoadTextureFromFile(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dCommandList, wchar_t* pszFileName, UINT nIndex)
@@ -181,7 +188,7 @@ CMaterial::CMaterial(int nTextures)
 	m_nTextures = nTextures;
 
 	m_ppTextures = new CTexture * [m_nTextures];
-	m_ppstrTextureNames = new _TCHAR[m_nTextures][64];
+	m_ppstrTextureNames = new _TCHAR[m_nTextures][128];
 	for (int i = 0; i < m_nTextures; i++) m_ppTextures[i] = NULL;
 	for (int i = 0; i < m_nTextures; i++) m_ppstrTextureNames[i][0] = '\0';
 }
@@ -229,12 +236,15 @@ void CMaterial::UpdateShaderVariable(ID3D12GraphicsCommandList* pd3dCommandList,
 	}
 }
 
+// 텍스처를 이곳에 담아 중복되는 텍스처를 줄일것이다.
+vector<CTexture*> CMaterial::m_vTextureContainer;
+
 void CMaterial::LoadTextureFromFile(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dCommandList, UINT nType, UINT nRootParameter
 	, _TCHAR* pwstrTextureName,	CTexture** ppTexture, CGameObject* pParent, FILE* pInFile)
 {
-	char pstrTextureName[64] = { '\0' };
+	char pstrTextureName[128] = { '\0' };
 
-	BYTE nStrLength = 64;
+	BYTE nStrLength = 128;
 	UINT nReads = (UINT)::fread(&nStrLength, sizeof(BYTE), 1, pInFile);
 	nReads = (UINT)::fread(pstrTextureName, sizeof(char), nStrLength, pInFile);
 	pstrTextureName[nStrLength] = '\0';
@@ -244,16 +254,21 @@ void CMaterial::LoadTextureFromFile(ID3D12Device* pd3dDevice, ID3D12GraphicsComm
 	{
 		SetMaterialType(nType);
 
-		char pstrFilePath[64] = { '\0' };
-		strcpy_s(pstrFilePath, 64, "Asset/Textures/");
+		char pstrFilePath[128] = { '\0' };
+		char fileHighPath[] = "Asset/Textures/";
+		int fileHighPath_Len = strlen(fileHighPath);
+
+		strcpy_s(pstrFilePath, 128, fileHighPath);
 
 		bDuplicated = (pstrTextureName[0] == '@');
-		strcpy_s(pstrFilePath + 15, 64 - 15, (bDuplicated) ? (pstrTextureName + 1) : pstrTextureName);
-		strcpy_s(pstrFilePath + 15 + ((bDuplicated) ? (nStrLength - 1) : nStrLength), 64 - 15 - ((bDuplicated) ? (nStrLength - 1) : nStrLength), ".dds");
+		strcpy_s(pstrFilePath + fileHighPath_Len, 128 - fileHighPath_Len, (bDuplicated) ? (pstrTextureName + 1) : pstrTextureName);
+		strcpy_s(pstrFilePath + fileHighPath_Len + ((bDuplicated) ? (nStrLength - 1) : nStrLength), 128 - fileHighPath_Len - ((bDuplicated) ? (nStrLength - 1) : nStrLength), ".dds");
 
 		size_t nConverted = 0;
-		mbstowcs_s(&nConverted, pwstrTextureName, 64, pstrFilePath, _TRUNCATE);
-
+		mbstowcs_s(&nConverted, pwstrTextureName, 128, pstrFilePath, _TRUNCATE);
+		if (!_tcscmp(pwstrTextureName, _T("Asset/Textures/Laboratory_Floor_1_Laboratory_Floor_3_AlbedoTransparency.dds"))) {
+			int x = 0;
+		}
 		//#define _WITH_DISPLAY_TEXTURE_NAME
 
 #ifdef _WITH_DISPLAY_TEXTURE_NAME
@@ -269,10 +284,14 @@ void CMaterial::LoadTextureFromFile(ID3D12Device* pd3dDevice, ID3D12GraphicsComm
 			if (*ppTexture) (*ppTexture)->AddRef();
 
 			CScene::CreateShaderResourceViews(pd3dDevice, *ppTexture, 0, nRootParameter);
+
+			(*ppTexture)->SetName(pwstrTextureName);
+			m_vTextureContainer.push_back(*ppTexture);
+			if (*ppTexture) (*ppTexture)->AddRef();
 		}
 		else
 		{
-			if (pParent)
+			/*if (pParent)
 			{
 				while (pParent)
 				{
@@ -282,7 +301,19 @@ void CMaterial::LoadTextureFromFile(ID3D12Device* pd3dDevice, ID3D12GraphicsComm
 				CGameObject* pRootGameObject = pParent;
 				*ppTexture = pRootGameObject->FindReplicatedTexture(pwstrTextureName);
 				if (*ppTexture) (*ppTexture)->AddRef();
-			}
+			}*/
+			//else { // parent가 없다면 컨테이너에서 텍스처가 있는지 찾아본다.(로딩시간 증가)
+				for (auto& t : m_vTextureContainer) {
+					if (_tcscmp(pwstrTextureName, t->GetName())) { // 이름이 같지 않으면 계속
+						continue;
+					}
+					*ppTexture = t;
+					if (t) {
+						(t)->AddRef();
+					}
+					break;
+				}
+			//}
 		}
 	}
 }
@@ -1072,6 +1103,8 @@ void CGameObject::LoadMaterialsFromFile(ID3D12Device* pd3dDevice, ID3D12Graphics
 	}
 }
 
+vector<CMesh*> CGameObject::m_vMeshContainer;
+
 CGameObject* CGameObject::LoadFrameHierarchyFromFile(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dCommandList, ID3D12RootSignature* pd3dGraphicsRootSignature, CGameObject* pParent, FILE* pInFile, int* pnSkinnedMeshes)
 {
 	char pstrToken[64] = { '\0' };
@@ -1087,9 +1120,13 @@ CGameObject* CGameObject::LoadFrameHierarchyFromFile(ID3D12Device* pd3dDevice, I
 		if (!strcmp(pstrToken, "<Frame>:"))
 		{
 			nFrame = ::ReadIntegerFromFile(pInFile);
+			
 			nTextures = ::ReadIntegerFromFile(pInFile);
 
 			::ReadStringFromFile(pInFile, pGameObject->m_pstrFrameName);
+			if (!strcmp(pGameObject->m_pstrFrameName, "Laboratory_Ceiling_1_(1)")) {
+				int x = 0;
+			}
 		}
 		else if (!strcmp(pstrToken, "<Transform>:"))
 		{
@@ -1107,6 +1144,23 @@ CGameObject* CGameObject::LoadFrameHierarchyFromFile(ID3D12Device* pd3dDevice, I
 		else if (!strcmp(pstrToken, "<Mesh>:"))
 		{
 			CStandardMesh* pMesh = new CStandardMesh(pd3dDevice, pd3dCommandList);
+			if (!pMesh->LoadMeshFromFile(pd3dDevice, pd3dCommandList, pInFile)) {
+				for (auto m : m_vMeshContainer) {
+					if (!strcmp(m->m_pstrMeshName, pMesh->m_pstrMeshName + 1)) {
+						pMesh = reinterpret_cast<CStandardMesh*>(m);
+						break;
+					}
+				}
+				
+			}
+			else {
+				m_vMeshContainer.push_back(pMesh);
+			}
+			pGameObject->SetMesh(pMesh);
+		}
+		else if (!strcmp(pstrToken, "<InstanceMesh>:"))
+		{
+			CInstanceStandardMesh* pMesh = new CInstanceStandardMesh(pd3dDevice, pd3dCommandList);
 			pMesh->LoadMeshFromFile(pd3dDevice, pd3dCommandList, pInFile);
 			pGameObject->SetMesh(pMesh);
 		}
@@ -1242,7 +1296,6 @@ void CGameObject::LoadAnimationFromFile(FILE* pInFile, CLoadedModelInfo* pLoaded
 		}
 	}
 }
- 
  
 CLoadedModelInfo* CGameObject::LoadGeometryAndAnimationFromFile(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dCommandList, ID3D12RootSignature* pd3dGraphicsRootSignature, char* pstrFileName)
 {

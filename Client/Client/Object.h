@@ -23,6 +23,7 @@ public:
 	virtual ~CTexture();
 
 private:
+
 	int								m_nReferences = 0;
 
 	UINT							m_nTextureType;
@@ -43,6 +44,7 @@ private:
 	int								m_nSamplers = 0;
 	D3D12_GPU_DESCRIPTOR_HANDLE* m_pd3dSamplerGpuDescriptorHandles = NULL;
 
+	_TCHAR m_sTextureName[128];
 public:
 	void AddRef() { m_nReferences++; }
 	void Release() { if (--m_nReferences <= 0) delete this; }
@@ -74,6 +76,9 @@ public:
 	D3D12_SHADER_RESOURCE_VIEW_DESC GetShaderResourceViewDesc(int nIndex);
 
 	void ReleaseUploadBuffers();
+
+	void SetName(_TCHAR* s);
+	_TCHAR* GetName();
 };
 
 class  CGameObject;
@@ -92,6 +97,7 @@ public:
 	void Release() { if (--m_nReferences <= 0) delete this; }
 
 public:
+	static vector<CTexture*> m_vTextureContainer;
 
 	XMFLOAT4						m_xmf4AlbedoColor = XMFLOAT4(1.0f, 1.0f, 1.0f, 1.0f);
 	XMFLOAT4						m_xmf4EmissiveColor = XMFLOAT4(0.0f, 0.0f, 0.0f, 1.0f);
@@ -116,7 +122,7 @@ public:
 
 public:
 	int 							m_nTextures = 0;
-	_TCHAR(*m_ppstrTextureNames)[64] = NULL;
+	_TCHAR(*m_ppstrTextureNames)[128] = NULL;
 	CTexture** m_ppTextures = NULL; //0:Albedo, 1:Specular, 2:Metallic, 3:Normal, 4:Emission, 5:DetailAlbedo, 6:DetailNormal
 
 	void LoadTextureFromFile(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dCommandList, UINT nType, UINT nRootParameter, _TCHAR* pwstrTextureName, CTexture** ppTexture, CGameObject* pParent, FILE* pInFile);
@@ -312,6 +318,9 @@ public:
 	CGameObject(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dCommandList);
 	CGameObject(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dCommandList,int nMaterials);
 	virtual ~CGameObject();
+	
+	//중복된 메쉬를 없애기 위해 최초 메쉬들을 이곳에 저장한다.
+	static vector<CMesh*> m_vMeshContainer;
 
 	char							m_pstrFrameName[64];
 

@@ -82,6 +82,17 @@ struct VS_STANDARD_INPUT
     float3 bitangent : BITANGENT;
 };
 
+struct VS_INSTANCE_STANDARD_INPUT
+{
+    float3 position : POSITION;
+    float2 uv : TEXCOORD;
+    float3 normal : NORMAL;
+    float3 tangent : TANGENT;
+    float3 bitangent : BITANGENT;
+    float4x4 ins_transform : INSMATRIX;
+};
+
+
 struct VS_STANDARD_OUTPUT
 {
     float4 position : SV_POSITION;
@@ -96,11 +107,27 @@ struct VS_STANDARD_OUTPUT
 VS_STANDARD_OUTPUT VSStandard(VS_STANDARD_INPUT input)
 {
     VS_STANDARD_OUTPUT output;
-
+    
     output.positionW = mul(float4(input.position, 1.0f), gmtxGameObject).xyz;
     output.normalW = mul(input.normal, (float3x3) gmtxGameObject);
     output.tangentW = mul(input.tangent, (float3x3) gmtxGameObject);
     output.bitangentW = mul(input.bitangent, (float3x3) gmtxGameObject);
+    output.position = mul(mul(float4(output.positionW, 1.0f), gmtxView), gmtxProjection);
+    output.uv = input.uv;
+
+    return (output);
+}
+
+VS_STANDARD_OUTPUT VSInstanceStandard(VS_INSTANCE_STANDARD_INPUT input)
+{
+    VS_STANDARD_OUTPUT output;
+    
+    float4x4 transformMatrix = mul(input.ins_transform, gmtxGameObject);
+    
+    output.positionW = mul(float4(input.position, 1.0f), transformMatrix).xyz;
+    output.normalW = mul(input.normal, (float3x3) transformMatrix);
+    output.tangentW = mul(input.tangent, (float3x3) transformMatrix);
+    output.bitangentW = mul(input.bitangent, (float3x3) transformMatrix);
     output.position = mul(mul(float4(output.positionW, 1.0f), gmtxView), gmtxProjection);
     output.uv = input.uv;
 
@@ -120,20 +147,21 @@ PS_MULTIPLE_RENDER_TARGETS_OUTPUT PSStandard(VS_STANDARD_OUTPUT input)
     PS_MULTIPLE_RENDER_TARGETS_OUTPUT output;
     
     float4 cAlbedoColor = float4(0.0f, 0.0f, 0.0f, 1.0f);
+    float4 cSpecularColor = float4(0.0f, 0.0f, 0.0f, 1.0f);
+    float4 cNormalColor = float4(0.0f, 0.0f, 0.0f, 1.0f);
+    float4 cMetallicColor = float4(0.0f, 0.0f, 0.0f, 1.0f);
+    float4 cEmissionColor = float4(0.0f, 0.0f, 0.0f, 1.0f);
+    
     if (gnTexturesMask & MATERIAL_ALBEDO_MAP)
         cAlbedoColor = AlbedoTexture.Sample(gssWrap, input.uv);
-    float4 cSpecularColor = float4(0.0f, 0.0f, 0.0f, 1.0f);
-    if (gnTexturesMask & MATERIAL_SPECULAR_MAP)
-        cSpecularColor = SpecularTexture.Sample(gssWrap, input.uv);
-    float4 cNormalColor = float4(0.0f, 0.0f, 0.0f, 1.0f);
-    if (gnTexturesMask & MATERIAL_NORMAL_MAP)
-        cNormalColor = NormalTexture.Sample(gssWrap, input.uv);
-    float4 cMetallicColor = float4(0.0f, 0.0f, 0.0f, 1.0f);
-    if (gnTexturesMask & MATERIAL_METALLIC_MAP)
-        cMetallicColor = MetallicTexture.Sample(gssWrap, input.uv);
-    float4 cEmissionColor = float4(0.0f, 0.0f, 0.0f, 1.0f);
-    if (gnTexturesMask & MATERIAL_EMISSION_MAP)
-        cEmissionColor = EmissionTexture.Sample(gssWrap, input.uv);
+    //if (gnTexturesMask & MATERIAL_SPECULAR_MAP)
+    //    cSpecularColor = SpecularTexture.Sample(gssWrap, input.uv);
+    //if (gnTexturesMask & MATERIAL_NORMAL_MAP)
+    //    cNormalColor = NormalTexture.Sample(gssWrap, input.uv);
+    //if (gnTexturesMask & MATERIAL_METALLIC_MAP)
+    //    cMetallicColor = MetallicTexture.Sample(gssWrap, input.uv);
+    //if (gnTexturesMask & MATERIAL_EMISSION_MAP)
+    //    cEmissionColor = EmissionTexture.Sample(gssWrap, input.uv);
     
     float4 cColor = cAlbedoColor + cSpecularColor + cMetallicColor + cEmissionColor;
     

@@ -57,17 +57,17 @@ void CMesh::Render(ID3D12GraphicsCommandList* pd3dCommandList, int nSubSet)
 	UpdateShaderVariables(pd3dCommandList);
 
 	OnPreRender(pd3dCommandList);
-	
+
 	pd3dCommandList->IASetPrimitiveTopology(m_d3dPrimitiveTopology);
 
 	if ((m_nSubMeshes > 0) && (nSubSet < m_nSubMeshes))
 	{
 		pd3dCommandList->IASetIndexBuffer(&(m_pd3dSubSetIndexBufferViews[nSubSet]));
-		pd3dCommandList->DrawIndexedInstanced(m_pnSubSetIndices[nSubSet], 1, 0, 0, 0);
+		pd3dCommandList->DrawIndexedInstanced(m_pnSubSetIndices[nSubSet], instanceCount, 0, 0, 0);
 	}
 	else
 	{
-		pd3dCommandList->DrawInstanced(m_nVertices, 1, m_nOffset, 0);
+		pd3dCommandList->DrawInstanced(m_nVertices, instanceCount, m_nOffset, 0);
 	}
 }
 
@@ -244,7 +244,7 @@ void CStandardMesh::ReleaseUploadBuffers()
 	m_pd3dBiTangentUploadBuffer = NULL;
 }
 
-void CStandardMesh::LoadMeshFromFile(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dCommandList, FILE* pInFile)
+bool CStandardMesh::LoadMeshFromFile(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dCommandList, FILE* pInFile)
 {
 	char pstrToken[64] = { '\0' };
 	int nPositions = 0, nColors = 0, nNormals = 0, nTangents = 0, nBiTangents = 0, nUVs = 0, nIndices = 0, nSubMeshes = 0, nSubIndices = 0;
@@ -252,7 +252,9 @@ void CStandardMesh::LoadMeshFromFile(ID3D12Device* pd3dDevice, ID3D12GraphicsCom
 	UINT nReads = (UINT)::fread(&m_nVertices, sizeof(int), 1, pInFile);
 
 	::ReadStringFromFile(pInFile, m_pstrMeshName);
-
+	if (m_pstrMeshName[0] == '@') {
+		return false;
+	}
 	for (; ; )
 	{
 		::ReadStringFromFile(pInFile, pstrToken);
@@ -401,11 +403,16 @@ void CStandardMesh::LoadMeshFromFile(ID3D12Device* pd3dDevice, ID3D12GraphicsCom
 				}
 			}
 		}
+		else if (!strcmp(pstrToken, "<InstanceTransformMatrix>:"))
+		{
+			LoadInstanceData(pd3dDevice, pd3dCommandList, pInFile);
+		}
 		else if (!strcmp(pstrToken, "</Mesh>"))
 		{
 			break;
 		}
 	}
+	return true;
 }
 
 void CStandardMesh::OnPreRender(ID3D12GraphicsCommandList* pd3dCommandList)
@@ -413,6 +420,40 @@ void CStandardMesh::OnPreRender(ID3D12GraphicsCommandList* pd3dCommandList)
 	D3D12_VERTEX_BUFFER_VIEW pVertexBufferViews[5] = { m_d3dVertexBufferView, m_d3dUV0BufferView, m_d3dNormalBufferView, m_d3dTangentBufferView, m_d3dBiTangentBufferView };
 	pd3dCommandList->IASetVertexBuffers(m_nSlot, 5, pVertexBufferViews);
 }
+
+CInstanceStandardMesh::CInstanceStandardMesh(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dCommandList) : CStandardMesh(pd3dDevice,pd3dCommandList)
+{
+
+}
+
+CInstanceStandardMesh::~CInstanceStandardMesh()
+{
+}
+
+void CInstanceStandardMesh::LoadInstanceData(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dCommandList, FILE* pInFile)
+{
+	int nReads = (UINT)::fread(&instanceCount, sizeof(int), 1, pInFile);
+	
+	if (instanceCount > 0)
+	{
+		XMFLOAT4X4* m_pxmf4x4InsMatrix = new XMFLOAT4X4[instanceCount];
+		nReads = (UINT)::fread(m_pxmf4x4InsMatrix, sizeof(XMFLOAT4X4), instanceCount, pInFile);
+
+		m_pd3dInstanceTransformMatrixBuffer = ::CreateBufferResource(pd3dDevice, pd3dCommandList, m_pxmf4x4InsMatrix, sizeof(XMFLOAT4X4) * instanceCount, D3D12_HEAP_TYPE_DEFAULT, D3D12_RESOURCE_STATE_VERTEX_AND_CONSTANT_BUFFER, &m_pd3dInstanceTransformMatrixUploadBuffer);
+
+
+		m_d3dInstanceTransformMatrixBufferView.BufferLocation = m_pd3dInstanceTransformMatrixBuffer->GetGPUVirtualAddress();
+		m_d3dInstanceTransformMatrixBufferView.StrideInBytes = sizeof(XMFLOAT4X4);
+		m_d3dInstanceTransformMatrixBufferView.SizeInBytes = sizeof(XMFLOAT4X4) * instanceCount;
+	}
+}
+
+void CInstanceStandardMesh::OnPreRender(ID3D12GraphicsCommandList* pd3dCommandList)
+{
+	D3D12_VERTEX_BUFFER_VIEW pVertexBufferViews[6] = { m_d3dVertexBufferView, m_d3dUV0BufferView, m_d3dNormalBufferView, m_d3dTangentBufferView, m_d3dBiTangentBufferView,m_d3dInstanceTransformMatrixBufferView };
+	pd3dCommandList->IASetVertexBuffers(m_nSlot, 6, pVertexBufferViews);
+}
+
 
 /////////////////////////////////////////////////////////////////////////////////////////////////
 //
@@ -497,7 +538,7 @@ void CSkinnedMesh::PrepareSkinning(CGameObject* pModelRootObject)
 
 void CSkinnedMesh::LoadSkinInfoFromFile(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dCommandList, FILE* pInFile)
 {
-	char pstrToken[64] = { '\0' };
+	char pstrToken[128] = { '\0' };
 	UINT nReads = 0;
 
 	::ReadStringFromFile(pInFile, m_pstrMeshName);
@@ -519,7 +560,7 @@ void CSkinnedMesh::LoadSkinInfoFromFile(ID3D12Device* pd3dDevice, ID3D12Graphics
 			m_nSkinningBones = ::ReadIntegerFromFile(pInFile);
 			if (m_nSkinningBones > 0)
 			{
-				m_ppstrSkinningBoneNames = new char[m_nSkinningBones][64];
+				m_ppstrSkinningBoneNames = new char[m_nSkinningBones][128];
 				m_ppSkinningBoneFrameCaches = new CGameObject * [m_nSkinningBones];
 				for (int i = 0; i < m_nSkinningBones; i++)
 				{
@@ -607,3 +648,4 @@ void CSkinnedMesh::OnPreRender(ID3D12GraphicsCommandList* pd3dCommandList)
 	D3D12_VERTEX_BUFFER_VIEW pVertexBufferViews[7] = { m_d3dVertexBufferView, m_d3dUV0BufferView, m_d3dNormalBufferView, m_d3dTangentBufferView, m_d3dBiTangentBufferView, m_d3dBoneIndexBufferView, m_d3dBoneWeightBufferView };
 	pd3dCommandList->IASetVertexBuffers(m_nSlot, 7, pVertexBufferViews);
 }
+

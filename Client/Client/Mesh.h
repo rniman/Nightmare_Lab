@@ -12,6 +12,8 @@ public:
 
 	char							m_pstrMeshName[64] = { 0 };
 
+	int instanceCount = 1;
+
 	void AddRef() { m_nReferences++; }
 	void Release() { if (--m_nReferences <= 0) delete this; }
 
@@ -108,10 +110,26 @@ protected:
 	D3D12_VERTEX_BUFFER_VIEW		m_d3dBiTangentBufferView;
 
 public:
-	void LoadMeshFromFile(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dCommandList, FILE* pInFile);
+	bool LoadMeshFromFile(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dCommandList, FILE* pInFile);
+	virtual void LoadInstanceData(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dCommandList, FILE* pInFile) {}
 
 	virtual void ReleaseUploadBuffers();
 
+	virtual void OnPreRender(ID3D12GraphicsCommandList* pd3dCommandList);
+};
+
+class CInstanceStandardMesh : public CStandardMesh
+{
+public:
+	CInstanceStandardMesh(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dCommandList);
+	virtual ~CInstanceStandardMesh();
+
+protected:
+	ID3D12Resource*					m_pd3dInstanceTransformMatrixBuffer = NULL;
+	ID3D12Resource*					m_pd3dInstanceTransformMatrixUploadBuffer = NULL;
+	D3D12_VERTEX_BUFFER_VIEW		m_d3dInstanceTransformMatrixBufferView;
+public:
+	virtual void LoadInstanceData(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dCommandList, FILE* pInFile);
 	virtual void OnPreRender(ID3D12GraphicsCommandList* pd3dCommandList);
 };
 
@@ -144,7 +162,7 @@ protected:
 public:
 	int								m_nSkinningBones = 0;
 
-	char(*m_ppstrSkinningBoneNames)[64]; //[m_nSkinningBones]
+	char(*m_ppstrSkinningBoneNames)[128]; //[m_nSkinningBones]
 	CGameObject** m_ppSkinningBoneFrameCaches = NULL; //[m_nSkinningBones]
 
 	XMFLOAT4X4* m_pxmf4x4BindPoseBoneOffsets = NULL; //[m_nSkinningBones], Transposed

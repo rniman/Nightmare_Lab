@@ -205,15 +205,19 @@ void CScene::BuildObjects(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* p
 	CreateGraphicsRootSignature(pd3dDevice);
 
 	// CBV : 카메라(1), 육면체(1) ,서버인원예상(20), 엘런(119)
-	int cbv_Count = 1 + 1 + 20 + 119;
+	int cbv_Count = 1 + 1 + 20 + 119 + 9999;
 	// SRV : 육면체(1),엘런(8(오클루젼맵제거),디퍼드렌더링텍스처(3)
-	int srv_Count = 1 + 8 + 3;
+	int srv_Count = 1 + 8 + 3 + 9999;
 	CreateCbvSrvDescriptorHeaps(pd3dDevice, cbv_Count, srv_Count);
 
 	// 쉐이더 vector에 삽입한 순서대로 인덱스 define한 값으로 접근
 	m_vShader.push_back(make_unique<StandardShader>());
 	DXGI_FORMAT pdxgiRtvFormats[4] = { DXGI_FORMAT_R8G8B8A8_UNORM, DXGI_FORMAT_R8G8B8A8_UNORM, DXGI_FORMAT_R8G8B8A8_UNORM, DXGI_FORMAT_R32_FLOAT };
 	m_vShader[STANDARD_SHADER]->CreateShader(pd3dDevice, pd3dCommandList, m_pd3dGraphicsRootSignature.Get(), 4, pdxgiRtvFormats, DXGI_FORMAT_D24_UNORM_S8_UINT);
+
+	m_vShader.push_back(make_unique<InstanceStandardShader>());
+	m_vShader[INSTANCE_STANDARD_SHADER]->CreateShader(pd3dDevice, pd3dCommandList, m_pd3dGraphicsRootSignature.Get(), 4, pdxgiRtvFormats, DXGI_FORMAT_D24_UNORM_S8_UINT);
+
 	m_vShader.push_back(make_unique< CSkinnedAnimationStandardShader>());
 	m_vShader[SKINNEDANIMATION_STANDARD_SHADER]->CreateShader(pd3dDevice, pd3dCommandList, m_pd3dGraphicsRootSignature.Get(), 4, pdxgiRtvFormats, DXGI_FORMAT_D24_UNORM_S8_UINT);
 
@@ -224,13 +228,66 @@ void CScene::BuildObjects(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* p
 	CGameObject* ellenObject = new CGameObject(pd3dDevice, pd3dCommandList);
 	ellenObject->SetChild(EllenModelInfo->m_pModelRootObject, true);
 	ellenObject->m_pSkinnedAnimationController = new CAnimationController(pd3dDevice, pd3dCommandList, 1, EllenModelInfo);
-	ellenObject->m_pSkinnedAnimationController->SetTrackAnimationSet(0, 0);
+	ellenObject->m_pSkinnedAnimationController->SetTrackAnimationSet(0, 2);
 	ellenObject->SetPosition(0.0f, -1.0f, 4.0f);
-	ellenObject->Rotate(0.0f, 90.0f, 0.0f);
+	ellenObject->Rotate(0.0f, 180.0f, 0.0f);
 
 	m_vShader[SKINNEDANIMATION_STANDARD_SHADER]->AddGameObject(ellenObject);
 	
 	if (EllenModelInfo) delete EllenModelInfo;
+
+	FILE* pInFile = NULL;
+	::fopen_s(&pInFile, (char*)"Asset/Model/Scene.bin", "rb");
+	::rewind(pInFile);
+	int fileEnd{};
+	while (true)
+	{
+		CLoadedModelInfo* pLoadedModel = new CLoadedModelInfo();
+
+		char pstrToken[128] = { '\0' };
+
+		for (; ; )
+		{
+			if (::ReadStringFromFile(pInFile, pstrToken))
+			{
+				if (!strcmp(pstrToken, "<Hierarchy>:"))
+				{
+					pLoadedModel->m_pModelRootObject = CGameObject::LoadFrameHierarchyFromFile(pd3dDevice, pd3dCommandList, m_pd3dGraphicsRootSignature.Get(), NULL, pInFile, &pLoadedModel->m_nSkinnedMeshes);
+					::ReadStringFromFile(pInFile, pstrToken); //"</Hierarchy>"
+					pLoadedModel->m_pModelRootObject->Rotate(0.0f, 0.0f, 0.0f);
+					if(!strcmp(pLoadedModel->m_pModelRootObject->m_pstrFrameName, "Zom_1")) { // 씬을 바이너리로 쓸때 스키닝 정보는 넣지 않음(그러므로 이 객체는 정보 x)
+						m_vShader[SKINNEDANIMATION_STANDARD_SHADER]->AddGameObject(pLoadedModel->m_pModelRootObject);
+
+					}
+					else {
+						m_vShader[INSTANCE_STANDARD_SHADER]->AddGameObject(pLoadedModel->m_pModelRootObject);
+					}
+				}
+				else if (!strcmp(pstrToken, "<Animation>:"))
+				{
+					CGameObject::LoadAnimationFromFile(pInFile, pLoadedModel);
+					pLoadedModel->PrepareSkinning();
+				}
+				else if (!strcmp(pstrToken, "</Animation>:"))
+				{
+					break;
+				}
+				else if (!strcmp(pstrToken, "</Scene>:"))
+				{
+					fileEnd = 1;
+					break;
+				}
+			}
+			else
+			{
+				break;
+			}
+		}
+		if (fileEnd) {
+			break;
+		}
+
+	}
 
 	CreateShaderVariables(pd3dDevice, pd3dCommandList);
 }
@@ -380,9 +437,9 @@ bool CScene::OnProcessingKeyboardMessage(HWND hWnd, UINT nMessageID, WPARAM wPar
 	return false;
 }
 
-bool CScene::ProcessInput()
+bool CScene::ProcessInput(UCHAR* pKeysBuffer)
 {
-	return false;
+	return(false);
 }
 
 void CScene::AnimateObjects(float fTimeElapsed)

@@ -5,7 +5,8 @@
 
 // m_vShader 쉐이더에 AddDefaultObject 시에 접근할 각 쉐이더 인덱스를 의미
 #define STANDARD_SHADER 0
-#define SKINNEDANIMATION_STANDARD_SHADER 1
+#define INSTANCE_STANDARD_SHADER 1
+#define SKINNEDANIMATION_STANDARD_SHADER 2
 
 // m_vMesh 메쉬에 접근할 각 인덱스를 의미
 #define HEXAHEDRONMESH 0
@@ -31,7 +32,7 @@ public:
 	void ReleaseUploadBuffers();
 
 	//씬 업데이트 관련
-	bool ProcessInput();
+	bool ProcessInput(UCHAR* pKeysBuffer);
 	void AnimateObjects(float fTimeElapsed);
 
 	//렌더링 관련

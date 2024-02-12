@@ -395,8 +395,10 @@ void CGameFramework::BuildObjects()
 	m_pScene = new CScene();
 	if (m_pScene) m_pScene->BuildObjects(m_d3d12Device.Get(), m_d3dCommandList.Get());
 	m_pCamera = new CCamera();
+	m_pCamera->SetMode(THIRD_PERSON_CAMERA);
+	m_pCamera = new CFirstPersonCamera(m_pCamera);
 	m_pCamera->CreateShaderVariables(m_d3d12Device.Get(), m_d3dCommandList.Get());
-
+	
 #ifndef SINGLE_PLAY
 	for (const auto& [id,info] : m_pClientNetwork->GetClientInfos()) {
 		m_pScene->AddDefaultObject(m_d3d12Device.Get(), m_d3dCommandList.Get(),
@@ -404,9 +406,9 @@ void CGameFramework::BuildObjects()
 			STANDARD_SHADER, HEXAHEDRONMESH);
 	}
 #else
-	m_pScene->AddDefaultObject(m_d3d12Device.Get(), m_d3dCommandList.Get(),
+	/*m_pScene->AddDefaultObject(m_d3d12Device.Get(), m_d3dCommandList.Get(),
 		ObjectType::HEXAHERON,XMFLOAT3(m_pClientNetwork->GetPostion(0)),
-		STANDARD_SHADER, HEXAHEDRONMESH);
+		STANDARD_SHADER, HEXAHEDRONMESH);*/
 #endif // NOT DEFINE SINGLE_PLAY
 
 	m_pPostProcessingShader = new CPostProcessingShader();
@@ -445,42 +447,54 @@ void CGameFramework::ProcessInput()
 	static UCHAR pKeysBuffer[256];
 	bool bProcessedByScene = false;
 
-	//if (GetKeyboardState(pKeysBuffer) && m_pScene) bProcessedByScene = m_pScene->ProcessInput(pKeysBuffer);
+	if (GetKeyboardState(pKeysBuffer) && m_pScene) bProcessedByScene = m_pScene->ProcessInput(pKeysBuffer);
 
-	//if (!bProcessedByScene)
-	//{
-	//	float cxDelta = 0.0f, cyDelta = 0.0f;
-	//	POINT ptCursorPos;
-	//	if (GetCapture() == m_hWnd)
-	//	{
-	//		SetCursor(NULL);
-	//		GetCursorPos(&ptCursorPos);
-	//		cxDelta = (float)(ptCursorPos.x - m_ptOldCursorPos.x) / 3.0f;
-	//		cyDelta = (float)(ptCursorPos.y - m_ptOldCursorPos.y) / 3.0f;
-	//		SetCursorPos(m_ptOldCursorPos.x, m_ptOldCursorPos.y);
-	//	}
+	if (!bProcessedByScene)
+	{
+		float cxDelta = 0.0f, cyDelta = 0.0f;
+		POINT ptCursorPos;
+		if (GetCapture() == m_hWnd)
+		{
+			SetCursor(NULL);
+			GetCursorPos(&ptCursorPos);
+			cxDelta = (float)(ptCursorPos.x - m_ptOldCursorPos.x) / 3.0f;
+			cyDelta = (float)(ptCursorPos.y - m_ptOldCursorPos.y) / 3.0f;
+			SetCursorPos(m_ptOldCursorPos.x, m_ptOldCursorPos.y);
+		}
 
-	//	DWORD dwDirection = 0;
-	//	if (pKeysBuffer[VK_UP] & 0xF0) dwDirection |= DIR_FORWARD;
-	//	if (pKeysBuffer[VK_DOWN] & 0xF0) dwDirection |= DIR_BACKWARD;
-	//	if (pKeysBuffer[VK_LEFT] & 0xF0) dwDirection |= DIR_LEFT;
-	//	if (pKeysBuffer[VK_RIGHT] & 0xF0) dwDirection |= DIR_RIGHT;
-	//	if (pKeysBuffer[VK_PRIOR] & 0xF0) dwDirection |= DIR_UP;
-	//	if (pKeysBuffer[VK_NEXT] & 0xF0) dwDirection |= DIR_DOWN;
+		DWORD dwDirection = 0;
+		if (pKeysBuffer[VK_UP] & 0xF0) dwDirection |= DIR_FORWARD;
+		if (pKeysBuffer[VK_DOWN] & 0xF0) dwDirection |= DIR_BACKWARD;
+		if (pKeysBuffer[VK_LEFT] & 0xF0) dwDirection |= DIR_LEFT;
+		if (pKeysBuffer[VK_RIGHT] & 0xF0) dwDirection |= DIR_RIGHT;
+		if (pKeysBuffer[VK_PRIOR] & 0xF0) dwDirection |= DIR_UP;
+		if (pKeysBuffer[VK_NEXT] & 0xF0) dwDirection |= DIR_DOWN;
 
-	//	if ((dwDirection != 0) || (cxDelta != 0.0f) || (cyDelta != 0.0f))
-	//	{
-	//		if (cxDelta || cyDelta)
-	//		{
-	//			if (pKeysBuffer[VK_RBUTTON] & 0xF0)
-	//				m_pPlayer->Rotate(cyDelta, 0.0f, -cxDelta);
-	//			else
-	//				m_pPlayer->Rotate(cyDelta, cxDelta, 0.0f);
-	//		}
-	//		if (dwDirection) m_pPlayer->Move(dwDirection, 12.25f, true);
-	//	}
-	//}
-	//m_pPlayer->Update(m_GameTimer.GetTimeElapsed());
+		if ((dwDirection != 0) || (cxDelta != 0.0f) || (cyDelta != 0.0f))
+		{
+			if (cxDelta || cyDelta)
+			{
+				if (pKeysBuffer[VK_RBUTTON] & 0xF0)
+					m_pCamera->Rotate(cyDelta, 0.0f, -cxDelta);
+				else
+					m_pCamera->Rotate(cyDelta, cxDelta, 0.0f);
+			}
+			if (dwDirection) {
+				if (pKeysBuffer[VK_UP] & 0xF0) {
+					m_pCamera->Move(Vector3::ScalarProduct(m_pCamera->GetLookVector(),10.0f* m_GameTimer.GetTimeElapsed()));
+				}
+				if (pKeysBuffer[VK_DOWN] & 0xF0) {
+					m_pCamera->Move(Vector3::ScalarProduct(m_pCamera->GetLookVector(), -10.0f* m_GameTimer.GetTimeElapsed()));
+				}
+				if (pKeysBuffer[VK_LEFT] & 0xF0) {
+				}
+				if (pKeysBuffer[VK_RIGHT] & 0xF0) {
+				}
+			}
+		}
+	}
+	m_pCamera->RegenerateViewMatrix();
+	//m_pCamera->Update(m_GameTimer.GetTimeElapsed());
 }
 
 void CGameFramework::AnimateObjects()

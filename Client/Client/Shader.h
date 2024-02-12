@@ -77,6 +77,17 @@ public:
 	virtual void CreateShader(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dCommandList, ID3D12RootSignature* pd3dGraphicsRootSignature, UINT nRenderTargets = 1,
 		DXGI_FORMAT* pdxgiRtvFormats = nullptr, DXGI_FORMAT dxgiDsvFormat = DXGI_FORMAT_D24_UNORM_S8_UINT);
 };
+
+class InstanceStandardShader : public StandardShader {
+public:
+	InstanceStandardShader();
+	~InstanceStandardShader();
+
+	virtual D3D12_INPUT_LAYOUT_DESC CreateInputLayout();
+
+	virtual D3D12_SHADER_BYTECODE CreateVertexShader();
+};
+
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 class CSkinnedAnimationStandardShader : public StandardShader
