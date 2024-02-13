@@ -21,12 +21,12 @@
 #include <wrl.h>
 #include <shellapi.h>
 
+// STL
 #include <fstream>
 #include <vector>
 #include <unordered_map>
 
 using namespace std;
-
 
 #include <d3d12.h>
 #include <dxgi1_4.h>
@@ -36,8 +36,9 @@ using namespace std;
 #include <DirectXColors.h>
 #include <DirectXCollision.h>
 
+// PlaySound
+#pragma comment(lib, "winmm.lib")
 #include <Mmsystem.h>
-
 
 #ifdef _DEBUG
 #include <dxgidebug.h>
@@ -235,6 +236,28 @@ namespace Vector4
 		XMFLOAT4 xmf4Result;
 		XMStoreFloat4(&xmf4Result, fScalar * XMLoadFloat4(&xmf4Vector));
 		return(xmf4Result);
+	}
+
+	inline XMFLOAT4 Quaternion(XMFLOAT3& xmf3Vector, float fDegree)
+	{
+		XMFLOAT4 xmf4Result;
+		XMStoreFloat4(&xmf4Result, XMQuaternionRotationAxis(XMLoadFloat3(&xmf3Vector), DirectX::XMConvertToRadians(fDegree)));
+
+		return xmf4Result;
+	}
+
+	inline XMFLOAT4 Quaternion(XMFLOAT4& xmf4Vector, float fDegree)
+	{
+		XMFLOAT4 xmf4Result;
+		XMStoreFloat4(&xmf4Result, XMQuaternionRotationAxis(XMLoadFloat4(&xmf4Vector), DirectX::XMConvertToRadians(fDegree)));
+		return xmf4Result;
+	}
+
+	inline XMFLOAT4 Quaternion(float fPitch, float fYaw, float fRoll)
+	{
+		XMFLOAT4 xmf4Result;
+		XMStoreFloat4(&xmf4Result, XMQuaternionRotationRollPitchYaw(DirectX::XMConvertToRadians(fPitch), DirectX::XMConvertToRadians(fYaw), DirectX::XMConvertToRadians(fRoll)));
+		return xmf4Result;
 	}
 }
 

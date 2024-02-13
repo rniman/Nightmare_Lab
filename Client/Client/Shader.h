@@ -41,10 +41,13 @@ public:
 	virtual void ReleaseUploadBuffers();
 
 	//virtual void BuildObjects(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dCommandList, ID3D12RootSignature* pd3dGraphicsRootSignature, CLoadedModelInfo* pModel, void* pContext = NULL) { }
-	virtual void AnimateObjects(float fTimeElapsed);
+	virtual void AnimateObjects(float fElapsedTime);
 	virtual void ReleaseObjects() { }
 
 	virtual void AddGameObject(CGameObject* object);
+
+	// Interface
+	vector<shared_ptr<CGameObject>> GetGameObjects() const { return m_vGameObjects; };
 
 protected:
 	// 게임내 오브젝트는 쉐이더가 관리한다.

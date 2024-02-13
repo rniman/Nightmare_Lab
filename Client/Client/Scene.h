@@ -11,6 +11,8 @@
 // m_vMesh 메쉬에 접근할 각 인덱스를 의미
 #define HEXAHEDRONMESH 0
 
+class CPlayer;
+
 class CScene
 {
 public:
@@ -33,7 +35,7 @@ public:
 
 	//씬 업데이트 관련
 	bool ProcessInput(UCHAR* pKeysBuffer);
-	void AnimateObjects(float fTimeElapsed);
+	void AnimateObjects(float fElapsedTime);
 
 	//렌더링 관련
 	void UpdateShaderVariables(ID3D12GraphicsCommandList* pd3dCommandList);
@@ -65,6 +67,9 @@ protected:
 	static D3D12_GPU_DESCRIPTOR_HANDLE	m_d3dSrvGPUDescriptorNextHandle;
 
 public:
+	// Cbv Count
+	static int m_nCntCbv;
+
 	static void CreateCbvSrvDescriptorHeaps(ID3D12Device* pd3dDevice, int nConstantBufferViews, int nShaderResourceViews);
 
 	static D3D12_GPU_DESCRIPTOR_HANDLE CreateConstantBufferViews(ID3D12Device* pd3dDevice, int nConstantBufferViews, ID3D12Resource* pd3dConstantBuffers, UINT nStride);

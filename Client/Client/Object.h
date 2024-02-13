@@ -259,6 +259,46 @@ public:
 	void PrepareSkinning();
 };
 
+class CAnimationTransition
+{
+public:
+	void SetTransitionAnimationTrack(int nNowState, int nNextState)
+	{
+		m_nNowState = nNowState;
+		m_nNextState = nNextState;
+	}
+
+	void SetExitTime(float fExitTime) { m_fExitTime = fExitTime; }
+	void SetTransitionStartTime(float fTransitionStart) { m_fTransitionStart = fTransitionStart; }
+	void SetTransitionDuration(float fTransitionDuration) { m_fTransitionDuration = fTransitionDuration; }
+	bool IsTransition(int nNowState, int nNextState)
+	{
+		if (nNowState == m_nNowState && nNextState == m_nNextState)
+		{
+			return true;
+		}
+		return false;
+	}
+
+	void SetAnimationTransition(float fExitTime, float fTransitionStart, float fTransitionDuration)
+	{
+		SetExitTime(fExitTime);
+		SetTransitionStartTime(fTransitionStart);
+		SetTransitionDuration(fTransitionDuration);
+		m_fTransitionTime = 0.0f;
+	}
+
+public:
+	int m_nNowState;
+	int m_nNextState;
+
+	float m_fExitTime = 0.0f;	//상태전이를 시작할수있는 시점(전체 애니메이션 길이에서(0 ~ 1))
+	float m_fTransitionStart = 0.0f;
+
+	float m_fTransitionDuration = 0.0f;	//상태전이에 걸리는 시간
+	float m_fTransitionTime = 0.0f;	//현재까지 상태전이에 걸린 시간
+};
+
 class CAnimationController
 {
 public:
@@ -279,6 +319,16 @@ public:
 	ID3D12Resource** m_ppd3dcbSkinningBoneTransforms = NULL; //[SkinnedMeshes]
 	XMFLOAT4X4** m_ppcbxmf4x4MappedSkinningBoneTransforms = NULL; //[SkinnedMeshes]
 	
+	// 블렌드위한 가중치
+	std::vector<float> m_vfBlendWeight;
+
+	int m_nState = 0;	// 상태 개수
+	int m_nTransition = 0;	// 상태전이 개수
+	CAnimationTransition* m_pAnimationTransitions = NULL;
+	bool m_bTransition = false;
+	int m_nNowState;
+	int m_nNextState;
+
 	D3D12_GPU_DESCRIPTOR_HANDLE* m_d3dCbvSkinningBoneTransformsGPUDescriptorHandle = NULL;
 public:
 	void UpdateShaderVariables(ID3D12GraphicsCommandList* pd3dCommandList);
@@ -294,8 +344,10 @@ public:
 	void SetCallbackKey(int nAnimationTrack, int nKeyIndex, float fTime, void* pData);
 	void SetAnimationCallbackHandler(int nAnimationTrack, CAnimationCallbackHandler* pCallbackHandler);
 
-	void AdvanceTime(float fElapsedTime, CGameObject* pRootGameObject);
+	void AddBlendWeight(float fBlendWeight);
+	void SetBlendWeight(int nBlendIndex, float fBlendWeight);
 
+	virtual void AdvanceTime(float fElapsedTime, CGameObject* pRootGameObject);
 public:
 	bool							m_bRootMotion = false;
 	CGameObject* m_pModelRootObject = NULL;
@@ -316,7 +368,7 @@ class  CGameObject
 {
 public:
 	CGameObject(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dCommandList);
-	CGameObject(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dCommandList,int nMaterials);
+	CGameObject(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dCommandList, int nMaterials);
 	virtual ~CGameObject();
 	
 	//중복된 메쉬를 없애기 위해 최초 메쉬들을 이곳에 저장한다.
@@ -348,9 +400,10 @@ public:
 
 	void SetChild(CGameObject* pChild, bool bReferenceUpdate = false);
 
-	virtual void Animate(float fTimeElapsed);
+	virtual void Animate(float fElapsedTime);
 
 	virtual void Render(ID3D12GraphicsCommandList* pd3dCommandList);
+	//virtual void Render(ID3D12GraphicsCommandList* pd3dCommandList, CCamera* pCamera);
 
 	virtual void CreateShaderVariables(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dCommandList);
 	virtual void UpdateShaderVariables(ID3D12GraphicsCommandList* pd3dCommandList);
@@ -413,6 +466,20 @@ public:
 	
 	static CLoadedModelInfo* LoadGeometryAndAnimationFromFile(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dCommandList, ID3D12RootSignature* pd3dGraphicsRootSignature, char* pstrFileName);
 	
+	char* GetFrameName() { return m_pstrFrameName; };
+
+	// Collide
+	vector<CGameObject*> m_vpCollideFrame;	// Collision에 관여하는 프레임 집합
+
+	virtual void SetOOBB() {};
+	virtual void AnimateOOBB() {};
+	BoundingOrientedBox GetOOBB(int nIndex) const { return m_OOBB[nIndex]; };
+	vector<BoundingOrientedBox> m_OOBB;
+
+	// Picking
+	bool CheckPicking(const CGameObject* pGameObject, const XMFLOAT3& xmf3PickPosition, const XMFLOAT4X4& mxf4x4ViewMatrix, float& fDistance);
+	virtual void AnimatePicking(float fElapsedTime) {};
+	virtual void CallbackPicking() {};
 };
 
 
@@ -422,3 +489,5 @@ public:
 	CHexahedronObject(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dCommandList, int nMaterials);
 	~CHexahedronObject();
 };
+
+int cntCbvModelObject(CGameObject* pGameObject, int nCnt);

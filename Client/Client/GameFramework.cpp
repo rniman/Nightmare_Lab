@@ -4,6 +4,7 @@
 
 #include "stdafx.h"
 #include "GameFramework.h"
+#include "Player.h"
 
  extern UINT gnCbvSrvDescriptorIncrementSize;
  extern UINT gnRtvDescriptorIncrementSize;
@@ -299,9 +300,21 @@ void CGameFramework::OnProcessingMouseMessage(HWND hWnd, UINT nMessageID, WPARAM
 	switch (nMessageID)
 	{
 	case WM_LBUTTONDOWN:
-	case WM_RBUTTONDOWN:
 		::SetCapture(hWnd);
 		::GetCursorPos(&m_ptOldCursorPos);
+		if(dynamic_cast<CZombiePlayer*>(m_pPlayer))
+		{
+			m_pPlayer->m_pSkinnedAnimationController->SetTrackEnable(2, true);
+		}
+		break;
+	case WM_RBUTTONDOWN:
+		m_pPlayer->m_pPikedObject = m_pPlayer->GetPickedObject(LOWORD(lParam), HIWORD(lParam), m_pScene);
+		if(m_pPlayer->m_pPikedObject)
+		{
+			m_pPlayer->m_pPikedObject->CallbackPicking();
+		}
+		//::SetCapture(hWnd);
+		//::GetCursorPos(&m_ptOldCursorPos);
 		break;
 	case WM_LBUTTONUP:
 	case WM_RBUTTONUP:
@@ -329,6 +342,9 @@ void CGameFramework::OnProcessingKeyboardMessage(HWND hWnd, UINT nMessageID, WPA
 			break;
 		case VK_F1:
 		case VK_F2:
+			m_pPlayer->ChangeCamera((DWORD)(wParam - VK_F1 + 1), m_GameTimer.GetTimeElapsed());
+			m_pCamera = m_pPlayer->GetCamera();
+			break;
 		case VK_F3:
 			break;
 		case VK_F9:
@@ -394,11 +410,11 @@ void CGameFramework::BuildObjects()
 
 	m_pScene = new CScene();
 	if (m_pScene) m_pScene->BuildObjects(m_d3d12Device.Get(), m_d3dCommandList.Get());
-	m_pCamera = new CCamera();
-	m_pCamera->SetMode(THIRD_PERSON_CAMERA);
-	m_pCamera = new CFirstPersonCamera(m_pCamera);
-	m_pCamera->CreateShaderVariables(m_d3d12Device.Get(), m_d3dCommandList.Get());
-	
+
+	//m_pPlayer = new CBlueSuitPlayer(m_d3d12Device.Get(), m_d3dCommandList.Get(), m_pScene->GetGraphicsRootSignature(), m_pScene);
+	m_pPlayer = new CZombiePlayer(m_d3d12Device.Get(), m_d3dCommandList.Get(), m_pScene->GetGraphicsRootSignature(), m_pScene);
+	m_pCamera = m_pPlayer->GetCamera();
+
 #ifndef SINGLE_PLAY
 	for (const auto& [id,info] : m_pClientNetwork->GetClientInfos()) {
 		m_pScene->AddDefaultObject(m_d3d12Device.Get(), m_d3dCommandList.Get(),
@@ -421,7 +437,6 @@ void CGameFramework::BuildObjects()
 	m_pPostProcessingShader->CreateResourcesAndRtvsSrvs(m_d3d12Device.Get(), m_d3dCommandList.Get(), 3, pdxgiResourceFormats, d3dRtvCPUDescriptorHandle); //SRV to (Render Targets) + (Depth Buffer)
 
 	//D3D12_GPU_DESCRIPTOR_HANDLE d3dDsvGPUDescriptorHandle = CScene::CreateShaderResourceView(m_d3d12Device.Get(), m_d3dDepthStencilBuffer.Get(), DXGI_FORMAT_R32_FLOAT);
-
 
 	m_d3dCommandList->Close();
 	ID3D12CommandList* ppd3dCommandLists[] = { m_d3dCommandList.Get()};
@@ -463,47 +478,51 @@ void CGameFramework::ProcessInput()
 		}
 
 		DWORD dwDirection = 0;
-		if (pKeysBuffer[VK_UP] & 0xF0) dwDirection |= DIR_FORWARD;
-		if (pKeysBuffer[VK_DOWN] & 0xF0) dwDirection |= DIR_BACKWARD;
-		if (pKeysBuffer[VK_LEFT] & 0xF0) dwDirection |= DIR_LEFT;
-		if (pKeysBuffer[VK_RIGHT] & 0xF0) dwDirection |= DIR_RIGHT;
+		//if (pKeysBuffer[VK_UP] & 0xF0) dwDirection |= DIR_FORWARD;
+		//if (pKeysBuffer[VK_DOWN] & 0xF0) dwDirection |= DIR_BACKWARD;
+		//if (pKeysBuffer[VK_LEFT] & 0xF0) dwDirection |= DIR_LEFT;
+		//if (pKeysBuffer[VK_RIGHT] & 0xF0) dwDirection |= DIR_RIGHT;
 		if (pKeysBuffer[VK_PRIOR] & 0xF0) dwDirection |= DIR_UP;
 		if (pKeysBuffer[VK_NEXT] & 0xF0) dwDirection |= DIR_DOWN;
+
+		if (pKeysBuffer[0x57] & 0xF0) dwDirection |= DIR_FORWARD;
+		if (pKeysBuffer[0x53] & 0xF0) dwDirection |= DIR_BACKWARD;
+		if (pKeysBuffer[0x41] & 0xF0) dwDirection |= DIR_LEFT;
+		if (pKeysBuffer[0x44] & 0xF0) dwDirection |= DIR_RIGHT;
 
 		if ((dwDirection != 0) || (cxDelta != 0.0f) || (cyDelta != 0.0f))
 		{
 			if (cxDelta || cyDelta)
 			{
-				if (pKeysBuffer[VK_RBUTTON] & 0xF0)
-					m_pCamera->Rotate(cyDelta, 0.0f, -cxDelta);
-				else
-					m_pCamera->Rotate(cyDelta, cxDelta, 0.0f);
+				if (pKeysBuffer[VK_LBUTTON] & 0xF0)
+				{
+					m_pPlayer->Rotate(cyDelta, cxDelta, 0.0f);
+				}
+				else if(pKeysBuffer[VK_RBUTTON] & 0xF0)
+				{
+					//m_pPlayer->Rotate(cyDelta, 0.0f, -cxDelta);
+				}
 			}
-			if (dwDirection) {
-				if (pKeysBuffer[VK_UP] & 0xF0) {
-					m_pCamera->Move(Vector3::ScalarProduct(m_pCamera->GetLookVector(),10.0f* m_GameTimer.GetTimeElapsed()));
-				}
-				if (pKeysBuffer[VK_DOWN] & 0xF0) {
-					m_pCamera->Move(Vector3::ScalarProduct(m_pCamera->GetLookVector(), -10.0f* m_GameTimer.GetTimeElapsed()));
-				}
-				if (pKeysBuffer[VK_LEFT] & 0xF0) {
-				}
-				if (pKeysBuffer[VK_RIGHT] & 0xF0) {
-				}
+
+			if (dwDirection)
+			{
+				m_pPlayer->Move(dwDirection, 12.25f, true);
 			}
 		}
 	}
-	m_pCamera->RegenerateViewMatrix();
-	//m_pCamera->Update(m_GameTimer.GetTimeElapsed());
+	m_pPlayer->Update(m_GameTimer.GetTimeElapsed());
 }
 
 void CGameFramework::AnimateObjects()
 {
-	float fTimeElapsed = m_GameTimer.GetTimeElapsed();
+	float fElapsedTime = m_GameTimer.GetTimeElapsed();
 
-	if (m_pScene) m_pScene->AnimateObjects(fTimeElapsed);
-
-	//m_pPlayer->Animate(fTimeElapsed);
+	if (m_pScene) m_pScene->AnimateObjects(fElapsedTime);
+	if(m_pPlayer->m_pPikedObject) 
+	{
+		m_pPlayer->m_pPikedObject->AnimatePicking(fElapsedTime);
+	}
+	//m_pPlayer->Animate(fElapsedTime);
 }
 
 void CGameFramework::WaitForGpuComplete()
@@ -564,12 +583,15 @@ void CGameFramework::FrameAdvance()
 		m_pPostProcessingShader->OnPrepareRenderTarget(m_d3dCommandList.Get(), 1, &m_pd3dSwapChainBackBufferRTVCPUHandles[m_nSwapChainBufferIndex], &d3dDsvCPUDescriptorHandle);
 
 		//1Â÷ ·»´õ¸µ
-		if (m_pScene) m_pScene->Render(m_d3dCommandList.Get(), m_pCamera);
+		if (m_pScene)
+		{
+			m_pScene->Render(m_d3dCommandList.Get(), m_pCamera);
+		}
 
 #ifdef _WITH_PLAYER_TOP
 		m_d3dCommandList->ClearDepthStencilView(d3dDsvCPUDescriptorHandle, D3D12_CLEAR_FLAG_DEPTH | D3D12_CLEAR_FLAG_STENCIL, 1.0f, 0, 0, NULL);
 #endif
-		//m_pPlayer->Render(m_pd3dCommandList, m_pCamera);
+		//m_pPlayer->Render(m_d3dCommandList.Get());
 
 		m_pPostProcessingShader->OnPostRenderTarget(m_d3dCommandList.Get());
 
@@ -605,7 +627,7 @@ void CGameFramework::FrameAdvance()
 
 	m_GameTimer.GetFrameRate(m_pszFrameRate + 15, 37);
 	size_t nLength = _tcslen(m_pszFrameRate);
-	XMFLOAT3 xmf3Position = XMFLOAT3(0.0f, 0.0f, 0.0f);//m_pPlayer->GetPosition();
+	XMFLOAT3 xmf3Position = m_pPlayer->GetPosition();
 	_stprintf_s(m_pszFrameRate + nLength, 70 - nLength, _T("(%4f, %4f, %4f)"), xmf3Position.x, xmf3Position.y, xmf3Position.z);
 	::SetWindowText(m_hWnd, m_pszFrameRate);
 }

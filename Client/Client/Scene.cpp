@@ -1,5 +1,8 @@
+#include "stdafx.h"
 #include "Scene.h"
 #include "Shader.h"
+#include "PlayerController.h"
+#include "EnviromentObject.h"
 
 ComPtr<ID3D12DescriptorHeap> CScene::m_pd3dCbvSrvDescriptorHeap;
 
@@ -29,19 +32,19 @@ void CScene::CreateGraphicsRootSignature(ID3D12Device* pd3dDevice)
 
 	pd3dDescriptorRanges[0].RangeType = D3D12_DESCRIPTOR_RANGE_TYPE_CBV;
 	pd3dDescriptorRanges[0].NumDescriptors = 1;
-	pd3dDescriptorRanges[0].BaseShaderRegister = 0; //b0: 
+	pd3dDescriptorRanges[0].BaseShaderRegister = 0; //b0 Camera: 
 	pd3dDescriptorRanges[0].RegisterSpace = 0;
 	pd3dDescriptorRanges[0].OffsetInDescriptorsFromTableStart = D3D12_DESCRIPTOR_RANGE_OFFSET_APPEND;
 
 	pd3dDescriptorRanges[1].RangeType = D3D12_DESCRIPTOR_RANGE_TYPE_CBV;
 	pd3dDescriptorRanges[1].NumDescriptors = 1;
-	pd3dDescriptorRanges[1].BaseShaderRegister = 1; //b1: 
+	pd3dDescriptorRanges[1].BaseShaderRegister = 1; //b1 GameObject: 
 	pd3dDescriptorRanges[1].RegisterSpace = 0;
 	pd3dDescriptorRanges[1].OffsetInDescriptorsFromTableStart = D3D12_DESCRIPTOR_RANGE_OFFSET_APPEND;
 
 	pd3dDescriptorRanges[2].RangeType = D3D12_DESCRIPTOR_RANGE_TYPE_CBV;
 	pd3dDescriptorRanges[2].NumDescriptors = 1;
-	pd3dDescriptorRanges[2].BaseShaderRegister = 2; //b2: 
+	pd3dDescriptorRanges[2].BaseShaderRegister = 2; //b2 Light?: 
 	pd3dDescriptorRanges[2].RegisterSpace = 0;
 	pd3dDescriptorRanges[2].OffsetInDescriptorsFromTableStart = D3D12_DESCRIPTOR_RANGE_OFFSET_APPEND;
 
@@ -204,10 +207,13 @@ void CScene::BuildObjects(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* p
 {
 	CreateGraphicsRootSignature(pd3dDevice);
 
-	// CBV : 카메라(1), 육면체(1) ,서버인원예상(20), 엘런(119)
-	int cbv_Count = 1 + 1 + 20 + 119 + 9999;
-	// SRV : 육면체(1),엘런(8(오클루젼맵제거),디퍼드렌더링텍스처(3)
-	int srv_Count = 1 + 8 + 3 + 9999;
+	// CBV(RootObject) : 카메라(1), 육면체(1), 플레이어(1), 오브젝트(1), DeskObject(1), DoorObject, flashLight(1)  // 엘런(119), 서버인원예상(20)
+	// CBV(Model) : Zom(72),  Zom_Controller(2 * N), BlueSuit(85), BlueSuit_Controller(2 * N), Desk(3), Door(5), flashLight(1)
+	// 모델 부를때 추가적으로 
+	int cbv_Count = 1 + 1 + 1 + 1 + 1 + 1 + 1 +
+					72 + 2 + 85 + 2 + 3 + 5 + 1;
+	// SRV : 육면체(1), 디퍼드렌더링텍스처(3), {BlueSuit(6), Zombie(3), 엘런(8(오클루젼맵제거)}, Desk(3), Door(9), flashLight(3)
+	int srv_Count = 1 + 3 + 6 + 3 + 3 + 9 + 3;
 	CreateCbvSrvDescriptorHeaps(pd3dDevice, cbv_Count, srv_Count);
 
 	// 쉐이더 vector에 삽입한 순서대로 인덱스 define한 값으로 접근
@@ -224,17 +230,34 @@ void CScene::BuildObjects(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* p
 	// 육면체 메쉬 - 테스트 용도 목적 ,모델파일을 읽어서 메쉬를 사용하기 때문 
 	m_vMesh.push_back(make_shared<HexahedronMesh>(pd3dDevice, pd3dCommandList, 10.0f, 10.0f, 10.0f));
 
-	CLoadedModelInfo* EllenModelInfo = CGameObject::LoadGeometryAndAnimationFromFile(pd3dDevice, pd3dCommandList, m_pd3dGraphicsRootSignature.Get(), (char*)"Asset/Model/Ellen.bin");
-	CGameObject* ellenObject = new CGameObject(pd3dDevice, pd3dCommandList);
-	ellenObject->SetChild(EllenModelInfo->m_pModelRootObject, true);
-	ellenObject->m_pSkinnedAnimationController = new CAnimationController(pd3dDevice, pd3dCommandList, 1, EllenModelInfo);
-	ellenObject->m_pSkinnedAnimationController->SetTrackAnimationSet(0, 2);
-	ellenObject->SetPosition(0.0f, -1.0f, 4.0f);
-	ellenObject->Rotate(0.0f, 180.0f, 0.0f);
+	CLoadedModelInfo* pDeskModel = CGameObject::LoadGeometryAndAnimationFromFile(pd3dDevice, pd3dCommandList, m_pd3dGraphicsRootSignature.Get(), (char*)"Asset/Model/Laboratory_Desk_Drawers_1.bin");
+	CGameObject* pDeskObject = new CDrawerObject(pd3dDevice, pd3dCommandList, pDeskModel);
+	m_vShader[STANDARD_SHADER]->AddGameObject(pDeskObject);
 
-	m_vShader[SKINNEDANIMATION_STANDARD_SHADER]->AddGameObject(ellenObject);
+	CLoadedModelInfo* pDoorModel = CGameObject::LoadGeometryAndAnimationFromFile(pd3dDevice, pd3dCommandList, m_pd3dGraphicsRootSignature.Get(), (char*)"Asset/Model/Laboratory_Wall_Door_1.bin");
+	CGameObject* pDoorObject = new CDoorObject(pd3dDevice, pd3dCommandList, pDoorModel);
+	m_vShader[STANDARD_SHADER]->AddGameObject(pDoorObject);
 	
-	if (EllenModelInfo) delete EllenModelInfo;
+	CLoadedModelInfo* ZombieModel = CGameObject::LoadGeometryAndAnimationFromFile(pd3dDevice, pd3dCommandList, m_pd3dGraphicsRootSignature.Get(), (char*)"Asset/Model/Zom.bin");
+	
+	CGameObject* zombileObject = new CGameObject(pd3dDevice, pd3dCommandList);
+	zombileObject->SetChild(ZombieModel->m_pModelRootObject, true);
+	zombileObject->m_pSkinnedAnimationController = new CZombieAnimationController(pd3dDevice, pd3dCommandList, 3, ZombieModel);
+	zombileObject->SetPosition(-20.0f, 0.0f, 10.0f);
+	zombileObject->Rotate(0.0f, 0.0f, 0.0f);
+	m_vShader[SKINNEDANIMATION_STANDARD_SHADER]->AddGameObject(zombileObject);
+
+	CLoadedModelInfo* flashLightModel = CGameObject::LoadGeometryAndAnimationFromFile(pd3dDevice, pd3dCommandList, m_pd3dGraphicsRootSignature.Get(), (char*)"Asset/Model/Flashlight.bin");
+	CGameObject* flashLight = new CGameObject(pd3dDevice, pd3dCommandList);
+	flashLight->SetChild(flashLightModel->m_pModelRootObject, true);
+	flashLight->SetPosition(0.0f, 10.0f, 10.0f);
+	flashLight->Rotate(0.0f, 0.0f, 0.0f);
+	m_vShader[STANDARD_SHADER]->AddGameObject(flashLight);
+
+	if (pDeskModel) delete pDeskModel;
+	if (pDoorModel) delete pDoorModel;
+	if (ZombieModel) delete ZombieModel;
+	if (flashLightModel) delete flashLightModel;
 
 	FILE* pInFile = NULL;
 	::fopen_s(&pInFile, (char*)"Asset/Model/Scene.bin", "rb");
@@ -293,7 +316,7 @@ void CScene::BuildObjects(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* p
 }
 
 
-void CScene::AddDefaultObject(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dCommandList,ObjectType type,XMFLOAT3 position,  int shader,int mesh)
+void CScene::AddDefaultObject(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dCommandList, ObjectType type, XMFLOAT3 position, int shader, int mesh)
 {
 	CGameObject* object = nullptr;
 	switch (type)
@@ -348,6 +371,8 @@ void CScene::ReleaseUploadBuffers()
 	for (int i = 0; i < m_nGameObjects; i++) if (m_ppGameObjects[i]) m_ppGameObjects[i]->ReleaseUploadBuffers();*/
 }
 
+int CScene::m_nCntCbv = 0;
+
 void CScene::CreateCbvSrvDescriptorHeaps(ID3D12Device* pd3dDevice, int nConstantBufferViews, int nShaderResourceViews)
 {
 	D3D12_DESCRIPTOR_HEAP_DESC d3dDescriptorHeapDesc;
@@ -363,11 +388,10 @@ void CScene::CreateCbvSrvDescriptorHeaps(ID3D12Device* pd3dDevice, int nConstant
 	m_d3dSrvGPUDescriptorNextHandle.ptr = m_d3dSrvGPUDescriptorStartHandle.ptr = m_d3dCbvGPUDescriptorStartHandle.ptr + (::gnCbvSrvDescriptorIncrementSize * nConstantBufferViews);
 }
 
-int cbvcount = 0;
 
 D3D12_GPU_DESCRIPTOR_HANDLE CScene::CreateConstantBufferViews(ID3D12Device* pd3dDevice, int nConstantBufferViews, ID3D12Resource* pd3dConstantBuffers, UINT nStride)
 {
-	cbvcount++;
+	m_nCntCbv++;
 	D3D12_GPU_DESCRIPTOR_HANDLE d3dCbvGPUDescriptorHandle = m_d3dCbvGPUDescriptorNextHandle;
 	D3D12_GPU_VIRTUAL_ADDRESS d3dGpuVirtualAddress = pd3dConstantBuffers->GetGPUVirtualAddress();
 	D3D12_CONSTANT_BUFFER_VIEW_DESC d3dCBVDesc;
@@ -442,10 +466,10 @@ bool CScene::ProcessInput(UCHAR* pKeysBuffer)
 	return(false);
 }
 
-void CScene::AnimateObjects(float fTimeElapsed)
+void CScene::AnimateObjects(float fElapsedTime)
 {
 	for (auto& shader : m_vShader) {
-		shader->AnimateObjects(fTimeElapsed);
+		shader->AnimateObjects(fElapsedTime);
 	}
 }
 
