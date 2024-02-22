@@ -266,9 +266,9 @@ void CMaterial::LoadTextureFromFile(ID3D12Device* pd3dDevice, ID3D12GraphicsComm
 
 		size_t nConverted = 0;
 		mbstowcs_s(&nConverted, pwstrTextureName, 128, pstrFilePath, _TRUNCATE);
-		if (!_tcscmp(pwstrTextureName, _T("Asset/Textures/Laboratory_Floor_1_Laboratory_Floor_3_AlbedoTransparency.dds"))) {
-			int x = 0;
-		}
+		//if (!_tcscmp(pwstrTextureName, _T("Asset/Textures/Laboratory_Floor_1_Laboratory_Floor_3_AlbedoTransparency.dds"))) {
+		//	int x = 0;
+		//}
 		//#define _WITH_DISPLAY_TEXTURE_NAME
 
 #ifdef _WITH_DISPLAY_TEXTURE_NAME
@@ -303,12 +303,15 @@ void CMaterial::LoadTextureFromFile(ID3D12Device* pd3dDevice, ID3D12GraphicsComm
 				if (*ppTexture) (*ppTexture)->AddRef();
 			}*/
 			//else { // parent가 없다면 컨테이너에서 텍스처가 있는지 찾아본다.(로딩시간 증가)
-				for (auto& t : m_vTextureContainer) {
-					if (_tcscmp(pwstrTextureName, t->GetName())) { // 이름이 같지 않으면 계속
+				for (auto& t : m_vTextureContainer)
+				{
+					if (_tcscmp(pwstrTextureName, t->GetName())) 
+					{ // 이름이 같지 않으면 계속
 						continue;
 					}
 					*ppTexture = t;
-					if (t) {
+					if (t)
+					{
 						(t)->AddRef();
 					}
 					break;
@@ -679,6 +682,18 @@ void CLoadedModelInfo::PrepareSkinning()
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
+CGameObject::CGameObject(char* pstrFrameName, XMFLOAT4X4& xmf4x4World, CMesh* pMesh) 
+{
+	m_xmf4x4ToParent = xmf4x4World;
+	m_xmf4x4World = xmf4x4World;
+	strcpy(m_pstrFrameName, pstrFrameName);
+	
+	for (auto oobb : pMesh->GetVectorOOBB())
+	{
+		m_voobbOrigin.push_back(oobb);
+	}
+}
+
 CGameObject::CGameObject(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dCommandList)
 {
 	m_xmf4x4ToParent = Matrix4x4::Identity();
@@ -767,6 +782,17 @@ void CGameObject::FindAndSetSkinnedMesh(CSkinnedMesh** ppSkinnedMeshes, int* pnS
 
 	if (m_pSibling) m_pSibling->FindAndSetSkinnedMesh(ppSkinnedMeshes, pnSkinnedMesh);
 	if (m_pChild) m_pChild->FindAndSetSkinnedMesh(ppSkinnedMeshes, pnSkinnedMesh);
+}
+
+CGameObject* CGameObject::FindFrame(const char* pstrFrameName)
+{
+	CGameObject* pFrameObject = NULL;
+	if (!strncmp(m_pstrFrameName, pstrFrameName, strlen(pstrFrameName))) return(this);
+
+	if (m_pSibling) if (pFrameObject = m_pSibling->FindFrame(pstrFrameName)) return(pFrameObject);
+	if (m_pChild) if (pFrameObject = m_pChild->FindFrame(pstrFrameName)) return(pFrameObject);
+
+	return(NULL);
 }
 
 CGameObject* CGameObject::FindFrame(char* pstrFrameName)
@@ -885,15 +911,6 @@ void CGameObject::SetPosition(XMFLOAT3 xmf3Position)
 	SetPosition(xmf3Position.x, xmf3Position.y, xmf3Position.z);
 }
 
-void CGameObject::Move(XMFLOAT3 xmf3Offset)
-{
-	m_xmf4x4ToParent._41 += xmf3Offset.x;
-	m_xmf4x4ToParent._42 += xmf3Offset.y;
-	m_xmf4x4ToParent._43 += xmf3Offset.z;
-
-	UpdateTransform(NULL);
-}
-
 void CGameObject::SetScale(float x, float y, float z)
 {
 	XMMATRIX mtxScale = XMMatrixScaling(x, y, z);
@@ -928,6 +945,15 @@ XMFLOAT3 CGameObject::GetRight()
 {
 	XMFLOAT3 xmfloat3 = { m_xmf4x4World._11, m_xmf4x4World._12, m_xmf4x4World._13 };
 	return(Vector3::Normalize(xmfloat3));
+}
+
+void CGameObject::Move(XMFLOAT3 xmf3Offset)
+{
+	m_xmf4x4ToParent._41 += xmf3Offset.x;
+	m_xmf4x4ToParent._42 += xmf3Offset.y;
+	m_xmf4x4ToParent._43 += xmf3Offset.z;
+
+	UpdateTransform(NULL);
 }
 
 void CGameObject::MoveStrafe(float fDistance)
@@ -1141,9 +1167,9 @@ CGameObject* CGameObject::LoadFrameHierarchyFromFile(ID3D12Device* pd3dDevice, I
 			nTextures = ::ReadIntegerFromFile(pInFile);
 
 			::ReadStringFromFile(pInFile, pGameObject->m_pstrFrameName);
-			if (!strcmp(pGameObject->m_pstrFrameName, "Laboratory_Ceiling_1_(1)")) {
-				int x = 0;
-			}
+			//if (!strcmp(pGameObject->m_pstrFrameName, "Laboratory_Ceiling_1_(1)")) {
+			//	int x = 0;
+			//}
 		}
 		else if (!strcmp(pstrToken, "<Transform>:"))
 		{
@@ -1175,10 +1201,109 @@ CGameObject* CGameObject::LoadFrameHierarchyFromFile(ID3D12Device* pd3dDevice, I
 			}
 			pGameObject->SetMesh(pMesh);
 		}
+		//else if (!strcmp(pstrToken, "<InstanceMesh>:"))
+		//{
+		//	CInstanceStandardMesh* pMesh = new CInstanceStandardMesh(pd3dDevice, pd3dCommandList);
+		//	pMesh->LoadMeshFromFile(pd3dDevice, pd3dCommandList, pInFile, pGameObject);
+		//	pGameObject->SetMesh(pMesh);
+		//}
+		else if (!strcmp(pstrToken, "<SkinningInfo>:"))
+		{
+			if (pnSkinnedMeshes) (*pnSkinnedMeshes)++;
+
+			CSkinnedMesh* pSkinnedMesh = new CSkinnedMesh(pd3dDevice, pd3dCommandList);
+			pSkinnedMesh->LoadSkinInfoFromFile(pd3dDevice, pd3dCommandList, pInFile);
+			pSkinnedMesh->CreateShaderVariables(pd3dDevice, pd3dCommandList);
+
+			::ReadStringFromFile(pInFile, pstrToken); //<Mesh>:
+			if (!strcmp(pstrToken, "<Mesh>:")) pSkinnedMesh->LoadMeshFromFile(pd3dDevice, pd3dCommandList, pInFile);
+
+			pGameObject->SetMesh(pSkinnedMesh);
+		}
+		else if (!strcmp(pstrToken, "<Materials>:"))
+		{
+			pGameObject->LoadMaterialsFromFile(pd3dDevice, pd3dCommandList, pParent, pInFile);
+		}
+		else if (!strcmp(pstrToken, "<Children>:"))
+		{
+			int nChilds = ::ReadIntegerFromFile(pInFile);
+			if (nChilds > 0)
+			{
+				for (int i = 0; i < nChilds; i++)
+				{
+					CGameObject* pChild = CGameObject::LoadFrameHierarchyFromFile(pd3dDevice, pd3dCommandList, pd3dGraphicsRootSignature, pGameObject, pInFile, pnSkinnedMeshes);
+					if (pChild) pGameObject->SetChild(pChild);
+#ifdef _WITH_DEBUG_FRAME_HIERARCHY
+					TCHAR pstrDebug[256] = { 0 };
+					_stprintf_s(pstrDebug, 256, _T("(Frame: %p) (Parent: %p)\n"), pChild, pGameObject);
+					OutputDebugString(pstrDebug);
+#endif
+				}
+			}
+		}
+		else if (!strcmp(pstrToken, "</Frame>"))
+		{
+			break;
+		}
+	}
+	return(pGameObject);
+}
+
+CGameObject* CGameObject::LoadInstanceFrameHierarchyFromFile(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dCommandList, ID3D12RootSignature* pd3dGraphicsRootSignature, CGameObject* pParent, FILE* pInFile, int* pnSkinnedMeshes)
+{
+	char pstrToken[64] = { '\0' };
+	UINT nReads = 0;
+
+	int nFrame = 0, nTextures = 0;
+
+	CInstanceObject* pGameObject = new CInstanceObject(pd3dDevice, pd3dCommandList);
+
+	for (; ; )
+	{
+		::ReadStringFromFile(pInFile, pstrToken);
+		if (!strcmp(pstrToken, "<Frame>:"))
+		{
+			nFrame = ::ReadIntegerFromFile(pInFile);
+
+			nTextures = ::ReadIntegerFromFile(pInFile);
+
+			::ReadStringFromFile(pInFile, pGameObject->m_pstrFrameName);
+		}
+		else if (!strcmp(pstrToken, "<Transform>:"))
+		{
+			XMFLOAT3 xmf3Position, xmf3Rotation, xmf3Scale;
+			XMFLOAT4 xmf4Rotation;
+			nReads = (UINT)::fread(&xmf3Position, sizeof(float), 3, pInFile);
+			nReads = (UINT)::fread(&xmf3Rotation, sizeof(float), 3, pInFile); //Euler Angle
+			nReads = (UINT)::fread(&xmf3Scale, sizeof(float), 3, pInFile);
+			nReads = (UINT)::fread(&xmf4Rotation, sizeof(float), 4, pInFile); //Quaternion
+		}
+		else if (!strcmp(pstrToken, "<TransformMatrix>:"))
+		{
+			nReads = (UINT)::fread(&pGameObject->m_xmf4x4ToParent, sizeof(float), 16, pInFile);
+		}
+		else if (!strcmp(pstrToken, "<Mesh>:"))
+		{
+			CStandardMesh* pMesh = new CStandardMesh(pd3dDevice, pd3dCommandList);
+			if (!pMesh->LoadMeshFromFile(pd3dDevice, pd3dCommandList, pInFile)) {
+				for (auto m : m_vMeshContainer) {
+					if (!strcmp(m->m_pstrMeshName, pMesh->m_pstrMeshName + 1)) {
+						pMesh = reinterpret_cast<CStandardMesh*>(m);
+						break;
+					}
+				}
+
+			}
+			else {
+				m_vMeshContainer.push_back(pMesh);
+			}
+			pGameObject->SetMesh(pMesh);
+		}
 		else if (!strcmp(pstrToken, "<InstanceMesh>:"))
 		{
 			CInstanceStandardMesh* pMesh = new CInstanceStandardMesh(pd3dDevice, pd3dCommandList);
-			pMesh->LoadMeshFromFile(pd3dDevice, pd3dCommandList, pInFile);
+			pMesh->LoadMeshFromFile(pd3dDevice, pd3dCommandList, pInFile, pGameObject);
+			//pMesh->m_pOriginInstance = pGameObject;
 			pGameObject->SetMesh(pMesh);
 		}
 		else if (!strcmp(pstrToken, "<SkinningInfo>:"))
@@ -1205,7 +1330,7 @@ CGameObject* CGameObject::LoadFrameHierarchyFromFile(ID3D12Device* pd3dDevice, I
 			{
 				for (int i = 0; i < nChilds; i++)
 				{
-					CGameObject* pChild = CGameObject::LoadFrameHierarchyFromFile(pd3dDevice, pd3dCommandList, pd3dGraphicsRootSignature, pGameObject, pInFile, pnSkinnedMeshes);
+					CGameObject* pChild = CGameObject::LoadInstanceFrameHierarchyFromFile(pd3dDevice, pd3dCommandList, pd3dGraphicsRootSignature, pGameObject, pInFile, pnSkinnedMeshes);
 					if (pChild) pGameObject->SetChild(pChild);
 #ifdef _WITH_DEBUG_FRAME_HIERARCHY
 					TCHAR pstrDebug[256] = { 0 };
@@ -1314,7 +1439,7 @@ void CGameObject::LoadAnimationFromFile(FILE* pInFile, CLoadedModelInfo* pLoaded
 	}
 }
  
-CLoadedModelInfo* CGameObject::LoadGeometryAndAnimationFromFile(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dCommandList, ID3D12RootSignature* pd3dGraphicsRootSignature, char* pstrFileName)
+CLoadedModelInfo* CGameObject::LoadGeometryAndAnimationFromFile(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dCommandList, ID3D12RootSignature* pd3dGraphicsRootSignature, const char* pstrFileName)
 {
 	FILE* pInFile = NULL;
 	::fopen_s(&pInFile, pstrFileName, "rb");
@@ -1384,10 +1509,18 @@ bool CGameObject::CheckPicking(const CGameObject* pGameObject, const XMFLOAT3& x
 	//	}
 	//}
 
-	if (pGameObject->m_pMesh->GetOOBB().Intersects(xmvCameraOrigin, xmvPickDirection, fDistance))
+	for (auto& oobbOrigin : pGameObject->GetVectorOOBB())
 	{
-		return true;
+		if (oobbOrigin.Intersects(xmvCameraOrigin, xmvPickDirection, fDistance))
+		{
+			return true;
+		}
 	}
+
+	//if (pGameObject->m_oobbOrigin.Intersects(xmvCameraOrigin, xmvPickDirection, fDistance))
+	//{
+	//	return true;
+	//}
 
 	/*if (pGameObject->m_OOBB[0].Intersects(xmf3CameraOrigin, xmvPickDirection, fDistance))
 	{
@@ -1431,4 +1564,35 @@ int cntCbvModelObject(CGameObject* pGameObject, int nCnt)
 	if (pGameObject->m_pChild) nCnt = cntCbvModelObject(pGameObject->m_pChild, nCnt);
 
 	return nCnt;
+}
+
+CInstanceObject::CInstanceObject(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dCommandList)
+	: CGameObject(pd3dDevice, pd3dCommandList)
+{
+}
+
+CInstanceObject::CInstanceObject(char* pstrFrameName, XMFLOAT4X4& xmf4x4World, CMesh* pMesh, int nIndex)
+	: CGameObject(pstrFrameName, xmf4x4World, pMesh)
+	, m_nIndex(nIndex)
+{
+}
+
+void CInstanceObject::Animate(float fElapsedTime)
+{
+	if (m_pSkinnedAnimationController) m_pSkinnedAnimationController->AdvanceTime(fElapsedTime, this);
+
+	AnimateOOBB();
+
+	for (auto& instanceObject : m_vInstanceObjectInfo)
+	{
+		instanceObject->Animate(fElapsedTime);
+	}
+
+	if (m_pSibling) m_pSibling->Animate(fElapsedTime);
+	if (m_pChild) m_pChild->Animate(fElapsedTime);
+}
+
+void CInstanceObject::Render(ID3D12GraphicsCommandList* pd3dCommandList)
+{
+	CGameObject::Render(pd3dCommandList);
 }

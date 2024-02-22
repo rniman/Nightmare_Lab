@@ -224,7 +224,8 @@ void CBlueSuitAnimationController::AdvanceTime(float fElapsedTime, CGameObject* 
 					{
 						XMFLOAT4X4 xmf4x4Transform = m_pAnimationSets->m_ppBoneFrameCaches[j]->m_xmf4x4ToParent;
 						XMFLOAT4X4 xmf4x4TrackTransform = pAnimationSet->GetSRT(j, fPosition);
-						xmf4x4Transform = Matrix4x4::Add(xmf4x4Transform, Matrix4x4::Scale(xmf4x4TrackTransform, m_pAnimationTracks[k].m_fWeight));
+						xmf4x4TrackTransform = Matrix4x4::Scale(xmf4x4TrackTransform, m_pAnimationTracks[k].m_fWeight);
+						xmf4x4Transform = Matrix4x4::Add(xmf4x4Transform, xmf4x4TrackTransform);
 						m_pAnimationSets->m_ppBoneFrameCaches[j]->m_xmf4x4ToParent = xmf4x4Transform;
 					}
 					m_pAnimationTracks[k].HandleCallback();
@@ -430,8 +431,8 @@ void CZombieAnimationController::AdvanceTime(float fElapsedTime, CGameObject* pR
 					{
 						XMFLOAT4X4 xmf4x4Transform = m_pAnimationSets->m_ppBoneFrameCaches[j]->m_xmf4x4ToParent;
 						XMFLOAT4X4 xmf4x4TrackTransform = pAnimationSet->GetSRT(j, fPosition);
-						
-						xmf4x4Transform = Matrix4x4::Add(xmf4x4Transform, Matrix4x4::Scale(xmf4x4TrackTransform, m_pAnimationTracks[k].m_fWeight));
+						xmf4x4TrackTransform = Matrix4x4::Scale(xmf4x4TrackTransform, m_pAnimationTracks[k].m_fWeight);
+						xmf4x4Transform = Matrix4x4::Add(xmf4x4Transform, xmf4x4TrackTransform);
 						m_pAnimationSets->m_ppBoneFrameCaches[j]->m_xmf4x4ToParent = xmf4x4Transform;
 					}
 					m_pAnimationTracks[k].HandleCallback();

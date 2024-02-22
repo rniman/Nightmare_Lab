@@ -25,19 +25,22 @@ CDrawerObject::~CDrawerObject()
 
 void CDrawerObject::SetOOBB()
 {
-	m_vpCollideFrame.push_back(FindFrame("Laboratory_Desk_Drawers_1"));
-	m_OOBB.push_back(m_vpCollideFrame[0]->m_pMesh->GetOOBB());
+	//m_vpCollideFrame.push_back(FindFrame("Laboratory_Desk_Drawers_1"));
+	//m_OOBB.push_back(m_vpCollideFrame[0]->m_pMesh->GetOOBB());
 }
 
 void CDrawerObject::AnimateOOBB()
 {
-	m_vpCollideFrame[0]->m_pMesh->GetOOBB().Transform(m_OOBB[0], XMLoadFloat4x4(&m_xmf4x4World));
-	 XMStoreFloat4(&m_OOBB[0].Orientation, XMQuaternionNormalize(XMLoadFloat4(&m_OOBB[0].Orientation)));
+	//m_vpCollideFrame[0]->m_pMesh->GetOOBB().Transform(m_OOBB[0], XMLoadFloat4x4(&m_xmf4x4World));
+	// XMStoreFloat4(&m_OOBB[0].Orientation, XMQuaternionNormalize(XMLoadFloat4(&m_OOBB[0].Orientation)));
 }
 
 void CDrawerObject::AnimatePicking(float fElapsedTime)
 {
-	XMFLOAT3 xmf3DrawerPos = Vector3::TransformCoord(m_pFirstDrawer->GetPosition(), Matrix4x4::Inverse(m_pFirstDrawer->m_pParent->m_xmf4x4World));
+	XMFLOAT3 fFirstDrawerPos = m_pFirstDrawer->GetPosition();
+	XMFLOAT4X4 xmf4x4ToLocal = Matrix4x4::Inverse(m_pFirstDrawer->m_pParent->m_xmf4x4World);
+
+	XMFLOAT3 xmf3DrawerPos = Vector3::TransformCoord(fFirstDrawerPos, xmf4x4ToLocal);
 	if (m_bOpened)
 	{
 		if (xmf3DrawerPos.x > -6.0)
@@ -74,21 +77,28 @@ void CDrawerObject::CallbackPicking()
 ////// /// /// /// /// /// /// /// /// /// /// /// /// /// /// /// /// /// /// /// /// /// /// /// /// /// /// /// ///  
 /// <CGameObject - CDoorObject>
 
-CDoorObject::CDoorObject(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dCommandList)
-	: CGameObject(pd3dDevice, pd3dCommandList)
-{
-}
+//CDoorObject::CDoorObject(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dCommandList)
+//	: CGameObject(pd3dDevice, pd3dCommandList)
+//{
+//}
+//
+//CDoorObject::CDoorObject(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dCommandList, CLoadedModelInfo* pModelInfo)
+//	: CGameObject(pd3dDevice, pd3dCommandList)
+//{
+//	SetChild(pModelInfo->m_pModelRootObject, true);
+//	SetOOBB();
+//	SetPosition(0.0f, 0.0f, 50.0f);
+//	m_xmf4Quaternion = Vector4::Quaternion(0.0f, 0.0f, 0.0f);
+//	Rotate(&m_xmf4Quaternion);
+//
+//	/*m_pMainDoor = FindFrame("Door_1");*/
+//}
 
-CDoorObject::CDoorObject(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dCommandList, CLoadedModelInfo* pModelInfo)
-	: CGameObject(pd3dDevice, pd3dCommandList)
+CDoorObject::CDoorObject(char* pstrFrameName, XMFLOAT4X4& xmf4x4World, CMesh* pMesh)
+	: CGameObject(pstrFrameName, xmf4x4World, pMesh)
 {
-	SetChild(pModelInfo->m_pModelRootObject, true);
-	SetOOBB();
-	SetPosition(0.0f, 0.0f, 50.0f);
-	m_xmf4Quaternion = Vector4::Quaternion(0.0f, 90.0f, 0.0f);
-	Rotate(&m_xmf4Quaternion);
-
-	m_pMainDoor = FindFrame("Door_1");
+	m_xmf4Quaternion = Vector4::Quaternion(m_xmf4x4World);
+	//Rotate(&m_xmf4Quaternion);
 }
 
 CDoorObject::~CDoorObject()
@@ -97,8 +107,8 @@ CDoorObject::~CDoorObject()
 
 void CDoorObject::SetOOBB()
 {
-	m_vpCollideFrame.push_back(FindFrame("Door_1"));
-	m_OOBB.push_back(m_vpCollideFrame[0]->m_pMesh->GetOOBB());
+	//m_vpCollideFrame.push_back(FindFrame("Door_1"));
+	//m_OOBB.push_back(m_vpCollideFrame[0]->m_pMesh->GetOOBB());
 }
 
 void CDoorObject::Animate(float fElapsedTime)
@@ -113,9 +123,12 @@ void CDoorObject::Animate(float fElapsedTime)
 		}
 		else
 		{
-			XMMATRIX mtxRotate = XMMatrixRotationRollPitchYaw(XMConvertToRadians(0.0f), fRotationAngle, XMConvertToRadians(0.0f));
-			m_pMainDoor->m_xmf4x4ToParent = Matrix4x4::Multiply(mtxRotate, m_pMainDoor->m_xmf4x4ToParent);
-			m_pMainDoor->UpdateTransform(&m_pMainDoor->m_pParent->m_xmf4x4World);
+			//Z-up ¸ðµ¨ÀÓ
+			XMMATRIX mtxRotate = XMMatrixRotationRollPitchYaw(XMConvertToRadians(0.0f), XMConvertToRadians(0.0f), fRotationAngle);
+			m_xmf4x4World = Matrix4x4::Multiply(mtxRotate, m_xmf4x4World);
+	
+			// Instancing °´Ã¼´Â worldÇà·Ä¸¸ ¼öÁ¤ÇØÁÖ¸éµÊ
+			//UpdateTransform(NULL);
 		}
 	}
 
@@ -129,13 +142,13 @@ void CDoorObject::Animate(float fElapsedTime)
 
 void CDoorObject::AnimateOOBB()
 {
-	int i = 0;
-	for (auto& collideFrame : m_vpCollideFrame)
-	{
-		collideFrame->m_pMesh->GetOOBB().Transform(m_OOBB[i], XMLoadFloat4x4(&collideFrame->m_xmf4x4World));
-		XMStoreFloat4(&m_OOBB[i].Orientation, XMQuaternionNormalize(XMLoadFloat4(&m_OOBB[i].Orientation)));
-		++i;
-	}	
+	//int i = 0;
+	//for (auto& collideFrame : m_vpCollideFrame)
+	//{
+	//	collideFrame->m_pMesh->GetOOBB().Transform(m_OOBB[i], XMLoadFloat4x4(&collideFrame->m_xmf4x4World));
+	//	XMStoreFloat4(&m_OOBB[i].Orientation, XMQuaternionNormalize(XMLoadFloat4(&m_OOBB[i].Orientation)));
+	//	++i;
+	//}	
 }
 
 void CDoorObject::AnimatePicking(float fElapsedTime)

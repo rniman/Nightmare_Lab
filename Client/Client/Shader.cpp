@@ -233,6 +233,7 @@ void CShader::ReleaseUploadBuffers()
 
 void CShader::AddGameObject(CGameObject* object)
 {
+	//m_vGameObjects.push_back(make_shared<CGameObject>(object));
 	m_vGameObjects.push_back(shared_ptr<CGameObject>(object));
 }
 
@@ -330,6 +331,29 @@ D3D12_SHADER_BYTECODE InstanceStandardShader::CreateVertexShader()
 	return(CShader::CompileShaderFromFile(L"Shaders.hlsl", "VSInstanceStandard", "vs_5_1", &m_pd3dVertexShaderBlob));
 }
 
+void InstanceStandardShader::Render(ID3D12GraphicsCommandList* pd3dCommandList, CCamera* pCamera, int nPipelineState)
+{
+	if (m_ppd3dPipelineState) pd3dCommandList->SetPipelineState(m_ppd3dPipelineState[nPipelineState]);
+
+	for (auto& object : m_vGameObjects)
+	{
+		object->Render(pd3dCommandList);
+	}
+}
+
+void InstanceStandardShader::AnimateObjects(float fElapsedTime)
+{
+	for (auto& object : m_vGameObjects) 
+	{
+		object->Animate(fElapsedTime);
+	}
+}
+
+void InstanceStandardShader::AddInstanceObjects(int nLayer, CGameObject* object)
+{
+	//m_vvpInstanceObjectsInfo[nLayer].push_back(make_shared<CGameObject>(object));
+	m_vvpInstanceObjectsInfo[nLayer].push_back(shared_ptr<CGameObject>(object));
+}
 
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 

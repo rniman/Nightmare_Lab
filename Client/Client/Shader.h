@@ -81,14 +81,21 @@ public:
 		DXGI_FORMAT* pdxgiRtvFormats = nullptr, DXGI_FORMAT dxgiDsvFormat = DXGI_FORMAT_D24_UNORM_S8_UINT);
 };
 
+////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
 class InstanceStandardShader : public StandardShader {
 public:
 	InstanceStandardShader();
 	~InstanceStandardShader();
 
 	virtual D3D12_INPUT_LAYOUT_DESC CreateInputLayout();
-
 	virtual D3D12_SHADER_BYTECODE CreateVertexShader();
+
+	virtual void Render(ID3D12GraphicsCommandList* pd3dCommandList, CCamera* pCamera, int nPipelineState = 0);
+	virtual void AnimateObjects(float fElapsedTime);
+	virtual void AddInstanceObjects(int nLayer, CGameObject* object);
+
+	vector<vector<shared_ptr<CGameObject>>> m_vvpInstanceObjectsInfo;
 };
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////

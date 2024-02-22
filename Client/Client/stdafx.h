@@ -259,6 +259,13 @@ namespace Vector4
 		XMStoreFloat4(&xmf4Result, XMQuaternionRotationRollPitchYaw(DirectX::XMConvertToRadians(fPitch), DirectX::XMConvertToRadians(fYaw), DirectX::XMConvertToRadians(fRoll)));
 		return xmf4Result;
 	}
+
+	inline XMFLOAT4 Quaternion(XMFLOAT4X4& xmf4x4World)
+	{
+		XMFLOAT4 xmf4Result;
+		XMStoreFloat4(&xmf4Result, XMQuaternionRotationMatrix(XMLoadFloat4x4(&xmf4x4World)));
+		return xmf4Result;
+	}
 }
 
 namespace Matrix4x4

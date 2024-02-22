@@ -364,33 +364,17 @@ public:
 
 /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-class  CGameObject
+class CGameObject // -> Rendering을 위한 오브젝트임 결국 CShaader에 포함될 운명임,  근데 인스턴싱 오브젝트의 경우 따로 정보를 결국 저장해둬야함
 {
 public:
+	CGameObject(char* pstrFrameName, XMFLOAT4X4& xmf4x4World, CMesh* pMesh);
 	CGameObject(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dCommandList);
 	CGameObject(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dCommandList, int nMaterials);
 	virtual ~CGameObject();
 	
-	//중복된 메쉬를 없애기 위해 최초 메쉬들을 이곳에 저장한다.
-	static vector<CMesh*> m_vMeshContainer;
-
-	char							m_pstrFrameName[64];
-
-	CMesh* m_pMesh = NULL;
-
-	int								m_nMaterials = 0;
-	CMaterial** m_ppMaterials = NULL;
-
-	XMFLOAT4X4						m_xmf4x4ToParent;
-	XMFLOAT4X4						m_xmf4x4World;
-
-	CGameObject* m_pParent = NULL;
-	CGameObject* m_pChild = NULL;
-	CGameObject* m_pSibling = NULL;
-
-	ComPtr<ID3D12Resource> m_d3dcbvObject;
-	VS_CB_OBJECT_INFO* m_cbMappedObject;// m_d3dcbvObject가 제거되는 시점에 같이 제거되므로 별도 해제 X
-	D3D12_GPU_DESCRIPTOR_HANDLE		m_d3dCbvGPUDescriptorHandle;
+	// 복사 생성자 및 복사 할당 연산자 -> shared_ptr을 위해서 만들었음
+	//CGameObject(const CGameObject& gameObject);            // Declare copy constructor.
+	//CGameObject& operator=(const CGameObject& gameObject); // Declare copy assignment.
 
 	D3D12_GPU_DESCRIPTOR_HANDLE GetDescriptorHandle();
 	void SetDescriptorHandle(D3D12_GPU_DESCRIPTOR_HANDLE handle);
@@ -401,7 +385,6 @@ public:
 	void SetChild(CGameObject* pChild, bool bReferenceUpdate = false);
 
 	virtual void Animate(float fElapsedTime);
-
 	virtual void Render(ID3D12GraphicsCommandList* pd3dCommandList);
 	//virtual void Render(ID3D12GraphicsCommandList* pd3dCommandList, CCamera* pCamera);
 
@@ -417,14 +400,13 @@ public:
 	XMFLOAT3 GetLook();
 	XMFLOAT3 GetUp();
 	XMFLOAT3 GetRight();
-
 	XMFLOAT3 GetToParentPosition();
-	void Move(XMFLOAT3 xmf3Offset);
 
 	virtual void SetPosition(float x, float y, float z);
 	virtual void SetPosition(XMFLOAT3 xmf3Position);
 	void SetScale(float x, float y, float z);
 
+	void Move(XMFLOAT3 xmf3Offset);
 	void MoveStrafe(float fDistance = 1.0f);
 	void MoveUp(float fDistance = 1.0f);
 	void MoveForward(float fDistance = 1.0f);
@@ -435,12 +417,15 @@ public:
 
 	CGameObject* GetParent() { return(m_pParent); }
 	void UpdateTransform(XMFLOAT4X4* pxmf4x4Parent = NULL);
+	CGameObject* FindFrame(const char* pstrFrameName);
 	CGameObject* FindFrame(char* pstrFrameName);
 
 	CTexture* FindReplicatedTexture(_TCHAR* pstrTextureName);
 
-	UINT GetMeshType() { 
-		if (m_pMesh) {
+	UINT GetMeshType()
+	{ 
+		if (m_pMesh)
+		{
 			return m_pMesh->GetType();
 		}
 		return 0x00;
@@ -448,11 +433,8 @@ public:
 
 	void LoadMaterialsFromFile(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dCommandList, CGameObject* pParent, FILE* pInFile);
 	static CGameObject* LoadFrameHierarchyFromFile(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dCommandList, ID3D12RootSignature* pd3dGraphicsRootSignature, CGameObject* pParent, FILE* pInFile, int* pnSkinnedMeshes);
+	static CGameObject* LoadInstanceFrameHierarchyFromFile(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dCommandList, ID3D12RootSignature* pd3dGraphicsRootSignature, CGameObject* pParent, FILE* pInFile, int* pnSkinnedMeshes);
 	static void PrintFrameInfo(CGameObject* pGameObject, CGameObject* pParent);
-
-	// 애니메이션 관련
-	
-	CAnimationController* m_pSkinnedAnimationController = NULL;
 	
 	CSkinnedMesh* FindSkinnedMesh(char* pstrSkinnedMeshName);
 	void FindAndSetSkinnedMesh(CSkinnedMesh** ppSkinnedMeshes, int* pnSkinnedMesh);
@@ -463,23 +445,48 @@ public:
 	void SetRootMotion(bool bRootMotion) { if (m_pSkinnedAnimationController) m_pSkinnedAnimationController->SetRootMotion(bRootMotion); }
 	
 	static void LoadAnimationFromFile(FILE* pInFile, CLoadedModelInfo* pLoadedModel);
-	
-	static CLoadedModelInfo* LoadGeometryAndAnimationFromFile(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dCommandList, ID3D12RootSignature* pd3dGraphicsRootSignature, char* pstrFileName);
+	static CLoadedModelInfo* LoadGeometryAndAnimationFromFile(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dCommandList, ID3D12RootSignature* pd3dGraphicsRootSignature, const char* pstrFileName);
 	
 	char* GetFrameName() { return m_pstrFrameName; };
 
 	// Collide
-	vector<CGameObject*> m_vpCollideFrame;	// Collision에 관여하는 프레임 집합
+	//vector<CGameObject*> m_vpCollideFrame;	// Collision에 관여하는 프레임 집합
 
 	virtual void SetOOBB() {};
 	virtual void AnimateOOBB() {};
-	BoundingOrientedBox GetOOBB(int nIndex) const { return m_OOBB[nIndex]; };
-	vector<BoundingOrientedBox> m_OOBB;
+	BoundingOrientedBox GetOOBB(int nIndex) const { return m_voobbOrigin[nIndex]; };
+	vector<BoundingOrientedBox> GetVectorOOBB() const { return m_voobbOrigin; };
 
 	// Picking
 	bool CheckPicking(const CGameObject* pGameObject, const XMFLOAT3& xmf3PickPosition, const XMFLOAT4X4& mxf4x4ViewMatrix, float& fDistance);
 	virtual void AnimatePicking(float fElapsedTime) {};
 	virtual void CallbackPicking() {};
+
+public:
+	//중복된 메쉬를 없애기 위해 최초 메쉬들을 이곳에 저장한다.
+	static vector<CMesh*> m_vMeshContainer;
+
+	char m_pstrFrameName[64];
+	CMesh* m_pMesh = NULL;
+
+	int	m_nMaterials = 0;
+	CMaterial** m_ppMaterials = NULL;
+
+	XMFLOAT4X4 m_xmf4x4ToParent;
+	XMFLOAT4X4 m_xmf4x4World;
+
+	CGameObject* m_pParent = NULL;
+	CGameObject* m_pChild = NULL;
+	CGameObject* m_pSibling = NULL;
+
+	ComPtr<ID3D12Resource> m_d3dcbvObject;
+	VS_CB_OBJECT_INFO* m_cbMappedObject = NULL;// m_d3dcbvObject가 제거되는 시점에 같이 제거되므로 별도 해제 X
+	D3D12_GPU_DESCRIPTOR_HANDLE	m_d3dCbvGPUDescriptorHandle;
+
+	// 애니메이션 관련
+	CAnimationController* m_pSkinnedAnimationController = NULL;
+
+	vector<BoundingOrientedBox> m_voobbOrigin;
 };
 
 
@@ -491,3 +498,23 @@ public:
 };
 
 int cntCbvModelObject(CGameObject* pGameObject, int nCnt);
+
+/// <CGameObject - CHexahedronObject>
+////// /// /// /// /// /// /// /// /// /// /// /// /// /// /// /// /// /// /// /// /// /// /// /// /// /// /// /// ///  
+/// <CGameObject - CInstanceObject>
+
+class CInstanceObject : public CGameObject
+{
+public:
+	CInstanceObject(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dCommandList);
+	CInstanceObject(char* pstrFrameName, XMFLOAT4X4& xmf4x4World, CMesh* pMesh, int nIndex);
+	virtual ~CInstanceObject() {};
+
+	virtual void Animate(float fElapsedTime) override;
+	virtual void Render(ID3D12GraphicsCommandList* pd3dCommandList);
+
+	void SetIndex(int nIndex) { m_nIndex = nIndex; }
+public:
+	vector<CGameObject*> m_vInstanceObjectInfo;
+	int m_nIndex = 0;
+};

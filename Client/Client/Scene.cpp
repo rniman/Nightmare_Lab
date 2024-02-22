@@ -207,14 +207,18 @@ void CScene::BuildObjects(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* p
 {
 	CreateGraphicsRootSignature(pd3dDevice);
 
-	// CBV(RootObject) : 카메라(1), 육면체(1), 플레이어(1), 오브젝트(1), DeskObject(1), DoorObject, flashLight(1)  // 엘런(119), 서버인원예상(20)
-	// CBV(Model) : Zom(72),  Zom_Controller(2 * N), BlueSuit(85), BlueSuit_Controller(2 * N), Desk(3), Door(5), flashLight(1)
+	// CBV(Default) :  카메라(1), 플레이어(1)
+	// CBC(Scene Load): 68
+	// CBV(RootObject) : //육면체(1), 오브젝트(1), DeskObject(1), DoorObject(1), flashLight(1), 엘런(119), 서버인원예상(20)
+	// CBV(Model) : Zom(72),  Zom_Controller(2 * N),// BlueSuit(85), BlueSuit_Controller(2 * N), Desk(3), Door(5), flashLight(1)
 	// 모델 부를때 추가적으로 
-	int cbv_Count = 1 + 1 + 1 + 1 + 1 + 1 + 1 +
-					72 + 2 + 85 + 2 + 3 + 5 + 1;
-	// SRV : 육면체(1), 디퍼드렌더링텍스처(3), {BlueSuit(6), Zombie(3), 엘런(8(오클루젼맵제거)}, Desk(3), Door(9), flashLight(3)
-	int srv_Count = 1 + 3 + 6 + 3 + 3 + 9 + 3;
-	CreateCbvSrvDescriptorHeaps(pd3dDevice, cbv_Count, srv_Count);
+	int nCntCbv = 1 + 1 + 68 +
+				  72 + 2;
+	// SRV(Default) : 디퍼드렌더링텍스처(3)
+	// SRV(Scene Load) : 79
+	// SRV: Zombie(3), // BlueSuit(6), 육면체(1), 엘런(8(오클루젼맵제거), Desk(3), Door(9), flashLight(3)
+	int nCntSrv = 3 + 79 + 3;
+	CreateCbvSrvDescriptorHeaps(pd3dDevice, nCntCbv, nCntSrv);
 
 	// 쉐이더 vector에 삽입한 순서대로 인덱스 define한 값으로 접근
 	m_vShader.push_back(make_unique<StandardShader>());
@@ -228,36 +232,35 @@ void CScene::BuildObjects(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* p
 	m_vShader[SKINNEDANIMATION_STANDARD_SHADER]->CreateShader(pd3dDevice, pd3dCommandList, m_pd3dGraphicsRootSignature.Get(), 4, pdxgiRtvFormats, DXGI_FORMAT_D24_UNORM_S8_UINT);
 
 	// 육면체 메쉬 - 테스트 용도 목적 ,모델파일을 읽어서 메쉬를 사용하기 때문 
-	m_vMesh.push_back(make_shared<HexahedronMesh>(pd3dDevice, pd3dCommandList, 10.0f, 10.0f, 10.0f));
+	//m_vMesh.push_back(make_shared<HexahedronMesh>(pd3dDevice, pd3dCommandList, 10.0f, 10.0f, 10.0f));
 
-	CLoadedModelInfo* pDeskModel = CGameObject::LoadGeometryAndAnimationFromFile(pd3dDevice, pd3dCommandList, m_pd3dGraphicsRootSignature.Get(), (char*)"Asset/Model/Laboratory_Desk_Drawers_1.bin");
-	CGameObject* pDeskObject = new CDrawerObject(pd3dDevice, pd3dCommandList, pDeskModel);
-	m_vShader[STANDARD_SHADER]->AddGameObject(pDeskObject);
+	//CLoadedModelInfo* pDeskModel = CGameObject::LoadGeometryAndAnimationFromFile(pd3dDevice, pd3dCommandList, m_pd3dGraphicsRootSignature.Get(), (char*)"Asset/Model/Laboratory_Desk_Drawers_1.bin");
+	//CGameObject* pDeskObject = new CDrawerObject(pd3dDevice, pd3dCommandList, pDeskModel);
+	//m_vShader[STANDARD_SHADER]->AddGameObject(pDeskObject);
 
-	CLoadedModelInfo* pDoorModel = CGameObject::LoadGeometryAndAnimationFromFile(pd3dDevice, pd3dCommandList, m_pd3dGraphicsRootSignature.Get(), (char*)"Asset/Model/Laboratory_Wall_Door_1.bin");
-	CGameObject* pDoorObject = new CDoorObject(pd3dDevice, pd3dCommandList, pDoorModel);
-	m_vShader[STANDARD_SHADER]->AddGameObject(pDoorObject);
+	//CLoadedModelInfo* pDoorModel = CGameObject::LoadGeometryAndAnimationFromFile(pd3dDevice, pd3dCommandList, m_pd3dGraphicsRootSignature.Get(), (char*)"Asset/Model/Laboratory_Wall_Door_1.bin");
+	//CGameObject* pDoorObject = new CDoorObject(pd3dDevice, pd3dCommandList, pDoorModel);
+	//m_vShader[STANDARD_SHADER]->AddGameObject(pDoorObject);
 	
-	CLoadedModelInfo* ZombieModel = CGameObject::LoadGeometryAndAnimationFromFile(pd3dDevice, pd3dCommandList, m_pd3dGraphicsRootSignature.Get(), (char*)"Asset/Model/Zom.bin");
-	
-	CGameObject* zombileObject = new CGameObject(pd3dDevice, pd3dCommandList);
-	zombileObject->SetChild(ZombieModel->m_pModelRootObject, true);
-	zombileObject->m_pSkinnedAnimationController = new CZombieAnimationController(pd3dDevice, pd3dCommandList, 3, ZombieModel);
-	zombileObject->SetPosition(-20.0f, 0.0f, 10.0f);
-	zombileObject->Rotate(0.0f, 0.0f, 0.0f);
-	m_vShader[SKINNEDANIMATION_STANDARD_SHADER]->AddGameObject(zombileObject);
+	//CLoadedModelInfo* flashLightModel = CGameObject::LoadGeometryAndAnimationFromFile(pd3dDevice, pd3dCommandList, m_pd3dGraphicsRootSignature.Get(), (char*)"Asset/Model/Flashlight.bin");
+	//CGameObject* flashLight = new CGameObject(pd3dDevice, pd3dCommandList);
+	//flashLight->SetChild(flashLightModel->m_pModelRootObject, true);
+	//flashLight->SetPosition(0.0f, 10.0f, 10.0f);
+	//flashLight->Rotate(0.0f, 0.0f, 0.0f);
+	//m_vShader[STANDARD_SHADER]->AddGameObject(flashLight);
 
-	CLoadedModelInfo* flashLightModel = CGameObject::LoadGeometryAndAnimationFromFile(pd3dDevice, pd3dCommandList, m_pd3dGraphicsRootSignature.Get(), (char*)"Asset/Model/Flashlight.bin");
-	CGameObject* flashLight = new CGameObject(pd3dDevice, pd3dCommandList);
-	flashLight->SetChild(flashLightModel->m_pModelRootObject, true);
-	flashLight->SetPosition(0.0f, 10.0f, 10.0f);
-	flashLight->Rotate(0.0f, 0.0f, 0.0f);
-	m_vShader[STANDARD_SHADER]->AddGameObject(flashLight);
+	//CLoadedModelInfo* ZombieModel = CGameObject::LoadGeometryAndAnimationFromFile(pd3dDevice, pd3dCommandList, m_pd3dGraphicsRootSignature.Get(), (char*)"Asset/Model/Zom.bin");
+	//CGameObject* zombileObject = new CGameObject(pd3dDevice, pd3dCommandList);
+	//zombileObject->SetChild(ZombieModel->m_pModelRootObject, true);
+	//zombileObject->m_pSkinnedAnimationController = new CZombieAnimationController(pd3dDevice, pd3dCommandList, 3, ZombieModel);
+	//zombileObject->SetPosition(-20.0f, 0.0f, 10.0f);
+	//zombileObject->Rotate(0.0f, 0.0f, 0.0f);
+	//m_vShader[SKINNEDANIMATION_STANDARD_SHADER]->AddGameObject(zombileObject);
 
-	if (pDeskModel) delete pDeskModel;
-	if (pDoorModel) delete pDoorModel;
-	if (ZombieModel) delete ZombieModel;
-	if (flashLightModel) delete flashLightModel;
+	//if (pDeskModel) delete pDeskModel;
+	//if (pDoorModel) delete pDoorModel;
+	//if (ZombieModel) delete ZombieModel;
+	//if (flashLightModel) delete flashLightModel;
 
 	FILE* pInFile = NULL;
 	::fopen_s(&pInFile, (char*)"Asset/Model/Scene.bin", "rb");
@@ -275,15 +278,16 @@ void CScene::BuildObjects(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* p
 			{
 				if (!strcmp(pstrToken, "<Hierarchy>:"))
 				{
-					pLoadedModel->m_pModelRootObject = CGameObject::LoadFrameHierarchyFromFile(pd3dDevice, pd3dCommandList, m_pd3dGraphicsRootSignature.Get(), NULL, pInFile, &pLoadedModel->m_nSkinnedMeshes);
+					pLoadedModel->m_pModelRootObject = CGameObject::LoadInstanceFrameHierarchyFromFile(pd3dDevice, pd3dCommandList, m_pd3dGraphicsRootSignature.Get(), NULL, pInFile, &pLoadedModel->m_nSkinnedMeshes);
 					::ReadStringFromFile(pInFile, pstrToken); //"</Hierarchy>"
 					pLoadedModel->m_pModelRootObject->Rotate(0.0f, 0.0f, 0.0f);
-					if(!strcmp(pLoadedModel->m_pModelRootObject->m_pstrFrameName, "Zom_1")) { // 씬을 바이너리로 쓸때 스키닝 정보는 넣지 않음(그러므로 이 객체는 정보 x)
+					if(!strcmp(pLoadedModel->m_pModelRootObject->m_pstrFrameName, "Zom_1")) 
+					{ // 씬을 바이너리로 쓸때 스키닝 정보는 넣지 않음(그러므로 이 객체는 정보 x)
 						m_vShader[SKINNEDANIMATION_STANDARD_SHADER]->AddGameObject(pLoadedModel->m_pModelRootObject);
-
 					}
-					else {
-						m_vShader[INSTANCE_STANDARD_SHADER]->AddGameObject(pLoadedModel->m_pModelRootObject);
+					else 
+					{
+						m_vShader[INSTANCE_STANDARD_SHADER]->AddGameObject((pLoadedModel->m_pModelRootObject));
 					}
 				}
 				else if (!strcmp(pstrToken, "<Animation>:"))
@@ -372,6 +376,7 @@ void CScene::ReleaseUploadBuffers()
 }
 
 int CScene::m_nCntCbv = 0;
+int CScene::m_nCntSrv = 0;
 
 void CScene::CreateCbvSrvDescriptorHeaps(ID3D12Device* pd3dDevice, int nConstantBufferViews, int nShaderResourceViews)
 {
@@ -408,6 +413,7 @@ D3D12_GPU_DESCRIPTOR_HANDLE CScene::CreateConstantBufferViews(ID3D12Device* pd3d
 
 void CScene::CreateShaderResourceViews(ID3D12Device* pd3dDevice, CTexture* pTexture, UINT nDescriptorHeapIndex, UINT nRootParameterStartIndex)
 {
+	m_nCntSrv++;
 	m_d3dSrvCPUDescriptorNextHandle.ptr += (::gnCbvSrvDescriptorIncrementSize * nDescriptorHeapIndex);
 	m_d3dSrvGPUDescriptorNextHandle.ptr += (::gnCbvSrvDescriptorIncrementSize * nDescriptorHeapIndex);
 

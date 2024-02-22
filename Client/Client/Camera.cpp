@@ -6,7 +6,7 @@
 CCamera::CCamera()
 {
 	m_xmf4x4View = Matrix4x4::Identity();
-	GenerateProjectionMatrix(1.01f, 5000.0f, ASPECT_RATIO, 60.0f);
+	GenerateProjectionMatrix(1.01f, 500.0f, ASPECT_RATIO, 60.0f);
 	m_d3dViewport = { 0, 0, FRAME_BUFFER_WIDTH , FRAME_BUFFER_HEIGHT, 0.0f, 1.0f };
 	m_d3dScissorRect = { 0, 0, FRAME_BUFFER_WIDTH , FRAME_BUFFER_HEIGHT };
 	m_xmf3Position = XMFLOAT3(0.0f, 0.0f, 0.0f);
@@ -253,7 +253,8 @@ void CThirdPersonCamera::Update(XMFLOAT3& xmf3LookAt, float fElapsedTime)
 
 void CThirdPersonCamera::SetLookAt(XMFLOAT3& xmf3LookAt)
 {
-	XMFLOAT4X4 mtxLookAt = Matrix4x4::LookAtLH(m_xmf3Position, xmf3LookAt, m_pPlayer->GetUpVector());
+	XMFLOAT3 xmf3PlayerUp = m_pPlayer->GetUpVector();
+	XMFLOAT4X4 mtxLookAt = Matrix4x4::LookAtLH(m_xmf3Position, xmf3LookAt, xmf3PlayerUp);
 	m_xmf3Right = XMFLOAT3(mtxLookAt._11, mtxLookAt._21, mtxLookAt._31);
 	m_xmf3Up = XMFLOAT3(mtxLookAt._12, mtxLookAt._22, mtxLookAt._32);
 	m_xmf3Look = XMFLOAT3(mtxLookAt._13, mtxLookAt._23, mtxLookAt._33);

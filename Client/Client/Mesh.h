@@ -1,6 +1,7 @@
 #pragma once
 
 class CGameObject;
+class CInstanceObject;
 
 class CMesh
 {
@@ -12,15 +13,17 @@ public:
 
 	char							m_pstrMeshName[64] = { 0 };
 
-	int instanceCount = 1;
+	int m_nCntInstance = 1;
 
 	void AddRef() { m_nReferences++; }
 	void Release() { if (--m_nReferences <= 0) delete this; }
 
 	UINT GetType() { return(m_nType); }
-	XMFLOAT3 GetAABBCenter()const { return m_xmf3AABBCenter; }
-	XMFLOAT3 GetAABBExtents()const { return m_xmf3AABBExtents; }
-	BoundingOrientedBox GetOOBB() const { return m_OOBB; }
+	//XMFLOAT3 GetAABBCenter()const { return m_xmf3AABBCenter; }
+	//XMFLOAT3 GetAABBExtents()const { return m_xmf3AABBExtents; }
+	BoundingOrientedBox GetOOBB(int nIndex) const { return m_vOOBBs[nIndex]; }
+	vector<BoundingOrientedBox> GetVectorOOBB() const { return m_vOOBBs; }
+
 	/*virtual void CreateShaderVariables(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dCommandList) { }
 	virtual void UpdateShaderVariables(ID3D12GraphicsCommandList* pd3dCommandList) { }
 	virtual void ReleaseShaderVariables() { }*/
@@ -34,9 +37,10 @@ public:
 protected:
 	UINT							m_nType = 0x00;
 
-	XMFLOAT3						m_xmf3AABBCenter = XMFLOAT3(0.0f, 0.0f, 0.0f);
-	XMFLOAT3						m_xmf3AABBExtents = XMFLOAT3(0.0f, 0.0f, 0.0f);
-	BoundingOrientedBox				m_OOBB{ BoundingOrientedBox() };
+	//XMFLOAT3						m_xmf3AABBCenter = XMFLOAT3(0.0f, 0.0f, 0.0f);
+	//XMFLOAT3						m_xmf3AABBExtents = XMFLOAT3(0.0f, 0.0f, 0.0f);
+	//BoundingOrientedBox				m_OOBB{ BoundingOrientedBox() };
+	vector<BoundingOrientedBox>		m_vOOBBs;
 
 	D3D12_PRIMITIVE_TOPOLOGY		m_d3dPrimitiveTopology = D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST;
 	UINT							m_nSlot = 0;
@@ -114,11 +118,13 @@ protected:
 
 public:
 	bool LoadMeshFromFile(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dCommandList, FILE* pInFile);
-	virtual void LoadInstanceData(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dCommandList, FILE* pInFile) {}
+	//virtual void LoadInstanceData(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dCommandList, FILE* pInFile, CGameObject* pGameObject) {}
 
 	virtual void ReleaseUploadBuffers();
 
 	virtual void OnPreRender(ID3D12GraphicsCommandList* pd3dCommandList);
+	virtual void UpdateShaderVariables(ID3D12GraphicsCommandList* pd3dCommandList) {};
+
 };
 
 class CInstanceStandardMesh : public CStandardMesh
@@ -127,13 +133,25 @@ public:
 	CInstanceStandardMesh(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dCommandList);
 	virtual ~CInstanceStandardMesh();
 
+	bool LoadMeshFromFile(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dCommandList, FILE* pInFile, CInstanceObject* pGameObject);
+	void LoadInstanceData(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dCommandList, FILE* pInFile, CInstanceObject* pGameObject);
+	virtual void OnPreRender(ID3D12GraphicsCommandList* pd3dCommandList);
+
+	virtual void UpdateShaderVariables(ID3D12GraphicsCommandList* pd3dCommandList);
+
+	// 여기서 하드코딩으로 충돌체에 따른 게임 오브젝트를 만드는 작업을 하게 해둠
+	CGameObject* CreateInstanceObjectInfo(char* pstrMeshName, XMFLOAT4X4& xmf4x4WorldMatrix);
+
 protected:
+	//XMFLOAT4X4						m_xmf4x4ToParent;
+	XMFLOAT4X4* m_pxmf4x4InstanceTransformMatrix = NULL;
+	CInstanceObject* m_pOriginInstance = NULL;
+
+	//int m_nStart = 0;	// CollisionManager 시작 인덱스 (임시)
+
 	ID3D12Resource*					m_pd3dInstanceTransformMatrixBuffer = NULL;
 	ID3D12Resource*					m_pd3dInstanceTransformMatrixUploadBuffer = NULL;
 	D3D12_VERTEX_BUFFER_VIEW		m_d3dInstanceTransformMatrixBufferView;
-public:
-	virtual void LoadInstanceData(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dCommandList, FILE* pInFile);
-	virtual void OnPreRender(ID3D12GraphicsCommandList* pd3dCommandList);
 };
 
 /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////

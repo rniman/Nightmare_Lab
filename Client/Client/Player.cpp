@@ -3,6 +3,7 @@
 #include "Scene.h"
 #include "Shader.h"
 #include "PlayerController.h"
+#include "Collision.h"
 
 //#define _WITH_DEBUG_CALLBACK_DATA
 
@@ -29,7 +30,7 @@ void CSoundCallbackHandler::HandleCallback(void* pCallbackData, float fTrackPosi
 CPlayer::CPlayer(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dCommandList, ID3D12RootSignature* pd3dGraphicsRootSignature, CScene* pScene, void* pContext)
 	: CGameObject(pd3dDevice, pd3dCommandList)
 {
-	m_pCamera = ChangeCamera(FIRST_PERSON_CAMERA, 0.0f);
+	m_pCamera = ChangeCamera(THIRD_PERSON_CAMERA, 0.0f);
 	CreateShaderVariables(pd3dDevice, pd3dCommandList);
 }
 
@@ -185,24 +186,24 @@ CCamera* CPlayer::ChangeCamera(DWORD nNewCameraMode, float fElapsedTime)
 	case FIRST_PERSON_CAMERA:
 		SetFriction(250.0f);
 		SetGravity(XMFLOAT3(0.0f, 0.0f, 0.0f));
-		SetMaxVelocityXZ(300.0f);
-		SetMaxVelocityY(400.0f);
+		SetMaxVelocityXZ(30.0f);
+		SetMaxVelocityY(40.0f);
 		m_pCamera = OnChangeCamera(FIRST_PERSON_CAMERA, nCurrentCameraMode);
 		m_pCamera->SetTimeLag(0.0f);
-		m_pCamera->SetOffset(XMFLOAT3(0.0f, 20.0f, 0.0f));
-		m_pCamera->GenerateProjectionMatrix(1.01f, 5000.0f, ASPECT_RATIO, 60.0f);
+		m_pCamera->SetOffset(XMFLOAT3(0.0f, 2.0f, 0.0f));
+		m_pCamera->GenerateProjectionMatrix(1.01f, 500.0f, ASPECT_RATIO, 60.0f);
 		m_pCamera->SetViewport(0, 0, FRAME_BUFFER_WIDTH, FRAME_BUFFER_HEIGHT, 0.0f, 1.0f);
 		m_pCamera->SetScissorRect(0, 0, FRAME_BUFFER_WIDTH, FRAME_BUFFER_HEIGHT);
 		break;
 	case THIRD_PERSON_CAMERA:
 		SetFriction(250.0f);
 		SetGravity(XMFLOAT3(0.0f, 0.0f, 0.0f));
-		SetMaxVelocityXZ(300.0f);
-		SetMaxVelocityY(400.0f);
+		SetMaxVelocityXZ(30.0f);
+		SetMaxVelocityY(40.0f);
 		m_pCamera = OnChangeCamera(THIRD_PERSON_CAMERA, nCurrentCameraMode);
 		m_pCamera->SetTimeLag(0.25f);
-		m_pCamera->SetOffset(XMFLOAT3(0.0f, 20.0f, -50.0f));
-		m_pCamera->GenerateProjectionMatrix(1.01f, 5000.0f, ASPECT_RATIO, 60.0f);
+		m_pCamera->SetOffset(XMFLOAT3(0.0f, 2.0f, -5.0f));
+		m_pCamera->GenerateProjectionMatrix(1.01f, 500.0f, ASPECT_RATIO, 60.0f);
 		m_pCamera->SetViewport(0, 0, FRAME_BUFFER_WIDTH, FRAME_BUFFER_HEIGHT, 0.0f, 1.0f);
 		m_pCamera->SetScissorRect(0, 0, FRAME_BUFFER_WIDTH, FRAME_BUFFER_HEIGHT);
 		break;
@@ -222,7 +223,8 @@ void CPlayer::OnPrepareRender()
 	m_xmf4x4ToParent._31 = m_xmf3Look.x; m_xmf4x4ToParent._32 = m_xmf3Look.y; m_xmf4x4ToParent._33 = m_xmf3Look.z;
 	m_xmf4x4ToParent._41 = m_xmf3Position.x; m_xmf4x4ToParent._42 = m_xmf3Position.y; m_xmf4x4ToParent._43 = m_xmf3Position.z;
 	
-	m_xmf4x4ToParent = Matrix4x4::Multiply(XMMatrixScaling(m_xmf3Scale.x, m_xmf3Scale.y, m_xmf3Scale.z), m_xmf4x4ToParent);
+	XMMATRIX xmtxScale = XMMatrixScaling(m_xmf3Scale.x, m_xmf3Scale.y, m_xmf3Scale.z);
+	m_xmf4x4ToParent = Matrix4x4::Multiply(xmtxScale, m_xmf4x4ToParent);
 }
 
 void CPlayer::Animate(float fElapsedTime)
@@ -265,29 +267,45 @@ CGameObject* CPlayer::GetPickedObject(int nx, int ny, CScene* pScene)
 		pickPosition.y = 0.0f;
 	}
 	pickPosition.z = 1.0f;
-	
-	float fNearestHitDistance = FLT_MAX;
-	for (auto& pShader : pScene->m_vShader)
-	{
-		for (auto& pGameObject : pShader->GetGameObjects())
-		{
-			//if (!gameObject->GetPickingDetection())
-			//	continue;
 
-			for (auto& pCollisionObject : pGameObject->m_vpCollideFrame)
+	float fNearestHitDistance = FLT_MAX;
+	for (auto& pvCollisionObject : g_collisonManager.m_vvpCollisionGameObjects)
+	{
+		for (auto& pCollisionObject : pvCollisionObject)
+		{
+			float fHitDistance = FLT_MAX;
+			if (CGameObject::CheckPicking(pCollisionObject, pickPosition, m_pCamera->GetViewMatrix(), fHitDistance))
 			{
-				float fHitDistance = FLT_MAX;
-				if (CGameObject::CheckPicking(pCollisionObject, pickPosition, m_pCamera->GetViewMatrix(), fHitDistance))
+				if (fHitDistance < fNearestHitDistance)
 				{
-					if (fHitDistance < fNearestHitDistance)
-					{
-						fNearestHitDistance = fHitDistance;
-						pPickedObject = pGameObject.get();
-					}
+					fNearestHitDistance = fHitDistance;
+					pPickedObject = pCollisionObject;
 				}
 			}
 		}
 	}
+
+	//for (auto& pShader : pScene->m_vShader)
+	//{
+	//	for (auto& pGameObject : pShader->GetGameObjects())
+	//	{
+	//		//if (!gameObject->GetPickingDetection())
+	//		//	continue;
+
+	//		for (auto& pCollisionObject : pGameObject->m_vpCollideFrame)
+	//		{
+	//			float fHitDistance = FLT_MAX;
+	//			if (CGameObject::CheckPicking(pCollisionObject, pickPosition, m_pCamera->GetViewMatrix(), fHitDistance))
+	//			{
+	//				if (fHitDistance < fNearestHitDistance)
+	//				{
+	//					fNearestHitDistance = fHitDistance;
+	//					pPickedObject = pGameObject.get();
+	//				}
+	//			}
+	//		}
+	//	}
+	//}
 
 	if (pPickedObject) 
 	{
@@ -304,6 +322,7 @@ CGameObject* CPlayer::GetPickedObject(int nx, int ny, CScene* pScene)
 CBlueSuitPlayer::CBlueSuitPlayer(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dCommandList, ID3D12RootSignature* pd3dGraphicsRootSignature, CScene* pScene, void* pContext)
 	:CPlayer(pd3dDevice, pd3dCommandList, pd3dGraphicsRootSignature, pScene, pContext)
 {
+	m_xmf3Scale = XMFLOAT3(0.1f, 0.1f, 0.1f);
 	CLoadedModelInfo* pBlueSuitPlayer = CGameObject::LoadGeometryAndAnimationFromFile(pd3dDevice, pd3dCommandList, pd3dGraphicsRootSignature, "Asset/Model/BlueSuitFree01.bin");
 	SetChild(pBlueSuitPlayer->m_pModelRootObject, true);
 
@@ -421,7 +440,8 @@ void CBlueSuitPlayer::Update(float fElapsedTime)
 				m_pSkinnedAnimationController->SetTrackPosition(1, m_pSkinnedAnimationController->m_pAnimationTracks[3].m_fPosition);
 			}
 
-			float fAngle = Vector3::Angle(m_xmf3Look, Vector3::Normalize(m_xmf3Velocity));
+			XMFLOAT3 xmf3Direction = Vector3::Normalize(m_xmf3Velocity);
+			float fAngle = Vector3::Angle(m_xmf3Look, xmf3Direction);
 			float fRightWeight;
 			if (Vector3::CrossProduct(m_xmf3Look, m_xmf3Velocity, false).y < 0.0f)
 			{
@@ -454,6 +474,7 @@ void CBlueSuitPlayer::Update(float fElapsedTime)
 CZombiePlayer::CZombiePlayer(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dCommandList, ID3D12RootSignature* pd3dGraphicsRootSignature, CScene* pScene, void* pContext)
 	:CPlayer(pd3dDevice, pd3dCommandList, pd3dGraphicsRootSignature, pScene, pContext)
 {
+	m_xmf3Scale = XMFLOAT3(0.1f, 0.1f, 0.1f);
 	CLoadedModelInfo* pZombiePlayer = CGameObject::LoadGeometryAndAnimationFromFile(pd3dDevice, pd3dCommandList, pd3dGraphicsRootSignature, "Asset/Model/Zom.bin");
 	SetChild(pZombiePlayer->m_pModelRootObject, true);
 
@@ -465,8 +486,9 @@ CZombiePlayer::CZombiePlayer(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList
 	m_pSkinnedAnimationController->SetCallbackKey(1, 0.5f, _T("Footstep02"));
 	m_pSkinnedAnimationController->SetCallbackKey(2, 0.9f, _T("Footstep03"));
 #else
-	m_pSkinnedAnimationController->SetCallbackKey(1, 0, 0.1f, _T("Sound/Footstep01.wav"));
-	m_pSkinnedAnimationController->SetCallbackKey(1, 1, 0.9f, _T("Sound/Footstep02.wav"));
+
+	m_pSkinnedAnimationController->SetCallbackKey(1, 0, 0.1f, (void*)_T("Sound/Footstep01.wav"));
+	m_pSkinnedAnimationController->SetCallbackKey(1, 1, 0.9f, (void*)_T("Sound/Footstep02.wav"));
 #endif
 	CAnimationCallbackHandler* pAnimationCallbackHandler = new CSoundCallbackHandler();
 	m_pSkinnedAnimationController->SetAnimationCallbackHandler(1, pAnimationCallbackHandler);

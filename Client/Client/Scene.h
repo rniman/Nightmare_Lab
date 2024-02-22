@@ -7,6 +7,7 @@
 #define STANDARD_SHADER 0
 #define INSTANCE_STANDARD_SHADER 1
 #define SKINNEDANIMATION_STANDARD_SHADER 2
+#define NOTRENDERING_SHADER 3
 
 // m_vMesh 메쉬에 접근할 각 인덱스를 의미
 #define HEXAHEDRONMESH 0
@@ -69,6 +70,7 @@ protected:
 public:
 	// Cbv Count
 	static int m_nCntCbv;
+	static int m_nCntSrv;
 
 	static void CreateCbvSrvDescriptorHeaps(ID3D12Device* pd3dDevice, int nConstantBufferViews, int nShaderResourceViews);
 
