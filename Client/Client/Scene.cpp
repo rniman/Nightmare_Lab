@@ -198,9 +198,9 @@ void CScene::CreateGraphicsRootSignature(ID3D12Device* pd3dDevice)
 	}
 }
 
-ID3D12RootSignature* CScene::GetGraphicsRootSignature()
+ComPtr<ID3D12RootSignature> CScene::GetGraphicsRootSignature()
 {
-	return m_pd3dGraphicsRootSignature.Get();
+	return m_pd3dGraphicsRootSignature;
 }
 
 void CScene::BuildObjects(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dCommandList)
@@ -322,20 +322,20 @@ void CScene::BuildObjects(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* p
 
 void CScene::AddDefaultObject(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dCommandList, ObjectType type, XMFLOAT3 position, int shader, int mesh)
 {
-	CGameObject* object = nullptr;
+	shared_ptr<CGameObject> pObject;
 	switch (type)
 	{
 	case ObjectType::DEFAULT:
-		object = new CGameObject(pd3dDevice, pd3dCommandList, 1);
+		pObject = make_shared<CGameObject>(pd3dDevice, pd3dCommandList, 1);
 	case ObjectType::HEXAHERON:
-		object = new CHexahedronObject(pd3dDevice, pd3dCommandList, 1);
+		pObject = make_shared<CHexahedronObject>(pd3dDevice, pd3dCommandList, 1);
 	default:
 		break;
 	}
-	object->SetMesh(m_vMesh[mesh].get());
-	object->SetPosition(position);
+	pObject->SetMesh(m_vMesh[mesh]);
+	pObject->SetPosition(position);
 
-	m_vShader[shader]->AddGameObject(object);
+	m_vShader[shader]->AddGameObject(pObject);
 }
 
 void CScene::CreateShaderVariables(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dCommandList)
@@ -364,11 +364,13 @@ void CScene::ReleaseShaderVariables()
 
 void CScene::ReleaseUploadBuffers()
 {
-	for (auto& m : m_vMesh) {
+	for (auto& m : m_vMesh) 
+	{
 		m->ReleaseUploadBuffers();
 	}
 
-	for (auto& s : m_vShader) {
+	for (auto& s : m_vShader) 
+	{
 		s->ReleaseUploadBuffers();
 	}
 	/*for (int i = 0; i < m_nShaders; i++) m_ppShaders[i]->ReleaseUploadBuffers();
@@ -411,7 +413,7 @@ D3D12_GPU_DESCRIPTOR_HANDLE CScene::CreateConstantBufferViews(ID3D12Device* pd3d
 	return(d3dCbvGPUDescriptorHandle);
 }
 
-void CScene::CreateShaderResourceViews(ID3D12Device* pd3dDevice, CTexture* pTexture, UINT nDescriptorHeapIndex, UINT nRootParameterStartIndex)
+void CScene::CreateShaderResourceViews(ID3D12Device* pd3dDevice, const shared_ptr<CTexture>& pTexture, UINT nDescriptorHeapIndex, UINT nRootParameterStartIndex)
 {
 	m_nCntSrv++;
 	m_d3dSrvCPUDescriptorNextHandle.ptr += (::gnCbvSrvDescriptorIncrementSize * nDescriptorHeapIndex);
@@ -479,7 +481,7 @@ void CScene::AnimateObjects(float fElapsedTime)
 	}
 }
 
-void CScene::PrepareRender(ID3D12GraphicsCommandList* pd3dCommandList, CCamera* pCamera)
+void CScene::PrepareRender(ID3D12GraphicsCommandList* pd3dCommandList, const shared_ptr<CCamera>& pCamera)
 {
 	if (m_pd3dGraphicsRootSignature) pd3dCommandList->SetGraphicsRootSignature(m_pd3dGraphicsRootSignature.Get());
 	if (m_pd3dCbvSrvDescriptorHeap) pd3dCommandList->SetDescriptorHeaps(1, m_pd3dCbvSrvDescriptorHeap.GetAddressOf());
@@ -494,11 +496,12 @@ void CScene::PrepareRender(ID3D12GraphicsCommandList* pd3dCommandList, CCamera* 
 
 }
 
-void CScene::Render(ID3D12GraphicsCommandList* pd3dCommandList, CCamera* pCamera)
+void CScene::Render(ID3D12GraphicsCommandList* pd3dCommandList, const shared_ptr<CCamera>& pCamera)
 {
 	PrepareRender(pd3dCommandList, pCamera);
 
-	for (auto& shader : m_vShader) {
+	for (auto& shader : m_vShader) 
+	{
 		shader->Render(pd3dCommandList, pCamera);
 	}
 }

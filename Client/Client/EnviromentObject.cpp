@@ -14,8 +14,8 @@ CDrawerObject::CDrawerObject(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList
 	SetOOBB();
 	SetPosition(20.0f, 0.0f, 20.0f);
 	Rotate(0.0f, 0.0f, 0.0f);
-	m_pFirstDrawer = FindFrame("Drawer_2");
-	m_pSecondDrawer = FindFrame("Drawer_1");
+	//m_pFirstDrawer = FindFrame("Drawer_2");
+	//m_pSecondDrawer = FindFrame("Drawer_1");
 }
 
 
@@ -37,7 +37,7 @@ void CDrawerObject::AnimateOOBB()
 
 void CDrawerObject::AnimatePicking(float fElapsedTime)
 {
-	XMFLOAT3 fFirstDrawerPos = m_pFirstDrawer->GetPosition();
+	/*XMFLOAT3 fFirstDrawerPos = m_pFirstDrawer->GetPosition();
 	XMFLOAT4X4 xmf4x4ToLocal = Matrix4x4::Inverse(m_pFirstDrawer->m_pParent->m_xmf4x4World);
 
 	XMFLOAT3 xmf3DrawerPos = Vector3::TransformCoord(fFirstDrawerPos, xmf4x4ToLocal);
@@ -58,7 +58,7 @@ void CDrawerObject::AnimatePicking(float fElapsedTime)
 				m_pFirstDrawer->SetPosition(0.0f, 0.0f, 0.0f);
 			}
 		}
-	}
+	}*/
 }
 
 void CDrawerObject::CallbackPicking()

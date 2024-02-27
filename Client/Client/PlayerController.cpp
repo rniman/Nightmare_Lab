@@ -7,16 +7,22 @@ CBlueSuitAnimationController::CBlueSuitAnimationController(ID3D12Device* pd3dDev
 	// IDLE, WALK, RUN 3가지 상태
 	m_nState = 3;
 	m_nTransition = 4;
-	m_pAnimationTransitions = new CAnimationTransition[m_nTransition];
-	m_pAnimationTransitions[0].SetTransitionAnimationTrack(0, 1);	// i -> w
-	m_pAnimationTransitions[1].SetTransitionAnimationTrack(1, 0);	// w -> i
-	m_pAnimationTransitions[2].SetTransitionAnimationTrack(1, 2);	// w -> r
-	m_pAnimationTransitions[3].SetTransitionAnimationTrack(2, 1);	// r -> w
 
-	m_pAnimationTransitions[0].SetAnimationTransition(0.01, 0.0f, 0.25f);
-	m_pAnimationTransitions[1].SetAnimationTransition(0.5, 0.0f, 0.25f);
-	m_pAnimationTransitions[2].SetAnimationTransition(0.1, 0.0f, 0.25f);
-	m_pAnimationTransitions[3].SetAnimationTransition(0.1, 0.0f, 0.25f);
+	m_vAnimationTransitions.reserve(m_nTransition);
+	for (int i = 0; i < m_nTransition; ++i)
+	{
+		m_vAnimationTransitions.emplace_back();
+	}
+
+	m_vAnimationTransitions[0].SetTransitionAnimationTrack(0, 1);	// i -> w
+	m_vAnimationTransitions[1].SetTransitionAnimationTrack(1, 0);	// w -> i
+	m_vAnimationTransitions[2].SetTransitionAnimationTrack(1, 2);	// w -> r
+	m_vAnimationTransitions[3].SetTransitionAnimationTrack(2, 1);	// r -> w
+
+	m_vAnimationTransitions[0].SetAnimationTransition(0.01, 0.0f, 0.25f);
+	m_vAnimationTransitions[1].SetAnimationTransition(0.5, 0.0f, 0.25f);
+	m_vAnimationTransitions[2].SetAnimationTransition(0.1, 0.0f, 0.25f);
+	m_vAnimationTransitions[3].SetAnimationTransition(0.1, 0.0f, 0.25f);
 
 	m_bTransition = false;
 	m_nNowState = PlayerState::IDLE;
@@ -32,7 +38,7 @@ CBlueSuitAnimationController::CBlueSuitAnimationController(ID3D12Device* pd3dDev
 
 	for (int i = 0; i < m_pAnimationSets->m_nBoneFrames; ++i)
 	{
-		char* frameName = m_pAnimationSets->m_ppBoneFrameCaches[i]->GetFrameName();
+		char* frameName = m_pAnimationSets->m_vpBoneFrameCaches[i]->GetFrameName();
 		if (strncmp(frameName, "Scapula_L", strlen(frameName)) == 0) m_nStartLArm = i;
 		if (strncmp(frameName, "ThumbFinger4_L", strlen(frameName)) == 0) m_nEndLArm = i;
 		if (strncmp(frameName, "Scapula_R", strlen(frameName)) == 0) m_nStartRArm = i;
@@ -46,16 +52,16 @@ CBlueSuitAnimationController::CBlueSuitAnimationController(ID3D12Device* pd3dDev
 void CBlueSuitAnimationController::AdvanceTime(float fElapsedTime, CGameObject* pRootGameObject)
 {
 	m_fTime += fElapsedTime;
-	if (m_pAnimationTracks)
+	if (!m_vAnimationTracks.empty())
 	{
-		for (int j = 0; j < m_pAnimationSets->m_nBoneFrames; j++) m_pAnimationSets->m_ppBoneFrameCaches[j]->m_xmf4x4ToParent = Matrix4x4::Zero();
+		for (int j = 0; j < m_pAnimationSets->m_nBoneFrames; j++) m_pAnimationSets->m_vpBoneFrameCaches[j]->m_xmf4x4ToParent = Matrix4x4::Zero();
 
 		if (m_bTransition) // 트렌지션
 		{
 			int nTransitionIndex = -1;
 			for (int i = 0; i < m_nTransition; ++i)
 			{
-				if (m_pAnimationTransitions[i].IsTransition(m_nNowState, m_nNextState))
+				if (m_vAnimationTransitions[i].IsTransition(m_nNowState, m_nNextState))
 				{
 					nTransitionIndex = i;
 					break;
@@ -68,25 +74,25 @@ void CBlueSuitAnimationController::AdvanceTime(float fElapsedTime, CGameObject* 
 			else if (nTransitionIndex == 0)	// IDLE -> WALK
 			{
 				BlendAnimation(1, 2, fElapsedTime, m_vfBlendWeight[0]);
-				CAnimationSet* pAnimationSet = m_pAnimationSets->m_pAnimationSets[m_pAnimationTracks[0].m_nAnimationSet];
-				float fPosition = m_pAnimationTracks[0].UpdatePosition(m_pAnimationTracks[0].m_fPosition, fElapsedTime, pAnimationSet->m_fLength);
+				shared_ptr<CAnimationSet> pAnimationSet = m_pAnimationSets->m_vpAnimationSets[m_vAnimationTracks[0].m_nAnimationSet];
+				float fPosition = m_vAnimationTracks[0].UpdatePosition(m_vAnimationTracks[0].m_fPosition, fElapsedTime, pAnimationSet->m_fLength);
 
 				for (int j = 0; j < m_pAnimationSets->m_nBoneFrames; j++)
 				{
-					XMFLOAT4X4 xmf4x4WALKTransform = m_pAnimationSets->m_ppBoneFrameCaches[j]->m_xmf4x4ToParent;	// WALK
+					XMFLOAT4X4 xmf4x4WALKTransform = m_pAnimationSets->m_vpBoneFrameCaches[j]->m_xmf4x4ToParent;	// WALK
 					XMFLOAT4X4 xmf4x4IDLETransform = pAnimationSet->GetSRT(j, fPosition);					// IDLE
-					xmf4x4IDLETransform = Matrix4x4::Scale(xmf4x4IDLETransform, m_pAnimationTracks[0].m_fWeight);
+					xmf4x4IDLETransform = Matrix4x4::Scale(xmf4x4IDLETransform, m_vAnimationTracks[0].m_fWeight);
 
 					XMFLOAT4X4 xmf4x4TrackTransform = Matrix4x4::Interpolate(xmf4x4IDLETransform, xmf4x4WALKTransform,
-						m_pAnimationTransitions[nTransitionIndex].m_fTransitionTime / m_pAnimationTransitions[nTransitionIndex].m_fTransitionDuration);
+						m_vAnimationTransitions[nTransitionIndex].m_fTransitionTime / m_vAnimationTransitions[nTransitionIndex].m_fTransitionDuration);
 
-					m_pAnimationSets->m_ppBoneFrameCaches[j]->m_xmf4x4ToParent = xmf4x4TrackTransform;
+					m_pAnimationSets->m_vpBoneFrameCaches[j]->m_xmf4x4ToParent = xmf4x4TrackTransform;
 				}
 
-				m_pAnimationTransitions[nTransitionIndex].m_fTransitionTime += fElapsedTime;
-				if (m_pAnimationTransitions[nTransitionIndex].m_fTransitionTime - m_pAnimationTransitions[nTransitionIndex].m_fTransitionDuration >= -EPSILON)
+				m_vAnimationTransitions[nTransitionIndex].m_fTransitionTime += fElapsedTime;
+				if (m_vAnimationTransitions[nTransitionIndex].m_fTransitionTime - m_vAnimationTransitions[nTransitionIndex].m_fTransitionDuration >= -EPSILON)
 				{
-					m_pAnimationTransitions[nTransitionIndex].m_fTransitionTime = 0.0f;
+					m_vAnimationTransitions[nTransitionIndex].m_fTransitionTime = 0.0f;
 					m_nNowState = PlayerState::WALK;
 					m_bTransition = false;
 					SetTrackEnable(0, false);
@@ -100,25 +106,25 @@ void CBlueSuitAnimationController::AdvanceTime(float fElapsedTime, CGameObject* 
 			else if (nTransitionIndex == 1)	// WALK -> IDLE
 			{
 				BlendAnimation(1, 2, fElapsedTime, m_vfBlendWeight[0]);
-				CAnimationSet* pAnimationSet = m_pAnimationSets->m_pAnimationSets[m_pAnimationTracks[0].m_nAnimationSet];
-				float fPosition = m_pAnimationTracks[0].UpdatePosition(m_pAnimationTracks[0].m_fPosition, fElapsedTime, pAnimationSet->m_fLength);
+				shared_ptr<CAnimationSet>  pAnimationSet = m_pAnimationSets->m_vpAnimationSets[m_vAnimationTracks[0].m_nAnimationSet];
+				float fPosition = m_vAnimationTracks[0].UpdatePosition(m_vAnimationTracks[0].m_fPosition, fElapsedTime, pAnimationSet->m_fLength);
 
 				for (int j = 0; j < m_pAnimationSets->m_nBoneFrames; j++)
 				{
-					XMFLOAT4X4 xmf4x4WALKTransform = m_pAnimationSets->m_ppBoneFrameCaches[j]->m_xmf4x4ToParent;	// WALK
+					XMFLOAT4X4 xmf4x4WALKTransform = m_pAnimationSets->m_vpBoneFrameCaches[j]->m_xmf4x4ToParent;	// WALK
 					XMFLOAT4X4 xmf4x4IDLETransform = pAnimationSet->GetSRT(j, fPosition);					// IDLE
-					xmf4x4IDLETransform = Matrix4x4::Scale(xmf4x4IDLETransform, m_pAnimationTracks[0].m_fWeight);
+					xmf4x4IDLETransform = Matrix4x4::Scale(xmf4x4IDLETransform, m_vAnimationTracks[0].m_fWeight);
 
 					XMFLOAT4X4 xmf4x4TrackTransform = Matrix4x4::Interpolate(xmf4x4WALKTransform, xmf4x4IDLETransform,
-						m_pAnimationTransitions[nTransitionIndex].m_fTransitionTime / m_pAnimationTransitions[nTransitionIndex].m_fTransitionDuration);
+						m_vAnimationTransitions[nTransitionIndex].m_fTransitionTime / m_vAnimationTransitions[nTransitionIndex].m_fTransitionDuration);
 
-					m_pAnimationSets->m_ppBoneFrameCaches[j]->m_xmf4x4ToParent = xmf4x4TrackTransform;
+					m_pAnimationSets->m_vpBoneFrameCaches[j]->m_xmf4x4ToParent = xmf4x4TrackTransform;
 				}
 
-				m_pAnimationTransitions[nTransitionIndex].m_fTransitionTime += fElapsedTime;
-				if (m_pAnimationTransitions[nTransitionIndex].m_fTransitionTime - m_pAnimationTransitions[nTransitionIndex].m_fTransitionDuration >= -EPSILON)
+				m_vAnimationTransitions[nTransitionIndex].m_fTransitionTime += fElapsedTime;
+				if (m_vAnimationTransitions[nTransitionIndex].m_fTransitionTime - m_vAnimationTransitions[nTransitionIndex].m_fTransitionDuration >= -EPSILON)
 				{
-					m_pAnimationTransitions[nTransitionIndex].m_fTransitionTime = 0.0f;
+					m_vAnimationTransitions[nTransitionIndex].m_fTransitionTime = 0.0f;
 					m_nNowState = PlayerState::IDLE;
 					m_bTransition = false;
 					SetTrackEnable(0, true);
@@ -135,25 +141,25 @@ void CBlueSuitAnimationController::AdvanceTime(float fElapsedTime, CGameObject* 
 			else if (nTransitionIndex == 2) // WALK -> RUN
 			{
 				BlendAnimation(1, 2, fElapsedTime, m_vfBlendWeight[0]);
-				CAnimationSet* pRunAnimationSet = m_pAnimationSets->m_pAnimationSets[m_pAnimationTracks[3].m_nAnimationSet];
-				float fPosition = m_pAnimationTracks[3].UpdatePosition(m_pAnimationTracks[3].m_fPosition, fElapsedTime, pRunAnimationSet->m_fLength);
+				shared_ptr<CAnimationSet> pRunAnimationSet = m_pAnimationSets->m_vpAnimationSets[m_vAnimationTracks[3].m_nAnimationSet];
+				float fPosition = m_vAnimationTracks[3].UpdatePosition(m_vAnimationTracks[3].m_fPosition, fElapsedTime, pRunAnimationSet->m_fLength);
 
 				for (int j = 0; j < m_pAnimationSets->m_nBoneFrames; j++)
 				{
-					XMFLOAT4X4 xmf4x4WALKTransform = m_pAnimationSets->m_ppBoneFrameCaches[j]->m_xmf4x4ToParent;	// WALK
+					XMFLOAT4X4 xmf4x4WALKTransform = m_pAnimationSets->m_vpBoneFrameCaches[j]->m_xmf4x4ToParent;	// WALK
 					XMFLOAT4X4 xmf4x4RUNTransform = pRunAnimationSet->GetSRT(j, fPosition);					// RUN
-					xmf4x4RUNTransform = Matrix4x4::Scale(xmf4x4RUNTransform, m_pAnimationTracks[3].m_fWeight);
+					xmf4x4RUNTransform = Matrix4x4::Scale(xmf4x4RUNTransform, m_vAnimationTracks[3].m_fWeight);
 
 					XMFLOAT4X4 xmf4x4TrackTransform = Matrix4x4::Interpolate(xmf4x4WALKTransform, xmf4x4RUNTransform,
-						m_pAnimationTransitions[nTransitionIndex].m_fTransitionTime / m_pAnimationTransitions[nTransitionIndex].m_fTransitionDuration);
+						m_vAnimationTransitions[nTransitionIndex].m_fTransitionTime / m_vAnimationTransitions[nTransitionIndex].m_fTransitionDuration);
 
-					m_pAnimationSets->m_ppBoneFrameCaches[j]->m_xmf4x4ToParent = xmf4x4TrackTransform;
+					m_pAnimationSets->m_vpBoneFrameCaches[j]->m_xmf4x4ToParent = xmf4x4TrackTransform;
 				}
 
-				m_pAnimationTransitions[nTransitionIndex].m_fTransitionTime += fElapsedTime;
-				if (m_pAnimationTransitions[nTransitionIndex].m_fTransitionTime - m_pAnimationTransitions[nTransitionIndex].m_fTransitionDuration >= -EPSILON)
+				m_vAnimationTransitions[nTransitionIndex].m_fTransitionTime += fElapsedTime;
+				if (m_vAnimationTransitions[nTransitionIndex].m_fTransitionTime - m_vAnimationTransitions[nTransitionIndex].m_fTransitionDuration >= -EPSILON)
 				{
-					m_pAnimationTransitions[nTransitionIndex].m_fTransitionTime = 0.0f;
+					m_vAnimationTransitions[nTransitionIndex].m_fTransitionTime = 0.0f;
 					m_nNowState = PlayerState::RUN;
 					m_bTransition = false;
 					SetTrackEnable(0, false);
@@ -170,25 +176,25 @@ void CBlueSuitAnimationController::AdvanceTime(float fElapsedTime, CGameObject* 
 			else if (nTransitionIndex == 3)	// RUN -> WALK
 			{
 				BlendAnimation(1, 2, fElapsedTime, m_vfBlendWeight[0]);
-				CAnimationSet* pRunAnimationSet = m_pAnimationSets->m_pAnimationSets[m_pAnimationTracks[3].m_nAnimationSet];
-				float fPosition = m_pAnimationTracks[3].UpdatePosition(m_pAnimationTracks[3].m_fPosition, fElapsedTime, pRunAnimationSet->m_fLength);
+				shared_ptr<CAnimationSet> pRunAnimationSet = m_pAnimationSets->m_vpAnimationSets[m_vAnimationTracks[3].m_nAnimationSet];
+				float fPosition = m_vAnimationTracks[3].UpdatePosition(m_vAnimationTracks[3].m_fPosition, fElapsedTime, pRunAnimationSet->m_fLength);
 
 				for (int j = 0; j < m_pAnimationSets->m_nBoneFrames; j++)
 				{
-					XMFLOAT4X4 xmf4x4WALKTransform = m_pAnimationSets->m_ppBoneFrameCaches[j]->m_xmf4x4ToParent;	// WALK
+					XMFLOAT4X4 xmf4x4WALKTransform = m_pAnimationSets->m_vpBoneFrameCaches[j]->m_xmf4x4ToParent;	// WALK
 					XMFLOAT4X4 xmf4x4RUNTransform = pRunAnimationSet->GetSRT(j, fPosition);					// RUN
-					xmf4x4RUNTransform = Matrix4x4::Scale(xmf4x4RUNTransform, m_pAnimationTracks[3].m_fWeight);
+					xmf4x4RUNTransform = Matrix4x4::Scale(xmf4x4RUNTransform, m_vAnimationTracks[3].m_fWeight);
 
 					XMFLOAT4X4 xmf4x4TrackTransform = Matrix4x4::Interpolate(xmf4x4RUNTransform, xmf4x4WALKTransform,
-						m_pAnimationTransitions[nTransitionIndex].m_fTransitionTime / m_pAnimationTransitions[nTransitionIndex].m_fTransitionDuration);
+						m_vAnimationTransitions[nTransitionIndex].m_fTransitionTime / m_vAnimationTransitions[nTransitionIndex].m_fTransitionDuration);
 
-					m_pAnimationSets->m_ppBoneFrameCaches[j]->m_xmf4x4ToParent = xmf4x4TrackTransform;
+					m_pAnimationSets->m_vpBoneFrameCaches[j]->m_xmf4x4ToParent = xmf4x4TrackTransform;
 				}
 
-				m_pAnimationTransitions[nTransitionIndex].m_fTransitionTime += fElapsedTime;
-				if (m_pAnimationTransitions[nTransitionIndex].m_fTransitionTime - m_pAnimationTransitions[nTransitionIndex].m_fTransitionDuration >= -EPSILON)
+				m_vAnimationTransitions[nTransitionIndex].m_fTransitionTime += fElapsedTime;
+				if (m_vAnimationTransitions[nTransitionIndex].m_fTransitionTime - m_vAnimationTransitions[nTransitionIndex].m_fTransitionDuration >= -EPSILON)
 				{
-					m_pAnimationTransitions[nTransitionIndex].m_fTransitionTime = 0.0f;
+					m_vAnimationTransitions[nTransitionIndex].m_fTransitionTime = 0.0f;
 					m_nNowState = PlayerState::WALK;
 					m_bTransition = false;
 					SetTrackEnable(0, false);
@@ -200,59 +206,59 @@ void CBlueSuitAnimationController::AdvanceTime(float fElapsedTime, CGameObject* 
 				}
 			}
 		}
-		else if (m_pAnimationTracks[1].m_bEnable || m_pAnimationTracks[2].m_bEnable) //애니메이션 블렌딩
+		else if (m_vAnimationTracks[1].m_bEnable || m_vAnimationTracks[2].m_bEnable) //애니메이션 블렌딩
 		{
 			BlendAnimation(1, 2, fElapsedTime, m_vfBlendWeight[0]);
-			if(m_pAnimationTracks[1].m_bEnable)
+			if(m_vAnimationTracks[1].m_bEnable)
 			{
-				m_pAnimationTracks[1].HandleCallback();
+				m_vAnimationTracks[1].HandleCallback();
 			}
-			if (m_pAnimationTracks[2].m_bEnable)
+			if (m_vAnimationTracks[2].m_bEnable)
 			{
-				m_pAnimationTracks[2].HandleCallback();
+				m_vAnimationTracks[2].HandleCallback();
 			}
 		}
 		else
 		{
 			for (int k = 0; k < m_nAnimationTracks; k++)
 			{
-				if (m_pAnimationTracks[k].m_bEnable)
+				if (m_vAnimationTracks[k].m_bEnable)
 				{
-					CAnimationSet* pAnimationSet = m_pAnimationSets->m_pAnimationSets[m_pAnimationTracks[k].m_nAnimationSet];	//애니메이션 트랙에 해당하는 애니메이션 sets을 가져온다
-					float fPosition = m_pAnimationTracks[k].UpdatePosition(m_pAnimationTracks[k].m_fPosition, fElapsedTime, pAnimationSet->m_fLength);	// 현재 애니메이션 트랙을 재생(현재 재생중인 위치와 흐른 시간, 애니메이션 총 길이)
+					shared_ptr<CAnimationSet>  pAnimationSet = m_pAnimationSets->m_vpAnimationSets[m_vAnimationTracks[k].m_nAnimationSet];	//애니메이션 트랙에 해당하는 애니메이션 sets을 가져온다
+					float fPosition = m_vAnimationTracks[k].UpdatePosition(m_vAnimationTracks[k].m_fPosition, fElapsedTime, pAnimationSet->m_fLength);	// 현재 애니메이션 트랙을 재생(현재 재생중인 위치와 흐른 시간, 애니메이션 총 길이)
 					for (int j = 0; j < m_pAnimationSets->m_nBoneFrames; j++)
 					{
-						XMFLOAT4X4 xmf4x4Transform = m_pAnimationSets->m_ppBoneFrameCaches[j]->m_xmf4x4ToParent;
+						XMFLOAT4X4 xmf4x4Transform = m_pAnimationSets->m_vpBoneFrameCaches[j]->m_xmf4x4ToParent;
 						XMFLOAT4X4 xmf4x4TrackTransform = pAnimationSet->GetSRT(j, fPosition);
-						xmf4x4TrackTransform = Matrix4x4::Scale(xmf4x4TrackTransform, m_pAnimationTracks[k].m_fWeight);
+						xmf4x4TrackTransform = Matrix4x4::Scale(xmf4x4TrackTransform, m_vAnimationTracks[k].m_fWeight);
 						xmf4x4Transform = Matrix4x4::Add(xmf4x4Transform, xmf4x4TrackTransform);
-						m_pAnimationSets->m_ppBoneFrameCaches[j]->m_xmf4x4ToParent = xmf4x4Transform;
+						m_pAnimationSets->m_vpBoneFrameCaches[j]->m_xmf4x4ToParent = xmf4x4Transform;
 					}
-					m_pAnimationTracks[k].HandleCallback();
+					m_vAnimationTracks[k].HandleCallback();
 				}
 			}
 		}
 
 		int nTorchAnimationTrack = 4;
 		int nIdleAnimationTrack = 0;
-		CAnimationSet* pBlendAnimationSet_0 = m_pAnimationSets->m_pAnimationSets[m_pAnimationTracks[nTorchAnimationTrack].m_nAnimationSet];
-		float fPos_0 = m_pAnimationTracks[nTorchAnimationTrack].UpdatePosition(m_pAnimationTracks[nTorchAnimationTrack].m_fPosition, fElapsedTime, pBlendAnimationSet_0->m_fLength);
+		shared_ptr<CAnimationSet> pBlendAnimationSet_0 = m_pAnimationSets->m_vpAnimationSets[m_vAnimationTracks[nTorchAnimationTrack].m_nAnimationSet];
+		float fPos_0 = m_vAnimationTracks[nTorchAnimationTrack].UpdatePosition(m_vAnimationTracks[nTorchAnimationTrack].m_fPosition, fElapsedTime, pBlendAnimationSet_0->m_fLength);
 
-		CAnimationSet* pBlendAnimationSet_1 = m_pAnimationSets->m_pAnimationSets[m_pAnimationTracks[nIdleAnimationTrack].m_nAnimationSet];
-		float fPos_1 = m_pAnimationTracks[nIdleAnimationTrack].UpdatePosition(m_pAnimationTracks[nIdleAnimationTrack].m_fPosition, fElapsedTime, pBlendAnimationSet_1->m_fLength);
+		shared_ptr<CAnimationSet> pBlendAnimationSet_1 = m_pAnimationSets->m_vpAnimationSets[m_vAnimationTracks[nIdleAnimationTrack].m_nAnimationSet];
+		float fPos_1 = m_vAnimationTracks[nIdleAnimationTrack].UpdatePosition(m_vAnimationTracks[nIdleAnimationTrack].m_fPosition, fElapsedTime, pBlendAnimationSet_1->m_fLength);
 
 		for (int j = m_nStartLArm; j <= m_nEndLArm; j++)
 		{
-			XMFLOAT4X4 xmf4x4Transform = m_pAnimationSets->m_ppBoneFrameCaches[j]->m_xmf4x4ToParent;
+			XMFLOAT4X4 xmf4x4Transform = m_pAnimationSets->m_vpBoneFrameCaches[j]->m_xmf4x4ToParent;
 			XMFLOAT4X4 xmf4x4TrackTransform_0 = pBlendAnimationSet_0->GetSRT(j, fPos_0);
-			xmf4x4TrackTransform_0 = Matrix4x4::Scale(xmf4x4TrackTransform_0, m_pAnimationTracks[nTorchAnimationTrack].m_fWeight);
+			xmf4x4TrackTransform_0 = Matrix4x4::Scale(xmf4x4TrackTransform_0, m_vAnimationTracks[nTorchAnimationTrack].m_fWeight);
 
 			XMFLOAT4X4 xmf4x4TrackTransform_1 = pBlendAnimationSet_1->GetSRT(j, fPos_1);
-			xmf4x4TrackTransform_1 = Matrix4x4::Scale(xmf4x4TrackTransform_1, m_pAnimationTracks[nIdleAnimationTrack].m_fWeight);
+			xmf4x4TrackTransform_1 = Matrix4x4::Scale(xmf4x4TrackTransform_1, m_vAnimationTracks[nIdleAnimationTrack].m_fWeight);
 
 			XMFLOAT4X4 xmf4x4TrackTransform = Matrix4x4::Interpolate(xmf4x4TrackTransform_0, xmf4x4TrackTransform_1, 0.65f);
 			xmf4x4Transform = xmf4x4TrackTransform;
-			m_pAnimationSets->m_ppBoneFrameCaches[j]->m_xmf4x4ToParent = xmf4x4Transform;
+			m_pAnimationSets->m_vpBoneFrameCaches[j]->m_xmf4x4ToParent = xmf4x4Transform;
 
 		}
 
@@ -265,26 +271,26 @@ void CBlueSuitAnimationController::AdvanceTime(float fElapsedTime, CGameObject* 
 
 void CBlueSuitAnimationController::BlendAnimation(int nTrack1, int nTrack2, float fElapsedTime, float fBlentWeight)
 {
-	CAnimationSet* pAnimationSet_0 = m_pAnimationSets->m_pAnimationSets[m_pAnimationTracks[nTrack1].m_nAnimationSet];
-	CAnimationSet* pAnimationSet_1 = m_pAnimationSets->m_pAnimationSets[m_pAnimationTracks[nTrack2].m_nAnimationSet];
-	float fPosition_0 = m_pAnimationTracks[nTrack1].UpdatePosition(m_pAnimationTracks[nTrack1].m_fPosition, fElapsedTime, pAnimationSet_0->m_fLength);
-	float fPosition_1 = m_pAnimationTracks[nTrack2].UpdatePosition(m_pAnimationTracks[nTrack2].m_fPosition, fElapsedTime, pAnimationSet_1->m_fLength);
+	shared_ptr<CAnimationSet> pAnimationSet_0 = m_pAnimationSets->m_vpAnimationSets[m_vAnimationTracks[nTrack1].m_nAnimationSet];
+	shared_ptr<CAnimationSet> pAnimationSet_1 = m_pAnimationSets->m_vpAnimationSets[m_vAnimationTracks[nTrack2].m_nAnimationSet];
+	float fPosition_0 = m_vAnimationTracks[nTrack1].UpdatePosition(m_vAnimationTracks[nTrack1].m_fPosition, fElapsedTime, pAnimationSet_0->m_fLength);
+	float fPosition_1 = m_vAnimationTracks[nTrack2].UpdatePosition(m_vAnimationTracks[nTrack2].m_fPosition, fElapsedTime, pAnimationSet_1->m_fLength);
 
 	for (int j = 0; j < m_pAnimationSets->m_nBoneFrames; j++)
 	{
-		XMFLOAT4X4 xmf4x4Transform = m_pAnimationSets->m_ppBoneFrameCaches[j]->m_xmf4x4ToParent;
+		XMFLOAT4X4 xmf4x4Transform = m_pAnimationSets->m_vpBoneFrameCaches[j]->m_xmf4x4ToParent;
 		XMFLOAT4X4 xmf4x4TrackTransform_0 = pAnimationSet_0->GetSRT(j, fPosition_0);
-		xmf4x4TrackTransform_0 = Matrix4x4::Scale(xmf4x4TrackTransform_0, m_pAnimationTracks[1].m_fWeight);
+		xmf4x4TrackTransform_0 = Matrix4x4::Scale(xmf4x4TrackTransform_0, m_vAnimationTracks[1].m_fWeight);
 
 		XMFLOAT4X4 xmf4x4TrackTransform_1 = pAnimationSet_1->GetSRT(j, fPosition_1);
-		xmf4x4TrackTransform_1 = Matrix4x4::Scale(xmf4x4TrackTransform_1, m_pAnimationTracks[2].m_fWeight);
+		xmf4x4TrackTransform_1 = Matrix4x4::Scale(xmf4x4TrackTransform_1, m_vAnimationTracks[2].m_fWeight);
 
 		XMFLOAT4X4 xmf4x4TrackTransform = Matrix4x4::Interpolate(xmf4x4TrackTransform_0, xmf4x4TrackTransform_1, fBlentWeight);
 		xmf4x4Transform = Matrix4x4::Add(xmf4x4Transform, xmf4x4TrackTransform);
-		m_pAnimationSets->m_ppBoneFrameCaches[j]->m_xmf4x4ToParent = xmf4x4Transform;
+		m_pAnimationSets->m_vpBoneFrameCaches[j]->m_xmf4x4ToParent = xmf4x4Transform;
 	}
-	m_pAnimationTracks[nTrack1].HandleCallback();
-	m_pAnimationTracks[nTrack2].HandleCallback();
+	m_vAnimationTracks[nTrack1].HandleCallback();
+	m_vAnimationTracks[nTrack2].HandleCallback();
 }
 
 CZombieAnimationController::CZombieAnimationController(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dCommandList, int nAnimationTracks, CLoadedModelInfo* pModel)
@@ -293,12 +299,17 @@ CZombieAnimationController::CZombieAnimationController(ID3D12Device* pd3dDevice,
 	// IDLE, WALK, RUN 2가지 상태
 	m_nState = 2;
 	m_nTransition = 4;
-	m_pAnimationTransitions = new CAnimationTransition[m_nTransition];
-	m_pAnimationTransitions[0].SetTransitionAnimationTrack(0, 1);	// i -> w
-	m_pAnimationTransitions[1].SetTransitionAnimationTrack(1, 0);	// w -> i
+	m_vAnimationTransitions.reserve(m_nTransition);
+	for (int i = 0; i < m_nTransition; ++i)
+	{
+		m_vAnimationTransitions.emplace_back();
+	}
 
-	m_pAnimationTransitions[0].SetAnimationTransition(0.01, 0.0f, 0.25f);
-	m_pAnimationTransitions[1].SetAnimationTransition(0.5, 0.0f, 0.25f);
+	m_vAnimationTransitions[0].SetTransitionAnimationTrack(0, 1);	// i -> w
+	m_vAnimationTransitions[1].SetTransitionAnimationTrack(1, 0);	// w -> i
+
+	m_vAnimationTransitions[0].SetAnimationTransition(0.01, 0.0f, 0.25f);
+	m_vAnimationTransitions[1].SetAnimationTransition(0.5, 0.0f, 0.25f);
 
 	m_bTransition = false;
 	m_nNowState = PlayerState::IDLE;
@@ -317,7 +328,7 @@ CZombieAnimationController::CZombieAnimationController(ID3D12Device* pd3dDevice,
 
 	for (int i = 0; i < m_pAnimationSets->m_nBoneFrames; ++i)
 	{
-		char* frameName = m_pAnimationSets->m_ppBoneFrameCaches[i]->GetFrameName();
+		char* frameName = m_pAnimationSets->m_vpBoneFrameCaches[i]->GetFrameName();
 
 		if (strncmp(frameName, "mixamorig:Spine", strlen(frameName)) == 0) m_nStartSpine = i;
 		if (strncmp(frameName, "mixamorig:Neck", strlen(frameName)) == 0) m_nStartNeck = i;
@@ -329,16 +340,16 @@ CZombieAnimationController::CZombieAnimationController(ID3D12Device* pd3dDevice,
 void CZombieAnimationController::AdvanceTime(float fElapsedTime, CGameObject* pRootGameObject)
 {
 	m_fTime += fElapsedTime;
-	if (m_pAnimationTracks)
+	if (!m_vAnimationTracks.empty())
 	{
-		for (int j = 0; j < m_pAnimationSets->m_nBoneFrames; j++) m_pAnimationSets->m_ppBoneFrameCaches[j]->m_xmf4x4ToParent = Matrix4x4::Zero();
+		for (int j = 0; j < m_pAnimationSets->m_nBoneFrames; j++) m_pAnimationSets->m_vpBoneFrameCaches[j]->m_xmf4x4ToParent = Matrix4x4::Zero();
 
 		if (m_bTransition)
 		{
 			int nTransitionIndex = -1;
 			for (int i = 0; i < m_nTransition; ++i)
 			{
-				if (m_pAnimationTransitions[i].IsTransition(m_nNowState, m_nNextState))
+				if (m_vAnimationTransitions[i].IsTransition(m_nNowState, m_nNextState))
 				{
 					nTransitionIndex = i;
 					break;
@@ -350,32 +361,32 @@ void CZombieAnimationController::AdvanceTime(float fElapsedTime, CGameObject* pR
 			}
 			else if (nTransitionIndex == 0)	// IDLE -> WALK
 			{
-				CAnimationSet* pIDLEAnimationSet = m_pAnimationSets->m_pAnimationSets[m_pAnimationTracks[0].m_nAnimationSet];
-				float fIDLEPosition = m_pAnimationTracks[0].UpdatePosition(m_pAnimationTracks[0].m_fPosition, fElapsedTime, pIDLEAnimationSet->m_fLength);
+				shared_ptr<CAnimationSet> pIDLEAnimationSet = m_pAnimationSets->m_vpAnimationSets[m_vAnimationTracks[0].m_nAnimationSet];
+				float fIDLEPosition = m_vAnimationTracks[0].UpdatePosition(m_vAnimationTracks[0].m_fPosition, fElapsedTime, pIDLEAnimationSet->m_fLength);
 
-				CAnimationSet* pWALKAnimationSet = m_pAnimationSets->m_pAnimationSets[m_pAnimationTracks[1].m_nAnimationSet];
-				float fIWALKPosition = m_pAnimationTracks[1].UpdatePosition(m_pAnimationTracks[1].m_fPosition, fElapsedTime, pWALKAnimationSet->m_fLength);
+				shared_ptr<CAnimationSet> pWALKAnimationSet = m_pAnimationSets->m_vpAnimationSets[m_vAnimationTracks[1].m_nAnimationSet];
+				float fIWALKPosition = m_vAnimationTracks[1].UpdatePosition(m_vAnimationTracks[1].m_fPosition, fElapsedTime, pWALKAnimationSet->m_fLength);
 
 				for (int j = 0; j < m_pAnimationSets->m_nBoneFrames; j++)
 				{
-					XMFLOAT4X4 xmf4x4Transform = m_pAnimationSets->m_ppBoneFrameCaches[j]->m_xmf4x4ToParent;
+					XMFLOAT4X4 xmf4x4Transform = m_pAnimationSets->m_vpBoneFrameCaches[j]->m_xmf4x4ToParent;
 					XMFLOAT4X4 xmf4x4IDLETransform = pIDLEAnimationSet->GetSRT(j, fIDLEPosition);	// IDLE
-					xmf4x4IDLETransform = Matrix4x4::Scale(xmf4x4IDLETransform, m_pAnimationTracks[0].m_fWeight);
+					xmf4x4IDLETransform = Matrix4x4::Scale(xmf4x4IDLETransform, m_vAnimationTracks[0].m_fWeight);
 
 					XMFLOAT4X4 xmf4x4WALKTransform = pWALKAnimationSet->GetSRT(j, fIWALKPosition);	// WALK
-					xmf4x4WALKTransform = Matrix4x4::Scale(xmf4x4WALKTransform, m_pAnimationTracks[1].m_fWeight);
+					xmf4x4WALKTransform = Matrix4x4::Scale(xmf4x4WALKTransform, m_vAnimationTracks[1].m_fWeight);
 
 					XMFLOAT4X4 xmf4x4TrackTransform = Matrix4x4::Interpolate(xmf4x4IDLETransform, xmf4x4WALKTransform,
-						m_pAnimationTransitions[nTransitionIndex].m_fTransitionTime / m_pAnimationTransitions[nTransitionIndex].m_fTransitionDuration);
+						m_vAnimationTransitions[nTransitionIndex].m_fTransitionTime / m_vAnimationTransitions[nTransitionIndex].m_fTransitionDuration);
 
 					xmf4x4Transform = Matrix4x4::Add(xmf4x4Transform, xmf4x4TrackTransform);
-					m_pAnimationSets->m_ppBoneFrameCaches[j]->m_xmf4x4ToParent = xmf4x4Transform;
+					m_pAnimationSets->m_vpBoneFrameCaches[j]->m_xmf4x4ToParent = xmf4x4Transform;
 				}
 
-				m_pAnimationTransitions[nTransitionIndex].m_fTransitionTime += fElapsedTime;
-				if (m_pAnimationTransitions[nTransitionIndex].m_fTransitionTime - m_pAnimationTransitions[nTransitionIndex].m_fTransitionDuration >= -EPSILON)
+				m_vAnimationTransitions[nTransitionIndex].m_fTransitionTime += fElapsedTime;
+				if (m_vAnimationTransitions[nTransitionIndex].m_fTransitionTime - m_vAnimationTransitions[nTransitionIndex].m_fTransitionDuration >= -EPSILON)
 				{
-					m_pAnimationTransitions[nTransitionIndex].m_fTransitionTime = 0.0f;
+					m_vAnimationTransitions[nTransitionIndex].m_fTransitionTime = 0.0f;
 					m_nNowState = PlayerState::WALK;
 					m_bTransition = false;
 					SetTrackEnable(0, false);
@@ -385,32 +396,32 @@ void CZombieAnimationController::AdvanceTime(float fElapsedTime, CGameObject* pR
 			}
 			else if (nTransitionIndex == 1)	// WALK -> IDLE
 			{
-				CAnimationSet* pIDLEAnimationSet = m_pAnimationSets->m_pAnimationSets[m_pAnimationTracks[0].m_nAnimationSet];
-				float fIDLEPosition = m_pAnimationTracks[0].UpdatePosition(m_pAnimationTracks[0].m_fPosition, fElapsedTime, pIDLEAnimationSet->m_fLength);
+				shared_ptr<CAnimationSet>  pIDLEAnimationSet = m_pAnimationSets->m_vpAnimationSets[m_vAnimationTracks[0].m_nAnimationSet];
+				float fIDLEPosition = m_vAnimationTracks[0].UpdatePosition(m_vAnimationTracks[0].m_fPosition, fElapsedTime, pIDLEAnimationSet->m_fLength);
 
-				CAnimationSet* pWALKAnimationSet = m_pAnimationSets->m_pAnimationSets[m_pAnimationTracks[1].m_nAnimationSet];
-				float fIWALKPosition = m_pAnimationTracks[1].UpdatePosition(m_pAnimationTracks[1].m_fPosition, fElapsedTime, pWALKAnimationSet->m_fLength);
+				shared_ptr<CAnimationSet>  pWALKAnimationSet = m_pAnimationSets->m_vpAnimationSets[m_vAnimationTracks[1].m_nAnimationSet];
+				float fIWALKPosition = m_vAnimationTracks[1].UpdatePosition(m_vAnimationTracks[1].m_fPosition, fElapsedTime, pWALKAnimationSet->m_fLength);
 
 				for (int j = 0; j < m_pAnimationSets->m_nBoneFrames; j++)
 				{
-					XMFLOAT4X4 xmf4x4Transform = m_pAnimationSets->m_ppBoneFrameCaches[j]->m_xmf4x4ToParent;
+					XMFLOAT4X4 xmf4x4Transform = m_pAnimationSets->m_vpBoneFrameCaches[j]->m_xmf4x4ToParent;
 					XMFLOAT4X4 xmf4x4IDLETransform = pIDLEAnimationSet->GetSRT(j, fIDLEPosition);	// IDLE
-					xmf4x4IDLETransform = Matrix4x4::Scale(xmf4x4IDLETransform, m_pAnimationTracks[0].m_fWeight);
+					xmf4x4IDLETransform = Matrix4x4::Scale(xmf4x4IDLETransform, m_vAnimationTracks[0].m_fWeight);
 
 					XMFLOAT4X4 xmf4x4WALKTransform = pWALKAnimationSet->GetSRT(j, fIWALKPosition);	// WALK
-					xmf4x4WALKTransform = Matrix4x4::Scale(xmf4x4WALKTransform, m_pAnimationTracks[1].m_fWeight);
+					xmf4x4WALKTransform = Matrix4x4::Scale(xmf4x4WALKTransform, m_vAnimationTracks[1].m_fWeight);
 
 					XMFLOAT4X4 xmf4x4TrackTransform = Matrix4x4::Interpolate(xmf4x4WALKTransform, xmf4x4IDLETransform,
-						m_pAnimationTransitions[nTransitionIndex].m_fTransitionTime / m_pAnimationTransitions[nTransitionIndex].m_fTransitionDuration);
+						m_vAnimationTransitions[nTransitionIndex].m_fTransitionTime / m_vAnimationTransitions[nTransitionIndex].m_fTransitionDuration);
 
 					xmf4x4Transform = Matrix4x4::Add(xmf4x4Transform, xmf4x4TrackTransform);
-					m_pAnimationSets->m_ppBoneFrameCaches[j]->m_xmf4x4ToParent = xmf4x4Transform;
+					m_pAnimationSets->m_vpBoneFrameCaches[j]->m_xmf4x4ToParent = xmf4x4Transform;
 				}
 
-				m_pAnimationTransitions[nTransitionIndex].m_fTransitionTime += fElapsedTime;
-				if (m_pAnimationTransitions[nTransitionIndex].m_fTransitionTime - m_pAnimationTransitions[nTransitionIndex].m_fTransitionDuration >= -EPSILON)
+				m_vAnimationTransitions[nTransitionIndex].m_fTransitionTime += fElapsedTime;
+				if (m_vAnimationTransitions[nTransitionIndex].m_fTransitionTime - m_vAnimationTransitions[nTransitionIndex].m_fTransitionDuration >= -EPSILON)
 				{
-					m_pAnimationTransitions[nTransitionIndex].m_fTransitionTime = 0.0f;
+					m_vAnimationTransitions[nTransitionIndex].m_fTransitionTime = 0.0f;
 					m_nNowState = PlayerState::IDLE;
 					m_bTransition = false;
 					SetTrackEnable(0, true);
@@ -423,27 +434,27 @@ void CZombieAnimationController::AdvanceTime(float fElapsedTime, CGameObject* pR
 		{
 			for (int k = 0; k < m_nAnimationTracks - 1; k++)
 			{
-				if (m_pAnimationTracks[k].m_bEnable)
+				if (m_vAnimationTracks[k].m_bEnable)
 				{
-					CAnimationSet* pAnimationSet = m_pAnimationSets->m_pAnimationSets[m_pAnimationTracks[k].m_nAnimationSet];	//애니메이션 트랙에 해당하는 애니메이션 sets을 가져온다
-					float fPosition = m_pAnimationTracks[k].UpdatePosition(m_pAnimationTracks[k].m_fPosition, fElapsedTime, pAnimationSet->m_fLength);	// 현재 애니메이션 트랙을 재생(현재 재생중인 위치와 흐른 시간, 애니메이션 총 길이)
+					shared_ptr<CAnimationSet> pAnimationSet = m_pAnimationSets->m_vpAnimationSets[m_vAnimationTracks[k].m_nAnimationSet];	//애니메이션 트랙에 해당하는 애니메이션 sets을 가져온다
+					float fPosition = m_vAnimationTracks[k].UpdatePosition(m_vAnimationTracks[k].m_fPosition, fElapsedTime, pAnimationSet->m_fLength);	// 현재 애니메이션 트랙을 재생(현재 재생중인 위치와 흐른 시간, 애니메이션 총 길이)
 					for (int j = 0; j < m_pAnimationSets->m_nBoneFrames; j++)
 					{
-						XMFLOAT4X4 xmf4x4Transform = m_pAnimationSets->m_ppBoneFrameCaches[j]->m_xmf4x4ToParent;
+						XMFLOAT4X4 xmf4x4Transform = m_pAnimationSets->m_vpBoneFrameCaches[j]->m_xmf4x4ToParent;
 						XMFLOAT4X4 xmf4x4TrackTransform = pAnimationSet->GetSRT(j, fPosition);
-						xmf4x4TrackTransform = Matrix4x4::Scale(xmf4x4TrackTransform, m_pAnimationTracks[k].m_fWeight);
+						xmf4x4TrackTransform = Matrix4x4::Scale(xmf4x4TrackTransform, m_vAnimationTracks[k].m_fWeight);
 						xmf4x4Transform = Matrix4x4::Add(xmf4x4Transform, xmf4x4TrackTransform);
-						m_pAnimationSets->m_ppBoneFrameCaches[j]->m_xmf4x4ToParent = xmf4x4Transform;
+						m_pAnimationSets->m_vpBoneFrameCaches[j]->m_xmf4x4ToParent = xmf4x4Transform;
 					}
-					m_pAnimationTracks[k].HandleCallback();
+					m_vAnimationTracks[k].HandleCallback();
 				}
 			}
 
-			if (m_pAnimationTracks[2].m_bEnable)
+			if (m_vAnimationTracks[2].m_bEnable)
 			{
 				int nAttackAnimationTrack = 2;
-				CAnimationSet* pAnimationSet = m_pAnimationSets->m_pAnimationSets[m_pAnimationTracks[nAttackAnimationTrack].m_nAnimationSet];
-				float fPosition = m_pAnimationTracks[nAttackAnimationTrack].UpdatePosition(m_pAnimationTracks[nAttackAnimationTrack].m_fPosition, fElapsedTime, pAnimationSet->m_fLength);
+				shared_ptr<CAnimationSet> pAnimationSet = m_pAnimationSets->m_vpAnimationSets[m_vAnimationTracks[nAttackAnimationTrack].m_nAnimationSet];
+				float fPosition = m_vAnimationTracks[nAttackAnimationTrack].UpdatePosition(m_vAnimationTracks[nAttackAnimationTrack].m_fPosition, fElapsedTime, pAnimationSet->m_fLength);
 
 				for (int j = m_nStartSpine; j <= m_nEndSpine; j++)
 				{
@@ -452,10 +463,10 @@ void CZombieAnimationController::AdvanceTime(float fElapsedTime, CGameObject* pR
 						continue;
 					}
 
-					XMFLOAT4X4 xmf4x4Transform = m_pAnimationSets->m_ppBoneFrameCaches[j]->m_xmf4x4ToParent;
+					XMFLOAT4X4 xmf4x4Transform = m_pAnimationSets->m_vpBoneFrameCaches[j]->m_xmf4x4ToParent;
 					XMFLOAT4X4 xmf4x4TrackTransform = pAnimationSet->GetSRT(j, fPosition);
-					xmf4x4Transform = Matrix4x4::Scale(xmf4x4TrackTransform, m_pAnimationTracks[nAttackAnimationTrack].m_fWeight);
-					m_pAnimationSets->m_ppBoneFrameCaches[j]->m_xmf4x4ToParent = xmf4x4Transform;
+					xmf4x4Transform = Matrix4x4::Scale(xmf4x4TrackTransform, m_vAnimationTracks[nAttackAnimationTrack].m_fWeight);
+					m_pAnimationSets->m_vpBoneFrameCaches[j]->m_xmf4x4ToParent = xmf4x4Transform;
 				}
 
 				if (fPosition >= pAnimationSet->m_fLength - ANIMATION_CALLBACK_EPSILON)
@@ -476,24 +487,24 @@ void CZombieAnimationController::AdvanceTime(float fElapsedTime, CGameObject* pR
 
 void CZombieAnimationController::BlendAnimation(int nTrack1, int nTrack2, float fElapsedTime, float fBlentWeight)
 {
-	CAnimationSet* pAnimationSet_0 = m_pAnimationSets->m_pAnimationSets[m_pAnimationTracks[nTrack1].m_nAnimationSet];
-	CAnimationSet* pAnimationSet_1 = m_pAnimationSets->m_pAnimationSets[m_pAnimationTracks[nTrack2].m_nAnimationSet];
-	float fPosition_0 = m_pAnimationTracks[nTrack1].UpdatePosition(m_pAnimationTracks[nTrack1].m_fPosition, fElapsedTime, pAnimationSet_0->m_fLength);
-	float fPosition_1 = m_pAnimationTracks[nTrack2].UpdatePosition(m_pAnimationTracks[nTrack2].m_fPosition, fElapsedTime, pAnimationSet_1->m_fLength);
+	shared_ptr<CAnimationSet> pAnimationSet_0 = m_pAnimationSets->m_vpAnimationSets[m_vAnimationTracks[nTrack1].m_nAnimationSet];
+	shared_ptr<CAnimationSet> pAnimationSet_1 = m_pAnimationSets->m_vpAnimationSets[m_vAnimationTracks[nTrack2].m_nAnimationSet];
+	float fPosition_0 = m_vAnimationTracks[nTrack1].UpdatePosition(m_vAnimationTracks[nTrack1].m_fPosition, fElapsedTime, pAnimationSet_0->m_fLength);
+	float fPosition_1 = m_vAnimationTracks[nTrack2].UpdatePosition(m_vAnimationTracks[nTrack2].m_fPosition, fElapsedTime, pAnimationSet_1->m_fLength);
 
 	for (int j = 0; j < m_pAnimationSets->m_nBoneFrames; j++)
 	{
-		XMFLOAT4X4 xmf4x4Transform = m_pAnimationSets->m_ppBoneFrameCaches[j]->m_xmf4x4ToParent;
+		XMFLOAT4X4 xmf4x4Transform = m_pAnimationSets->m_vpBoneFrameCaches[j]->m_xmf4x4ToParent;
 		XMFLOAT4X4 xmf4x4TrackTransform_0 = pAnimationSet_0->GetSRT(j, fPosition_0);
-		xmf4x4TrackTransform_0 = Matrix4x4::Scale(xmf4x4TrackTransform_0, m_pAnimationTracks[1].m_fWeight);
+		xmf4x4TrackTransform_0 = Matrix4x4::Scale(xmf4x4TrackTransform_0, m_vAnimationTracks[1].m_fWeight);
 
 		XMFLOAT4X4 xmf4x4TrackTransform_1 = pAnimationSet_1->GetSRT(j, fPosition_1);
-		xmf4x4TrackTransform_1 = Matrix4x4::Scale(xmf4x4TrackTransform_1, m_pAnimationTracks[2].m_fWeight);
+		xmf4x4TrackTransform_1 = Matrix4x4::Scale(xmf4x4TrackTransform_1, m_vAnimationTracks[2].m_fWeight);
 
 		XMFLOAT4X4 xmf4x4TrackTransform = Matrix4x4::Interpolate(xmf4x4TrackTransform_0, xmf4x4TrackTransform_1, fBlentWeight);
 		xmf4x4Transform = Matrix4x4::Add(xmf4x4Transform, xmf4x4TrackTransform);
-		m_pAnimationSets->m_ppBoneFrameCaches[j]->m_xmf4x4ToParent = xmf4x4Transform;
+		m_pAnimationSets->m_vpBoneFrameCaches[j]->m_xmf4x4ToParent = xmf4x4Transform;
 	}
-	m_pAnimationTracks[nTrack1].HandleCallback();
-	m_pAnimationTracks[nTrack2].HandleCallback();
+	m_vAnimationTracks[nTrack1].HandleCallback();
+	m_vAnimationTracks[nTrack2].HandleCallback();
 }

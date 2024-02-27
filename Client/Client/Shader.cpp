@@ -10,13 +10,15 @@ CShader::~CShader()
 {
 	ReleaseShaderVariables();
 
-	if (m_ppd3dPipelineState) {
-		for (int i = 0; i < m_nPipelineState;++i) {
-			if (m_ppd3dPipelineState[i]) {
-				m_ppd3dPipelineState[i]->Release();
-			}
-		}
-	}
+	//if (m_ppd3dPipelineState) 
+	//{
+	//	for (int i = 0; i < m_nPipelineState;++i) 
+	//	{
+	//		if (m_ppd3dPipelineState[i]) {
+	//			m_ppd3dPipelineState[i]->Release();
+	//		}
+	//	}
+	//}
 }
 
 D3D12_SHADER_BYTECODE CShader::CreateVertexShader()
@@ -204,37 +206,36 @@ void CShader::CreateShader(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* 
 	m_d3dPipelineStateDesc.SampleDesc.Count = 1;
 	m_d3dPipelineStateDesc.Flags = D3D12_PIPELINE_STATE_FLAG_NONE;
 
-	HRESULT hResult = pd3dDevice->CreateGraphicsPipelineState(&m_d3dPipelineStateDesc, __uuidof(ID3D12PipelineState), (void**)&m_ppd3dPipelineState[0]);
-
-	if (m_pd3dVertexShaderBlob) m_pd3dVertexShaderBlob->Release();
-	if (m_pd3dPixelShaderBlob) m_pd3dPixelShaderBlob->Release();
+	HRESULT hResult = pd3dDevice->CreateGraphicsPipelineState(&m_d3dPipelineStateDesc, __uuidof(ID3D12PipelineState), (void**)m_vpd3dPipelineState[0].GetAddressOf());
 
 	if (m_d3dPipelineStateDesc.InputLayout.pInputElementDescs) delete[] m_d3dPipelineStateDesc.InputLayout.pInputElementDescs;
 }
 
-void CShader::Render(ID3D12GraphicsCommandList* pd3dCommandList, CCamera* pCamera, int nPipelineState)
+void CShader::Render(ID3D12GraphicsCommandList* pd3dCommandList, const shared_ptr<CCamera>& pCamera, int nPipelineState)
 {
-	if (m_ppd3dPipelineState) pd3dCommandList->SetPipelineState(m_ppd3dPipelineState[nPipelineState]);
+	if (m_vpd3dPipelineState[nPipelineState].Get())
+	{
+		pd3dCommandList->SetPipelineState(m_vpd3dPipelineState[nPipelineState].Get());
+	}
 
-	for (auto& object : m_vGameObjects) {
-		/*if (strcmp(object->m_pstrFrameName, "Floor1") && strcmp(object->m_pstrFrameName, "Floor2")) {
-			continue;
-		}*/
+	for (auto& object : m_vGameObjects) 
+	{
 		object->Render(pd3dCommandList);
 	}
 }
 
 void CShader::ReleaseUploadBuffers()
 {
-	for (auto& object : m_vGameObjects) {
+	for (auto& object : m_vGameObjects)
+	{
 		object->ReleaseUploadBuffers();
 	}
 }
 
-void CShader::AddGameObject(CGameObject* object)
+void CShader::AddGameObject(const shared_ptr<CGameObject>& pGameObject)
 {
-	//m_vGameObjects.push_back(make_shared<CGameObject>(object));
-	m_vGameObjects.push_back(shared_ptr<CGameObject>(object));
+	m_vGameObjects.push_back(pGameObject);
+	//m_vGameObjects.push_back(shared_ptr<CGameObject>(object));
 }
 
 void CShader::AnimateObjects(float fElapsedTime)
@@ -278,21 +279,23 @@ D3D12_INPUT_LAYOUT_DESC StandardShader::CreateInputLayout()
 D3D12_SHADER_BYTECODE StandardShader::CreateVertexShader()
 {
 	//WCHAR* wstr = "Shaders.hlsl";
-	return(CShader::CompileShaderFromFile(L"Shaders.hlsl", "VSStandard", "vs_5_1", &m_pd3dVertexShaderBlob));
+	return(CShader::CompileShaderFromFile(L"Shaders.hlsl", "VSStandard", "vs_5_1", m_pd3dVertexShaderBlob.GetAddressOf()));
 }
 
 D3D12_SHADER_BYTECODE StandardShader::CreatePixelShader()
 {
-	return(CShader::CompileShaderFromFile(L"Shaders.hlsl", "PSStandard", "ps_5_1", &m_pd3dPixelShaderBlob));
+	return(CShader::CompileShaderFromFile(L"Shaders.hlsl", "PSStandard", "ps_5_1", m_pd3dPixelShaderBlob.GetAddressOf()));
 }
 
 void StandardShader::CreateShader(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dCommandList, ID3D12RootSignature* pd3dGraphicsRootSignature, UINT nRenderTargets, DXGI_FORMAT* pdxgiRtvFormats, DXGI_FORMAT dxgiDsvFormat)
 {
 	m_nPipelineState = 1;
-	m_ppd3dPipelineState = new ID3D12PipelineState * [m_nPipelineState];
+	m_vpd3dPipelineState.reserve(m_nPipelineState);
+	for (int i = 0; i < m_nPipelineState; ++i)
+		m_vpd3dPipelineState.emplace_back();
+	//m_ppd3dPipelineState = new ID3D12PipelineState * [m_nPipelineState];
 
 	CShader::CreateShader(pd3dDevice, pd3dCommandList, pd3dGraphicsRootSignature, nRenderTargets, pdxgiRtvFormats, dxgiDsvFormat); //m_ppd3dPipelineStates[0] »ý¼º
-
 }
 
 InstanceStandardShader::InstanceStandardShader()
@@ -328,12 +331,15 @@ D3D12_INPUT_LAYOUT_DESC InstanceStandardShader::CreateInputLayout()
 
 D3D12_SHADER_BYTECODE InstanceStandardShader::CreateVertexShader()
 {
-	return(CShader::CompileShaderFromFile(L"Shaders.hlsl", "VSInstanceStandard", "vs_5_1", &m_pd3dVertexShaderBlob));
+	return(CShader::CompileShaderFromFile(L"Shaders.hlsl", "VSInstanceStandard", "vs_5_1", m_pd3dVertexShaderBlob.GetAddressOf()));
 }
 
-void InstanceStandardShader::Render(ID3D12GraphicsCommandList* pd3dCommandList, CCamera* pCamera, int nPipelineState)
+void InstanceStandardShader::Render(ID3D12GraphicsCommandList* pd3dCommandList, const shared_ptr<CCamera>& pCamera, int nPipelineState)
 {
-	if (m_ppd3dPipelineState) pd3dCommandList->SetPipelineState(m_ppd3dPipelineState[nPipelineState]);
+	if (m_vpd3dPipelineState[nPipelineState].Get())
+	{
+		pd3dCommandList->SetPipelineState(m_vpd3dPipelineState[nPipelineState].Get());
+	}
 
 	for (auto& object : m_vGameObjects)
 	{
@@ -347,12 +353,6 @@ void InstanceStandardShader::AnimateObjects(float fElapsedTime)
 	{
 		object->Animate(fElapsedTime);
 	}
-}
-
-void InstanceStandardShader::AddInstanceObjects(int nLayer, CGameObject* object)
-{
-	//m_vvpInstanceObjectsInfo[nLayer].push_back(make_shared<CGameObject>(object));
-	m_vvpInstanceObjectsInfo[nLayer].push_back(shared_ptr<CGameObject>(object));
 }
 
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -387,7 +387,7 @@ D3D12_INPUT_LAYOUT_DESC CSkinnedAnimationStandardShader::CreateInputLayout()
 
 D3D12_SHADER_BYTECODE CSkinnedAnimationStandardShader::CreateVertexShader()
 {
-	return(CShader::CompileShaderFromFile(L"Shaders.hlsl", "VSSkinnedAnimationStandard", "vs_5_1", &m_pd3dVertexShaderBlob));
+	return(CShader::CompileShaderFromFile(L"Shaders.hlsl", "VSSkinnedAnimationStandard", "vs_5_1", m_pd3dVertexShaderBlob.GetAddressOf()));
 }
 
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -398,8 +398,6 @@ CPostProcessingShader::CPostProcessingShader()
 
 CPostProcessingShader::~CPostProcessingShader()
 {
-	if (m_pTexture) delete m_pTexture;
-
 	if (m_pd3dRtvCPUDescriptorHandles) delete[] m_pd3dRtvCPUDescriptorHandles;
 }
 
@@ -436,12 +434,12 @@ D3D12_DEPTH_STENCIL_DESC CPostProcessingShader::CreateDepthStencilState()
 
 D3D12_SHADER_BYTECODE CPostProcessingShader::CreateVertexShader()
 {
-	return(CShader::CompileShaderFromFile(L"Shaders.hlsl", "VSPostProcessing", "vs_5_1", &m_pd3dVertexShaderBlob));
+	return(CShader::CompileShaderFromFile(L"Shaders.hlsl", "VSPostProcessing", "vs_5_1", m_pd3dVertexShaderBlob.GetAddressOf()));
 }
 
 D3D12_SHADER_BYTECODE CPostProcessingShader::CreatePixelShader()
 {
-	return(CShader::CompileShaderFromFile(L"Shaders.hlsl", "PSPostProcessing", "ps_5_1", &m_pd3dPixelShaderBlob));
+	return(CShader::CompileShaderFromFile(L"Shaders.hlsl", "PSPostProcessing", "ps_5_1", m_pd3dPixelShaderBlob.GetAddressOf()));
 }
 
 void CPostProcessingShader::CreateShader(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dCommandList, ID3D12RootSignature* pd3dGraphicsRootSignature, UINT nRenderTargets, DXGI_FORMAT* pdxgiRtvFormats, DXGI_FORMAT dxgiDsvFormat)
@@ -449,14 +447,18 @@ void CPostProcessingShader::CreateShader(ID3D12Device* pd3dDevice, ID3D12Graphic
 	/*m_pd3dGraphicsRootSignature = pd3dGraphicsRootSignature;
 	m_pd3dGraphicsRootSignature->AddRef();*/
 	m_nPipelineState = 1;
-	m_ppd3dPipelineState = new ID3D12PipelineState * [m_nPipelineState];
+	m_vpd3dPipelineState.reserve(m_nPipelineState);
+	for (int i = 0; i < m_nPipelineState; ++i)
+	{
+		m_vpd3dPipelineState.emplace_back();
+	}
 
 	CShader::CreateShader(pd3dDevice, pd3dCommandList, pd3dGraphicsRootSignature, nRenderTargets, pdxgiRtvFormats, dxgiDsvFormat);
 }
 
 void CPostProcessingShader::CreateResourcesAndRtvsSrvs(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dCommandList, UINT nRenderTargets, DXGI_FORMAT* pdxgiFormats, D3D12_CPU_DESCRIPTOR_HANDLE d3dRtvCPUDescriptorHandle)
 {
-	m_pTexture = new CTexture(nRenderTargets, RESOURCE_TEXTURE2D, 0, 1);
+	m_pTexture = make_shared<CTexture>(nRenderTargets, RESOURCE_TEXTURE2D, 0, 1);
 
 	D3D12_CLEAR_VALUE d3dClearValue = { DXGI_FORMAT_R8G8B8A8_UNORM, {m_fClearValue[0],m_fClearValue[1],m_fClearValue[2],m_fClearValue[3]} };
 	for (UINT i = 0; i < nRenderTargets; i++)
@@ -518,7 +520,7 @@ void CPostProcessingShader::OnPostRenderTarget(ID3D12GraphicsCommandList* pd3dCo
 	}
 }
 
-void CPostProcessingShader::Render(ID3D12GraphicsCommandList* pd3dCommandList, CCamera* pCamera)
+void CPostProcessingShader::Render(ID3D12GraphicsCommandList* pd3dCommandList, const shared_ptr<CCamera>& pCamera)
 {
 	CShader::Render(pd3dCommandList, pCamera);
 

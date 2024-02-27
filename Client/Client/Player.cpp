@@ -27,7 +27,7 @@ void CSoundCallbackHandler::HandleCallback(void* pCallbackData, float fTrackPosi
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 // CPlayer
 
-CPlayer::CPlayer(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dCommandList, ID3D12RootSignature* pd3dGraphicsRootSignature, CScene* pScene, void* pContext)
+CPlayer::CPlayer(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dCommandList, ID3D12RootSignature* pd3dGraphicsRootSignature, void* pContext)
 	: CGameObject(pd3dDevice, pd3dCommandList)
 {
 	m_pCamera = ChangeCamera(THIRD_PERSON_CAMERA, 0.0f);
@@ -38,7 +38,7 @@ CPlayer::~CPlayer()
 {
 	ReleaseShaderVariables();
 
-	if (m_pCamera) delete m_pCamera;
+	//if (m_pCamera) delete m_pCamera;
 }
 
 void CPlayer::CreateShaderVariables(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dCommandList)
@@ -153,31 +153,33 @@ void CPlayer::Update(float fElapsedTime)
 
 }
 
-CCamera* CPlayer::OnChangeCamera(DWORD nNewCameraMode, DWORD nCurrentCameraMode)
+shared_ptr<CCamera> CPlayer::OnChangeCamera(DWORD nNewCameraMode, DWORD nCurrentCameraMode)
 {
-	CCamera* pNewCamera = NULL;
+	shared_ptr<CCamera> pNewCamera;
 	switch (nNewCameraMode)
 	{
 	case FIRST_PERSON_CAMERA:
-		pNewCamera = new CFirstPersonCamera(m_pCamera);
+		pNewCamera = make_shared<CFirstPersonCamera>(m_pCamera);
 		break;
 	case THIRD_PERSON_CAMERA:
-		pNewCamera = new CThirdPersonCamera(m_pCamera);
+		pNewCamera = make_shared<CThirdPersonCamera>(m_pCamera);
 		break;
 	}
 
 	if (pNewCamera)
 	{
 		pNewCamera->SetMode(nNewCameraMode);
-		pNewCamera->SetPlayer(this);
+
+		//shared_ptr<CPlayer> pPlayer = make_shared<CPlayer>(this);
+		//pNewCamera->SetPlayer(this);
 	}
 
-	if (m_pCamera) delete m_pCamera;
+	//if (m_pCamera) delete m_pCamera;
 
 	return(pNewCamera);
 }
 
-CCamera* CPlayer::ChangeCamera(DWORD nNewCameraMode, float fElapsedTime)
+shared_ptr<CCamera> CPlayer::ChangeCamera(DWORD nNewCameraMode, float fElapsedTime)
 {
 	DWORD nCurrentCameraMode = (m_pCamera) ? m_pCamera->GetMode() : 0x00;
 	if (nCurrentCameraMode == nNewCameraMode) return(m_pCamera);
@@ -211,7 +213,7 @@ CCamera* CPlayer::ChangeCamera(DWORD nNewCameraMode, float fElapsedTime)
 		break;
 	}
 	m_pCamera->SetPosition(Vector3::Add(m_xmf3Position, m_pCamera->GetOffset()));
-	Update(fElapsedTime);
+	//Update(fElapsedTime);
 
 	return(m_pCamera);
 }
@@ -250,9 +252,10 @@ void CPlayer::Render(ID3D12GraphicsCommandList* pd3dCommandList)
 //	if (nCameraMode == THIRD_PERSON_CAMERA) CGameObject::Render(pd3dCommandList, pCamera);
 //}
 
-CGameObject* CPlayer::GetPickedObject(int nx, int ny, CScene* pScene)
+void CPlayer::SetPickedObject(int nx, int ny, CScene* pScene)
 {
-	CGameObject* pPickedObject = nullptr;
+	//CGameObject* pPickedObject = nullptr;
+	m_pPickedObject.reset();
 	XMFLOAT3 pickPosition;
 
 	if(m_pCamera->GetMode() == THIRD_PERSON_CAMERA)
@@ -279,7 +282,7 @@ CGameObject* CPlayer::GetPickedObject(int nx, int ny, CScene* pScene)
 				if (fHitDistance < fNearestHitDistance)
 				{
 					fNearestHitDistance = fHitDistance;
-					pPickedObject = pCollisionObject;
+					m_pPickedObject = pCollisionObject;
 				}
 			}
 		}
@@ -307,53 +310,57 @@ CGameObject* CPlayer::GetPickedObject(int nx, int ny, CScene* pScene)
 	//	}
 	//}
 
-	if (pPickedObject) 
-	{
-		return pPickedObject;
-	}
+	//if (pPickedObject) 
+	//{
+	//	return pPickedObject;
+	//}
 
-	return nullptr;
+	//return nullptr;
 }
 
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 // 
 
-CBlueSuitPlayer::CBlueSuitPlayer(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dCommandList, ID3D12RootSignature* pd3dGraphicsRootSignature, CScene* pScene, void* pContext)
-	:CPlayer(pd3dDevice, pd3dCommandList, pd3dGraphicsRootSignature, pScene, pContext)
+CBlueSuitPlayer::CBlueSuitPlayer(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dCommandList, ID3D12RootSignature* pd3dGraphicsRootSignature, void* pContext)
+	:CPlayer(pd3dDevice, pd3dCommandList, pd3dGraphicsRootSignature, pContext)
 {
 	m_xmf3Scale = XMFLOAT3(0.1f, 0.1f, 0.1f);
-	CLoadedModelInfo* pBlueSuitPlayer = CGameObject::LoadGeometryAndAnimationFromFile(pd3dDevice, pd3dCommandList, pd3dGraphicsRootSignature, "Asset/Model/BlueSuitFree01.bin");
-	SetChild(pBlueSuitPlayer->m_pModelRootObject, true);
 
-	int nCbv = 0;
-	nCbv = cntCbvModelObject(this, 0);
-
-	m_pSkinnedAnimationController = new CBlueSuitAnimationController(pd3dDevice, pd3dCommandList, 5, pBlueSuitPlayer);
-
-//	m_pSkinnedAnimationController->SetCallbackKeys(1, 2);
-//#ifdef _WITH_SOUND_RESOURCE
-//	m_pSkinnedAnimationController->SetCallbackKey(0, 0.1f, _T("Footstep01"));
-//	m_pSkinnedAnimationController->SetCallbackKey(1, 0.5f, _T("Footstep02"));
-//	m_pSkinnedAnimationController->SetCallbackKey(2, 0.9f, _T("Footstep03"));
-//#else
-//	m_pSkinnedAnimationController->SetCallbackKey(1, 0, 0.1f, _T("Asset/Sound/Footstep01.wav"));
-//	m_pSkinnedAnimationController->SetCallbackKey(1, 1, 0.9f, _T("Asset/Sound/Footstep02.wav"));
-//#endif
-//	CAnimationCallbackHandler* pAnimationCallbackHandler = new CSoundCallbackHandler();
-//	m_pSkinnedAnimationController->SetAnimationCallbackHandler(1, pAnimationCallbackHandler);
 
 	SetPlayerUpdatedContext(pContext);
 	SetCameraUpdatedContext(pContext);
 
-	pScene->m_vShader[SKINNEDANIMATION_STANDARD_SHADER]->AddGameObject(this);
-
-	if (m_pSkinnedAnimationController) m_pSkinnedAnimationController->UpdateShaderVariables(pd3dCommandList);
-	if (pBlueSuitPlayer) delete pBlueSuitPlayer;
 }
 
 CBlueSuitPlayer::~CBlueSuitPlayer()
 {
+}
+
+void CBlueSuitPlayer::LoadModelAndAnimation(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dCommandList, ID3D12RootSignature* pd3dGraphicsRootSignature)
+{
+	CLoadedModelInfo* pBlueSuitPlayer = CGameObject::LoadGeometryAndAnimationFromFile(pd3dDevice, pd3dCommandList, pd3dGraphicsRootSignature, "Asset/Model/BlueSuitFree01.bin");
+	SetChild(pBlueSuitPlayer->m_pModelRootObject, true);
+
+	int nCbv = 0;
+	nCbv = cntCbvModelObject(shared_from_this(), 0);
+
+	m_pSkinnedAnimationController = make_shared<CBlueSuitAnimationController>(pd3dDevice, pd3dCommandList, 5, pBlueSuitPlayer);
+
+	//	m_pSkinnedAnimationController->SetCallbackKeys(1, 2);
+	//#ifdef _WITH_SOUND_RESOURCE
+	//	m_pSkinnedAnimationController->SetCallbackKey(0, 0.1f, _T("Footstep01"));
+	//	m_pSkinnedAnimationController->SetCallbackKey(1, 0.5f, _T("Footstep02"));
+	//	m_pSkinnedAnimationController->SetCallbackKey(2, 0.9f, _T("Footstep03"));
+	//#else
+	//	m_pSkinnedAnimationController->SetCallbackKey(1, 0, 0.1f, _T("Asset/Sound/Footstep01.wav"));
+	//	m_pSkinnedAnimationController->SetCallbackKey(1, 1, 0.9f, _T("Asset/Sound/Footstep02.wav"));
+	//#endif
+	//	CAnimationCallbackHandler* pAnimationCallbackHandler = new CSoundCallbackHandler();
+	//	m_pSkinnedAnimationController->SetAnimationCallbackHandler(1, pAnimationCallbackHandler);
+
+	if (m_pSkinnedAnimationController) m_pSkinnedAnimationController->UpdateShaderVariables(pd3dCommandList);
+	if (pBlueSuitPlayer) delete pBlueSuitPlayer;
 }
 
 void CBlueSuitPlayer::Move(DWORD dwDirection, float fDistance, bool bUpdateVelocity)
@@ -409,8 +416,8 @@ void CBlueSuitPlayer::Update(float fElapsedTime)
 					if (m_pSkinnedAnimationController->m_nNowState == PlayerState::RUN)
 					{
 						m_pSkinnedAnimationController->m_nNextState = PlayerState::WALK;
-						m_pSkinnedAnimationController->SetTrackPosition(2, m_pSkinnedAnimationController->m_pAnimationTracks[3].m_fPosition);
-						m_pSkinnedAnimationController->SetTrackPosition(1, m_pSkinnedAnimationController->m_pAnimationTracks[3].m_fPosition);
+						m_pSkinnedAnimationController->SetTrackPosition(2, m_pSkinnedAnimationController->m_vAnimationTracks[3].m_fPosition);
+						m_pSkinnedAnimationController->SetTrackPosition(1, m_pSkinnedAnimationController->m_vAnimationTracks[3].m_fPosition);
 					}
 					else
 					{
@@ -430,14 +437,14 @@ void CBlueSuitPlayer::Update(float fElapsedTime)
 			{
 				m_pSkinnedAnimationController->m_bTransition = true;
 				m_pSkinnedAnimationController->m_nNextState = PlayerState::RUN;
-				m_pSkinnedAnimationController->SetTrackPosition(3, m_pSkinnedAnimationController->m_pAnimationTracks[1].m_fPosition);
+				m_pSkinnedAnimationController->SetTrackPosition(3, m_pSkinnedAnimationController->m_vAnimationTracks[1].m_fPosition);
 			}
 			else if (!m_bShiftRun && m_pSkinnedAnimationController->m_nNowState == PlayerState::RUN)
 			{
 				m_pSkinnedAnimationController->m_bTransition = true;
 				m_pSkinnedAnimationController->m_nNextState = PlayerState::WALK;
-				m_pSkinnedAnimationController->SetTrackPosition(2, m_pSkinnedAnimationController->m_pAnimationTracks[3].m_fPosition);
-				m_pSkinnedAnimationController->SetTrackPosition(1, m_pSkinnedAnimationController->m_pAnimationTracks[3].m_fPosition);
+				m_pSkinnedAnimationController->SetTrackPosition(2, m_pSkinnedAnimationController->m_vAnimationTracks[3].m_fPosition);
+				m_pSkinnedAnimationController->SetTrackPosition(1, m_pSkinnedAnimationController->m_vAnimationTracks[3].m_fPosition);
 			}
 
 			XMFLOAT3 xmf3Direction = Vector3::Normalize(m_xmf3Velocity);
@@ -471,14 +478,25 @@ void CBlueSuitPlayer::Update(float fElapsedTime)
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 // 
 
-CZombiePlayer::CZombiePlayer(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dCommandList, ID3D12RootSignature* pd3dGraphicsRootSignature, CScene* pScene, void* pContext)
-	:CPlayer(pd3dDevice, pd3dCommandList, pd3dGraphicsRootSignature, pScene, pContext)
+CZombiePlayer::CZombiePlayer(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dCommandList, ID3D12RootSignature* pd3dGraphicsRootSignature, void* pContext)
+	:CPlayer(pd3dDevice, pd3dCommandList, pd3dGraphicsRootSignature, pContext)
 {
 	m_xmf3Scale = XMFLOAT3(0.1f, 0.1f, 0.1f);
+
+	SetPlayerUpdatedContext(pContext);
+	SetCameraUpdatedContext(pContext);
+}
+
+CZombiePlayer::~CZombiePlayer()
+{
+}
+
+void CZombiePlayer::LoadModelAndAnimation(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dCommandList, ID3D12RootSignature* pd3dGraphicsRootSignature)
+{
 	CLoadedModelInfo* pZombiePlayer = CGameObject::LoadGeometryAndAnimationFromFile(pd3dDevice, pd3dCommandList, pd3dGraphicsRootSignature, "Asset/Model/Zom.bin");
 	SetChild(pZombiePlayer->m_pModelRootObject, true);
 
-	m_pSkinnedAnimationController = new CZombieAnimationController(pd3dDevice, pd3dCommandList, 3, pZombiePlayer);
+	m_pSkinnedAnimationController = make_shared<CZombieAnimationController>(pd3dDevice, pd3dCommandList, 3, pZombiePlayer);
 
 	m_pSkinnedAnimationController->SetCallbackKeys(1, 2);
 #ifdef _WITH_SOUND_RESOURCE
@@ -490,19 +508,11 @@ CZombiePlayer::CZombiePlayer(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList
 	m_pSkinnedAnimationController->SetCallbackKey(1, 0, 0.1f, (void*)_T("Sound/Footstep01.wav"));
 	m_pSkinnedAnimationController->SetCallbackKey(1, 1, 0.9f, (void*)_T("Sound/Footstep02.wav"));
 #endif
-	CAnimationCallbackHandler* pAnimationCallbackHandler = new CSoundCallbackHandler();
+	shared_ptr<CAnimationCallbackHandler> pAnimationCallbackHandler = make_shared<CSoundCallbackHandler>();
 	m_pSkinnedAnimationController->SetAnimationCallbackHandler(1, pAnimationCallbackHandler);
-
-	SetPlayerUpdatedContext(pContext);
-	SetCameraUpdatedContext(pContext);
-	pScene->m_vShader[SKINNEDANIMATION_STANDARD_SHADER]->AddGameObject(this);
 
 	if (m_pSkinnedAnimationController) m_pSkinnedAnimationController->UpdateShaderVariables(pd3dCommandList);
 	if (pZombiePlayer) delete pZombiePlayer;
-}
-
-CZombiePlayer::~CZombiePlayer()
-{
 }
 
 void CZombiePlayer::Update(float fElapsedTime)

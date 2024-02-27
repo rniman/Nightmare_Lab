@@ -23,31 +23,28 @@ public:
 	virtual ~CTexture();
 
 private:
-
-	int								m_nReferences = 0;
-
+	//int								m_nReferences = 0;
 	UINT							m_nTextureType;
 
 	int								m_nTextures = 0;
-	ID3D12Resource** m_ppd3dTextures = NULL;
-	ID3D12Resource** m_ppd3dTextureUploadBuffers;
+	vector<ComPtr<ID3D12Resource>> m_vpd3dTextures;
+	vector<ComPtr<ID3D12Resource>> m_vpd3dTextureUploadBuffers;
 
-	UINT* m_pnResourceTypes = NULL;
+	vector<UINT> m_vnResourceTypes;
+	vector<DXGI_FORMAT> m_vdxgiBufferFormats;
+	vector<int> m_vnBufferElements;
 
-	DXGI_FORMAT* m_pdxgiBufferFormats = NULL;
-	int* m_pnBufferElements = NULL;
+	int m_nRootParameters = 0;
+	vector<UINT> m_vnRootParameterIndices;
+	vector<D3D12_GPU_DESCRIPTOR_HANDLE> m_vd3dSrvGpuDescriptorHandles;
 
-	int								m_nRootParameters = 0;
-	UINT* m_pnRootParameterIndices = NULL;
-	D3D12_GPU_DESCRIPTOR_HANDLE* m_pd3dSrvGpuDescriptorHandles = NULL;
-
-	int								m_nSamplers = 0;
-	D3D12_GPU_DESCRIPTOR_HANDLE* m_pd3dSamplerGpuDescriptorHandles = NULL;
+	int	m_nSamplers = 0;
+	vector<D3D12_GPU_DESCRIPTOR_HANDLE> m_vd3dSamplerGpuDescriptorHandles;
 
 	_TCHAR m_sTextureName[128];
 public:
-	void AddRef() { m_nReferences++; }
-	void Release() { if (--m_nReferences <= 0) delete this; }
+	//void AddRef() { m_nReferences++; }
+	//void Release() { if (--m_nReferences <= 0) delete this; }
 
 	void SetSampler(int nIndex, D3D12_GPU_DESCRIPTOR_HANDLE d3dSamplerGpuDescriptorHandle);
 
@@ -66,12 +63,12 @@ public:
 
 	int GetRootParameters() { return(m_nRootParameters); }
 	int GetTextures() { return(m_nTextures); }
-	ID3D12Resource* GetResource(int nIndex) { return(m_ppd3dTextures[nIndex]); }
+	ID3D12Resource* GetResource(int nIndex) { return(m_vpd3dTextures[nIndex].Get()); }
 
 	UINT GetTextureType() { return(m_nTextureType); }
-	UINT GetTextureType(int nIndex) { return(m_pnResourceTypes[nIndex]); }
-	DXGI_FORMAT GetBufferFormat(int nIndex) { return(m_pdxgiBufferFormats[nIndex]); }
-	int GetBufferElements(int nIndex) { return(m_pnBufferElements[nIndex]); }
+	UINT GetTextureType(int nIndex) { return(m_vnResourceTypes[nIndex]); }
+	DXGI_FORMAT GetBufferFormat(int nIndex) { return(m_vdxgiBufferFormats[nIndex]); }
+	int GetBufferElements(int nIndex) { return(m_vnBufferElements[nIndex]); }
 
 	D3D12_SHADER_RESOURCE_VIEW_DESC GetShaderResourceViewDesc(int nIndex);
 
@@ -90,27 +87,28 @@ public:
 	virtual ~CMaterial();
 
 private:
-	int								m_nReferences = 0;
+//	int	m_nReferences = 0;
+//
+//public:
+//	void AddRef() { m_nReferences++; }
+//	void Release() { if (--m_nReferences <= 0) delete this; }
 
 public:
-	void AddRef() { m_nReferences++; }
-	void Release() { if (--m_nReferences <= 0) delete this; }
+	static vector<shared_ptr<CTexture>> m_vTextureContainer;
 
-public:
-	static vector<CTexture*> m_vTextureContainer;
-
-	XMFLOAT4						m_xmf4AlbedoColor = XMFLOAT4(1.0f, 1.0f, 1.0f, 1.0f);
-	XMFLOAT4						m_xmf4EmissiveColor = XMFLOAT4(0.0f, 0.0f, 0.0f, 1.0f);
-	XMFLOAT4						m_xmf4SpecularColor = XMFLOAT4(0.0f, 0.0f, 0.0f, 1.0f);
-	XMFLOAT4						m_xmf4AmbientColor = XMFLOAT4(0.0f, 0.0f, 0.0f, 1.0f);
+	XMFLOAT4 m_xmf4AlbedoColor = XMFLOAT4(1.0f, 1.0f, 1.0f, 1.0f);
+	XMFLOAT4 m_xmf4EmissiveColor = XMFLOAT4(0.0f, 0.0f, 0.0f, 1.0f);
+	XMFLOAT4 m_xmf4SpecularColor = XMFLOAT4(0.0f, 0.0f, 0.0f, 1.0f);
+	XMFLOAT4 m_xmf4AmbientColor = XMFLOAT4(0.0f, 0.0f, 0.0f, 1.0f);
 
 	void SetMaterialType(UINT nType) { m_nType |= nType; }
-	void SetTexture(CTexture* pTexture, UINT nTexture = 0);
+	void SetTexture(const shared_ptr<CTexture>& pTexture, UINT nTexture = 0);
 
 	virtual void UpdateShaderVariable(ID3D12GraphicsCommandList* pd3dCommandList, VS_CB_OBJECT_INFO* objectInfo);
 
 	virtual void ReleaseUploadBuffers();
-
+	
+	void LoadTextureFromFile(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dCommandList, UINT nType, UINT nRootParameter, _TCHAR* pwstrTextureName, shared_ptr<CTexture>& pTexture, shared_ptr<CGameObject> pParent, FILE* pInFile);
 public:
 	UINT							m_nType = 0x00;
 
@@ -120,12 +118,10 @@ public:
 	float							m_fMetallic = 0.0f;
 	float							m_fGlossyReflection = 0.0f;
 
-public:
 	int 							m_nTextures = 0;
 	_TCHAR(*m_ppstrTextureNames)[128] = NULL;
-	CTexture** m_ppTextures = NULL; //0:Albedo, 1:Specular, 2:Metallic, 3:Normal, 4:Emission, 5:DetailAlbedo, 6:DetailNormal
+	vector<shared_ptr<CTexture>> m_vpTextures; //0:Albedo, 1:Specular, 2:Metallic, 3:Normal, 4:Emission, 5:DetailAlbedo, 6:DetailNormal
 
-	void LoadTextureFromFile(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dCommandList, UINT nType, UINT nRootParameter, _TCHAR* pwstrTextureName, CTexture** ppTexture, CGameObject* pParent, FILE* pInFile);
 };
 
 /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -133,7 +129,7 @@ public:
 
 struct CALLBACKKEY
 {
-	float  							m_fTime = 0.0f;
+	float m_fTime = 0.0f;
 	void* m_pCallbackData = NULL;
 };
 
@@ -157,15 +153,16 @@ public:
 	CAnimationSet(float fLength, int nFramesPerSecond, int nKeyFrameTransforms, int nSkinningBones, char* pstrName);
 	~CAnimationSet();
 
+	XMFLOAT4X4 GetSRT(int nBone, float fPosition);
 public:
 	char							m_pstrAnimationSetName[64];
 
-	float							m_fLength = 0.0f;
-	int								m_nFramesPerSecond = 0; //m_fTicksPerSecond
+	float m_fLength = 0.0f;
+	int	m_nFramesPerSecond = 0; //m_fTicksPerSecond
 
-	int								m_nKeyFrames = 0;
-	float* m_pfKeyFrameTimes = NULL;
-	XMFLOAT4X4** m_ppxmf4x4KeyFrameTransforms = NULL;
+	int	m_nKeyFrames = 0;
+	vector<float> m_vfKeyFrameTimes;
+	vector<vector<XMFLOAT4X4>> m_vvxmf4x4KeyFrameTransforms;
 
 #ifdef _WITH_ANIMATION_SRT
 	int								m_nKeyFrameScales = 0;
@@ -178,9 +175,6 @@ public:
 	float* m_pfKeyFrameTranslationTimes = NULL;
 	XMFLOAT3** m_ppxmf3KeyFrameTranslations = NULL;
 #endif
-
-public:
-	XMFLOAT4X4 GetSRT(int nBone, float fPosition);
 };
 
 class CAnimationSets
@@ -189,19 +183,12 @@ public:
 	CAnimationSets(int nAnimationSets);
 	~CAnimationSets();
 
-private:
-	int								m_nReferences = 0;
-
-public:
-	void AddRef() { m_nReferences++; }
-	void Release() { if (--m_nReferences <= 0) delete this; }
-
 public:
 	int								m_nAnimationSets = 0;
-	CAnimationSet** m_pAnimationSets = NULL;
+	vector<shared_ptr<CAnimationSet>> m_vpAnimationSets;
 
 	int								m_nBoneFrames = 0;
-	CGameObject** m_ppBoneFrameCaches = NULL; //[m_nBoneFrames]
+	vector<shared_ptr<CGameObject>> m_vpBoneFrameCaches; //[m_nBoneFrames]
 };
 
 class CAnimationTrack
@@ -209,6 +196,20 @@ class CAnimationTrack
 public:
 	CAnimationTrack() { }
 	~CAnimationTrack();
+
+	void SetAnimationSet(int nAnimationSet) { m_nAnimationSet = nAnimationSet; }
+
+	void SetEnable(bool bEnable) { m_bEnable = bEnable; }
+	void SetSpeed(float fSpeed) { m_fSpeed = fSpeed; }
+	void SetWeight(float fWeight) { m_fWeight = fWeight; }
+
+	void SetPosition(float fPosition) { m_fPosition = fPosition; }
+	float UpdatePosition(float fTrackPosition, float fTrackElapsedTime, float fAnimationLength);
+
+	void SetCallbackKeys(int nCallbackKeys);
+	void SetCallbackKey(int nKeyIndex, float fTime, void* pData);
+	void SetAnimationCallbackHandler(const shared_ptr<CAnimationCallbackHandler>& pCallbackHandler);
+	void HandleCallback();
 
 public:
 	BOOL 							m_bEnable = true;
@@ -221,25 +222,9 @@ public:
 	int 							m_nType = ANIMATION_TYPE_LOOP; //Once, Loop, PingPong
 
 	int 							m_nCallbackKeys = 0;
-	CALLBACKKEY* m_pCallbackKeys = NULL;
+	CALLBACKKEY*					m_pCallbackKeys = NULL;
 
-	CAnimationCallbackHandler* m_pAnimationCallbackHandler = NULL;
-
-public:
-	void SetAnimationSet(int nAnimationSet) { m_nAnimationSet = nAnimationSet; }
-
-	void SetEnable(bool bEnable) { m_bEnable = bEnable; }
-	void SetSpeed(float fSpeed) { m_fSpeed = fSpeed; }
-	void SetWeight(float fWeight) { m_fWeight = fWeight; }
-
-	void SetPosition(float fPosition) { m_fPosition = fPosition; }
-	float UpdatePosition(float fTrackPosition, float fTrackElapsedTime, float fAnimationLength);
-
-	void SetCallbackKeys(int nCallbackKeys);
-	void SetCallbackKey(int nKeyIndex, float fTime, void* pData);
-	void SetAnimationCallbackHandler(CAnimationCallbackHandler* pCallbackHandler);
-
-	void HandleCallback();
+	shared_ptr<CAnimationCallbackHandler> m_pAnimationCallbackHandler;
 };
 
 class CLoadedModelInfo
@@ -248,13 +233,12 @@ public:
 	CLoadedModelInfo() { }
 	~CLoadedModelInfo();
 
-	CGameObject* m_pModelRootObject = NULL;
+	shared_ptr<CGameObject> m_pModelRootObject;
 
-	int 							m_nSkinnedMeshes = 0;
-	CSkinnedMesh** m_ppSkinnedMeshes = NULL; //[SkinnedMeshes], Skinned Mesh Cache
+	int m_nSkinnedMeshes = 0;
+	vector<shared_ptr<CSkinnedMesh>> m_vpSkinnedMeshes; //[SkinnedMeshes], Skinned Mesh Cache
 
-	CAnimationSets* m_pAnimationSets = NULL;
-
+	shared_ptr<CAnimationSets> m_pAnimationSets;
 public:
 	void PrepareSkinning();
 };
@@ -305,32 +289,6 @@ public:
 	CAnimationController(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dCommandList, int nAnimationTracks, CLoadedModelInfo* pModel);
 	~CAnimationController();
 
-public:
-	float 							m_fTime = 0.0f;
-
-	int 							m_nAnimationTracks = 0;
-	CAnimationTrack* m_pAnimationTracks = NULL;
-
-	CAnimationSets* m_pAnimationSets = NULL;
-
-	int 							m_nSkinnedMeshes = 0;
-	CSkinnedMesh** m_ppSkinnedMeshes = NULL; //[SkinnedMeshes], Skinned Mesh Cache
-
-	ID3D12Resource** m_ppd3dcbSkinningBoneTransforms = NULL; //[SkinnedMeshes]
-	XMFLOAT4X4** m_ppcbxmf4x4MappedSkinningBoneTransforms = NULL; //[SkinnedMeshes]
-	
-	// 블렌드위한 가중치
-	std::vector<float> m_vfBlendWeight;
-
-	int m_nState = 0;	// 상태 개수
-	int m_nTransition = 0;	// 상태전이 개수
-	CAnimationTransition* m_pAnimationTransitions = NULL;
-	bool m_bTransition = false;
-	int m_nNowState;
-	int m_nNextState;
-
-	D3D12_GPU_DESCRIPTOR_HANDLE* m_d3dCbvSkinningBoneTransformsGPUDescriptorHandle = NULL;
-public:
 	void UpdateShaderVariables(ID3D12GraphicsCommandList* pd3dCommandList);
 
 	void SetTrackAnimationSet(int nAnimationTrack, int nAnimationSet);
@@ -342,29 +300,55 @@ public:
 
 	void SetCallbackKeys(int nAnimationTrack, int nCallbackKeys);
 	void SetCallbackKey(int nAnimationTrack, int nKeyIndex, float fTime, void* pData);
-	void SetAnimationCallbackHandler(int nAnimationTrack, CAnimationCallbackHandler* pCallbackHandler);
+	void SetAnimationCallbackHandler(int nAnimationTrack, const shared_ptr<CAnimationCallbackHandler>& pCallbackHandler);
 
 	void AddBlendWeight(float fBlendWeight);
 	void SetBlendWeight(int nBlendIndex, float fBlendWeight);
 
 	virtual void AdvanceTime(float fElapsedTime, CGameObject* pRootGameObject);
-public:
-	bool							m_bRootMotion = false;
-	CGameObject* m_pModelRootObject = NULL;
-
-	CGameObject* m_pRootMotionObject = NULL;
-	XMFLOAT3						m_xmf3FirstRootMotionPosition = XMFLOAT3(0.0f, 0.0f, 0.0f);
 
 	void SetRootMotion(bool bRootMotion) { m_bRootMotion = bRootMotion; }
 
 	virtual void OnRootMotion(CGameObject* pRootGameObject) { }
 	virtual void OnAnimationIK(CGameObject* pRootGameObject) { }
+public:
+	float 							m_fTime = 0.0f;
+
+	int	m_nAnimationTracks = 0;
+	vector<CAnimationTrack> m_vAnimationTracks;
+
+	shared_ptr<CAnimationSets> m_pAnimationSets;
+
+	int m_nSkinnedMeshes = 0;
+	vector<shared_ptr<CSkinnedMesh>> m_vpSkinnedMeshes; //[SkinnedMeshes], Skinned Mesh Cache
+
+	vector<ComPtr<ID3D12Resource>> m_vpd3dcbSkinningBoneTransforms; //[SkinnedMeshes]
+	vector<shared_ptr<XMFLOAT4X4>> m_vpcbxmf4x4MappedSkinningBoneTransforms; //[SkinnedMeshes]
+	
+	// 블렌드위한 가중치
+	std::vector<float> m_vfBlendWeight;
+
+	int m_nState = 0;	// 상태 개수
+	int m_nTransition = 0;	// 상태전이 개수
+	vector<CAnimationTransition> m_vAnimationTransitions;
+	bool m_bTransition = false;
+	int m_nNowState;
+	int m_nNextState;
+
+	vector<D3D12_GPU_DESCRIPTOR_HANDLE> m_vd3dCbvSkinningBoneTransformsGPUDescriptorHandle;
+
+	bool m_bRootMotion = false;
+	shared_ptr<CGameObject> m_pModelRootObject;
+	weak_ptr<CGameObject> m_pRootMotionObject;	//지금 사용안하는 중
+	XMFLOAT3 m_xmf3FirstRootMotionPosition = XMFLOAT3(0.0f, 0.0f, 0.0f);
+
 };
 
 
 /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-class CGameObject // -> Rendering을 위한 오브젝트임 결국 CShaader에 포함될 운명임,  근데 인스턴싱 오브젝트의 경우 따로 정보를 결국 저장해둬야함
+ //Rendering을 위한 오브젝트임 결국 CShaader에 포함될 운명임,  근데 인스턴싱 오브젝트의 경우 따로 정보를 결국 저장해둬야함
+class CGameObject : public std::enable_shared_from_this<CGameObject>
 {
 public:
 	CGameObject(char* pstrFrameName, XMFLOAT4X4& xmf4x4World, CMesh* pMesh);
@@ -379,11 +363,6 @@ public:
 	D3D12_GPU_DESCRIPTOR_HANDLE GetDescriptorHandle();
 	void SetDescriptorHandle(D3D12_GPU_DESCRIPTOR_HANDLE handle);
 
-	void SetMesh(CMesh* pMesh);
-	void SetMaterial(int nMaterial, CMaterial* pMaterial);
-
-	void SetChild(CGameObject* pChild, bool bReferenceUpdate = false);
-
 	virtual void Animate(float fElapsedTime);
 	virtual void Render(ID3D12GraphicsCommandList* pd3dCommandList);
 	//virtual void Render(ID3D12GraphicsCommandList* pd3dCommandList, CCamera* pCamera);
@@ -395,6 +374,10 @@ public:
 	virtual void UpdateShaderVariable(ID3D12GraphicsCommandList* pd3dCommandList, XMFLOAT4X4* pxmf4x4World);
 
 	virtual void ReleaseUploadBuffers();
+
+	void SetMesh(const shared_ptr<CMesh>& pMesh);
+	void SetMaterial(int nMaterial, const shared_ptr<CMaterial>& pMaterial);
+	void SetChild(const shared_ptr<CGameObject>& pChild, bool bReferenceUpdate = false);
 
 	XMFLOAT3 GetPosition();
 	XMFLOAT3 GetLook();
@@ -415,12 +398,12 @@ public:
 	void Rotate(XMFLOAT3* pxmf3Axis, float fAngle);
 	void Rotate(XMFLOAT4* pxmf4Quaternion);
 
-	CGameObject* GetParent() { return(m_pParent); }
+	weak_ptr<CGameObject> GetParent() { return(m_pParent); }
 	void UpdateTransform(XMFLOAT4X4* pxmf4x4Parent = NULL);
-	CGameObject* FindFrame(const char* pstrFrameName);
-	CGameObject* FindFrame(char* pstrFrameName);
+	shared_ptr<CGameObject> FindFrame(const char* pstrFrameName);
+	shared_ptr<CGameObject> FindFrame(char* pstrFrameName);
 
-	CTexture* FindReplicatedTexture(_TCHAR* pstrTextureName);
+	shared_ptr<CTexture> FindReplicatedTexture(_TCHAR* pstrTextureName);
 
 	UINT GetMeshType()
 	{ 
@@ -431,13 +414,13 @@ public:
 		return 0x00;
 	}
 
-	void LoadMaterialsFromFile(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dCommandList, CGameObject* pParent, FILE* pInFile);
-	static CGameObject* LoadFrameHierarchyFromFile(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dCommandList, ID3D12RootSignature* pd3dGraphicsRootSignature, CGameObject* pParent, FILE* pInFile, int* pnSkinnedMeshes);
-	static CGameObject* LoadInstanceFrameHierarchyFromFile(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dCommandList, ID3D12RootSignature* pd3dGraphicsRootSignature, CGameObject* pParent, FILE* pInFile, int* pnSkinnedMeshes);
-	static void PrintFrameInfo(CGameObject* pGameObject, CGameObject* pParent);
+	void LoadMaterialsFromFile(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dCommandList, shared_ptr<CGameObject> pParent, FILE* pInFile);
+	static shared_ptr<CGameObject> LoadFrameHierarchyFromFile(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dCommandList, ID3D12RootSignature* pd3dGraphicsRootSignature, shared_ptr<CGameObject> pParent, FILE* pInFile, int* pnSkinnedMeshes);
+	static shared_ptr<CGameObject> LoadInstanceFrameHierarchyFromFile(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dCommandList, ID3D12RootSignature* pd3dGraphicsRootSignature, shared_ptr<CGameObject> pParent, FILE* pInFile, int* pnSkinnedMeshes);
+	static void PrintFrameInfo(const shared_ptr<CGameObject>& pGameObject, const shared_ptr<CGameObject>& pParent);
 	
-	CSkinnedMesh* FindSkinnedMesh(char* pstrSkinnedMeshName);
-	void FindAndSetSkinnedMesh(CSkinnedMesh** ppSkinnedMeshes, int* pnSkinnedMesh);
+	shared_ptr<CSkinnedMesh> FindSkinnedMesh(char* pstrSkinnedMeshName);
+	void FindAndSetSkinnedMesh(vector<shared_ptr<CSkinnedMesh>>& vpSkinnedMeshes, int* pnSkinnedMesh);
 
 	void SetTrackAnimationSet(int nAnimationTrack, int nAnimationSet);
 	void SetTrackAnimationPosition(int nAnimationTrack, float fPosition);
@@ -458,33 +441,33 @@ public:
 	vector<BoundingOrientedBox> GetVectorOOBB() const { return m_voobbOrigin; };
 
 	// Picking
-	bool CheckPicking(const CGameObject* pGameObject, const XMFLOAT3& xmf3PickPosition, const XMFLOAT4X4& mxf4x4ViewMatrix, float& fDistance);
+	bool CheckPicking(const weak_ptr<CGameObject>& pGameObject, const XMFLOAT3& xmf3PickPosition, const XMFLOAT4X4& mxf4x4ViewMatrix, float& fDistance);
 	virtual void AnimatePicking(float fElapsedTime) {};
 	virtual void CallbackPicking() {};
 
 public:
 	//중복된 메쉬를 없애기 위해 최초 메쉬들을 이곳에 저장한다.
-	static vector<CMesh*> m_vMeshContainer;
+	static vector<shared_ptr<CMesh>> m_vMeshContainer;
 
 	char m_pstrFrameName[64];
-	CMesh* m_pMesh = NULL;
+	shared_ptr<CMesh> m_pMesh;
 
 	int	m_nMaterials = 0;
-	CMaterial** m_ppMaterials = NULL;
+	vector<shared_ptr<CMaterial>> m_vpMaterials;
 
 	XMFLOAT4X4 m_xmf4x4ToParent;
 	XMFLOAT4X4 m_xmf4x4World;
 
-	CGameObject* m_pParent = NULL;
-	CGameObject* m_pChild = NULL;
-	CGameObject* m_pSibling = NULL;
+	weak_ptr<CGameObject> m_pParent;
+	shared_ptr<CGameObject> m_pChild;
+	shared_ptr<CGameObject> m_pSibling;
 
 	ComPtr<ID3D12Resource> m_d3dcbvObject;
 	VS_CB_OBJECT_INFO* m_cbMappedObject = NULL;// m_d3dcbvObject가 제거되는 시점에 같이 제거되므로 별도 해제 X
 	D3D12_GPU_DESCRIPTOR_HANDLE	m_d3dCbvGPUDescriptorHandle;
 
 	// 애니메이션 관련
-	CAnimationController* m_pSkinnedAnimationController = NULL;
+	shared_ptr<CAnimationController> m_pSkinnedAnimationController;
 
 	vector<BoundingOrientedBox> m_voobbOrigin;
 };
@@ -497,7 +480,7 @@ public:
 	~CHexahedronObject();
 };
 
-int cntCbvModelObject(CGameObject* pGameObject, int nCnt);
+int cntCbvModelObject(const shared_ptr<CGameObject>& pGameObject, int nCnt);
 
 /// <CGameObject - CHexahedronObject>
 ////// /// /// /// /// /// /// /// /// /// /// /// /// /// /// /// /// /// /// /// /// /// /// /// /// /// /// /// ///  
@@ -507,14 +490,16 @@ class CInstanceObject : public CGameObject
 {
 public:
 	CInstanceObject(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dCommandList);
-	CInstanceObject(char* pstrFrameName, XMFLOAT4X4& xmf4x4World, CMesh* pMesh, int nIndex);
-	virtual ~CInstanceObject() {};
+	virtual ~CInstanceObject() { 
+		//for (auto& pObject : m_vInstanceObjectInfo)
+		//{
+		//	delete pObject;
+		//}
+	};
 
 	virtual void Animate(float fElapsedTime) override;
 	virtual void Render(ID3D12GraphicsCommandList* pd3dCommandList);
 
-	void SetIndex(int nIndex) { m_nIndex = nIndex; }
 public:
-	vector<CGameObject*> m_vInstanceObjectInfo;
-	int m_nIndex = 0;
+	vector<shared_ptr<CGameObject>> m_vInstanceObjectInfo;
 };

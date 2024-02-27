@@ -17,14 +17,15 @@ public:
 class CPlayer : public CGameObject
 {
 public:
-	CPlayer(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dCommandList, ID3D12RootSignature* pd3dGraphicsRootSignature, CScene* pScene, void* pContext = NULL);
+	CPlayer(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dCommandList, ID3D12RootSignature* pd3dGraphicsRootSignature, void* pContext = NULL);
 	virtual ~CPlayer();
+
+	virtual void LoadModelAndAnimation(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dCommandList, ID3D12RootSignature* pd3dGraphicsRootSignature) {};
 
 	virtual void Move(DWORD dwDirection, float fDistance, bool bVelocity = false);
 	void Move(const XMFLOAT3& xmf3Shift, bool bVelocity = false);
 	void Move(float fxOffset = 0.0f, float fyOffset = 0.0f, float fzOffset = 0.0f) {};
 	void Rotate(float x, float y, float z);
-
 
 	virtual void Update(float fElapsedTime);
 
@@ -37,11 +38,8 @@ public:
 	virtual void Render(ID3D12GraphicsCommandList* pd3dCommandList);
 	//virtual void Render(ID3D12GraphicsCommandList* pd3dCommandList, CCamera* pCamera = NULL);
 
-	CCamera* OnChangeCamera(DWORD nNewCameraMode, DWORD nCurrentCameraMode);
-	virtual CCamera* ChangeCamera(DWORD nNewCameraMode, float fElapsedTime);
-
-	CGameObject* GetPickedObject(int nx, int ny, CScene* pScene);
-	CGameObject* m_pPikedObject = NULL;
+	shared_ptr<CCamera> OnChangeCamera(DWORD nNewCameraMode, DWORD nCurrentCameraMode);
+	virtual shared_ptr<CCamera> ChangeCamera(DWORD nNewCameraMode, float fElapsedTime);
 
 	// Interface
 	XMFLOAT3 GetPosition() const { return m_xmf3Position; }
@@ -69,8 +67,12 @@ public:
 	void SetPlayerUpdatedContext(LPVOID pContext) { m_pPlayerUpdatedContext = pContext; }
 	void SetCameraUpdatedContext(LPVOID pContext) { m_pCameraUpdatedContext = pContext; }
 
-	CCamera* GetCamera() { return(m_pCamera); }
-	void SetCamera(CCamera* pCamera) { m_pCamera = pCamera; }
+	shared_ptr<CCamera> GetCamera() { return m_pCamera; }
+	void SetCamera(shared_ptr<CCamera> pCamera) { m_pCamera = pCamera; }
+
+	void SetPickedObject(int nx, int ny, CScene* pScene);
+	weak_ptr<CGameObject> GetPickedObject() { return m_pPickedObject; }
+
 protected:
 	XMFLOAT3					m_xmf3Position = XMFLOAT3(0.0f, 0.0f, 0.0f);
 	XMFLOAT3					m_xmf3Right = XMFLOAT3(1.0f, 0.0f, 0.0f);
@@ -92,14 +94,18 @@ protected:
 	LPVOID						m_pPlayerUpdatedContext = NULL;
 	LPVOID						m_pCameraUpdatedContext = NULL;
 
-	CCamera* m_pCamera = NULL;
+	// 카메라 실체는 플레이어가 다룬다
+	shared_ptr<CCamera> m_pCamera;
+	weak_ptr<CGameObject> m_pPickedObject;
 };
 
 class CBlueSuitPlayer : public CPlayer
 {
 public:
-	CBlueSuitPlayer(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dCommandList, ID3D12RootSignature* pd3dGraphicsRootSignature, CScene* pScene, void* pContext = NULL);
+	CBlueSuitPlayer(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dCommandList, ID3D12RootSignature* pd3dGraphicsRootSignature, void* pContext = NULL);
 	virtual ~CBlueSuitPlayer();
+
+	virtual void LoadModelAndAnimation(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dCommandList, ID3D12RootSignature* pd3dGraphicsRootSignature) override;
 
 	virtual void Move(DWORD dwDirection, float fDistance, bool bVelocity = false);
 	virtual void Update(float fElapsedTime) override;
@@ -112,8 +118,10 @@ private:
 class CZombiePlayer : public CPlayer
 {
 public:
-	CZombiePlayer(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dCommandList, ID3D12RootSignature* pd3dGraphicsRootSignature, CScene* pScene, void* pContext = NULL);
+	CZombiePlayer(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dCommandList, ID3D12RootSignature* pd3dGraphicsRootSignature, void* pContext = NULL);
 	virtual ~CZombiePlayer();
+
+	virtual void LoadModelAndAnimation(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dCommandList, ID3D12RootSignature* pd3dGraphicsRootSignature) override;
 
 	virtual void Update(float fElapsedTime) override;
 private:

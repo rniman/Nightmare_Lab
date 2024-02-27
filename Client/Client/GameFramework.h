@@ -1,8 +1,9 @@
 #pragma once
-
 #include "Timer.h"
 #include "Scene.h"
 #include "TCPClient.h"
+
+//constexpr size_t SWAPCHAIN_BUFFER_NUM = 2;
 
 class CGameFramework
 {
@@ -39,7 +40,6 @@ public:
 	LRESULT CALLBACK OnProcessingWindowMessage(HWND hWnd, UINT nMessageID, WPARAM wParam, LPARAM lParam);
 
 private:
-
 	D3D12_VIEWPORT m_d3dViewport;
 	D3D12_RECT m_d3dScissorRect;
 	//뷰포트와 씨저 사각형이다.
@@ -59,10 +59,9 @@ private:
 	static const UINT					m_nSwapChainBuffers = 2;
 	UINT								m_nSwapChainBufferIndex;
 
-	ComPtr<ID3D12Resource>				m_d3dSwapChainBackBuffers[m_nSwapChainBuffers];
-	ComPtr<ID3D12DescriptorHeap>		m_d3dRtvDescriptorHeap;
-	D3D12_CPU_DESCRIPTOR_HANDLE			m_pd3dSwapChainBackBufferRTVCPUHandles[m_nSwapChainBuffers];
-
+	std::array<ComPtr<ID3D12Resource>, m_nSwapChainBuffers>			m_d3dSwapChainBackBuffers;
+	ComPtr<ID3D12DescriptorHeap>									m_d3dRtvDescriptorHeap;
+	std::array<D3D12_CPU_DESCRIPTOR_HANDLE, m_nSwapChainBuffers>	m_pd3dSwapChainBackBufferRTVCPUHandles;
 
 	ComPtr<ID3D12Resource>				m_d3dDepthStencilBuffer;
 	ComPtr<ID3D12DescriptorHeap>		m_d3dDsvDescriptorHeap;
@@ -71,9 +70,9 @@ private:
 	ComPtr<ID3D12CommandQueue>			m_d3dCommandQueue;
 	ComPtr<ID3D12GraphicsCommandList>	m_d3dCommandList;
 
-	ComPtr<ID3D12Fence>					m_d3dFence;
-	UINT64								m_nFenceValues[m_nSwapChainBuffers];
-	HANDLE								m_hFenceEvent;
+	ComPtr<ID3D12Fence>						m_d3dFence;
+	std::array<UINT64, m_nSwapChainBuffers>	m_nFenceValues;
+	HANDLE									m_hFenceEvent;
 
 #if defined(_DEBUG)
 	ID3D12Debug*						m_pd3dDebugController;
@@ -81,16 +80,14 @@ private:
 
 	CGameTimer							m_GameTimer;
 
-	CScene*								m_pScene = NULL;
-	CCamera*							m_pCamera = NULL;
-	CPlayer*							m_pPlayer = NULL;
+	shared_ptr<CScene>					m_pScene;
+	shared_ptr<CPlayer>					m_pPlayer;
+	weak_ptr<CCamera>					m_pCamera;
 
 	CPostProcessingShader*				m_pPostProcessingShader = NULL;
 
 	POINT								m_ptOldCursorPos;
-
 	_TCHAR								m_pszFrameRate[70];
-
 	//TCPClient
 	TCPClient* m_pClientNetwork = NULL;
 };

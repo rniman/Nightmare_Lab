@@ -21,6 +21,7 @@ public:
 
 	void BlendAnimation(int nTrack1, int nTrack2, float fElapsedTime, float fBlentWeight);
 
+private:
 	int m_nStartLArm = -1;
 	int m_nEndLArm = -1;
 
@@ -42,6 +43,7 @@ public:
 	virtual void AdvanceTime(float fElapsedTime, CGameObject* pRootGameObject);
 	void BlendAnimation(int nTrack1, int nTrack2, float fElapsedTime, float fBlentWeight);
 
+private:
 	int m_nStartSpine = -1;
 	int m_nStartNeck = -1;
 	int m_nEndNeck = -1;

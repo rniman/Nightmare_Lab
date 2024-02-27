@@ -18,7 +18,7 @@ class CCamera
 {
 public:
 	CCamera();
-	CCamera(CCamera* pCamera);
+	CCamera(const shared_ptr<CCamera>& pCamera);
 	virtual ~CCamera();
 
 	virtual void CreateShaderVariables(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dCommandList);
@@ -36,8 +36,8 @@ public:
 
 	virtual void SetViewportsAndScissorRects(ID3D12GraphicsCommandList* pd3dCommandList);
 
-	void SetPlayer(CPlayer* pPlayer) { m_pPlayer = pPlayer; }
-	CPlayer* GetPlayer() { return(m_pPlayer); }
+	void SetPlayer(const shared_ptr<CPlayer>& pPlayer) { m_pPlayer = pPlayer; }
+	weak_ptr<CPlayer> GetPlayer() { return(m_pPlayer); }
 
 	void SetMode(DWORD nMode) { m_nMode = nMode; }
 	DWORD GetMode() { return(m_nMode); }
@@ -100,15 +100,15 @@ protected:
 	ComPtr<ID3D12Resource> m_pd3dcbCamera;
 	VS_CB_CAMERA_INFO* m_pcbMappedCamera = NULL;
 
-	D3D12_GPU_DESCRIPTOR_HANDLE		m_d3dCbvGPUDescriptorHandle;
+	D3D12_GPU_DESCRIPTOR_HANDLE	m_d3dCbvGPUDescriptorHandle;
 
-	CPlayer* m_pPlayer = NULL;
+	weak_ptr<CPlayer> m_pPlayer;
 };
 
 class CFirstPersonCamera : public CCamera
 {
 public:
-	CFirstPersonCamera(CCamera* pCamera);
+	CFirstPersonCamera(const shared_ptr<CCamera>& pCamera);
 	virtual ~CFirstPersonCamera() { }
 
 	virtual void Rotate(float fPitch = 0.0f, float fYaw = 0.0f, float fRoll = 0.0f);
@@ -117,7 +117,7 @@ public:
 class CThirdPersonCamera : public CCamera
 {
 public:
-	CThirdPersonCamera(CCamera* pCamera);
+	CThirdPersonCamera(const shared_ptr<CCamera>& pCamera);
 	virtual ~CThirdPersonCamera() { }
 
 	virtual void Update(XMFLOAT3& xmf3LookAt, float fElapsedTime);

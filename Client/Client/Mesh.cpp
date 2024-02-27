@@ -20,12 +20,10 @@ CMesh::~CMesh()
 	{
 		for (int i = 0; i < m_nSubMeshes; i++)
 		{
-			if (m_ppd3dSubSetIndexBuffers[i]) m_ppd3dSubSetIndexBuffers[i]->Release();
+			if (m_vpd3dSubSetIndexBuffers[i].Get()) m_vpd3dSubSetIndexBuffers[i].Reset();
 			if (m_ppnSubSetIndices[i]) delete[] m_ppnSubSetIndices[i];
 		}
-		if (m_ppd3dSubSetIndexBuffers) delete[] m_ppd3dSubSetIndexBuffers;
-		if (m_pd3dSubSetIndexBufferViews) delete[] m_pd3dSubSetIndexBufferViews;
-
+		
 		if (m_pnSubSetIndices) delete[] m_pnSubSetIndices;
 		if (m_ppnSubSetIndices) delete[] m_ppnSubSetIndices;
 	}
@@ -35,17 +33,14 @@ CMesh::~CMesh()
 
 void CMesh::ReleaseUploadBuffers()
 {
-	if (m_pd3dVertexUploadBuffer) m_pd3dVertexUploadBuffer->Release();
-	m_pd3dVertexUploadBuffer = NULL;
+	if (m_pd3dVertexUploadBuffer.Get())	m_pd3dVertexUploadBuffer.Reset();
 
-	if ((m_nSubMeshes > 0) && m_ppd3dSubSetIndexUploadBuffers)
+	if (m_nSubMeshes > 0)
 	{
 		for (int i = 0; i < m_nSubMeshes; i++)
 		{
-			if (m_ppd3dSubSetIndexUploadBuffers[i]) m_ppd3dSubSetIndexUploadBuffers[i]->Release();
+			if (m_vpd3dSubSetIndexUploadBuffers[i].Get()) m_vpd3dSubSetIndexUploadBuffers[i].Reset();
 		}
-		if (m_ppd3dSubSetIndexUploadBuffers) delete[] m_ppd3dSubSetIndexUploadBuffers;
-		m_ppd3dSubSetIndexUploadBuffers = NULL;
 	}
 }
 
@@ -64,7 +59,7 @@ void CMesh::Render(ID3D12GraphicsCommandList* pd3dCommandList, int nSubSet)
 
 	if ((m_nSubMeshes > 0) && (nSubSet < m_nSubMeshes))
 	{
-		pd3dCommandList->IASetIndexBuffer(&(m_pd3dSubSetIndexBufferViews[nSubSet]));
+		pd3dCommandList->IASetIndexBuffer(&(m_vd3dSubSetIndexBufferViews[nSubSet]));
 		pd3dCommandList->DrawIndexedInstanced(m_pnSubSetIndices[nSubSet], m_nCntInstance, 0, 0, 0);
 	}
 	else
@@ -233,17 +228,14 @@ void CStandardMesh::ReleaseUploadBuffers()
 {
 	CMesh::ReleaseUploadBuffers();
 
-	if (m_pd3dUV0UploadBuffer) m_pd3dUV0UploadBuffer->Release();
-	m_pd3dUV0UploadBuffer = NULL;
+	if (m_pd3dUV0UploadBuffer.Get()) m_pd3dUV0UploadBuffer.Reset();
 
-	if (m_pd3dNormalUploadBuffer) m_pd3dNormalUploadBuffer->Release();
-	m_pd3dNormalUploadBuffer = NULL;
-
-	if (m_pd3dTangentUploadBuffer) m_pd3dTangentUploadBuffer->Release();
-	m_pd3dTangentUploadBuffer = NULL;
-
-	if (m_pd3dBiTangentUploadBuffer) m_pd3dBiTangentUploadBuffer->Release();
-	m_pd3dBiTangentUploadBuffer = NULL;
+	if (m_pd3dNormalUploadBuffer.Get()) m_pd3dNormalUploadBuffer.Reset();
+	
+	if (m_pd3dTangentUploadBuffer.Get()) m_pd3dTangentUploadBuffer.Reset();
+	
+	if (m_pd3dBiTangentUploadBuffer.Get()) m_pd3dBiTangentUploadBuffer.Reset();
+	
 }
 
 bool CStandardMesh::LoadMeshFromFile(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dCommandList, FILE* pInFile)
@@ -395,9 +387,15 @@ bool CStandardMesh::LoadMeshFromFile(ID3D12Device* pd3dDevice, ID3D12GraphicsCom
 				m_pnSubSetIndices = new int[m_nSubMeshes];
 				m_ppnSubSetIndices = new UINT * [m_nSubMeshes];
 
-				m_ppd3dSubSetIndexBuffers = new ID3D12Resource * [m_nSubMeshes];
-				m_ppd3dSubSetIndexUploadBuffers = new ID3D12Resource * [m_nSubMeshes];
-				m_pd3dSubSetIndexBufferViews = new D3D12_INDEX_BUFFER_VIEW[m_nSubMeshes];
+				m_vpd3dSubSetIndexBuffers.reserve(m_nSubMeshes);
+				m_vpd3dSubSetIndexUploadBuffers.reserve(m_nSubMeshes);
+				m_vd3dSubSetIndexBufferViews.reserve(m_nSubMeshes);
+				for (int i = 0; i < m_nSubMeshes; ++i)
+				{
+					m_vpd3dSubSetIndexBuffers.emplace_back();
+					m_vpd3dSubSetIndexUploadBuffers.emplace_back();
+					m_vd3dSubSetIndexBufferViews.emplace_back();
+				}
 
 				for (int i = 0; i < m_nSubMeshes; i++)
 				{
@@ -412,11 +410,11 @@ bool CStandardMesh::LoadMeshFromFile(ID3D12Device* pd3dDevice, ID3D12GraphicsCom
 							m_ppnSubSetIndices[i] = new UINT[m_pnSubSetIndices[i]];
 							nReads = (UINT)::fread(m_ppnSubSetIndices[i], sizeof(UINT), m_pnSubSetIndices[i], pInFile);
 
-							m_ppd3dSubSetIndexBuffers[i] = ::CreateBufferResource(pd3dDevice, pd3dCommandList, m_ppnSubSetIndices[i], sizeof(UINT) * m_pnSubSetIndices[i], D3D12_HEAP_TYPE_DEFAULT, D3D12_RESOURCE_STATE_INDEX_BUFFER, &m_ppd3dSubSetIndexUploadBuffers[i]);
+							m_vpd3dSubSetIndexBuffers[i] = ::CreateBufferResource(pd3dDevice, pd3dCommandList, m_ppnSubSetIndices[i], sizeof(UINT) * m_pnSubSetIndices[i], D3D12_HEAP_TYPE_DEFAULT, D3D12_RESOURCE_STATE_INDEX_BUFFER, m_vpd3dSubSetIndexUploadBuffers[i].GetAddressOf());
 
-							m_pd3dSubSetIndexBufferViews[i].BufferLocation = m_ppd3dSubSetIndexBuffers[i]->GetGPUVirtualAddress();
-							m_pd3dSubSetIndexBufferViews[i].Format = DXGI_FORMAT_R32_UINT;
-							m_pd3dSubSetIndexBufferViews[i].SizeInBytes = sizeof(UINT) * m_pnSubSetIndices[i];
+							m_vd3dSubSetIndexBufferViews[i].BufferLocation = m_vpd3dSubSetIndexBuffers[i]->GetGPUVirtualAddress();
+							m_vd3dSubSetIndexBufferViews[i].Format = DXGI_FORMAT_R32_UINT;
+							m_vd3dSubSetIndexBufferViews[i].SizeInBytes = sizeof(UINT) * m_pnSubSetIndices[i];
 						}
 					}
 				}
@@ -450,9 +448,10 @@ CInstanceStandardMesh::CInstanceStandardMesh(ID3D12Device* pd3dDevice, ID3D12Gra
 
 CInstanceStandardMesh::~CInstanceStandardMesh()
 {
+	if (m_pxmf4x4InstanceTransformMatrix) delete[] m_pxmf4x4InstanceTransformMatrix;
 }
 
-bool CInstanceStandardMesh::LoadMeshFromFile(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dCommandList, FILE* pInFile, CInstanceObject* pGameObject)
+bool CInstanceStandardMesh::LoadMeshFromFile(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dCommandList, FILE* pInFile, const shared_ptr<CInstanceObject>& pGameObject)
 {
 	m_pOriginInstance = pGameObject;
 	char pstrToken[64] = { '\0' };
@@ -602,9 +601,15 @@ bool CInstanceStandardMesh::LoadMeshFromFile(ID3D12Device* pd3dDevice, ID3D12Gra
 				m_pnSubSetIndices = new int[m_nSubMeshes];
 				m_ppnSubSetIndices = new UINT * [m_nSubMeshes];
 
-				m_ppd3dSubSetIndexBuffers = new ID3D12Resource * [m_nSubMeshes];
-				m_ppd3dSubSetIndexUploadBuffers = new ID3D12Resource * [m_nSubMeshes];
-				m_pd3dSubSetIndexBufferViews = new D3D12_INDEX_BUFFER_VIEW[m_nSubMeshes];
+				m_vpd3dSubSetIndexBuffers.reserve(m_nSubMeshes);
+				m_vpd3dSubSetIndexUploadBuffers.reserve(m_nSubMeshes);
+				m_vd3dSubSetIndexBufferViews.reserve(m_nSubMeshes);
+				for (int i = 0; i < m_nSubMeshes; ++i)
+				{
+					m_vpd3dSubSetIndexBuffers.emplace_back();
+					m_vpd3dSubSetIndexUploadBuffers.emplace_back();
+					m_vd3dSubSetIndexBufferViews.emplace_back();
+				}
 
 				for (int i = 0; i < m_nSubMeshes; i++)
 				{
@@ -619,11 +624,11 @@ bool CInstanceStandardMesh::LoadMeshFromFile(ID3D12Device* pd3dDevice, ID3D12Gra
 							m_ppnSubSetIndices[i] = new UINT[m_pnSubSetIndices[i]];
 							nReads = (UINT)::fread(m_ppnSubSetIndices[i], sizeof(UINT), m_pnSubSetIndices[i], pInFile);
 
-							m_ppd3dSubSetIndexBuffers[i] = ::CreateBufferResource(pd3dDevice, pd3dCommandList, m_ppnSubSetIndices[i], sizeof(UINT) * m_pnSubSetIndices[i], D3D12_HEAP_TYPE_DEFAULT, D3D12_RESOURCE_STATE_INDEX_BUFFER, &m_ppd3dSubSetIndexUploadBuffers[i]);
+							m_vpd3dSubSetIndexBuffers[i] = ::CreateBufferResource(pd3dDevice, pd3dCommandList, m_ppnSubSetIndices[i], sizeof(UINT) * m_pnSubSetIndices[i], D3D12_HEAP_TYPE_DEFAULT, D3D12_RESOURCE_STATE_INDEX_BUFFER, m_vpd3dSubSetIndexUploadBuffers[i].GetAddressOf());
 
-							m_pd3dSubSetIndexBufferViews[i].BufferLocation = m_ppd3dSubSetIndexBuffers[i]->GetGPUVirtualAddress();
-							m_pd3dSubSetIndexBufferViews[i].Format = DXGI_FORMAT_R32_UINT;
-							m_pd3dSubSetIndexBufferViews[i].SizeInBytes = sizeof(UINT) * m_pnSubSetIndices[i];
+							m_vd3dSubSetIndexBufferViews[i].BufferLocation = m_vpd3dSubSetIndexBuffers[i]->GetGPUVirtualAddress();
+							m_vd3dSubSetIndexBufferViews[i].Format = DXGI_FORMAT_R32_UINT;
+							m_vd3dSubSetIndexBufferViews[i].SizeInBytes = sizeof(UINT) * m_pnSubSetIndices[i];
 						}
 					}
 				}
@@ -631,7 +636,8 @@ bool CInstanceStandardMesh::LoadMeshFromFile(ID3D12Device* pd3dDevice, ID3D12Gra
 		}
 		else if (!strcmp(pstrToken, "<InstanceTransformMatrix>:"))
 		{
-			LoadInstanceData(pd3dDevice, pd3dCommandList, pInFile, pGameObject);
+			//LoadInstanceData(pd3dDevice, pd3dCommandList, pInFile, pGameObject);
+			LoadInstanceData(pd3dDevice, pd3dCommandList, pInFile);
 		}
 		else if (!strcmp(pstrToken, "</Mesh>"))
 		{
@@ -641,7 +647,7 @@ bool CInstanceStandardMesh::LoadMeshFromFile(ID3D12Device* pd3dDevice, ID3D12Gra
 	return true;
 }
 
-void CInstanceStandardMesh::LoadInstanceData(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dCommandList, FILE* pInFile, CInstanceObject* pGameObject)
+void CInstanceStandardMesh::LoadInstanceData(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dCommandList, FILE* pInFile/*, CInstanceObject* pGameObject*/)
 {
 	int nReads = (UINT)::fread(&m_nCntInstance, sizeof(int), 1, pInFile);
 	
@@ -650,7 +656,6 @@ void CInstanceStandardMesh::LoadInstanceData(ID3D12Device* pd3dDevice, ID3D12Gra
 		m_pxmf4x4InstanceTransformMatrix = new XMFLOAT4X4[m_nCntInstance];
 		nReads = (UINT)::fread(m_pxmf4x4InstanceTransformMatrix, sizeof(XMFLOAT4X4), m_nCntInstance, pInFile);
 
-		//m_pd3dInstanceTransformMatrixBuffer = ::CreateBufferResource(pd3dDevice, pd3dCommandList, m_pxmf4x4InstanceTransformMatrix, sizeof(XMFLOAT4X4) * m_nCntInstance, D3D12_HEAP_TYPE_DEFAULT, D3D12_RESOURCE_STATE_VERTEX_AND_CONSTANT_BUFFER, &m_pd3dInstanceTransformMatrixUploadBuffer);
 		m_pd3dInstanceTransformMatrixBuffer = ::CreateBufferResource(pd3dDevice, pd3dCommandList, m_pxmf4x4InstanceTransformMatrix, sizeof(XMFLOAT4X4) * m_nCntInstance, D3D12_HEAP_TYPE_UPLOAD, D3D12_RESOURCE_STATE_VERTEX_AND_CONSTANT_BUFFER, NULL);
 		
 		m_d3dInstanceTransformMatrixBufferView.BufferLocation = m_pd3dInstanceTransformMatrixBuffer->GetGPUVirtualAddress();
@@ -663,11 +668,7 @@ void CInstanceStandardMesh::LoadInstanceData(ID3D12Device* pd3dDevice, ID3D12Gra
 			XMFLOAT4X4 xmf4x4WorldMatrix = Matrix4x4::Transpose(m_pxmf4x4InstanceTransformMatrix[i]);
 			
 			//이거 만들때 m_pxmf4x4InstanceTransformMatrix에 대한 인덱스를 알아야 할듯 그래야 해당 오브젝트에 대해서만 문이 회전한다던지 수행시킬수있다.
-			//CGameObject* pInstanceObjectInfo = CreateInstanceObjectInfo(m_pstrMeshName, xmf4x4WorldMatrix, pGameObject, i);
 			CreateInstanceObjectInfo(m_pstrMeshName, xmf4x4WorldMatrix);
-			//CGameObject* pInstanceObjectInfo = new CGameObject(m_pstrMeshName, xmf4x4WorldMatrix, this);
-			
-			//
 		}
 	}
 }
@@ -680,8 +681,9 @@ void CInstanceStandardMesh::OnPreRender(ID3D12GraphicsCommandList* pd3dCommandLi
 
 void CInstanceStandardMesh::UpdateShaderVariables(ID3D12GraphicsCommandList* pd3dCommandList)
 {
+	shared_ptr<CInstanceObject> pOriginInstance = m_pOriginInstance.lock();
 	int i = 0;
-	for (auto& object : m_pOriginInstance->m_vInstanceObjectInfo)
+	for (auto& object : pOriginInstance->m_vInstanceObjectInfo)
 	{	
 		m_pxmf4x4InstanceTransformMatrix[i++] = Matrix4x4::Transpose(object->m_xmf4x4World);
 	}
@@ -692,26 +694,31 @@ void CInstanceStandardMesh::UpdateShaderVariables(ID3D12GraphicsCommandList* pd3
 	m_pd3dInstanceTransformMatrixBuffer->Unmap(0, NULL);
 }
 
-CGameObject* CInstanceStandardMesh::CreateInstanceObjectInfo(char* pstrMeshName, XMFLOAT4X4& xmf4x4WorldMatrix)
+void CInstanceStandardMesh::CreateInstanceObjectInfo(char* pstrMeshName, XMFLOAT4X4& xmf4x4WorldMatrix)
 {
-	CGameObject* pInstanceObjectInfo;
+	shared_ptr<CInstanceObject> pOriginInstance = m_pOriginInstance.lock();
+	if (!pOriginInstance)
+	{
+		return;
+	}
+
+	shared_ptr<CGameObject> pInstanceObjectInfo;
 
 	if (!strcmp(pstrMeshName, "Door_1"))
 	{
-		pInstanceObjectInfo = new CDoorObject(m_pstrMeshName, xmf4x4WorldMatrix, this);
-		m_pOriginInstance->m_vInstanceObjectInfo.push_back(pInstanceObjectInfo);
+		//pInstanceObjectInfo = new CDoorObject(m_pstrMeshName, xmf4x4WorldMatrix, this);
+		pInstanceObjectInfo = make_shared<CDoorObject>(m_pstrMeshName, xmf4x4WorldMatrix, this);
+		pOriginInstance->m_vInstanceObjectInfo.push_back(pInstanceObjectInfo);
 		//pGameObject->m_vInstanceObjectInfo.push_back(CDoorObject(m_pstrMeshName, xmf4x4WorldMatrix, this, nIndex));
-		size_t nLastIndex = m_pOriginInstance->m_vInstanceObjectInfo.size() - 1;
-		g_collisonManager.AddCollisionObject(0, m_pOriginInstance->m_vInstanceObjectInfo[nLastIndex]);
+		size_t nLastIndex = pOriginInstance->m_vInstanceObjectInfo.size() - 1;
+		g_collisonManager.AddCollisionObject(0, pOriginInstance->m_vInstanceObjectInfo[nLastIndex]);
 	}
 	else
 	{
-		pInstanceObjectInfo = new CGameObject(m_pstrMeshName, xmf4x4WorldMatrix, this);
-		m_pOriginInstance->m_vInstanceObjectInfo.push_back(pInstanceObjectInfo);
+		pInstanceObjectInfo = make_shared<CGameObject>(m_pstrMeshName, xmf4x4WorldMatrix, this);
+		pOriginInstance->m_vInstanceObjectInfo.push_back(pInstanceObjectInfo);
 		//pGameObject->m_vInstanceObjectInfo.push_back(CGameObject(m_pstrMeshName, xmf4x4WorldMatrix, this));
 	}
-
-	return nullptr;
 }
 
 /////////////////////////////////////////////////////////////////////////////////////////////////
@@ -725,7 +732,7 @@ CSkinnedMesh::~CSkinnedMesh()
 	if (m_pxmn4BoneIndices) delete[] m_pxmn4BoneIndices;
 	if (m_pxmf4BoneWeights) delete[] m_pxmf4BoneWeights;
 
-	if (m_ppSkinningBoneFrameCaches) delete[] m_ppSkinningBoneFrameCaches;
+	//if (m_vpSkinningBoneFrameCaches) delete[] m_ppSkinningBoneFrameCaches;
 	if (m_ppstrSkinningBoneNames) delete[] m_ppstrSkinningBoneNames;
 
 	if (m_pxmf4x4BindPoseBoneOffsets) delete[] m_pxmf4x4BindPoseBoneOffsets;
@@ -748,7 +755,7 @@ void CSkinnedMesh::CreateShaderVariables(ID3D12Device* pd3dDevice, ID3D12Graphic
 		XMStoreFloat4x4(&m_pcbxmf4x4MappedBindPoseBoneOffsets[i], XMMatrixTranspose(XMLoadFloat4x4(&m_pxmf4x4BindPoseBoneOffsets[i])));
 	}
 
-	m_d3dCbvBindPoseBoneOffsetsGPUDescriptorHandle = CScene::CreateConstantBufferViews(pd3dDevice, 1, m_pd3dcbBindPoseBoneOffsets, ncbElementBytes);
+	m_d3dCbvBindPoseBoneOffsetsGPUDescriptorHandle = CScene::CreateConstantBufferViews(pd3dDevice, 1, m_pd3dcbBindPoseBoneOffsets.Get(), ncbElementBytes);
 }
 
 void CSkinnedMesh::UpdateShaderVariables(ID3D12GraphicsCommandList* pd3dCommandList)
@@ -767,7 +774,9 @@ void CSkinnedMesh::UpdateShaderVariables(ID3D12GraphicsCommandList* pd3dCommandL
 		pd3dCommandList->SetGraphicsRootDescriptorTable(9, m_d3dCbvSkinningBoneTransformsGPUDescriptorHandle); //Skinned Bone Transforms
 		for (int j = 0; j < m_nSkinningBones; j++)
 		{
-			XMStoreFloat4x4(&m_pcbxmf4x4MappedSkinningBoneTransforms[j], XMMatrixTranspose(XMLoadFloat4x4(&m_ppSkinningBoneFrameCaches[j]->m_xmf4x4World)));
+			shared_ptr<CGameObject> pSkinningBoneFrameCache = m_vpSkinningBoneFrameCaches[j].lock();
+
+			XMStoreFloat4x4(&m_pcbxmf4x4MappedSkinningBoneTransforms[j], XMMatrixTranspose(XMLoadFloat4x4(&pSkinningBoneFrameCache->m_xmf4x4World)));
 		}
 	}
 }
@@ -780,18 +789,17 @@ void CSkinnedMesh::ReleaseUploadBuffers()
 {
 	CStandardMesh::ReleaseUploadBuffers();
 
-	if (m_pd3dBoneIndexUploadBuffer) m_pd3dBoneIndexUploadBuffer->Release();
-	m_pd3dBoneIndexUploadBuffer = NULL;
+	if (m_pd3dBoneIndexUploadBuffer.Get()) m_pd3dBoneIndexUploadBuffer.Reset();
 
-	if (m_pd3dBoneWeightUploadBuffer) m_pd3dBoneWeightUploadBuffer->Release();
-	m_pd3dBoneWeightUploadBuffer = NULL;
+	if (m_pd3dBoneWeightUploadBuffer.Get()) m_pd3dBoneWeightUploadBuffer.Reset();
+
 }
 
-void CSkinnedMesh::PrepareSkinning(CGameObject* pModelRootObject)
+void CSkinnedMesh::PrepareSkinning(const shared_ptr<CGameObject>& pModelRootObject)
 {
 	for (int j = 0; j < m_nSkinningBones; j++)
 	{
-		m_ppSkinningBoneFrameCaches[j] = pModelRootObject->FindFrame(m_ppstrSkinningBoneNames[j]);
+		m_vpSkinningBoneFrameCaches[j] = pModelRootObject->FindFrame(m_ppstrSkinningBoneNames[j]);
 	}
 }
 
@@ -825,12 +833,15 @@ void CSkinnedMesh::LoadSkinInfoFromFile(ID3D12Device* pd3dDevice, ID3D12Graphics
 			m_nSkinningBones = ::ReadIntegerFromFile(pInFile);
 			if (m_nSkinningBones > 0)
 			{
+				m_vpSkinningBoneFrameCaches.reserve(m_nSkinningBones);
+
 				m_ppstrSkinningBoneNames = new char[m_nSkinningBones][128];
-				m_ppSkinningBoneFrameCaches = new CGameObject * [m_nSkinningBones];
+				//m_vpSkinningBoneFrameCaches = new CGameObject * [m_nSkinningBones];
 				for (int i = 0; i < m_nSkinningBones; i++)
 				{
+					m_vpSkinningBoneFrameCaches.emplace_back();
 					::ReadStringFromFile(pInFile, m_ppstrSkinningBoneNames[i]);
-					m_ppSkinningBoneFrameCaches[i] = NULL;
+					//m_vpSkinningBoneFrameCaches[i] = NULL;
 				}
 			}
 		}

@@ -28,8 +28,8 @@ public:
 private:
 	bool m_bOpened = false;
 
-	CGameObject* m_pFirstDrawer = nullptr;
-	CGameObject* m_pSecondDrawer = nullptr;
+	//CGameObject* m_pFirstDrawer = nullptr;
+	//CGameObject* m_pSecondDrawer = nullptr;
 };
 
 /// <CGameObject - CDrawerObject>
