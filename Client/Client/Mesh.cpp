@@ -706,10 +706,15 @@ void CInstanceStandardMesh::CreateInstanceObjectInfo(char* pstrMeshName, XMFLOAT
 
 	if (!strcmp(pstrMeshName, "Door_1"))
 	{
-		//pInstanceObjectInfo = new CDoorObject(m_pstrMeshName, xmf4x4WorldMatrix, this);
 		pInstanceObjectInfo = make_shared<CDoorObject>(m_pstrMeshName, xmf4x4WorldMatrix, this);
 		pOriginInstance->m_vInstanceObjectInfo.push_back(pInstanceObjectInfo);
-		//pGameObject->m_vInstanceObjectInfo.push_back(CDoorObject(m_pstrMeshName, xmf4x4WorldMatrix, this, nIndex));
+		size_t nLastIndex = pOriginInstance->m_vInstanceObjectInfo.size() - 1;
+		g_collisonManager.AddCollisionObject(0, pOriginInstance->m_vInstanceObjectInfo[nLastIndex]);
+	}
+	else if (!strcmp(pstrMeshName, "Drawer_1") || !strcmp(pstrMeshName, "Drawer_2"))
+	{
+		pInstanceObjectInfo = make_shared<CDrawerObject>(m_pstrMeshName, xmf4x4WorldMatrix, this);
+		pOriginInstance->m_vInstanceObjectInfo.push_back(pInstanceObjectInfo);
 		size_t nLastIndex = pOriginInstance->m_vInstanceObjectInfo.size() - 1;
 		g_collisonManager.AddCollisionObject(0, pOriginInstance->m_vInstanceObjectInfo[nLastIndex]);
 	}

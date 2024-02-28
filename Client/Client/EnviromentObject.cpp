@@ -1,23 +1,14 @@
 #include "stdafx.h"
 #include "EnviromentObject.h"
 
-CDrawerObject::CDrawerObject(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dCommandList)
-	: CGameObject(pd3dDevice, pd3dCommandList)
+CDrawerObject::CDrawerObject(char* pstrFrameName, XMFLOAT4X4& xmf4x4World, CMesh* pMesh)
+	: CGameObject(pstrFrameName, xmf4x4World, pMesh)
 {
-
+	m_xmf3OriginPosition = XMFLOAT3(xmf4x4World._41, xmf4x4World._42, xmf4x4World._43);
+	m_xmf3Forward = XMFLOAT3(1.0f, 0.0f, 0.0f);
+	XMMATRIX mtxWorld = XMLoadFloat4x4(&m_xmf4x4World);
+	m_xmf3Forward = Vector3::TransformNormal(m_xmf3Forward, mtxWorld);
 }
-
-CDrawerObject::CDrawerObject(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dCommandList, CLoadedModelInfo* pModelInfo)
-	: CGameObject(pd3dDevice, pd3dCommandList)
-{
-	SetChild(pModelInfo->m_pModelRootObject, true);
-	SetOOBB();
-	SetPosition(20.0f, 0.0f, 20.0f);
-	Rotate(0.0f, 0.0f, 0.0f);
-	//m_pFirstDrawer = FindFrame("Drawer_2");
-	//m_pSecondDrawer = FindFrame("Drawer_1");
-}
-
 
 CDrawerObject::~CDrawerObject()
 {
@@ -29,6 +20,46 @@ void CDrawerObject::SetOOBB()
 	//m_OOBB.push_back(m_vpCollideFrame[0]->m_pMesh->GetOOBB());
 }
 
+void CDrawerObject::Animate(float fElapsedTime)
+{
+	XMFLOAT3 xmf3Position = XMFLOAT3(m_xmf4x4World._41, m_xmf4x4World._42, m_xmf4x4World._43);
+	float fDistance = Vector3::Distance(xmf3Position, m_xmf3OriginPosition);
+
+	if (m_bAnimate)
+	{
+		if (m_bOpened)
+		{
+			if (fDistance < 0.6f)
+			{
+				XMFLOAT3 xmf3Offset = Vector3::ScalarProduct(m_xmf3Forward, fElapsedTime * 2.0f);
+				Move(xmf3Offset);
+			}
+			else
+			{
+				m_bAnimate = false;
+			}
+		}
+		else
+		{
+			if (fDistance >= 0.0f)
+			{
+				XMFLOAT3 xmf3Offset = Vector3::ScalarProduct(m_xmf3Forward, -fElapsedTime * 2.0f);
+				Move(xmf3Offset);
+				xmf3Position = XMFLOAT3(m_xmf4x4World._41, m_xmf4x4World._42, m_xmf4x4World._43);
+				XMFLOAT3 xmf3ToPosition = Vector3::Subtract(xmf3Position, m_xmf3OriginPosition);
+				if (Vector3::DotProduct(m_xmf3Forward, xmf3ToPosition) < 0.0f)
+				{
+					m_xmf4x4World._41 = m_xmf3OriginPosition.x;
+					m_xmf4x4World._42 = m_xmf3OriginPosition.y;
+					m_xmf4x4World._43 = m_xmf3OriginPosition.z;
+					m_bAnimate = false;
+				}
+			}
+		}
+	}
+
+}
+
 void CDrawerObject::AnimateOOBB()
 {
 	//m_vpCollideFrame[0]->m_pMesh->GetOOBB().Transform(m_OOBB[0], XMLoadFloat4x4(&m_xmf4x4World));
@@ -37,28 +68,7 @@ void CDrawerObject::AnimateOOBB()
 
 void CDrawerObject::AnimatePicking(float fElapsedTime)
 {
-	/*XMFLOAT3 fFirstDrawerPos = m_pFirstDrawer->GetPosition();
-	XMFLOAT4X4 xmf4x4ToLocal = Matrix4x4::Inverse(m_pFirstDrawer->m_pParent->m_xmf4x4World);
 
-	XMFLOAT3 xmf3DrawerPos = Vector3::TransformCoord(fFirstDrawerPos, xmf4x4ToLocal);
-	if (m_bOpened)
-	{
-		if (xmf3DrawerPos.x > -6.0)
-		{
-			m_pFirstDrawer->MoveStrafe(-fElapsedTime * 3.0f);
-		}
-	}
-	else
-	{
-		if (xmf3DrawerPos.x <= 0.0)
-		{
-			m_pFirstDrawer->MoveStrafe(fElapsedTime * 3.0f);
-			if(xmf3DrawerPos.x >= 0.0f)
-			{
-				m_pFirstDrawer->SetPosition(0.0f, 0.0f, 0.0f);
-			}
-		}
-	}*/
 }
 
 void CDrawerObject::CallbackPicking()
@@ -66,10 +76,12 @@ void CDrawerObject::CallbackPicking()
 	if (m_bOpened)
 	{
 		m_bOpened = false;
+		m_bAnimate = true;
 	}
 	else
 	{
 		m_bOpened = true;
+		m_bAnimate = true;
 	}
 }
 

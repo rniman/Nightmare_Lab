@@ -10,7 +10,9 @@ cbuffer cbCameraInfo : register(b0)
 {
     matrix gmtxView : packoffset(c0);
     matrix gmtxProjection : packoffset(c4);
-    float3 gvCameraPosition : packoffset(c8);
+    float4 gvCameraPosition : packoffset(c8); // 16바이트를 맞추기 위해 w값: 더미 추가
+    float4 gvFogColor : packoffset(c9);
+    float4 gvfFogInfo : packoffset(c10); // START, RANGE, Density, MOD
 };
 
 cbuffer cbGameObjectInfo : register(b1)
@@ -142,37 +144,37 @@ struct PS_MULTIPLE_RENDER_TARGETS_OUTPUT
     float zDepth : SV_TARGET3;
 };
 
-PS_MULTIPLE_RENDER_TARGETS_OUTPUT PSStandard(VS_STANDARD_OUTPUT input)
-{
-    PS_MULTIPLE_RENDER_TARGETS_OUTPUT output;
+//PS_MULTIPLE_RENDER_TARGETS_OUTPUT PSStandard(VS_STANDARD_OUTPUT input)
+//{
+//    PS_MULTIPLE_RENDER_TARGETS_OUTPUT output;
     
-    float4 cAlbedoColor = float4(0.0f, 0.0f, 0.0f, 1.0f);
-    float4 cSpecularColor = float4(0.0f, 0.0f, 0.0f, 1.0f);
-    float4 cNormalColor = float4(0.0f, 0.0f, 0.0f, 1.0f);
-    float4 cMetallicColor = float4(0.0f, 0.0f, 0.0f, 1.0f);
-    float4 cEmissionColor = float4(0.0f, 0.0f, 0.0f, 1.0f);
+//    float4 cAlbedoColor = float4(0.0f, 0.0f, 0.0f, 1.0f);
+//    float4 cSpecularColor = float4(0.0f, 0.0f, 0.0f, 1.0f);
+//    float4 cNormalColor = float4(0.0f, 0.0f, 0.0f, 1.0f);
+//    float4 cMetallicColor = float4(0.0f, 0.0f, 0.0f, 1.0f);
+//    float4 cEmissionColor = float4(0.0f, 0.0f, 0.0f, 1.0f);
     
-    if (gnTexturesMask & MATERIAL_ALBEDO_MAP)
-        cAlbedoColor = AlbedoTexture.Sample(gssWrap, input.uv);
-    //if (gnTexturesMask & MATERIAL_SPECULAR_MAP)
-    //    cSpecularColor = SpecularTexture.Sample(gssWrap, input.uv);
-    //if (gnTexturesMask & MATERIAL_NORMAL_MAP)
-    //    cNormalColor = NormalTexture.Sample(gssWrap, input.uv);
-    //if (gnTexturesMask & MATERIAL_METALLIC_MAP)
-    //    cMetallicColor = MetallicTexture.Sample(gssWrap, input.uv);
-    //if (gnTexturesMask & MATERIAL_EMISSION_MAP)
-    //    cEmissionColor = EmissionTexture.Sample(gssWrap, input.uv);
+//    if (gnTexturesMask & MATERIAL_ALBEDO_MAP)
+//        cAlbedoColor = AlbedoTexture.Sample(gssWrap, input.uv);
+//    //if (gnTexturesMask & MATERIAL_SPECULAR_MAP)
+//    //    cSpecularColor = SpecularTexture.Sample(gssWrap, input.uv);
+//    //if (gnTexturesMask & MATERIAL_NORMAL_MAP)
+//    //    cNormalColor = NormalTexture.Sample(gssWrap, input.uv);
+//    //if (gnTexturesMask & MATERIAL_METALLIC_MAP)
+//    //    cMetallicColor = MetallicTexture.Sample(gssWrap, input.uv);
+//    //if (gnTexturesMask & MATERIAL_EMISSION_MAP)
+//    //    cEmissionColor = EmissionTexture.Sample(gssWrap, input.uv);
     
-    float4 cColor = cAlbedoColor + cSpecularColor + cMetallicColor + cEmissionColor;
+//    float4 cColor = cAlbedoColor + cSpecularColor + cMetallicColor + cEmissionColor;
     
-    output.cColor = cColor;
-    output.cTexture = cColor;
-    input.normalW = normalize(input.normalW);
-    output.normal = float4(input.normalW.xyz * 0.5f + 0.5f, 1.0f);
-    output.zDepth = input.position.z;
+//    output.cColor = cColor;
+//    output.cTexture = cColor;
+//    input.normalW = normalize(input.normalW);
+//    output.normal = float4(input.normalW.xyz * 0.5f + 0.5f, 1.0f);
+//    output.zDepth = input.position.z;
     
-    return output;
-}
+//    return output;
+//}
 
 //float4 PSStandard(VS_STANDARD_OUTPUT input) : SV_TARGET
 //{
@@ -281,3 +283,54 @@ float4 PSPostProcessing(float4 position : SV_POSITION) : SV_Target
 {
     return (float4(0.0f, 1.0f, 0.0f, 1.0f));
 }
+
+/// Fog
+////////////////////////////////////////////////////////////////////////////////////////////////////
+///
+
+struct FogParameter
+{
+
+};
+
+PS_MULTIPLE_RENDER_TARGETS_OUTPUT PSStandard(VS_STANDARD_OUTPUT input)
+{
+    PS_MULTIPLE_RENDER_TARGETS_OUTPUT output;
+    
+    float4 cAlbedoColor = float4(0.0f, 0.0f, 0.0f, 1.0f);
+    float4 cSpecularColor = float4(0.0f, 0.0f, 0.0f, 1.0f);
+    float4 cNormalColor = float4(0.0f, 0.0f, 0.0f, 1.0f);
+    float4 cMetallicColor = float4(0.0f, 0.0f, 0.0f, 1.0f);
+    float4 cEmissionColor = float4(0.0f, 0.0f, 0.0f, 1.0f);
+    
+    if (gnTexturesMask & MATERIAL_ALBEDO_MAP)
+        cAlbedoColor = AlbedoTexture.Sample(gssWrap, input.uv);
+    //if (gnTexturesMask & MATERIAL_SPECULAR_MAP)
+    //    cSpecularColor = SpecularTexture.Sample(gssWrap, input.uv);
+    //if (gnTexturesMask & MATERIAL_NORMAL_MAP)
+    //    cNormalColor = NormalTexture.Sample(gssWrap, input.uv);
+    //if (gnTexturesMask & MATERIAL_METALLIC_MAP)
+    //    cMetallicColor = MetallicTexture.Sample(gssWrap, input.uv);
+    //if (gnTexturesMask & MATERIAL_EMISSION_MAP)
+    //    cEmissionColor = EmissionTexture.Sample(gssWrap, input.uv);
+    
+    float4 cColor = cAlbedoColor + cSpecularColor + cMetallicColor + cEmissionColor;
+    
+    output.cColor = cColor;
+    output.cTexture = cColor;
+    input.normalW = normalize(input.normalW);
+    output.normal = float4(input.normalW.xyz * 0.5f + 0.5f, 1.0f);
+    output.zDepth = input.position.z;
+ 
+    float3 vCameraPosition = gvCameraPosition.xyz;
+    float3 vPostionToCamera = vCameraPosition - input.positionW;    
+    float fDistanceToCamera = length(vPostionToCamera);
+    
+    //float fFogFactor = saturate(((gvfFogInfo.x + gvfFogInfo.y) - fDistanceToCamera) / gvfFogInfo.y);
+    float fFogFactor = saturate(1.0f / pow(gvfFogInfo.y + gvfFogInfo.x, pow(fDistanceToCamera * gvfFogInfo.z, 2)));
+    //float fFogFactor = saturate(1.0f / pow(gvfFogInfo.y + gvfFogInfo.x, fDistanceToCamera * gvfFogInfo.z));
+    output.cColor = lerp(gvFogColor, cColor, fFogFactor);
+    
+    return output;
+}
+

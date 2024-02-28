@@ -7,9 +7,11 @@
 
 struct VS_CB_CAMERA_INFO
 {
-	XMFLOAT4X4						m_xmf4x4View;
-	XMFLOAT4X4						m_xmf4x4Projection;
-	XMFLOAT3						m_xmf3Position;
+	XMFLOAT4X4		m_xmf4x4View;
+	XMFLOAT4X4		m_xmf4x4Projection;
+	XMFLOAT4		m_xmf4Position;
+	XMFLOAT4		m_xmf4FogColor;
+	XMFLOAT4		m_xmf4FogInfo; //START, RANGE, Density, MOD
 };
 
 class CPlayer;
@@ -103,6 +105,10 @@ protected:
 	D3D12_GPU_DESCRIPTOR_HANDLE	m_d3dCbvGPUDescriptorHandle;
 
 	weak_ptr<CPlayer> m_pPlayer;
+
+	//Fog
+	XMFLOAT4 m_xmf4FogColor;
+	XMFLOAT4 m_xmf4FogInfo; //START, RANGE, Density, MOD
 };
 
 class CFirstPersonCamera : public CCamera

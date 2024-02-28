@@ -17,19 +17,19 @@ private:
 class CDrawerObject : public CGameObject
 {
 public:
-	CDrawerObject(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dCommandList);
-	CDrawerObject(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dCommandList, CLoadedModelInfo* pModelInfo);
+	CDrawerObject(char* pstrFrameName, XMFLOAT4X4& xmf4x4World, CMesh* pMesh);
 	virtual ~CDrawerObject();
 
 	virtual void SetOOBB() override;
+	virtual void Animate(float fElapsedTime) override;
 	virtual void AnimateOOBB() override;
 	virtual void AnimatePicking(float fElapsedTime) override;
 	virtual void CallbackPicking() override;
 private:
 	bool m_bOpened = false;
-
-	//CGameObject* m_pFirstDrawer = nullptr;
-	//CGameObject* m_pSecondDrawer = nullptr;
+	bool m_bAnimate = false;
+	XMFLOAT3 m_xmf3OriginPosition;
+	XMFLOAT3 m_xmf3Forward;	
 };
 
 /// <CGameObject - CDrawerObject>

@@ -45,6 +45,9 @@ CCamera::CCamera(const shared_ptr<CCamera>& pCamera)
 		m_fTimeLag = 0.0f;
 		m_xmf3LookAtWorld = XMFLOAT3(0.0f, 0.0f, 0.0f);
 		m_nMode = 0x00;
+
+		m_xmf4FogColor = XMFLOAT4(0.1f, 0.1f, 0.1f, 1.0f);
+		m_xmf4FogInfo = XMFLOAT4(5.0f, 10.0f, 0.2f, 1.0f);
 	}
 }
 
@@ -125,7 +128,11 @@ void CCamera::UpdateShaderVariables(ID3D12GraphicsCommandList* pd3dCommandList)
 	XMStoreFloat4x4(&xmf4x4Projection, XMMatrixTranspose(XMLoadFloat4x4(&m_xmf4x4Projection)));
 	::memcpy(&m_pcbMappedCamera->m_xmf4x4Projection, &xmf4x4Projection, sizeof(XMFLOAT4X4));
 
-	::memcpy(&m_pcbMappedCamera->m_xmf3Position, &m_xmf3Position, sizeof(XMFLOAT3));
+	XMFLOAT4 xmf4Position = XMFLOAT4(m_xmf3Position.x, m_xmf3Position.y, m_xmf3Position.z, 0.0f);
+	::memcpy(&m_pcbMappedCamera->m_xmf4Position, &xmf4Position, sizeof(XMFLOAT4));
+	
+	::memcpy(&m_pcbMappedCamera->m_xmf4FogColor, &m_xmf4FogColor, sizeof(XMFLOAT4));
+	::memcpy(&m_pcbMappedCamera->m_xmf4FogInfo, &m_xmf4FogInfo, sizeof(XMFLOAT4));
 	
 	pd3dCommandList->SetGraphicsRootDescriptorTable(0, GetDescriptorHandle());
 }
