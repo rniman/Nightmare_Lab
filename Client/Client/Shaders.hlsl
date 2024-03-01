@@ -136,10 +136,14 @@ VS_STANDARD_OUTPUT VSInstanceStandard(VS_INSTANCE_STANDARD_INPUT input)
 
 struct PS_MULTIPLE_RENDER_TARGETS_OUTPUT
 {
-    float4 cColor : SV_TARGET0;
-    float4 cTexture : SV_TARGET1;
-    float4 normal : SV_TARGET2;
-    float zDepth : SV_TARGET3;
+    //float4 cColor : SV_TARGET0;
+    //float4 cTexture : SV_TARGET1;
+    //float4 normal : SV_TARGET2;
+    //float zDepth : SV_TARGET3;
+    
+    float4 cTexture : SV_TARGET0;
+    float4 normal : SV_TARGET1;
+    float4 zDepth : SV_TARGET2;
 };
 
 PS_MULTIPLE_RENDER_TARGETS_OUTPUT PSStandard(VS_STANDARD_OUTPUT input)
@@ -154,18 +158,18 @@ PS_MULTIPLE_RENDER_TARGETS_OUTPUT PSStandard(VS_STANDARD_OUTPUT input)
     
     if (gnTexturesMask & MATERIAL_ALBEDO_MAP)
         cAlbedoColor = AlbedoTexture.Sample(gssWrap, input.uv);
-    //if (gnTexturesMask & MATERIAL_SPECULAR_MAP)
-    //    cSpecularColor = SpecularTexture.Sample(gssWrap, input.uv);
-    //if (gnTexturesMask & MATERIAL_NORMAL_MAP)
-    //    cNormalColor = NormalTexture.Sample(gssWrap, input.uv);
-    //if (gnTexturesMask & MATERIAL_METALLIC_MAP)
-    //    cMetallicColor = MetallicTexture.Sample(gssWrap, input.uv);
-    //if (gnTexturesMask & MATERIAL_EMISSION_MAP)
-    //    cEmissionColor = EmissionTexture.Sample(gssWrap, input.uv);
+    if (gnTexturesMask & MATERIAL_SPECULAR_MAP)
+        cSpecularColor = SpecularTexture.Sample(gssWrap, input.uv);
+    if (gnTexturesMask & MATERIAL_NORMAL_MAP)
+        cNormalColor = NormalTexture.Sample(gssWrap, input.uv);
+    if (gnTexturesMask & MATERIAL_METALLIC_MAP)
+        cMetallicColor = MetallicTexture.Sample(gssWrap, input.uv);
+    if (gnTexturesMask & MATERIAL_EMISSION_MAP)
+        cEmissionColor = EmissionTexture.Sample(gssWrap, input.uv);
     
     float4 cColor = cAlbedoColor + cSpecularColor + cMetallicColor + cEmissionColor;
     
-    output.cColor = cColor;
+    //output.cColor = cColor;
     output.cTexture = cColor;
     input.normalW = normalize(input.normalW);
     output.normal = float4(input.normalW.xyz * 0.5f + 0.5f, 1.0f);
@@ -258,26 +262,53 @@ VS_STANDARD_OUTPUT VSSkinnedAnimationStandard(VS_SKINNED_STANDARD_INPUT input)
     return (output);
 }
 
-float4 VSPostProcessing(uint nVertexID : SV_VertexID) : SV_POSITION
+struct PS_POSTPROCESSING_OUT
 {
+    float4 position : SV_Position;
+    float2 uv : UV0;
+};
+
+PS_POSTPROCESSING_OUT VSPostProcessing(uint nVertexID : SV_VertexID)
+{
+    PS_POSTPROCESSING_OUT output;
+    
     if (nVertexID == 0)
-        return (float4(-1.0f, +1.0f, 0.0f, 1.0f));
+    {
+        output.position = float4(-1.0f, +1.0f, 0.0f, 1.0f);
+        output.uv = float2(0.0f, 0.0f);
+    }
     if (nVertexID == 1)
-        return (float4(+1.0f, +1.0f, 0.0f, 1.0f));
+    {
+        output.position = float4(+1.0f, +1.0f, 0.0f, 1.0f);
+        output.uv = float2(1.0f, 0.0f);
+    }
     if (nVertexID == 2)
-        return (float4(+1.0f, -1.0f, 0.0f, 1.0f));
-
+    {
+        output.position = float4(+1.0f, -1.0f, 0.0f, 1.0f);
+        output.uv = float2(1.0f,1.0f);
+    }
     if (nVertexID == 3)
-        return (float4(-1.0f, +1.0f, 0.0f, 1.0f));
+    {
+        output.position = float4(-1.0f, +1.0f, 0.0f, 1.0f);
+        output.uv = float2(0.0f, 0.0f);
+    }
     if (nVertexID == 4)
-        return (float4(+1.0f, -1.0f, 0.0f, 1.0f));
+    {
+        output.position = float4(+1.0f, -1.0f, 0.0f, 1.0f);
+        output.uv = float2(1.0f, 1.0f);
+    }
     if (nVertexID == 5)
-        return (float4(-1.0f, -1.0f, 0.0f, 1.0f));
+    {
+        output.position = float4(-1.0f, -1.0f, 0.0f, 1.0f);
+        output.uv = float2(0.0f, 1.0f);
+    }
 
-    return (float4(0, 0, 0, 0));
+    return output;
 }
 
-float4 PSPostProcessing(float4 position : SV_POSITION) : SV_Target
+float4 PSPostProcessing(PS_POSTPROCESSING_OUT input) : SV_Target
 {
-    return (float4(0.0f, 1.0f, 0.0f, 1.0f));
+    float4 cColor = DFzDepthTexture.Sample(gssWrap, input.uv);
+    
+    return cColor;
 }
