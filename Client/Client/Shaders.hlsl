@@ -137,16 +137,52 @@ VS_STANDARD_OUTPUT VSInstanceStandard(VS_INSTANCE_STANDARD_INPUT input)
 }
 
 struct PS_MULTIPLE_RENDER_TARGETS_OUTPUT
-{
-    //float4 cColor : SV_TARGET0;
-    //float4 cTexture : SV_TARGET1;
-    //float4 normal : SV_TARGET2;
-    //float zDepth : SV_TARGET3;
-    
+{    
     float4 cTexture : SV_TARGET0;
     float4 normal : SV_TARGET1;
     float4 zDepth : SV_TARGET2;
 };
+
+
+PS_MULTIPLE_RENDER_TARGETS_OUTPUT PSStandard(VS_STANDARD_OUTPUT input)
+{
+    PS_MULTIPLE_RENDER_TARGETS_OUTPUT output;
+    
+    float4 cAlbedoColor = float4(0.0f, 0.0f, 0.0f, 1.0f);
+    float4 cSpecularColor = float4(0.0f, 0.0f, 0.0f, 1.0f);
+    float4 cNormalColor = float4(0.0f, 0.0f, 0.0f, 1.0f);
+    float4 cMetallicColor = float4(0.0f, 0.0f, 0.0f, 1.0f);
+    float4 cEmissionColor = float4(0.0f, 0.0f, 0.0f, 1.0f);
+    
+    if (gnTexturesMask & MATERIAL_ALBEDO_MAP)
+        cAlbedoColor = AlbedoTexture.Sample(gssWrap, input.uv);
+    if (gnTexturesMask & MATERIAL_SPECULAR_MAP)
+        cSpecularColor = SpecularTexture.Sample(gssWrap, input.uv);
+    if (gnTexturesMask & MATERIAL_NORMAL_MAP)
+        cNormalColor = NormalTexture.Sample(gssWrap, input.uv);
+    if (gnTexturesMask & MATERIAL_METALLIC_MAP)
+        cMetallicColor = MetallicTexture.Sample(gssWrap, input.uv);
+    if (gnTexturesMask & MATERIAL_EMISSION_MAP)
+        cEmissionColor = EmissionTexture.Sample(gssWrap, input.uv);
+    
+    float4 cColor = cAlbedoColor + cSpecularColor + cMetallicColor + cEmissionColor;
+    
+    float3 vCameraPosition = gvCameraPosition.xyz;
+    float3 vPostionToCamera = vCameraPosition - input.positionW;
+    float fDistanceToCamera = length(vPostionToCamera);
+    
+    //float fFogFactor = saturate(((gvfFogInfo.x + gvfFogInfo.y) - fDistanceToCamera) / gvfFogInfo.y);
+    float fFogFactor = saturate(1.0f / pow(gvfFogInfo.y + gvfFogInfo.x, pow(fDistanceToCamera * gvfFogInfo.z, 2)));
+    //float fFogFactor = saturate(1.0f / pow(gvfFogInfo.y + gvfFogInfo.x, fDistanceToCamera * gvfFogInfo.z));
+    cColor = lerp(gvFogColor, cColor, fFogFactor);
+    
+    output.cTexture = cColor;
+    input.normalW = normalize(input.normalW);
+    output.normal = float4(input.normalW.xyz * 0.5f + 0.5f, 1.0f);
+    output.zDepth = input.position.z;
+    
+    return output;
+}
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 //
@@ -241,60 +277,7 @@ PS_POSTPROCESSING_OUT VSPostProcessing(uint nVertexID : SV_VertexID)
 
 float4 PSPostProcessing(PS_POSTPROCESSING_OUT input) : SV_Target
 {
-    return (float4(0.0f, 1.0f, 0.0f, 1.0f));
-}
-
-/// Fog
-////////////////////////////////////////////////////////////////////////////////////////////////////
-///
-
-struct FogParameter
-{
-
-};
-
-PS_MULTIPLE_RENDER_TARGETS_OUTPUT PSStandard(VS_STANDARD_OUTPUT input)
-{
-    PS_MULTIPLE_RENDER_TARGETS_OUTPUT output;
-    
-    float4 cAlbedoColor = float4(0.0f, 0.0f, 0.0f, 1.0f);
-    float4 cSpecularColor = float4(0.0f, 0.0f, 0.0f, 1.0f);
-    float4 cNormalColor = float4(0.0f, 0.0f, 0.0f, 1.0f);
-    float4 cMetallicColor = float4(0.0f, 0.0f, 0.0f, 1.0f);
-    float4 cEmissionColor = float4(0.0f, 0.0f, 0.0f, 1.0f);
-    
-    if (gnTexturesMask & MATERIAL_ALBEDO_MAP)
-        cAlbedoColor = AlbedoTexture.Sample(gssWrap, input.uv);
-    //if (gnTexturesMask & MATERIAL_SPECULAR_MAP)
-    //    cSpecularColor = SpecularTexture.Sample(gssWrap, input.uv);
-    //if (gnTexturesMask & MATERIAL_NORMAL_MAP)
-    //    cNormalColor = NormalTexture.Sample(gssWrap, input.uv);
-    //if (gnTexturesMask & MATERIAL_METALLIC_MAP)
-    //    cMetallicColor = MetallicTexture.Sample(gssWrap, input.uv);
-    //if (gnTexturesMask & MATERIAL_EMISSION_MAP)
-    //    cEmissionColor = EmissionTexture.Sample(gssWrap, input.uv);
-    
-    float4 cColor = cAlbedoColor + cSpecularColor + cMetallicColor + cEmissionColor;
-    
-    output.cColor = cColor;
-    output.cTexture = cColor;
-    input.normalW = normalize(input.normalW);
-    output.normal = float4(input.normalW.xyz * 0.5f + 0.5f, 1.0f);
-    output.zDepth = input.position.z;
- 
-    float3 vCameraPosition = gvCameraPosition.xyz;
-    float3 vPostionToCamera = vCameraPosition - input.positionW;    
-    float fDistanceToCamera = length(vPostionToCamera);
-    
-    //float fFogFactor = saturate(((gvfFogInfo.x + gvfFogInfo.y) - fDistanceToCamera) / gvfFogInfo.y);
-    float fFogFactor = saturate(1.0f / pow(gvfFogInfo.y + gvfFogInfo.x, pow(fDistanceToCamera * gvfFogInfo.z, 2)));
-    //float fFogFactor = saturate(1.0f / pow(gvfFogInfo.y + gvfFogInfo.x, fDistanceToCamera * gvfFogInfo.z));
-    output.cColor = lerp(gvFogColor, cColor, fFogFactor);
-    
-    return output;
-}
-
-    float4 cColor = DFzDepthTexture.Sample(gssWrap, input.uv);
+    float4 cColor = DFTextureTexture.Sample(gssWrap, input.uv);
     
     return cColor;
 }

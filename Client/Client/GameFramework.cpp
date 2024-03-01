@@ -607,7 +607,7 @@ void CGameFramework::FrameAdvance()
 		//OM 최종타겟으로 재설정
 		m_d3dCommandList->OMSetRenderTargets(1, &d3dRtvCPUDescriptorHandle, FALSE, &d3dDsvCPUDescriptorHandle);
 		//최종 렌더링
-		m_pPostProcessingShader->Render(m_d3dCommandList.Get(), m_pCamera);
+		m_pPostProcessingShader->Render(m_d3dCommandList.Get(), m_pCamera.lock());
 	}
 
 	SynchronizeResourceTransition(m_d3dCommandList.Get(), m_d3dSwapChainBackBuffers[m_nSwapChainBufferIndex].Get(), D3D12_RESOURCE_STATE_RENDER_TARGET, D3D12_RESOURCE_STATE_PRESENT);
