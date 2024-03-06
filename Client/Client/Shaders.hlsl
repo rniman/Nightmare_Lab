@@ -22,6 +22,8 @@ cbuffer cbGameObjectInfo : register(b1)
     uint gnTexturesMask : packoffset(c8);
 };
 
+#include "Light.hlsl"
+
 Texture2D AlbedoTexture : register(t0);
 Texture2D SpecularTexture : register(t1);
 Texture2D NormalTexture : register(t2);
@@ -31,6 +33,7 @@ Texture2D EmissionTexture : register(t4);
 Texture2D DFTextureTexture : register(t5);
 Texture2D DFNormalTexture : register(t6);
 Texture2D DFzDepthTexture : register(t7);
+Texture2D DFPositionTexture : register(t8);
 
 SamplerState gssWrap : register(s0);
 
@@ -141,6 +144,7 @@ struct PS_MULTIPLE_RENDER_TARGETS_OUTPUT
     float4 cTexture : SV_TARGET0;
     float4 normal : SV_TARGET1;
     float4 zDepth : SV_TARGET2;
+    float4 position : SV_Target3;
 };
 
 
@@ -165,7 +169,7 @@ PS_MULTIPLE_RENDER_TARGETS_OUTPUT PSStandard(VS_STANDARD_OUTPUT input)
     if (gnTexturesMask & MATERIAL_EMISSION_MAP)
         cEmissionColor = EmissionTexture.Sample(gssWrap, input.uv);
     
-    float4 cColor = cAlbedoColor + cSpecularColor + cMetallicColor + cEmissionColor;
+    float4 cColor = (cAlbedoColor * 0.7f) + (cSpecularColor * 0.2f) + (cMetallicColor * 0.05f) + (cEmissionColor * 0.05f);
     
     float3 vCameraPosition = gvCameraPosition.xyz;
     float3 vPostionToCamera = vCameraPosition - input.positionW;
@@ -179,7 +183,8 @@ PS_MULTIPLE_RENDER_TARGETS_OUTPUT PSStandard(VS_STANDARD_OUTPUT input)
     output.cTexture = cColor;
     input.normalW = normalize(input.normalW);
     output.normal = float4(input.normalW.xyz * 0.5f + 0.5f, 1.0f);
-    output.zDepth = input.position.z;
+    output.zDepth = (input.position.z * 0.5f)+0.5f;
+    output.position = float4(input.positionW, 1.0f);
     
     return output;
 }
@@ -278,6 +283,12 @@ PS_POSTPROCESSING_OUT VSPostProcessing(uint nVertexID : SV_VertexID)
 float4 PSPostProcessing(PS_POSTPROCESSING_OUT input) : SV_Target
 {
     float4 cColor = DFTextureTexture.Sample(gssWrap, input.uv);
+    float3 normal = DFNormalTexture.Sample(gssWrap, input.uv);
+    float4 position = DFPositionTexture.Sample(gssWrap, input.uv);
     
-    return cColor;
+    normal = (normal.xyz - 0.5f) / 0.5f; // 노말 렌더링으로 확인해볼수 있는 문제가 있으므로 일단 최종렌더링에서 변환작업함.
+    
+    float light = Lighting(position, normal);
+    
+    return (cColor * light );
 }

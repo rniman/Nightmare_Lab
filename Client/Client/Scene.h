@@ -1,16 +1,44 @@
 #pragma once
 #include "Timer.h"
 #include "Shader.h"
-#include <stdexcept>
 
 // m_vShader 쉐이더에 AddDefaultObject 시에 접근할 각 쉐이더 인덱스를 의미
 #define STANDARD_SHADER 0
 #define INSTANCE_STANDARD_SHADER 1
 #define SKINNEDANIMATION_STANDARD_SHADER 2
 //#define NOTRENDERING_SHADER 3
-
 // m_vMesh 메쉬에 접근할 각 인덱스를 의미
 #define HEXAHEDRONMESH 0
+
+#define MAX_LIGHTS						16 
+
+#define POINT_LIGHT						1
+#define SPOT_LIGHT						2
+#define DIRECTIONAL_LIGHT				3
+
+struct LIGHT
+{
+	XMFLOAT4							m_xmf4Ambient;
+	XMFLOAT4							m_xmf4Diffuse;
+	XMFLOAT4							m_xmf4Specular;
+	XMFLOAT3							m_xmf3Position;
+	float 								m_fFalloff;
+	XMFLOAT3							m_xmf3Direction;
+	float 								m_fTheta; //cos(m_fTheta)
+	XMFLOAT3							m_xmf3Attenuation;
+	float								m_fPhi; //cos(m_fPhi)
+	bool								m_bEnable;
+	int									m_nType;
+	float								m_fRange;
+	float								padding;
+};
+
+struct LIGHTS
+{
+	LIGHT								m_pLights[MAX_LIGHTS];
+	XMFLOAT4							m_xmf4GlobalAmbient;
+	int									m_nLights;
+};
 
 class CPlayer;
 
@@ -44,15 +72,26 @@ public:
 	void Render(ID3D12GraphicsCommandList* pd3dCommandList, const shared_ptr<CCamera>& pCamera);
 
 	void AddDefaultObject(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dCommandList, ObjectType type, XMFLOAT3 position,int shader, int mesh);
+	
+	D3D12_GPU_DESCRIPTOR_HANDLE			m_d3dLightCbvGPUDescriptorHandle;
+	LIGHT*								m_pLights = NULL;
+	int									m_nLights = 0;
+	ComPtr<ID3D12Resource>				m_pd3dcbLights;
+	LIGHTS*								m_pcbMappedLights = NULL;
+	XMFLOAT4							m_xmf4GlobalAmbient;
+	void BuildLights();
+
+	shared_ptr<CPlayer>					m_pPlayer;
+	void SetPlayer(shared_ptr<CPlayer> pPlayer);
 
 	//씬 내 오브젝트(쉐이더)
-	vector<unique_ptr<CShader>> m_vShader;
+	vector<unique_ptr<CShader>>			m_vShader;
 
 	//메쉬 저장
-	vector<shared_ptr<CMesh>> m_vMesh;
+	vector<shared_ptr<CMesh>>			m_vMesh;
 
 protected:
-	ComPtr<ID3D12RootSignature> m_pd3dGraphicsRootSignature;
+	ComPtr<ID3D12RootSignature>			m_pd3dGraphicsRootSignature;
 	//루트 시그너처를 나타내는 인터페이스 포인터
 
 	static ComPtr<ID3D12DescriptorHeap> m_pd3dCbvSrvDescriptorHeap;

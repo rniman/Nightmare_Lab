@@ -192,7 +192,7 @@ void CGameFramework::CreateRtvAndDsvDescriptorHeaps()
 {
 	D3D12_DESCRIPTOR_HEAP_DESC d3dDescriptorHeapDesc;
 	::ZeroMemory(&d3dDescriptorHeapDesc, sizeof(D3D12_DESCRIPTOR_HEAP_DESC));
-	d3dDescriptorHeapDesc.NumDescriptors = m_nSwapChainBuffers + 3;
+	d3dDescriptorHeapDesc.NumDescriptors = m_nSwapChainBuffers + ADDITIONAL_RENDERTARGETS;
 	d3dDescriptorHeapDesc.Type = D3D12_DESCRIPTOR_HEAP_TYPE_RTV;
 	d3dDescriptorHeapDesc.Flags = D3D12_DESCRIPTOR_HEAP_FLAG_NONE;
 	d3dDescriptorHeapDesc.NodeMask = 0;
@@ -419,6 +419,7 @@ void CGameFramework::BuildObjects()
 	//m_pPlayer = new CBlueSuitPlayer(m_d3d12Device.Get(), m_d3dCommandList.Get(), m_pScene->GetGraphicsRootSignature(), m_pScene);
 	//m_pPlayer = new CZombiePlayer(m_d3d12Device.Get(), m_d3dCommandList.Get(), m_pScene->GetGraphicsRootSignature().Get(), m_pScene.get());
 	m_pPlayer = make_shared<CZombiePlayer>(m_d3d12Device.Get(), m_d3dCommandList.Get(), m_pScene->GetGraphicsRootSignature().Get(), nullptr);
+	m_pScene->SetPlayer(m_pPlayer);
 	m_pPlayer->GetCamera()->SetPlayer(m_pPlayer);
 	m_pPlayer->LoadModelAndAnimation(m_d3d12Device.Get(), m_d3dCommandList.Get(), m_pScene->GetGraphicsRootSignature().Get());
 	m_pScene->m_vShader[SKINNEDANIMATION_STANDARD_SHADER]->AddGameObject(m_pPlayer);
@@ -442,8 +443,8 @@ void CGameFramework::BuildObjects()
 	D3D12_CPU_DESCRIPTOR_HANDLE d3dRtvCPUDescriptorHandle = m_d3dRtvDescriptorHeap->GetCPUDescriptorHandleForHeapStart();
 	d3dRtvCPUDescriptorHandle.ptr += (::gnRtvDescriptorIncrementSize * m_nSwapChainBuffers);
 
-	DXGI_FORMAT pdxgiResourceFormats[3] = { DXGI_FORMAT_R8G8B8A8_UNORM,  DXGI_FORMAT_R8G8B8A8_UNORM, DXGI_FORMAT_R8G8B8A8_UNORM };
-	m_pPostProcessingShader->CreateResourcesAndRtvsSrvs(m_d3d12Device.Get(), m_d3dCommandList.Get(), 3, pdxgiResourceFormats, d3dRtvCPUDescriptorHandle); //SRV to (Render Targets) + (Depth Buffer)
+	DXGI_FORMAT pdxgiResourceFormats[ADDITIONAL_RENDERTARGETS] = { DXGI_FORMAT_R8G8B8A8_UNORM,  DXGI_FORMAT_R8G8B8A8_UNORM, DXGI_FORMAT_R8G8B8A8_UNORM,DXGI_FORMAT_R32G32B32A32_FLOAT };
+	m_pPostProcessingShader->CreateResourcesAndRtvsSrvs(m_d3d12Device.Get(), m_d3dCommandList.Get(), ADDITIONAL_RENDERTARGETS, pdxgiResourceFormats, d3dRtvCPUDescriptorHandle); //SRV to (Render Targets) + (Depth Buffer)
 
 	//D3D12_GPU_DESCRIPTOR_HANDLE d3dDsvGPUDescriptorHandle = CScene::CreateShaderResourceView(m_d3d12Device.Get(), m_d3dDepthStencilBuffer.Get(), DXGI_FORMAT_R32_FLOAT);
 

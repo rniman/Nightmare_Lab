@@ -147,6 +147,9 @@
   </ItemGroup>
   <ItemGroup>
     <FxCompile Include="Shaders.hlsl" />
+    <FxCompile Include="Light.hlsl">
+      <Filter>헤더 파일</Filter>
+    </FxCompile>
   </ItemGroup>
   <ItemGroup>
     <None Include="Fog.hlsl" />

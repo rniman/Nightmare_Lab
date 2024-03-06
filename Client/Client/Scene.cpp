@@ -3,6 +3,7 @@
 #include "Shader.h"
 #include "PlayerController.h"
 #include "EnviromentObject.h"
+#include "Player.h"
 
 ComPtr<ID3D12DescriptorHeap> CScene::m_pd3dCbvSrvDescriptorHeap;
 
@@ -91,8 +92,8 @@ void CScene::CreateGraphicsRootSignature(ID3D12Device* pd3dDevice)
 	pd3dDescriptorRanges[9].OffsetInDescriptorsFromTableStart = D3D12_DESCRIPTOR_RANGE_OFFSET_APPEND;
 
 	pd3dDescriptorRanges[10].RangeType = D3D12_DESCRIPTOR_RANGE_TYPE_SRV;
-	pd3dDescriptorRanges[10].NumDescriptors = 3;
-	pd3dDescriptorRanges[10].BaseShaderRegister = 5; //t5,t6,t7: Deferred Render Texture
+	pd3dDescriptorRanges[10].NumDescriptors = 4;
+	pd3dDescriptorRanges[10].BaseShaderRegister = 5; //t5,t6,t7,t8: Deferred Render Texture
 	pd3dDescriptorRanges[10].RegisterSpace = 0;
 	pd3dDescriptorRanges[10].OffsetInDescriptorsFromTableStart = 0;
 
@@ -211,18 +212,19 @@ void CScene::BuildObjects(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* p
 	// CBC(Scene Load): 68
 	// CBV(RootObject) : //육면체(1), 오브젝트(1), DeskObject(1), DoorObject(1), flashLight(1), 엘런(119), 서버인원예상(20)
 	// CBV(Model) : Zom(72),  Zom_Controller(2 * N),// BlueSuit(85), BlueSuit_Controller(2 * N), Desk(3), Door(5), flashLight(1)
+	// CBV(Light) : 1
 	// 모델 부를때 추가적으로 
 	int nCntCbv = 1 + 1 + 68 +
-				  72 + 2;
-	// SRV(Default) : 디퍼드렌더링텍스처(3)
+				  72 + 2 + 1;
+	// SRV(Default) : 디퍼드렌더링텍스처(4)
 	// SRV(Scene Load) : 79
 	// SRV: Zombie(3), // BlueSuit(6), 육면체(1), 엘런(8(오클루젼맵제거), Desk(3), Door(9), flashLight(3)
-	int nCntSrv = 3 + 79 + 3;
+	int nCntSrv = 4 + 79 + 3;
 	CreateCbvSrvDescriptorHeaps(pd3dDevice, nCntCbv, nCntSrv);
 
 	// 쉐이더 vector에 삽입한 순서대로 인덱스 define한 값으로 접근
 	m_vShader.push_back(make_unique<StandardShader>());
-	DXGI_FORMAT pdxgiRtvFormats[4] = { DXGI_FORMAT_R8G8B8A8_UNORM, DXGI_FORMAT_R8G8B8A8_UNORM, DXGI_FORMAT_R8G8B8A8_UNORM, DXGI_FORMAT_R32_FLOAT };
+	DXGI_FORMAT pdxgiRtvFormats[4] = { DXGI_FORMAT_R8G8B8A8_UNORM, DXGI_FORMAT_R8G8B8A8_UNORM, DXGI_FORMAT_R8G8B8A8_UNORM, DXGI_FORMAT_R32G32B32A32_FLOAT };
 	m_vShader[STANDARD_SHADER]->CreateShader(pd3dDevice, pd3dCommandList, m_pd3dGraphicsRootSignature.Get(), 4, pdxgiRtvFormats, DXGI_FORMAT_D24_UNORM_S8_UINT);
 
 	m_vShader.push_back(make_unique<InstanceStandardShader>());
@@ -316,6 +318,7 @@ void CScene::BuildObjects(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* p
 
 	}
 
+	BuildLights();
 	CreateShaderVariables(pd3dDevice, pd3dCommandList);
 }
 
@@ -338,28 +341,67 @@ void CScene::AddDefaultObject(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandLis
 	m_vShader[shader]->AddGameObject(pObject);
 }
 
+void CScene::BuildLights()
+{
+	m_nLights = 2;
+	m_pLights = new LIGHT[m_nLights];
+	::ZeroMemory(m_pLights, sizeof(LIGHT) * m_nLights);
+
+	m_xmf4GlobalAmbient = XMFLOAT4(0.15f, 0.15f, 0.15f, 1.0f);
+
+	m_pLights[0].m_bEnable = true;
+	m_pLights[0].m_nType = SPOT_LIGHT;
+	m_pLights[0].m_fRange = 30.0f;
+	m_pLights[0].m_xmf4Ambient = XMFLOAT4(1.0f, 1.0f, 1.0f, 1.0f);
+	m_pLights[0].m_xmf4Diffuse = XMFLOAT4(1.0f, 1.0f, 1.0f, 1.0f);
+	m_pLights[0].m_xmf4Specular = XMFLOAT4(1.0f, 1.0f, 1.0f, 1.0f);
+	m_pLights[0].m_xmf3Position = XMFLOAT3(0.0f, 3.0f, 0.0f);
+	m_pLights[0].m_xmf3Direction = XMFLOAT3(0.0f, 0.0f, 1.0f);
+	m_pLights[0].m_xmf3Attenuation = XMFLOAT3(1.0f, -0.1f, 0.01f);
+	m_pLights[0].m_fFalloff = 1.0f;
+	m_pLights[0].m_fPhi = (float)cos(XMConvertToRadians(30.0f));
+	m_pLights[0].m_fTheta = (float)cos(XMConvertToRadians(15.0f));
+	m_pLights[1].m_bEnable = true;
+	m_pLights[1].m_nType = DIRECTIONAL_LIGHT;
+	m_pLights[1].m_xmf4Ambient = XMFLOAT4(0.3f, 0.3f, 0.3f, 1.0f);
+	m_pLights[1].m_xmf4Diffuse = XMFLOAT4(0.7f, 0.7f, 0.7f, 1.0f);
+	m_pLights[1].m_xmf4Specular = XMFLOAT4(0.4f, 0.4f, 0.4f, 0.0f);
+	m_pLights[1].m_xmf3Direction = XMFLOAT3(1.0f, -1.0f, 0.0f);
+}
+
+void CScene::SetPlayer(shared_ptr<CPlayer> pPlayer)
+{
+	m_pPlayer = pPlayer;
+}
+
 void CScene::CreateShaderVariables(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dCommandList)
 {
-	//UINT ncbElementBytes = ((sizeof(LIGHTS) + 255) & ~255); //256의 배수
-	//m_pd3dcbLights = ::CreateBufferResource(pd3dDevice, pd3dCommandList, NULL, ncbElementBytes, D3D12_HEAP_TYPE_UPLOAD, D3D12_RESOURCE_STATE_VERTEX_AND_CONSTANT_BUFFER, NULL);
+	UINT ncbElementBytes = ((sizeof(LIGHTS) + 255) & ~255); //256의 배수
+	m_pd3dcbLights = ::CreateBufferResource(pd3dDevice, pd3dCommandList, NULL, ncbElementBytes, D3D12_HEAP_TYPE_UPLOAD, D3D12_RESOURCE_STATE_VERTEX_AND_CONSTANT_BUFFER, NULL);
 
-	//m_pd3dcbLights->Map(0, NULL, (void**)&m_pcbMappedLights);
+	m_pd3dcbLights->Map(0, NULL, (void**)&m_pcbMappedLights);
+
+	m_d3dLightCbvGPUDescriptorHandle = CreateConstantBufferViews(pd3dDevice, 1, m_pd3dcbLights.Get(), ncbElementBytes);
 }
 
 void CScene::UpdateShaderVariables(ID3D12GraphicsCommandList* pd3dCommandList)
 {
-	/*::memcpy(m_pcbMappedLights->m_pLights, m_pLights, sizeof(LIGHT) * m_nLights);
+	m_pLights[0].m_xmf3Position = m_pPlayer->GetCamera()->GetPosition();
+	m_pLights[0].m_xmf3Direction = m_pPlayer->GetCamera()->GetLookVector();
+
+	::memcpy(m_pcbMappedLights->m_pLights, m_pLights, sizeof(LIGHT) * m_nLights);
 	::memcpy(&m_pcbMappedLights->m_xmf4GlobalAmbient, &m_xmf4GlobalAmbient, sizeof(XMFLOAT4));
-	::memcpy(&m_pcbMappedLights->m_nLights, &m_nLights, sizeof(int));*/
+	::memcpy(&m_pcbMappedLights->m_nLights, &m_nLights, sizeof(int));
+
+	pd3dCommandList->SetGraphicsRootDescriptorTable(2, m_d3dLightCbvGPUDescriptorHandle); //Lights
 }
 
 void CScene::ReleaseShaderVariables()
 {
-	/*if (m_pd3dcbLights)
+	if (m_pd3dcbLights)
 	{
 		m_pd3dcbLights->Unmap(0, NULL);
-		m_pd3dcbLights->Release();
-	}*/
+	}
 }
 
 void CScene::ReleaseUploadBuffers()
@@ -373,8 +415,6 @@ void CScene::ReleaseUploadBuffers()
 	{
 		s->ReleaseUploadBuffers();
 	}
-	/*for (int i = 0; i < m_nShaders; i++) m_ppShaders[i]->ReleaseUploadBuffers();
-	for (int i = 0; i < m_nGameObjects; i++) if (m_ppGameObjects[i]) m_ppGameObjects[i]->ReleaseUploadBuffers();*/
 }
 
 int CScene::m_nCntCbv = 0;
@@ -466,6 +506,25 @@ bool CScene::OnProcessingMouseMessage(HWND hWnd, UINT nMessageID, WPARAM wParam,
 
 bool CScene::OnProcessingKeyboardMessage(HWND hWnd, UINT nMessageID, WPARAM wParam, LPARAM lParam)
 {
+	//m_pLights[0].m_xmf3Attenuation = XMFLOAT3(1.0f, 0.1f, 0.001f); //손전등  밝기 감도설정
+	switch (nMessageID)
+	{
+	case WM_KEYUP:
+		switch (wParam)
+		{
+		case VK_UP:
+			m_pLights[0].m_xmf3Attenuation.y -= 0.1f;
+			break;
+		case VK_DOWN:
+			m_pLights[0].m_xmf3Attenuation.y += 0.1f;
+			break;
+		default:
+			break;
+		}
+		break;
+	default:
+		break;
+	}
 	return false;
 }
 
@@ -490,10 +549,6 @@ void CScene::PrepareRender(ID3D12GraphicsCommandList* pd3dCommandList, const sha
 	pCamera->UpdateShaderVariables(pd3dCommandList);
 
 	UpdateShaderVariables(pd3dCommandList);
-
-	//D3D12_GPU_VIRTUAL_ADDRESS d3dcbLightsGpuVirtualAddress = m_pd3dcbLights->GetGPUVirtualAddress();
-	//pd3dCommandList->SetGraphicsRootConstantBufferView(2, d3dcbLightsGpuVirtualAddress); //Lights
-
 }
 
 void CScene::Render(ID3D12GraphicsCommandList* pd3dCommandList, const shared_ptr<CCamera>& pCamera)

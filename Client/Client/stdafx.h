@@ -36,6 +36,7 @@ using namespace std;
 #include <DirectXPackedVector.h>
 #include <DirectXColors.h>
 #include <DirectXCollision.h>
+#include <stdexcept>
 
 // PlaySound
 #pragma comment(lib, "winmm.lib")
