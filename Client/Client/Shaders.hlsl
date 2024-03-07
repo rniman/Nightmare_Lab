@@ -148,11 +148,16 @@ PS_MULTIPLE_RENDER_TARGETS_OUTPUT PSStandard(VS_STANDARD_OUTPUT input)
 {
     PS_MULTIPLE_RENDER_TARGETS_OUTPUT output;
     
-    float4 cAlbedoColor = float4(0.0f, 0.0f, 0.0f, 1.0f);
-    float4 cSpecularColor = float4(0.0f, 0.0f, 0.0f, 1.0f);
+    //float4 cAlbedoColor = float4(0.0f, 0.0f, 0.0f, 1.0f);
+    //float4 cSpecularColor = float4(0.0f, 0.0f, 0.0f, 1.0f);
+    //float4 cNormalColor = float4(0.0f, 0.0f, 0.0f, 1.0f);
+    //float4 cMetallicColor = float4(0.0f, 0.0f, 0.0f, 1.0f);
+    //float4 cEmissionColor = float4(0.0f, 0.0f, 0.0f, 1.0f);
+    float4 cAlbedoColor = gMaterial.m_cAlbedo;
+    float4 cSpecularColor = gMaterial.m_cSpecular;
     float4 cNormalColor = float4(0.0f, 0.0f, 0.0f, 1.0f);
     float4 cMetallicColor = float4(0.0f, 0.0f, 0.0f, 1.0f);
-    float4 cEmissionColor = float4(0.0f, 0.0f, 0.0f, 1.0f);
+    float4 cEmissionColor = gMaterial.m_cEmissive;    
     
     if (gnTexturesMask & MATERIAL_ALBEDO_MAP)
         cAlbedoColor = AlbedoTexture.Sample(gssWrap, input.uv);

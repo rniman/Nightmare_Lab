@@ -582,7 +582,7 @@ float CAnimationTrack::UpdatePosition(float fTrackPosition, float fElapsedTime, 
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 //
-CAnimationController::CAnimationController(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dCommandList, int nAnimationTracks, CLoadedModelInfo* pModel)
+CAnimationController::CAnimationController(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dCommandList, int nAnimationTracks, const shared_ptr<CLoadedModelInfo>& pModel)
 {
 	m_nAnimationTracks = nAnimationTracks;
 	m_vAnimationTracks.reserve(m_nAnimationTracks);
@@ -808,7 +808,7 @@ CGameObject::CGameObject(char* pstrFrameName, XMFLOAT4X4& xmf4x4World, CMesh* pM
 	m_xmf4x4World = xmf4x4World;
 	strcpy(m_pstrFrameName, pstrFrameName);
 	
-	for (auto oobb : pMesh->GetVectorOOBB())
+	for (const auto& oobb : pMesh->GetVectorOOBB())
 	{
 		m_voobbOrigin.push_back(oobb);
 	}
@@ -822,7 +822,8 @@ CGameObject::CGameObject(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd
 	CreateShaderVariables(pd3dDevice, pd3dCommandList);
 }
 
-CGameObject::CGameObject(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dCommandList,int nMaterials) : CGameObject(pd3dDevice, pd3dCommandList)
+CGameObject::CGameObject(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dCommandList,int nMaterials) 
+	: CGameObject(pd3dDevice, pd3dCommandList)
 {
 	m_nMaterials = nMaterials;
 	if (m_nMaterials > 0)
@@ -857,6 +858,7 @@ void CGameObject::SetChild(const shared_ptr<CGameObject>& pChild, bool bReferenc
 {
 	if (pChild)
 	{
+		// 모델을 불렀을때 문제가있는 부분
 		pChild->m_pParent = shared_from_this();
 		//if(bReferenceUpdate) pChild->AddRef();
 	}
@@ -1174,6 +1176,15 @@ shared_ptr<CTexture> CGameObject::FindReplicatedTexture(_TCHAR* pstrTextureName)
 	if (m_pChild) if (pTexture = m_pChild->FindReplicatedTexture(pstrTextureName)) return(pTexture);
 
 	return(NULL);
+}
+
+UINT CGameObject::GetMeshType()
+{
+	if (m_pMesh)
+	{
+		return m_pMesh->GetType();
+	}
+	return 0x00;
 }
 
 
@@ -1509,7 +1520,7 @@ void CGameObject::PrintFrameInfo(const shared_ptr<CGameObject>& pGameObject, con
 	if (pGameObject->m_pChild) CGameObject::PrintFrameInfo(pGameObject->m_pChild, pGameObject);
 }
 
-void CGameObject::LoadAnimationFromFile(FILE* pInFile, CLoadedModelInfo* pLoadedModel)
+void CGameObject::LoadAnimationFromFile(FILE* pInFile, const shared_ptr<CLoadedModelInfo>& pLoadedModel)
 {
 	char pstrToken[64] = { '\0' };
 	UINT nReads = 0;
@@ -1596,13 +1607,13 @@ void CGameObject::LoadAnimationFromFile(FILE* pInFile, CLoadedModelInfo* pLoaded
 	}
 }
  
-CLoadedModelInfo* CGameObject::LoadGeometryAndAnimationFromFile(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dCommandList, ID3D12RootSignature* pd3dGraphicsRootSignature, const char* pstrFileName)
+shared_ptr<CLoadedModelInfo> CGameObject::LoadGeometryAndAnimationFromFile(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dCommandList, ID3D12RootSignature* pd3dGraphicsRootSignature, const char* pstrFileName)
 {
 	FILE* pInFile = NULL;
 	::fopen_s(&pInFile, pstrFileName, "rb");
 	::rewind(pInFile);
 
-	CLoadedModelInfo* pLoadedModel = new CLoadedModelInfo();
+	shared_ptr<CLoadedModelInfo> pLoadedModel = make_shared<CLoadedModelInfo>();
 
 	char pstrToken[64] = { '\0' };
 
@@ -1642,11 +1653,27 @@ CLoadedModelInfo* CGameObject::LoadGeometryAndAnimationFromFile(ID3D12Device* pd
 	return(pLoadedModel);
 }
 
+void CGameObject::LoadBoundingBox(vector<BoundingOrientedBox>& voobbOrigin)
+{
+	if (m_pMesh)
+	{
+		for (const auto& oobb : m_pMesh->GetVectorOOBB())
+		{
+			voobbOrigin.push_back(oobb);
+		}
+	}
+
+	if (m_pSibling) m_pSibling->LoadBoundingBox(voobbOrigin);
+	if (m_pChild) m_pChild->LoadBoundingBox(voobbOrigin);
+}
+
 bool CGameObject::CheckPicking(const weak_ptr<CGameObject>& pGameObject, const XMFLOAT3& xmf3PickPosition, const XMFLOAT4X4& xmf4x4ViewMatrix, float& fDistance)
 {
 	shared_ptr<CGameObject> pCollisionGameObject = pGameObject.lock();
-	if (!pCollisionGameObject)
+	if (!pCollisionGameObject || !pCollisionGameObject->GetCollision())
+	{
 		return false;
+	}
 
 	XMFLOAT4X4 xmf4x4WorldMatrix = pCollisionGameObject->m_xmf4x4World;
 	XMFLOAT4X4 xmf4x4ModelMatrix;

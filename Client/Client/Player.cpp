@@ -4,7 +4,7 @@
 #include "Shader.h"
 #include "PlayerController.h"
 #include "Collision.h"
-
+#include "EnviromentObject.h"
 //#define _WITH_DEBUG_CALLBACK_DATA
 
 void CSoundCallbackHandler::HandleCallback(void* pCallbackData, float fTrackPosition)
@@ -337,15 +337,14 @@ CBlueSuitPlayer::~CBlueSuitPlayer()
 {
 }
 
-void CBlueSuitPlayer::LoadModelAndAnimation(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dCommandList, ID3D12RootSignature* pd3dGraphicsRootSignature)
+void CBlueSuitPlayer::LoadModelAndAnimation(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dCommandList, ID3D12RootSignature* pd3dGraphicsRootSignature, const shared_ptr<CLoadedModelInfo>& pLoadModelInfo)
 {
-	CLoadedModelInfo* pBlueSuitPlayer = CGameObject::LoadGeometryAndAnimationFromFile(pd3dDevice, pd3dCommandList, pd3dGraphicsRootSignature, "Asset/Model/BlueSuitFree01.bin");
-	SetChild(pBlueSuitPlayer->m_pModelRootObject, true);
+	SetChild(pLoadModelInfo->m_pModelRootObject, true);
 
 	int nCbv = 0;
 	nCbv = cntCbvModelObject(shared_from_this(), 0);
 
-	m_pSkinnedAnimationController = make_shared<CBlueSuitAnimationController>(pd3dDevice, pd3dCommandList, 5, pBlueSuitPlayer);
+	m_pSkinnedAnimationController = make_shared<CBlueSuitAnimationController>(pd3dDevice, pd3dCommandList, 5, pLoadModelInfo);
 
 	//	m_pSkinnedAnimationController->SetCallbackKeys(1, 2);
 	//#ifdef _WITH_SOUND_RESOURCE
@@ -360,7 +359,6 @@ void CBlueSuitPlayer::LoadModelAndAnimation(ID3D12Device* pd3dDevice, ID3D12Grap
 	//	m_pSkinnedAnimationController->SetAnimationCallbackHandler(1, pAnimationCallbackHandler);
 
 	if (m_pSkinnedAnimationController) m_pSkinnedAnimationController->UpdateShaderVariables(pd3dCommandList);
-	if (pBlueSuitPlayer) delete pBlueSuitPlayer;
 }
 
 void CBlueSuitPlayer::Move(DWORD dwDirection, float fDistance, bool bUpdateVelocity)
@@ -475,6 +473,97 @@ void CBlueSuitPlayer::Update(float fElapsedTime)
 	}
 }
 
+void CBlueSuitPlayer::UpdatePicking() 
+{
+	shared_ptr<CGameObject> pPickiedObject = m_pPickedObject.lock();
+
+	if(AddItem(pPickiedObject) != -1)
+	{
+		pPickiedObject->UpdatePicking();
+	}
+}
+
+int CBlueSuitPlayer::AddItem(const shared_ptr<CGameObject>& pGameObject)
+{
+	int nSlot = -1;
+	if (dynamic_pointer_cast<CTeleportObject>(pGameObject))
+	{
+		nSlot = 0;
+	}
+	else if (dynamic_pointer_cast<CRadarObject>(pGameObject))
+	{
+		nSlot = 1;
+	}
+	else if (dynamic_pointer_cast<CMineObject>(pGameObject))
+	{
+		nSlot = 2;
+	}
+	else if (dynamic_pointer_cast<CFuseObject>(pGameObject))
+	{
+		if (dynamic_pointer_cast<CFuseObject>(pGameObject)->GetObtained())
+		{
+			return nSlot;
+		}
+
+		if (m_nFuseNum < 3)
+		{
+			m_apFuseItems[m_nFuseNum].reset();
+			m_apFuseItems[m_nFuseNum] = pGameObject;
+			m_nFuseNum++;
+			nSlot = -2;
+		}
+	}
+
+	if (nSlot <= -1)
+	{
+		return nSlot;
+	}
+
+	if (m_apSlotItems[nSlot].lock())
+	{
+
+	}
+	else
+	{
+		m_apSlotItems[nSlot].reset();
+		m_apSlotItems[nSlot] = pGameObject;
+	}
+
+	return nSlot;
+}
+
+void CBlueSuitPlayer::UseItem(int nSlot)
+{
+	if (nSlot == 3)
+	{
+		UseFuse();
+	}
+	else if (shared_ptr<CGameObject> pGameObject = m_apSlotItems[nSlot].lock())
+	{
+		pGameObject->UpdateUsing(shared_from_this());
+		m_apSlotItems[nSlot].reset();
+	}
+}
+
+void CBlueSuitPlayer::UseFuse() 
+{
+	for (auto& fuseItem : m_apFuseItems)
+	{
+		if(fuseItem.lock())
+		{
+			fuseItem.lock()->UpdateUsing(shared_from_this());
+			fuseItem.reset();
+		}
+	}
+	m_nFuseNum = 0;
+}
+
+void CBlueSuitPlayer::Teleport()
+{
+	XMFLOAT3 randomPos = { 4.0f, 4.0f, 4.0f };
+	SetPosition(randomPos);
+}
+
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 // 
 
@@ -491,12 +580,11 @@ CZombiePlayer::~CZombiePlayer()
 {
 }
 
-void CZombiePlayer::LoadModelAndAnimation(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dCommandList, ID3D12RootSignature* pd3dGraphicsRootSignature)
+void CZombiePlayer::LoadModelAndAnimation(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dCommandList, ID3D12RootSignature* pd3dGraphicsRootSignature, const shared_ptr<CLoadedModelInfo>& pLoadModelInfo)
 {
-	CLoadedModelInfo* pZombiePlayer = CGameObject::LoadGeometryAndAnimationFromFile(pd3dDevice, pd3dCommandList, pd3dGraphicsRootSignature, "Asset/Model/Zom.bin");
-	SetChild(pZombiePlayer->m_pModelRootObject, true);
+	SetChild(pLoadModelInfo->m_pModelRootObject, true);
 
-	m_pSkinnedAnimationController = make_shared<CZombieAnimationController>(pd3dDevice, pd3dCommandList, 3, pZombiePlayer);
+	m_pSkinnedAnimationController = make_shared<CZombieAnimationController>(pd3dDevice, pd3dCommandList, 3, pLoadModelInfo);
 
 	m_pSkinnedAnimationController->SetCallbackKeys(1, 2);
 #ifdef _WITH_SOUND_RESOURCE
@@ -512,7 +600,6 @@ void CZombiePlayer::LoadModelAndAnimation(ID3D12Device* pd3dDevice, ID3D12Graphi
 	m_pSkinnedAnimationController->SetAnimationCallbackHandler(1, pAnimationCallbackHandler);
 
 	if (m_pSkinnedAnimationController) m_pSkinnedAnimationController->UpdateShaderVariables(pd3dCommandList);
-	if (pZombiePlayer) delete pZombiePlayer;
 }
 
 void CZombiePlayer::Update(float fElapsedTime)

@@ -1,7 +1,6 @@
 //-----------------------------------------------------------------------------
 // File: CGameFramework.cpp
 //-----------------------------------------------------------------------------
-
 #include "stdafx.h"
 #include "GameFramework.h"
 #include "Player.h"
@@ -314,12 +313,6 @@ void CGameFramework::OnProcessingMouseMessage(HWND hWnd, UINT nMessageID, WPARAM
 		break;
 	case WM_RBUTTONDOWN:
 		m_pPlayer->SetPickedObject(LOWORD(lParam), HIWORD(lParam), m_pScene.get());
-		if(shared_ptr<CGameObject> pPickedObject = m_pPlayer->GetPickedObject().lock())
-		{
-			pPickedObject->CallbackPicking();
-		}
-		//::SetCapture(hWnd);
-		//::GetCursorPos(&m_ptOldCursorPos);
 		break;
 	case WM_LBUTTONUP:
 	case WM_RBUTTONUP:
@@ -355,6 +348,17 @@ void CGameFramework::OnProcessingKeyboardMessage(HWND hWnd, UINT nMessageID, WPA
 		case VK_F9:
 			ChangeSwapChainState();
 			break;
+		case 'E': //상호작용
+			if (shared_ptr<CGameObject> pPickedObject = m_pPlayer->GetPickedObject().lock())
+			{
+				m_pPlayer->UpdatePicking();
+			}
+			break;
+		case '1':
+		case '2':
+		case '3':
+		case '4':
+			m_pPlayer->UseItem(wParam - '1');
 		default:
 			break;
 		}
@@ -416,12 +420,7 @@ void CGameFramework::BuildObjects()
 	m_pScene = make_shared<CScene>();
 	if (m_pScene.get()) m_pScene->BuildObjects(m_d3d12Device.Get(), m_d3dCommandList.Get());
 
-	//m_pPlayer = new CBlueSuitPlayer(m_d3d12Device.Get(), m_d3dCommandList.Get(), m_pScene->GetGraphicsRootSignature(), m_pScene);
-	//m_pPlayer = new CZombiePlayer(m_d3d12Device.Get(), m_d3dCommandList.Get(), m_pScene->GetGraphicsRootSignature().Get(), m_pScene.get());
-	m_pPlayer = make_shared<CZombiePlayer>(m_d3d12Device.Get(), m_d3dCommandList.Get(), m_pScene->GetGraphicsRootSignature().Get(), nullptr);
-	m_pPlayer->GetCamera()->SetPlayer(m_pPlayer);
-	m_pPlayer->LoadModelAndAnimation(m_d3d12Device.Get(), m_d3dCommandList.Get(), m_pScene->GetGraphicsRootSignature().Get());
-	m_pScene->m_vShader[SKINNEDANIMATION_STANDARD_SHADER]->AddGameObject(m_pPlayer);
+	m_pPlayer = m_pScene->m_pPlayer;
 	m_pCamera = m_pPlayer->GetCamera();
 
 #ifndef SINGLE_PLAY
@@ -527,7 +526,7 @@ void CGameFramework::AnimateObjects()
 	
 	if(shared_ptr<CGameObject> pPickedObject = m_pPlayer->GetPickedObject().lock()) 
 	{
-		pPickedObject->AnimatePicking(fElapsedTime);
+		//pPickedObject->UpdatePicking();
 	}
 	//m_pPlayer->Animate(fElapsedTime);
 }

@@ -1,5 +1,25 @@
 #include "stdafx.h"
+#include "Player.h"
 #include "EnviromentObject.h"
+
+CItemObject::CItemObject(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dCommandList, ID3D12RootSignature* pd3dGraphicsRootSignature)
+	: CGameObject(pd3dDevice, pd3dCommandList)
+{
+}
+
+void CItemObject::Render(ID3D12GraphicsCommandList* pd3dCommandList) 
+{
+	if (m_bObtained) // 그리지 않는다
+	{
+		return;
+	}
+
+	CGameObject::Render(pd3dCommandList);
+}
+
+/// <CGameObject - CItemObject>
+////// /// /// /// /// /// /// /// /// /// /// /// /// /// /// /// /// /// /// /// /// /// /// /// /// /// /// /// ///  
+/// <CGameObject - CDrawerObject>
 
 CDrawerObject::CDrawerObject(char* pstrFrameName, XMFLOAT4X4& xmf4x4World, CMesh* pMesh)
 	: CGameObject(pstrFrameName, xmf4x4World, pMesh)
@@ -66,12 +86,7 @@ void CDrawerObject::AnimateOOBB()
 	// XMStoreFloat4(&m_OOBB[0].Orientation, XMQuaternionNormalize(XMLoadFloat4(&m_OOBB[0].Orientation)));
 }
 
-void CDrawerObject::AnimatePicking(float fElapsedTime)
-{
-
-}
-
-void CDrawerObject::CallbackPicking()
+void CDrawerObject::UpdatePicking()
 {
 	if (m_bOpened)
 	{
@@ -88,23 +103,6 @@ void CDrawerObject::CallbackPicking()
 /// <CGameObject - CDrawerObject>
 ////// /// /// /// /// /// /// /// /// /// /// /// /// /// /// /// /// /// /// /// /// /// /// /// /// /// /// /// ///  
 /// <CGameObject - CDoorObject>
-
-//CDoorObject::CDoorObject(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dCommandList)
-//	: CGameObject(pd3dDevice, pd3dCommandList)
-//{
-//}
-//
-//CDoorObject::CDoorObject(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dCommandList, CLoadedModelInfo* pModelInfo)
-//	: CGameObject(pd3dDevice, pd3dCommandList)
-//{
-//	SetChild(pModelInfo->m_pModelRootObject, true);
-//	SetOOBB();
-//	SetPosition(0.0f, 0.0f, 50.0f);
-//	m_xmf4Quaternion = Vector4::Quaternion(0.0f, 0.0f, 0.0f);
-//	Rotate(&m_xmf4Quaternion);
-//
-//	/*m_pMainDoor = FindFrame("Door_1");*/
-//}
 
 CDoorObject::CDoorObject(char* pstrFrameName, XMFLOAT4X4& xmf4x4World, CMesh* pMesh)
 	: CGameObject(pstrFrameName, xmf4x4World, pMesh)
@@ -163,11 +161,7 @@ void CDoorObject::AnimateOOBB()
 	//}	
 }
 
-void CDoorObject::AnimatePicking(float fElapsedTime)
-{
-}
-
-void CDoorObject::CallbackPicking()
+void CDoorObject::UpdatePicking()
 {
 	if (m_bOpened)
 	{
@@ -180,3 +174,184 @@ void CDoorObject::CallbackPicking()
 		m_fDoorAngle = 150.0f;
 	}
 }
+
+/// <CGameObject - CDoorObject>
+////// /// /// /// /// /// /// /// /// /// /// /// /// /// /// /// /// /// /// /// /// /// /// /// /// /// /// /// ///  
+/// <CGameObject - CTeleportObject>
+
+CTeleportObject::CTeleportObject(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dCommandList, ID3D12RootSignature* pd3dGraphicsRootSignature)
+	: CItemObject(pd3dDevice, pd3dCommandList, pd3dGraphicsRootSignature)
+{
+}
+
+CTeleportObject::~CTeleportObject() 
+{
+}
+
+void CTeleportObject::LoadModelAndAnimation(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dCommandList, ID3D12RootSignature* pd3dGraphicsRootSignature, const shared_ptr<CLoadedModelInfo>& pLoadModelInfo)
+{
+	SetChild(pLoadModelInfo->m_pModelRootObject, true);
+	
+	LoadBoundingBox(m_voobbOrigin);
+}
+
+void CTeleportObject::SetOOBB()
+{
+}
+
+void CTeleportObject::Animate(float fElapsedTime)
+{
+	CGameObject::Animate(fElapsedTime);
+}
+
+void CTeleportObject::AnimateOOBB()
+{
+}
+
+void CTeleportObject::UpdatePicking()
+{
+	m_bObtained = true;
+}
+
+void CTeleportObject::UpdateUsing(const shared_ptr<CGameObject>& pGameObject)
+{
+	shared_ptr<CBlueSuitPlayer> pBlueSuitPlayer = dynamic_pointer_cast<CBlueSuitPlayer>(pGameObject);
+	if (!pBlueSuitPlayer)
+	{
+		return;
+	}
+	pBlueSuitPlayer->Teleport();
+	m_bObtained = false;
+}
+
+/// <CGameObject - CTeleportObject>
+////// /// /// /// /// /// /// /// /// /// /// /// /// /// /// /// /// /// /// /// /// /// /// /// /// /// /// /// ///  
+/// <CGameObject - CMineObject>
+
+CMineObject::CMineObject(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dCommandList, ID3D12RootSignature* pd3dGraphicsRootSignature)
+	: CItemObject(pd3dDevice, pd3dCommandList, pd3dGraphicsRootSignature)
+{
+}
+
+CMineObject::~CMineObject()
+{
+}
+
+void CMineObject::LoadModelAndAnimation(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dCommandList, ID3D12RootSignature* pd3dGraphicsRootSignature, const shared_ptr<CLoadedModelInfo>& pLoadModelInfo)
+{
+	SetChild(pLoadModelInfo->m_pModelRootObject, true);
+
+	LoadBoundingBox(m_voobbOrigin);
+}
+
+void CMineObject::SetOOBB()
+{
+}
+
+void CMineObject::Animate(float fElapsedTime)
+{
+}
+
+void CMineObject::AnimateOOBB()
+{
+}
+
+void CMineObject::UpdatePicking()
+{
+}
+
+void CMineObject::UpdateUsing(const shared_ptr<CGameObject>& pGameObject)
+{
+}
+
+/// <CGameObject - CMineObject>
+////// /// /// /// /// /// /// /// /// /// /// /// /// /// /// /// /// /// /// /// /// /// /// /// /// /// /// /// ///  
+/// <CGameObject - CFuseObject>
+
+CFuseObject::CFuseObject(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dCommandList, ID3D12RootSignature* pd3dGraphicsRootSignature)
+	: CItemObject(pd3dDevice, pd3dCommandList, pd3dGraphicsRootSignature)
+{
+}
+
+CFuseObject::~CFuseObject()
+{
+}
+
+void CFuseObject::LoadModelAndAnimation(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dCommandList, ID3D12RootSignature* pd3dGraphicsRootSignature, const shared_ptr<CLoadedModelInfo>& pLoadModelInfo)
+{
+	SetChild(pLoadModelInfo->m_pModelRootObject, true);
+
+	LoadBoundingBox(m_voobbOrigin);
+}
+
+void CFuseObject::SetOOBB()
+{
+}
+
+void CFuseObject::Animate(float fElapsedTime)
+{
+	CGameObject::Animate(fElapsedTime);
+}
+
+void CFuseObject::AnimateOOBB()
+{
+}
+
+void CFuseObject::UpdatePicking()
+{
+	m_bObtained = true;
+	m_bCollsion = false;
+}
+
+void CFuseObject::UpdateUsing(const shared_ptr<CGameObject>& pGameObject)
+{
+	shared_ptr<CBlueSuitPlayer> pBlueSuitPlayer = dynamic_pointer_cast<CBlueSuitPlayer>(pGameObject);
+	if (!pBlueSuitPlayer)
+	{
+		return;
+	}
+	m_bObtained = false;
+	m_bCollsion = true;
+}
+
+/// <CGameObject - CFuseObject>
+////// /// /// /// /// /// /// /// /// /// /// /// /// /// /// /// /// /// /// /// /// /// /// /// /// /// /// /// ///  
+/// <CGameObject - CRadarObject>
+
+CRadarObject::CRadarObject(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dCommandList, ID3D12RootSignature* pd3dGraphicsRootSignature)
+	: CItemObject(pd3dDevice, pd3dCommandList, pd3dGraphicsRootSignature)
+{
+}
+
+CRadarObject::~CRadarObject()
+{
+}
+
+void CRadarObject::LoadModelAndAnimation(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dCommandList, ID3D12RootSignature* pd3dGraphicsRootSignature, const shared_ptr<CLoadedModelInfo>& pLoadModelInfo)
+{
+	SetChild(pLoadModelInfo->m_pModelRootObject, true);
+
+	LoadBoundingBox(m_voobbOrigin);
+}
+
+void CRadarObject::SetOOBB()
+{
+}
+
+void CRadarObject::Animate(float fElapsedTime)
+{
+}
+
+void CRadarObject::AnimateOOBB()
+{
+}
+
+void CRadarObject::UpdatePicking()
+{
+}
+
+void CRadarObject::UpdateUsing(const shared_ptr<CGameObject>& pGameObject)
+{
+	
+}
+

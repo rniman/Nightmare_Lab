@@ -20,7 +20,7 @@ public:
 	CPlayer(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dCommandList, ID3D12RootSignature* pd3dGraphicsRootSignature, void* pContext = NULL);
 	virtual ~CPlayer();
 
-	virtual void LoadModelAndAnimation(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dCommandList, ID3D12RootSignature* pd3dGraphicsRootSignature) {};
+	virtual void LoadModelAndAnimation(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dCommandList, ID3D12RootSignature* pd3dGraphicsRootSignature, const shared_ptr<CLoadedModelInfo>& pLoadModelInfo) override {};
 
 	virtual void Move(DWORD dwDirection, float fDistance, bool bVelocity = false);
 	void Move(const XMFLOAT3& xmf3Shift, bool bVelocity = false);
@@ -72,7 +72,9 @@ public:
 
 	void SetPickedObject(int nx, int ny, CScene* pScene);
 	weak_ptr<CGameObject> GetPickedObject() { return m_pPickedObject; }
+	virtual void UpdatePicking() override {};
 
+	virtual void UseItem(int nSlot) {};
 protected:
 	XMFLOAT3					m_xmf3Position = XMFLOAT3(0.0f, 0.0f, 0.0f);
 	XMFLOAT3					m_xmf3Right = XMFLOAT3(1.0f, 0.0f, 0.0f);
@@ -105,11 +107,23 @@ public:
 	CBlueSuitPlayer(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dCommandList, ID3D12RootSignature* pd3dGraphicsRootSignature, void* pContext = NULL);
 	virtual ~CBlueSuitPlayer();
 
-	virtual void LoadModelAndAnimation(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dCommandList, ID3D12RootSignature* pd3dGraphicsRootSignature) override;
+	virtual void LoadModelAndAnimation(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dCommandList, ID3D12RootSignature* pd3dGraphicsRootSignature, const shared_ptr<CLoadedModelInfo>& pLoadModelInfo) override;
 
 	virtual void Move(DWORD dwDirection, float fDistance, bool bVelocity = false);
 	virtual void Update(float fElapsedTime) override;
+
+	virtual void UpdatePicking() override;;
+
+	int AddItem(const shared_ptr<CGameObject>& pGameObject);
+	virtual void UseItem(int nSlot) override;
+	void UseFuse();;
+	void Teleport();
 private:
+	std::array<weak_ptr<CGameObject>, 3> m_apSlotItems;
+
+	int m_nFuseNum = 0;
+	std::array<weak_ptr<CGameObject>, 3> m_apFuseItems;
+
 	bool m_bShiftRun = false;
 	bool m_bAbleRun = true;
 	float m_fStamina = 5.0f;
@@ -121,7 +135,7 @@ public:
 	CZombiePlayer(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dCommandList, ID3D12RootSignature* pd3dGraphicsRootSignature, void* pContext = NULL);
 	virtual ~CZombiePlayer();
 
-	virtual void LoadModelAndAnimation(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dCommandList, ID3D12RootSignature* pd3dGraphicsRootSignature) override;
+	virtual void LoadModelAndAnimation(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dCommandList, ID3D12RootSignature* pd3dGraphicsRootSignature, const shared_ptr<CLoadedModelInfo>& pLoadModelInfo) override;
 
 	virtual void Update(float fElapsedTime) override;
 private:

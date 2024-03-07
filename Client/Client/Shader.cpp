@@ -240,7 +240,8 @@ void CShader::AddGameObject(const shared_ptr<CGameObject>& pGameObject)
 
 void CShader::AnimateObjects(float fElapsedTime)
 {
-	for (auto& object : m_vGameObjects) {
+	for (auto& object : m_vGameObjects) 
+	{
 		object->Animate(fElapsedTime);
 	}
 }

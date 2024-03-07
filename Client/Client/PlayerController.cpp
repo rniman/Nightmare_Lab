@@ -1,7 +1,7 @@
 #include "stdafx.h"
 #include "PlayerController.h"
 
-CBlueSuitAnimationController::CBlueSuitAnimationController(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dCommandList, int nAnimationTracks, CLoadedModelInfo* pModel)
+CBlueSuitAnimationController::CBlueSuitAnimationController(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dCommandList, int nAnimationTracks, const shared_ptr<CLoadedModelInfo>& pModel)
 	:CAnimationController(pd3dDevice, pd3dCommandList, nAnimationTracks, pModel)
 {
 	// IDLE, WALK, RUN 3가지 상태
@@ -293,7 +293,7 @@ void CBlueSuitAnimationController::BlendAnimation(int nTrack1, int nTrack2, floa
 	m_vAnimationTracks[nTrack2].HandleCallback();
 }
 
-CZombieAnimationController::CZombieAnimationController(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dCommandList, int nAnimationTracks, CLoadedModelInfo* pModel)
+CZombieAnimationController::CZombieAnimationController(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dCommandList, int nAnimationTracks, const shared_ptr<CLoadedModelInfo>& pModel)
 	: CAnimationController(pd3dDevice, pd3dCommandList, nAnimationTracks, pModel)
 {
 	// IDLE, WALK, RUN 2가지 상태

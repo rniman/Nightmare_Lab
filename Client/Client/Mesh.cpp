@@ -246,7 +246,8 @@ bool CStandardMesh::LoadMeshFromFile(ID3D12Device* pd3dDevice, ID3D12GraphicsCom
 	UINT nReads = (UINT)::fread(&m_nVertices, sizeof(int), 1, pInFile);
 
 	::ReadStringFromFile(pInFile, m_pstrMeshName);
-	if (m_pstrMeshName[0] == '@') {
+	if (m_pstrMeshName[0] == '@') 
+	{
 		return false;
 	}
 	for (; ; )

@@ -47,10 +47,11 @@ public:
 
 	//씬 내 오브젝트(쉐이더)
 	vector<unique_ptr<CShader>> m_vShader;
-
+	shared_ptr<CPlayer> m_pPlayer;
 	//메쉬 저장
 	vector<shared_ptr<CMesh>> m_vMesh;
 
+	float m_fElapsedTime = 0.0f;
 protected:
 	ComPtr<ID3D12RootSignature> m_pd3dGraphicsRootSignature;
 	//루트 시그너처를 나타내는 인터페이스 포인터
