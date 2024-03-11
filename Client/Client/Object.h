@@ -24,7 +24,7 @@ public:
 
 private:
 	//int								m_nReferences = 0;
-	UINT							m_nTextureType;
+	//UINT							m_nTextureType;
 
 	int								m_nTextures = 0;
 	vector<ComPtr<ID3D12Resource>> m_vpd3dTextures;
@@ -65,7 +65,7 @@ public:
 	int GetTextures() { return(m_nTextures); }
 	ID3D12Resource* GetResource(int nIndex) { return(m_vpd3dTextures[nIndex].Get()); }
 
-	UINT GetTextureType() { return(m_nTextureType); }
+	//UINT GetTextureType() { return(m_nTextureType); }
 	UINT GetTextureType(int nIndex) { return(m_vnResourceTypes[nIndex]); }
 	DXGI_FORMAT GetBufferFormat(int nIndex) { return(m_vdxgiBufferFormats[nIndex]); }
 	int GetBufferElements(int nIndex) { return(m_vnBufferElements[nIndex]); }

@@ -477,7 +477,7 @@ void CBlueSuitPlayer::UpdatePicking()
 {
 	shared_ptr<CGameObject> pPickiedObject = m_pPickedObject.lock();
 
-	if(AddItem(pPickiedObject) != -1)
+	if(AddItem(pPickiedObject) != -2)
 	{
 		pPickiedObject->UpdatePicking();
 	}
@@ -485,7 +485,7 @@ void CBlueSuitPlayer::UpdatePicking()
 
 int CBlueSuitPlayer::AddItem(const shared_ptr<CGameObject>& pGameObject)
 {
-	int nSlot = -1;
+	int nSlot = -2;
 	if (dynamic_pointer_cast<CTeleportObject>(pGameObject))
 	{
 		nSlot = 0;
@@ -510,8 +510,12 @@ int CBlueSuitPlayer::AddItem(const shared_ptr<CGameObject>& pGameObject)
 			m_apFuseItems[m_nFuseNum].reset();
 			m_apFuseItems[m_nFuseNum] = pGameObject;
 			m_nFuseNum++;
-			nSlot = -2;
+			nSlot = -1;
 		}
+	}
+	else
+	{
+		nSlot = -1;
 	}
 
 	if (nSlot <= -1)

@@ -8,7 +8,7 @@
 //
 CTexture::CTexture(int nTextures, UINT nTextureType, int nSamplers, int nRootParameters)
 {
-	m_nTextureType = nTextureType;
+	//m_nTextureType = nTextureType;
 
 	m_nTextures = nTextures;
 	if (m_nTextures > 0)
