@@ -360,6 +360,7 @@ public:
 	void SetDescriptorHandle(D3D12_GPU_DESCRIPTOR_HANDLE handle);
 
 	virtual void Animate(float fElapsedTime);
+	virtual void Collide(float fElapsedTime, const shared_ptr<CGameObject>& pCollidedObject);
 	virtual void Render(ID3D12GraphicsCommandList* pd3dCommandList);
 	//virtual void Render(ID3D12GraphicsCommandList* pd3dCommandList, CCamera* pCamera);
 
@@ -424,7 +425,7 @@ public:
 	char* GetFrameName() { return m_pstrFrameName; };
 
 	virtual void SetOOBB() {};
-	virtual void AnimateOOBB() {};
+	virtual void AnimateOOBB();;
 	BoundingOrientedBox GetOOBB(int nIndex) const { return m_voobbOrigin[nIndex]; };
 	vector<BoundingOrientedBox> GetVectorOOBB() const { return m_voobbOrigin; };
 
@@ -437,6 +438,7 @@ public:
 	virtual void UpdatePicking() {};
 	virtual void UpdateUsing(const shared_ptr<CGameObject>& pGameObject) {};
 
+	int GetCollisionType() const { return m_nCollisionType; }
 public:
 	//중복된 메쉬를 없애기 위해 최초 메쉬들을 이곳에 저장한다.
 	static vector<shared_ptr<CMesh>> m_vMeshContainer;
@@ -463,6 +465,7 @@ public:
 
 	vector<BoundingOrientedBox> m_voobbOrigin;
 	bool m_bCollsion = true;
+	int m_nCollisionType = 0; // 0:None, 1:Standard, 2:Picking
 };
 
 

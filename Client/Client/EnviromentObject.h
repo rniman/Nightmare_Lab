@@ -16,6 +16,20 @@ protected:
 
 /// <CGameObject - CItemObject>
 ////// /// /// /// /// /// /// /// /// /// /// /// /// /// /// /// /// /// /// /// /// /// /// /// /// /// /// /// ///  
+/// <CGameObject - CEnviromentObejct>
+
+class CEnviromentObejct :public CGameObject
+{
+public:
+	CEnviromentObejct(char* pstrFrameName, XMFLOAT4X4& xmf4x4World, CMesh* pMesh);
+	virtual ~CEnviromentObejct() {};
+
+private:
+
+};
+
+/// <CGameObject - CEnviromentObejct>
+////// /// /// /// /// /// /// /// /// /// /// /// /// /// /// /// /// /// /// /// /// /// /// /// /// /// /// /// ///  
 /// <CGameObject - CDoorObject>
 
 class CDrawerObject : public CGameObject
@@ -24,9 +38,9 @@ public:
 	CDrawerObject(char* pstrFrameName, XMFLOAT4X4& xmf4x4World, CMesh* pMesh);
 	virtual ~CDrawerObject();
 
-	virtual void SetOOBB() override;
+	virtual void SetOOBB() override {};
 	virtual void Animate(float fElapsedTime) override;
-	virtual void AnimateOOBB() override;
+	virtual void AnimateOOBB() override {};
 	virtual void UpdatePicking() override;
 private:
 	bool m_bOpened = false;
@@ -45,9 +59,9 @@ public:
 	CDoorObject(char* pstrFrameName, XMFLOAT4X4& xmf4x4World, CMesh* pMesh);
 	virtual ~CDoorObject();
 
-	virtual void SetOOBB() override;
+	virtual void SetOOBB() override {};
 	virtual void Animate(float fElapsedTime) override;
-	virtual void AnimateOOBB() override;
+	virtual void AnimateOOBB() override;;
 	virtual void UpdatePicking() override;
 
 private:
@@ -58,7 +72,27 @@ private:
 	XMFLOAT4 m_xmf4Quaternion = { 0.0f, 0.0f, 0.0f, 1.0f };
 };
 
-/// <CGameObject - CDoorObject>
+/// <CGameObject - CDrawerObject>
+////// /// /// /// /// /// /// /// /// /// /// /// /// /// /// /// /// /// /// /// /// /// /// /// /// /// /// /// ///  
+/// <CGameObject - CElevatorDoorObject>
+
+class CElevatorDoorObject : public CGameObject
+{
+public:
+	CElevatorDoorObject(char* pstrFrameName, XMFLOAT4X4& xmf4x4World, CMesh* pMesh);
+	virtual ~CElevatorDoorObject() {};
+
+	virtual void Animate(float fElapsedTime) override;
+	virtual void AnimateOOBB() override {};
+	virtual void UpdatePicking() override;
+private:
+	bool m_bOpened = false;
+	bool m_bAnimate = false;
+	XMFLOAT3 m_xmf3OriginPosition;
+	XMFLOAT3 m_xmf3Right;
+};
+
+/// <CGameObject - CElevatorDoorObject>
 ////// /// /// /// /// /// /// /// /// /// /// /// /// /// /// /// /// /// /// /// /// /// /// /// /// /// /// /// ///  
 /// <CGameObject - CItemObject - CTeleportObject>
 

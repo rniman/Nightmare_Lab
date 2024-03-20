@@ -239,8 +239,9 @@ void CScene::BuildObjects(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* p
 	m_pPlayer->GetCamera()->SetPlayer(m_pPlayer);
 
 	shared_ptr<CLoadedModelInfo> pBlueSuitPlayerModel = CGameObject::LoadGeometryAndAnimationFromFile(pd3dDevice, pd3dCommandList, m_pd3dGraphicsRootSignature.Get(), "Asset/Model/BlueSuitFree01.bin");
-	//shared_ptr<CLoadedModelInfo> pZombiePlayerModel = CGameObject::LoadGeometryAndAnimationFromFile(pd3dDevice, pd3dCommandList, m_pd3dGraphicsRootSignature.Get(), "Asset/Model/Zom.bin");
+	//shared_ptr<CLoadedModelInfo> pZombiePlayerModel = CGameObject::LoadGeometryAndAnimationFromFile(pd3dDevice, pd3dCommandList, m_pd3dGraphicsRootSignature.Get(), "Asset/Model/Zom_1.bin");
 	m_pPlayer->LoadModelAndAnimation(pd3dDevice, pd3dCommandList, m_pd3dGraphicsRootSignature.Get(), pBlueSuitPlayerModel);
+	//m_pPlayer->LoadModelAndAnimation(pd3dDevice, pd3dCommandList, m_pd3dGraphicsRootSignature.Get(), pZombiePlayerModel);
 	m_vShader[SKINNEDANIMATION_STANDARD_SHADER]->AddGameObject(m_pPlayer);
 
 	// 육면체 메쉬 - 테스트 용도 목적 ,모델파일을 읽어서 메쉬를 사용하기 때문 
@@ -251,7 +252,7 @@ void CScene::BuildObjects(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* p
 
 	flashLight->LoadModelAndAnimation(pd3dDevice, pd3dCommandList, m_pd3dGraphicsRootSignature.Get(), pTeleportModel);
 	flashLight->SetPosition(1.0f, 1.0f, -1.0f);
-	g_collisonManager.AddCollisionObject(0, flashLight);
+	g_collisonManager.AddCollisionObject(flashLight);
 	m_vShader[STANDARD_SHADER]->AddGameObject(flashLight);
 
 	/*shared_ptr<CLoadedModelInfo> pFusetModel = CGameObject::LoadGeometryAndAnimationFromFile(pd3dDevice, pd3dCommandList, m_pd3dGraphicsRootSignature.Get(), (char*)"Asset/Model/fuse_hi-obj.bin");
@@ -272,7 +273,7 @@ void CScene::BuildObjects(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* p
 		vpFuse.push_back(make_shared<CFuseObject>(pd3dDevice, pd3dCommandList, m_pd3dGraphicsRootSignature.Get()));
 		vpFuse[i]->LoadModelAndAnimation(pd3dDevice, pd3dCommandList, m_pd3dGraphicsRootSignature.Get(), pFusetModel); // 모델을 계속 재사용
 		vpFuse[i]->SetPosition(1.0f, 1.0f + i, 1.0f);
-		g_collisonManager.AddCollisionObject(0, vpFuse[i]);
+		g_collisonManager.AddCollisionObject(vpFuse[i]);
 		m_vShader[STANDARD_SHADER]->AddGameObject(vpFuse[i]);
 	}
 
@@ -495,6 +496,11 @@ void CScene::AnimateObjects(float fElapsedTime)
 	{
 		shader->AnimateObjects(fElapsedTime);
 	}
+}
+
+void CScene::ProcessCollide(float fElapsedTime)
+{
+	g_collisonManager.Collide(fElapsedTime);
 }
 
 void CScene::PrepareRender(ID3D12GraphicsCommandList* pd3dCommandList, const shared_ptr<CCamera>& pCamera)

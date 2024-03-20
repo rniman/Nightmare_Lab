@@ -4,6 +4,7 @@
 #include "stdafx.h"
 #include "GameFramework.h"
 #include "Player.h"
+#include "Collision.h"
 
  extern UINT gnCbvSrvDescriptorIncrementSize;
  extern UINT gnRtvDescriptorIncrementSize;
@@ -50,6 +51,8 @@ bool CGameFramework::OnCreate(HINSTANCE hInstance, HWND hMainWnd)
 #ifndef SINGLE_PLAY
 	m_pClientNetwork = new TCPClient;
 #endif // SINGLE_PLAY
+
+	g_collisonManager.CreateCollision(4, 10, 10);
 
 	BuildObjects();
 	
@@ -348,6 +351,24 @@ void CGameFramework::OnProcessingKeyboardMessage(HWND hWnd, UINT nMessageID, WPA
 		case VK_F9:
 			ChangeSwapChainState();
 			break;
+		case VK_PRIOR:
+		{
+			XMFLOAT3 xmf3Shift = XMFLOAT3(0, 0, 0);
+			XMFLOAT3 xmf3Up = m_pPlayer->GetUpVector();
+			if (m_pPlayer->GetPosition().y < 13.5f + FLT_EPSILON) xmf3Shift = Vector3::Add(xmf3Shift, xmf3Up, 4.5f);
+
+			m_pPlayer->SetPosition(Vector3::Add(m_pPlayer->GetPosition(), xmf3Shift));
+		}
+			break;
+		case VK_NEXT:
+		{
+			XMFLOAT3 xmf3Shift = XMFLOAT3(0, 0, 0);
+			XMFLOAT3 xmf3Up = m_pPlayer->GetUpVector();
+			if (m_pPlayer->GetPosition().y > 0.0f + FLT_EPSILON) xmf3Shift = Vector3::Add(xmf3Shift, xmf3Up, -4.5f);
+
+			m_pPlayer->SetPosition(Vector3::Add(m_pPlayer->GetPosition(), xmf3Shift));
+		}
+			break;
 		case 'E': //상호작용
 			if (shared_ptr<CGameObject> pPickedObject = m_pPlayer->GetPickedObject().lock())
 			{
@@ -422,6 +443,7 @@ void CGameFramework::BuildObjects()
 
 	m_pPlayer = m_pScene->m_pPlayer;
 	m_pCamera = m_pPlayer->GetCamera();
+	g_collisonManager.m_pPlayer = m_pPlayer;
 
 #ifndef SINGLE_PLAY
 	for (const auto& [id,info] : m_pClientNetwork->GetClientInfos()) {
@@ -532,6 +554,13 @@ void CGameFramework::AnimateObjects()
 	//m_pPlayer->Animate(fElapsedTime);
 }
 
+void CGameFramework::ProcessCollide()
+{
+	float fElapsedTime = m_GameTimer.GetTimeElapsed();
+
+	if (m_pScene) m_pScene->ProcessCollide(fElapsedTime);
+}
+
 void CGameFramework::WaitForGpuComplete()
 {
 	const UINT64 nFenceValue = ++m_nFenceValues[m_nSwapChainBufferIndex];
@@ -573,6 +602,8 @@ void CGameFramework::FrameAdvance()
 #endif // SINGLE_PLAY
 
 	AnimateObjects();
+
+	ProcessCollide();
 
 	HRESULT hResult = m_d3dCommandAllocator->Reset();
 	hResult = m_d3dCommandList->Reset(m_d3dCommandAllocator.Get(), NULL);
@@ -639,7 +670,7 @@ void CGameFramework::FrameAdvance()
 	m_GameTimer.GetFrameRate(m_pszFrameRate + 15, 37);
 	size_t nLength = _tcslen(m_pszFrameRate);
 	XMFLOAT3 xmf3Position = m_pPlayer->GetPosition();
-	_stprintf_s(m_pszFrameRate + nLength, 70 - nLength, _T("(%4f, %4f, %4f)"), xmf3Position.x, xmf3Position.y, xmf3Position.z);
+	_stprintf_s(m_pszFrameRate + nLength, 70 - nLength, _T("(%4f, %4f, %4f), (%d, %d, %d)"), xmf3Position.x, xmf3Position.y, xmf3Position.z, m_pPlayer->GetFloor(), m_pPlayer->GetWidth(), m_pPlayer->GetDepth());
 	::SetWindowText(m_hWnd, m_pszFrameRate);
 }
 

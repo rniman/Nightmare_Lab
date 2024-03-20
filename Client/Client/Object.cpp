@@ -840,18 +840,6 @@ CGameObject::CGameObject(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd
 
 CGameObject::~CGameObject()
 {
-	//if (m_pMesh) m_pMesh->Release();
-
-	if (m_nMaterials > 0)
-	{
-		//for (int i = 0; i < m_nMaterials; i++)
-		//{
-		//	if (m_vpMaterials[i]) m_vpMaterials[i]->Release();
-		//}
-	}
-	//if (m_vpMaterials) delete[] m_ppMaterials;
-
-	//if (m_pSkinnedAnimationController) delete m_pSkinnedAnimationController;
 }
 
 void CGameObject::SetChild(const shared_ptr<CGameObject>& pChild, bool bReferenceUpdate)
@@ -969,6 +957,15 @@ void CGameObject::Animate(float fElapsedTime)
 
 	if (m_pSibling) m_pSibling->Animate(fElapsedTime);
 	if (m_pChild) m_pChild->Animate(fElapsedTime);
+}
+
+void CGameObject::AnimateOOBB()
+{
+}
+
+void CGameObject::Collide(float fElapsedTime, const shared_ptr<CGameObject>& pGameObject) 
+{
+
 }
 
 void CGameObject::Render(ID3D12GraphicsCommandList* pd3dCommandList)
@@ -1653,6 +1650,7 @@ shared_ptr<CLoadedModelInfo> CGameObject::LoadGeometryAndAnimationFromFile(ID3D1
 	return(pLoadedModel);
 }
 
+
 void CGameObject::LoadBoundingBox(vector<BoundingOrientedBox>& voobbOrigin)
 {
 	if (m_pMesh)
@@ -1697,9 +1695,11 @@ bool CGameObject::CheckPicking(const weak_ptr<CGameObject>& pGameObject, const X
 	//	}
 	//}
 
-	for (auto& oobbOrigin : pCollisionGameObject->GetVectorOOBB())
+	for (auto& oobb : pCollisionGameObject->GetVectorOOBB())
 	{
-		if (oobbOrigin.Intersects(xmvCameraOrigin, xmvPickDirection, fDistance))
+		XMFLOAT4X4 xmf4x4ToModel = Matrix4x4::Inverse(pCollisionGameObject->m_xmf4x4ToParent);
+		XMMATRIX mtxToModel =  XMLoadFloat4x4(&xmf4x4ToModel);
+		if (oobb.Intersects(xmvCameraOrigin, xmvPickDirection, fDistance))
 		{
 			return true;
 		}

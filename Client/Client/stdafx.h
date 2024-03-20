@@ -182,6 +182,13 @@ namespace Vector3
 		return(::IsZero(xmf3Result.x));
 	}
 
+	inline bool IsZero(const XMFLOAT3& xmf3Vector)
+	{
+		XMFLOAT3 xmf3Result;
+		XMStoreFloat3(&xmf3Result, XMVector3Length(XMLoadFloat3(&xmf3Vector)));
+		return(::IsZero(xmf3Result.x));
+	}
+
 	inline float Angle(XMVECTOR& xmvVector1, XMVECTOR& xmvVector2)
 	{
 		XMVECTOR xmvAngle = XMVector3AngleBetweenNormals(xmvVector1, xmvVector2);

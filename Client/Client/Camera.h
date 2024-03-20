@@ -117,6 +117,7 @@ public:
 	CFirstPersonCamera(const shared_ptr<CCamera>& pCamera);
 	virtual ~CFirstPersonCamera() { }
 
+	virtual void Update(XMFLOAT3& xmf3LookAt, float fElapsedTime);
 	virtual void Rotate(float fPitch = 0.0f, float fYaw = 0.0f, float fRoll = 0.0f);
 };
 

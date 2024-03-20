@@ -28,21 +28,25 @@ public:
 	void Rotate(float x, float y, float z);
 
 	virtual void Update(float fElapsedTime);
+	virtual void CalculateSpace();
 
 	virtual void CreateShaderVariables(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dCommandList);
 	virtual void ReleaseShaderVariables();
 	virtual void UpdateShaderVariables(ID3D12GraphicsCommandList* pd3dCommandList);
 
-	virtual void OnPrepareRender();
+	virtual void OnUpdateToParent();
 	virtual void Animate(float fElapsedTime);
+	virtual void AnimateOOBB() override;
+	virtual void Collide(float fElapsedTime, const shared_ptr<CGameObject>& pCollidedObject) override;
 	virtual void Render(ID3D12GraphicsCommandList* pd3dCommandList);
-	//virtual void Render(ID3D12GraphicsCommandList* pd3dCommandList, CCamera* pCamera = NULL);
+
 
 	shared_ptr<CCamera> OnChangeCamera(DWORD nNewCameraMode, DWORD nCurrentCameraMode);
 	virtual shared_ptr<CCamera> ChangeCamera(DWORD nNewCameraMode, float fElapsedTime);
 
 	// Interface
 	XMFLOAT3 GetPosition() const { return m_xmf3Position; }
+	XMFLOAT3 GetOldPosition() const { return m_xmf3OldPosition; }
 	XMFLOAT3 GetLookVector() const { return(m_xmf3Look); }
 	XMFLOAT3 GetUpVector() const { return(m_xmf3Up); }
 	XMFLOAT3 GetRightVector() const { return(m_xmf3Right); }
@@ -70,12 +74,22 @@ public:
 	shared_ptr<CCamera> GetCamera() { return m_pCamera; }
 	void SetCamera(shared_ptr<CCamera> pCamera) { m_pCamera = pCamera; }
 
+	// Picking
 	void SetPickedObject(int nx, int ny, CScene* pScene);
 	weak_ptr<CGameObject> GetPickedObject() { return m_pPickedObject; }
 	virtual void UpdatePicking() override {};
-
 	virtual void UseItem(int nSlot) {};
+
+	int GetFloor() const { return m_nFloor; }
+	int GetWidth() const { return m_nWidth; }
+	int GetDepth() const { return m_nDepth; }
 protected:
+	DWORD m_dwDirection;
+	int m_nFloor = 0;
+	int m_nWidth = 0;
+	int m_nDepth = 0;
+
+	XMFLOAT3					m_xmf3OldPosition = XMFLOAT3(0.0f, 0.0f, 0.0f);
 	XMFLOAT3					m_xmf3Position = XMFLOAT3(0.0f, 0.0f, 0.0f);
 	XMFLOAT3					m_xmf3Right = XMFLOAT3(1.0f, 0.0f, 0.0f);
 	XMFLOAT3					m_xmf3Up = XMFLOAT3(0.0f, 1.0f, 0.0f);
@@ -87,6 +101,7 @@ protected:
 	float           			m_fYaw = 0.0f;
 	float           			m_fRoll = 0.0f;
 
+	XMFLOAT3					m_xmf3OldVelocity = XMFLOAT3(0.0f, 0.0f, 0.0f);	// 이동시 적용된 속력 저장
 	XMFLOAT3					m_xmf3Velocity = XMFLOAT3(0.0f, 0.0f, 0.0f);
 	XMFLOAT3     				m_xmf3Gravity = XMFLOAT3(0.0f, 0.0f, 0.0f);
 	float           			m_fMaxVelocityXZ = 0.0f;
