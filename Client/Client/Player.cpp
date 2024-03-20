@@ -254,20 +254,17 @@ void CPlayer::AnimateOOBB()
 
 void CPlayer::Collide(float fElapsedTime, const shared_ptr<CGameObject>& pCollidedObject)
 {
+	XMFLOAT3 xmf3Velocity;
+	XMFLOAT3 xmf3NormalOfVelocity = Vector3::Normalize(m_xmf3Velocity);
 	if (Vector3::IsZero(m_xmf3Velocity))
-		return;
+	{
+		xmf3NormalOfVelocity = Vector3::Normalize(m_xmf3OldVelocity);
+	}
 
 	XMFLOAT3 xmf3OldPosition = m_xmf3OldPosition;
 	bool bCollision = false;
 
 	BoundingBox aabbPlayer;
-
-	m_xmf3Position = m_xmf3OldPosition;
-	CalculateSpace();
-
-	XMFLOAT3 xmf3Velocity;
-
-	XMFLOAT3 xmf3NormalOfVelocity = Vector3::Normalize(m_xmf3Velocity);
 
 	XMFLOAT3 xmf3SubVelocity[3];
 	xmf3SubVelocity[0] = XMFLOAT3(xmf3NormalOfVelocity.x, 0.0f, xmf3NormalOfVelocity.z);
@@ -290,6 +287,9 @@ void CPlayer::Collide(float fElapsedTime, const shared_ptr<CGameObject>& pCollid
 
 	for (int k = 0; k < 3; ++k)
 	{
+		m_xmf3Position = xmf3OldPosition;
+		CalculateSpace();
+
 		bCollision = false;
 		xmf3SubVelocity[k] = Vector3::ScalarProduct(xmf3SubVelocity[k], Vector3::Length(xmf3ResultVelocity), false);
 		Move(xmf3SubVelocity[k], false);
@@ -325,7 +325,7 @@ void CPlayer::Collide(float fElapsedTime, const shared_ptr<CGameObject>& pCollid
 						XMStoreFloat4(&oobb.Orientation, XMQuaternionNormalize(XMLoadFloat4(&oobb.Orientation)));
 
 						if (oobb.Intersects(aabbPlayer))
-						{
+						{ 
 							bCollision = true;
 							break;
 						}
@@ -340,12 +340,12 @@ void CPlayer::Collide(float fElapsedTime, const shared_ptr<CGameObject>& pCollid
 		}
 		if (!bCollision)
 		{
-			//m_xmf3OldVelocity = xmf3SubVelocity[k];
+			if(!Vector3::IsZero(xmf3SubVelocity[k]))
+			{
+				m_xmf3OldVelocity = xmf3SubVelocity[k];
+			}
 			break;
 		}
-
-		m_xmf3Position = xmf3OldPosition;
-		CalculateSpace();
 	}
 	
 	if (bCollision)
