@@ -256,13 +256,13 @@ void CPlayer::Collide(float fElapsedTime, const shared_ptr<CGameObject>& pCollid
 {
 	XMFLOAT3 xmf3Velocity;
 	XMFLOAT3 xmf3NormalOfVelocity = Vector3::Normalize(m_xmf3Velocity);
-	if (Vector3::IsZero(m_xmf3Velocity))
-	{
-		xmf3NormalOfVelocity = Vector3::Normalize(m_xmf3OldVelocity);
-	}
+	//if (Vector3::IsZero(m_xmf3Velocity))
+	//{
+	//	xmf3NormalOfVelocity = Vector3::Normalize(m_xmf3OldVelocity);
+	//}
 
 	XMFLOAT3 xmf3OldPosition = m_xmf3OldPosition;
-	bool bCollision = false;
+	m_bCollision = false;
 
 	BoundingBox aabbPlayer;
 
@@ -290,7 +290,7 @@ void CPlayer::Collide(float fElapsedTime, const shared_ptr<CGameObject>& pCollid
 		m_xmf3Position = xmf3OldPosition;
 		CalculateSpace();
 
-		bCollision = false;
+		m_bCollision = false;
 		xmf3SubVelocity[k] = Vector3::ScalarProduct(xmf3SubVelocity[k], Vector3::Length(xmf3ResultVelocity), false);
 		Move(xmf3SubVelocity[k], false);
 		m_pCamera->Move(Vector3::ScalarProduct(xmf3SubVelocity[k], -1.0f, false));
@@ -301,9 +301,9 @@ void CPlayer::Collide(float fElapsedTime, const shared_ptr<CGameObject>& pCollid
 		XMVECTOR xmvTranslation = XMVectorSet(m_xmf3Position.x, m_xmf3Position.y, m_xmf3Position.z, 1.0f);
 		aabbPlayer.Transform(aabbPlayer, 1.0f, XMQuaternionIdentity(), xmvTranslation);
 
-		for (int i = m_nWidth - 1; i <= m_nWidth + 1 && !bCollision; ++i)
+		for (int i = m_nWidth - 1; i <= m_nWidth + 1 && !m_bCollision; ++i)
 		{
-			for (int j = m_nDepth - 1; j <= m_nDepth + 1 && !bCollision; ++j)
+			for (int j = m_nDepth - 1; j <= m_nDepth + 1 && !m_bCollision; ++j)
 			{
 				if (i < 0 || i >= g_collisonManager.GetWidth() || j < 0 || j >= g_collisonManager.GetDepth())
 				{
@@ -326,19 +326,19 @@ void CPlayer::Collide(float fElapsedTime, const shared_ptr<CGameObject>& pCollid
 
 						if (oobb.Intersects(aabbPlayer))
 						{ 
-							bCollision = true;
+							m_bCollision = true;
 							break;
 						}
 					}
 
-					if (bCollision)
+					if (m_bCollision)
 					{
 						break;
 					}
 				}
 			}
 		}
-		if (!bCollision)
+		if (!m_bCollision)
 		{
 			if(!Vector3::IsZero(xmf3SubVelocity[k]))
 			{
@@ -348,9 +348,10 @@ void CPlayer::Collide(float fElapsedTime, const shared_ptr<CGameObject>& pCollid
 		}
 	}
 	
-	if (bCollision)
+	if (m_bCollision)
 	{
 		m_xmf3Position = m_xmf3OldPosition = xmf3OldPosition;
+		//m_xmf3Velocity = XMFLOAT3(0.0f, 0.0f, 0.0f);
 		CalculateSpace();
 	}
 

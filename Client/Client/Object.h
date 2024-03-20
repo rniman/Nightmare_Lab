@@ -1,6 +1,7 @@
 #pragma once
 #include "Mesh.h"
 #include "Camera.h"
+#include "Collision.h"
 
 struct MATERIAL
 {
@@ -85,13 +86,6 @@ class CMaterial
 public:
 	CMaterial(int nTextures);
 	virtual ~CMaterial();
-
-private:
-//	int	m_nReferences = 0;
-//
-//public:
-//	void AddRef() { m_nReferences++; }
-//	void Release() { if (--m_nReferences <= 0) delete this; }
 
 public:
 	static vector<shared_ptr<CTexture>> m_vTextureContainer;
@@ -426,6 +420,7 @@ public:
 
 	virtual void SetOOBB() {};
 	virtual void AnimateOOBB();;
+	void AddOOBB(const vector<XMFLOAT3>& vxmf3Center, const vector<XMFLOAT3>& vxmf3Extents);
 	BoundingOrientedBox GetOOBB(int nIndex) const { return m_voobbOrigin[nIndex]; };
 	vector<BoundingOrientedBox> GetVectorOOBB() const { return m_voobbOrigin; };
 

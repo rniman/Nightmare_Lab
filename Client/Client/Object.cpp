@@ -808,6 +808,11 @@ CGameObject::CGameObject(char* pstrFrameName, XMFLOAT4X4& xmf4x4World, CMesh* pM
 	m_xmf4x4World = xmf4x4World;
 	strcpy(m_pstrFrameName, pstrFrameName);
 	
+	if (!pMesh)
+	{
+		return;
+	}
+
 	for (const auto& oobb : pMesh->GetVectorOOBB())
 	{
 		m_voobbOrigin.push_back(oobb);
@@ -961,6 +966,18 @@ void CGameObject::Animate(float fElapsedTime)
 
 void CGameObject::AnimateOOBB()
 {
+}
+
+void CGameObject::AddOOBB(const vector<XMFLOAT3>& vxmf3Center, const vector<XMFLOAT3>& vxmf3Extents)
+{
+	for (int i = 0; i < vxmf3Center.size(); ++i)
+	{
+		BoundingOrientedBox oobbOrigin;
+		oobbOrigin.Center = vxmf3Center[i];
+		oobbOrigin.Extents = vxmf3Extents[i];
+
+		m_voobbOrigin.push_back(oobbOrigin);
+	}
 }
 
 void CGameObject::Collide(float fElapsedTime, const shared_ptr<CGameObject>& pGameObject) 
@@ -1463,6 +1480,36 @@ shared_ptr<CGameObject> CGameObject::LoadInstanceFrameHierarchyFromFile(ID3D12De
 			pMesh->LoadMeshFromFile(pd3dDevice, pd3dCommandList, pInFile, pGameObject);
 			//pMesh->m_pOriginInstance = pGameObject;
 			pGameObject->SetMesh(pMesh);
+		}
+		else if (!strcmp(pstrToken, "<BoxColliders>:"))
+		{
+			vector<XMFLOAT3> vxmf3AABBCenter, vxmf3AABBExtents;
+			int nBoundingBox = ::ReadIntegerFromFile(pInFile);
+			for (int i = 0; i < nBoundingBox; ++i)
+			{
+				int nIndex = 0;
+				XMFLOAT3 xmf3AABBCenter, xmf3AABBExtents;
+				::ReadStringFromFile(pInFile, pstrToken); // Bound
+				nReads = fread(&nIndex, sizeof(int), 1, pInFile);
+				nReads = (UINT)::fread(&xmf3AABBCenter, sizeof(XMFLOAT3), 1, pInFile);
+				nReads = (UINT)::fread(&xmf3AABBExtents, sizeof(XMFLOAT3), 1, pInFile);
+				vxmf3AABBCenter.push_back(xmf3AABBCenter);
+				vxmf3AABBExtents.push_back(xmf3AABBExtents);
+			}
+			int nChild = 0;
+			::fread(&nChild, sizeof(int), 1, pInFile);
+			XMFLOAT4X4* pxmf4x4InstanceTransformMatrix = new XMFLOAT4X4[nChild];
+			nReads = (UINT)::fread(pxmf4x4InstanceTransformMatrix, sizeof(XMFLOAT4X4), nChild, pInFile);
+			for (int i = 0; i < nChild; ++i)
+			{
+				char pFrameName[] = "Wall_BoundingBox";
+				XMFLOAT4X4 xmf4x4TranposeMatrix = Matrix4x4::Transpose(pxmf4x4InstanceTransformMatrix[i]);
+				shared_ptr<CGameObject> pBoundinBoxObject = make_shared<CGameObject>(pFrameName, xmf4x4TranposeMatrix, nullptr);
+				pBoundinBoxObject->AddOOBB(vxmf3AABBCenter, vxmf3AABBExtents);
+				pGameObject->m_vInstanceObjectInfo.push_back(pBoundinBoxObject);
+				g_collisonManager.AddCollisionObject(pBoundinBoxObject);
+			}
+			delete[] pxmf4x4InstanceTransformMatrix;
 		}
 		else if (!strcmp(pstrToken, "<SkinningInfo>:"))
 		{

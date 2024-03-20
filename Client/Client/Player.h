@@ -84,7 +84,7 @@ public:
 	int GetWidth() const { return m_nWidth; }
 	int GetDepth() const { return m_nDepth; }
 protected:
-	DWORD m_dwDirection;
+	bool m_bCollision = false;
 	int m_nFloor = 0;
 	int m_nWidth = 0;
 	int m_nDepth = 0;
