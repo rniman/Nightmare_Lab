@@ -677,8 +677,8 @@ void CGameFramework::FrameAdvance()
 	_stprintf_s(m_pszFrameRate + nLength, 70 - nLength, _T("(%4f, %4f, %4f), (%d, %d, %d)"), xmf3Position.x, xmf3Position.y, xmf3Position.z, m_pPlayer->GetFloor(), m_pPlayer->GetWidth(), m_pPlayer->GetDepth());
 	::SetWindowText(m_hWnd, m_pszFrameRate);
 
-	char buf[256];
-	sprintf_s(buf, sizeof(buf), "Debug: %f %f %f\n", xmf3Position.x, xmf3Position.y, xmf3Position.z);
-	OutputDebugStringA(buf);
+	//char buf[256];
+	//sprintf_s(buf, sizeof(buf), "Debug: %f %f %f\n", xmf3Position.x, xmf3Position.y, xmf3Position.z);
+	//OutputDebugStringA(buf);
 }
 

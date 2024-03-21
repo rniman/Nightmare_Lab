@@ -85,7 +85,6 @@ public:
 	XMFLOAT4							m_xmf4GlobalAmbient;
 	void BuildLights();
 
-	shared_ptr<CPlayer>					m_pPlayer;
 	void SetPlayer(shared_ptr<CPlayer> pPlayer);
 
 	//æ¿ ≥ª ø¿∫Í¡ß∆Æ(Ω¶¿Ã¥ı)
