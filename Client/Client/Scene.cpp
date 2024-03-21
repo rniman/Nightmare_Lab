@@ -216,22 +216,25 @@ void CScene::BuildObjects(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* p
 	// 모델 부를때 추가적으로 
 	int nCntCbv = 1 + 1 + 68 +
 				  72 + 2 + 1;
-	// SRV(Default) : 디퍼드렌더링텍스처(4)
+	// SRV(Default) : 디퍼드렌더링텍스처(ADD_RENDERTARGET_COUNT로 정의된 개수임)
 	// SRV(Scene Load) : 79
 	// SRV: Zombie(3), // BlueSuit(6), 육면체(1), 엘런(8(오클루젼맵제거), Desk(3), Door(9), flashLight(3)
-	int nCntSrv = 4 + 79 + 3;
+	int nCntSrv = ADD_RENDERTARGET_COUNT + 79 + 3;
 	CreateCbvSrvDescriptorHeaps(pd3dDevice, nCntCbv, nCntSrv);
 
 	// 쉐이더 vector에 삽입한 순서대로 인덱스 define한 값으로 접근
 	m_vShader.push_back(make_unique<StandardShader>());
-	DXGI_FORMAT pdxgiRtvFormats[4] = { DXGI_FORMAT_R8G8B8A8_UNORM, DXGI_FORMAT_R8G8B8A8_UNORM, DXGI_FORMAT_R8G8B8A8_UNORM, DXGI_FORMAT_R32G32B32A32_FLOAT };
-	m_vShader[STANDARD_SHADER]->CreateShader(pd3dDevice, pd3dCommandList, m_pd3dGraphicsRootSignature.Get(), 4, pdxgiRtvFormats, DXGI_FORMAT_D24_UNORM_S8_UINT);
-
+	DXGI_FORMAT pdxgiRtvFormats[ADD_RENDERTARGET_COUNT] = { DXGI_FORMAT_R8G8B8A8_UNORM, DXGI_FORMAT_R8G8B8A8_UNORM, DXGI_FORMAT_R32_FLOAT , DXGI_FORMAT_R32G32B32A32_FLOAT };
+	m_vShader[STANDARD_SHADER]->CreateShader(pd3dDevice, pd3dCommandList, m_pd3dGraphicsRootSignature.Get(),ADD_RENDERTARGET_COUNT, pdxgiRtvFormats, DXGI_FORMAT_D24_UNORM_S8_UINT);
+	
 	m_vShader.push_back(make_unique<InstanceStandardShader>());
-	m_vShader[INSTANCE_STANDARD_SHADER]->CreateShader(pd3dDevice, pd3dCommandList, m_pd3dGraphicsRootSignature.Get(), 4, pdxgiRtvFormats, DXGI_FORMAT_D24_UNORM_S8_UINT);
-
+	m_vShader[INSTANCE_STANDARD_SHADER]->CreateShader(pd3dDevice, pd3dCommandList, m_pd3dGraphicsRootSignature.Get(), ADD_RENDERTARGET_COUNT, pdxgiRtvFormats, DXGI_FORMAT_D24_UNORM_S8_UINT);
+	
 	m_vShader.push_back(make_unique< CSkinnedAnimationStandardShader>());
-	m_vShader[SKINNEDANIMATION_STANDARD_SHADER]->CreateShader(pd3dDevice, pd3dCommandList, m_pd3dGraphicsRootSignature.Get(), 4, pdxgiRtvFormats, DXGI_FORMAT_D24_UNORM_S8_UINT);
+	m_vShader[SKINNEDANIMATION_STANDARD_SHADER]->CreateShader(pd3dDevice, pd3dCommandList, m_pd3dGraphicsRootSignature.Get(), ADD_RENDERTARGET_COUNT, pdxgiRtvFormats, DXGI_FORMAT_D24_UNORM_S8_UINT);
+
+	m_vForwardRenderShader.push_back(make_unique<TransparentShader>());
+	m_vForwardRenderShader[TRANSPARENT_SHADER]->CreateShader(pd3dDevice, pd3dCommandList, m_pd3dGraphicsRootSignature.Get(), 1, nullptr, DXGI_FORMAT_D24_UNORM_S8_UINT);
 
 	// 육면체 메쉬 - 테스트 용도 목적 ,모델파일을 읽어서 메쉬를 사용하기 때문 
 	//m_vMesh.push_back(make_shared<HexahedronMesh>(pd3dDevice, pd3dCommandList, 10.0f, 10.0f, 10.0f));
@@ -264,6 +267,25 @@ void CScene::BuildObjects(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* p
 	//if (ZombieModel) delete ZombieModel;
 	//if (flashLightModel) delete flashLightModel;
 
+	ifstream is("Asset/Data/투명객체.txt");
+	// 이름 , 재질개수 , 재질인덱스
+	if (!is) {
+		assert(0);
+	}
+	unordered_map<string, vector<int>> transparentObjects;
+
+	string name;
+	while (is >> name)
+	{
+		int count{};
+		is >> count;
+		for (int i = 0; i < count; ++i) {
+			int mtNum;
+			is >> mtNum;
+			transparentObjects[name].push_back(mtNum);
+		}
+	}
+
 	FILE* pInFile = NULL;
 	::fopen_s(&pInFile, (char*)"Asset/Model/Scene.bin", "rb");
 	::rewind(pInFile);
@@ -286,6 +308,12 @@ void CScene::BuildObjects(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* p
 					if(!strcmp(pLoadedModel->m_pModelRootObject->m_pstrFrameName, "Zom_1")) 
 					{ // 씬을 바이너리로 쓸때 스키닝 정보는 넣지 않음(그러므로 이 객체는 정보 x)
 						m_vShader[SKINNEDANIMATION_STANDARD_SHADER]->AddGameObject(pLoadedModel->m_pModelRootObject);
+					}
+					else if (!transparentObjects[pLoadedModel->m_pModelRootObject->m_pstrFrameName].empty()) {
+						pLoadedModel->m_pModelRootObject->SetTransparentObjectInfo(transparentObjects[pLoadedModel->m_pModelRootObject->m_pstrFrameName]);
+						m_vShader[INSTANCE_STANDARD_SHADER]->AddGameObject((pLoadedModel->m_pModelRootObject)); 
+						m_vForwardRenderShader[TRANSPARENT_SHADER]->AddGameObject((pLoadedModel->m_pModelRootObject)); 
+						// 첫번째 쉐이더는 불투명한 재질들만 렌더링, 두번째 쉐이더는 투명한 재질들만 렌더링 분류를 위함이고 마지막에 렌더링해야하기 떄문에 두 쉐이더에 모두 포함한다. 
 					}
 					else 
 					{
@@ -330,8 +358,10 @@ void CScene::AddDefaultObject(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandLis
 	{
 	case ObjectType::DEFAULT:
 		pObject = make_shared<CGameObject>(pd3dDevice, pd3dCommandList, 1);
+		break;
 	case ObjectType::HEXAHERON:
 		pObject = make_shared<CHexahedronObject>(pd3dDevice, pd3dCommandList, 1);
+		break;
 	default:
 		break;
 	}
@@ -343,7 +373,7 @@ void CScene::AddDefaultObject(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandLis
 
 void CScene::BuildLights()
 {
-	m_nLights = 2;
+	m_nLights = 1;
 	m_pLights = new LIGHT[m_nLights];
 	::ZeroMemory(m_pLights, sizeof(LIGHT) * m_nLights);
 
@@ -361,12 +391,6 @@ void CScene::BuildLights()
 	m_pLights[0].m_fFalloff = 1.0f;
 	m_pLights[0].m_fPhi = (float)cos(XMConvertToRadians(30.0f));
 	m_pLights[0].m_fTheta = (float)cos(XMConvertToRadians(15.0f));
-	m_pLights[1].m_bEnable = true;
-	m_pLights[1].m_nType = DIRECTIONAL_LIGHT;
-	m_pLights[1].m_xmf4Ambient = XMFLOAT4(0.3f, 0.3f, 0.3f, 1.0f);
-	m_pLights[1].m_xmf4Diffuse = XMFLOAT4(0.7f, 0.7f, 0.7f, 1.0f);
-	m_pLights[1].m_xmf4Specular = XMFLOAT4(0.4f, 0.4f, 0.4f, 0.0f);
-	m_pLights[1].m_xmf3Direction = XMFLOAT3(1.0f, -1.0f, 0.0f);
 }
 
 void CScene::SetPlayer(shared_ptr<CPlayer> pPlayer)

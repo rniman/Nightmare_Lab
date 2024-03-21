@@ -6,7 +6,9 @@
 #define STANDARD_SHADER 0
 #define INSTANCE_STANDARD_SHADER 1
 #define SKINNEDANIMATION_STANDARD_SHADER 2
+#define TRANSPARENT_SHADER 0 // 투명객체에 대한 쉐이더는 항상 후순위로 배치
 //#define NOTRENDERING_SHADER 3
+
 // m_vMesh 메쉬에 접근할 각 인덱스를 의미
 #define HEXAHEDRONMESH 0
 
@@ -85,8 +87,8 @@ public:
 	void SetPlayer(shared_ptr<CPlayer> pPlayer);
 
 	//씬 내 오브젝트(쉐이더)
-	vector<unique_ptr<CShader>>			m_vShader;
-
+	vector<unique_ptr<CShader>> m_vShader;
+	vector<unique_ptr<CShader>> m_vForwardRenderShader;
 	//메쉬 저장
 	vector<shared_ptr<CMesh>>			m_vMesh;
 
