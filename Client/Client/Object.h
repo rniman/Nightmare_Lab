@@ -356,7 +356,10 @@ public:
 	virtual void Animate(float fElapsedTime);
 	virtual void Collide(float fElapsedTime, const shared_ptr<CGameObject>& pCollidedObject);
 	virtual void Render(ID3D12GraphicsCommandList* pd3dCommandList);
-	//virtual void Render(ID3D12GraphicsCommandList* pd3dCommandList, CCamera* pCamera);
+	//불투명한 재질의 메쉬만 렌더링
+	virtual void RenderOpaque(ID3D12GraphicsCommandList* pd3dCommandList);
+	//투명한 재질의 메쉬만 렌더링
+	virtual void RenderTransparent(ID3D12GraphicsCommandList* pd3dCommandList);
 
 	virtual void CreateShaderVariables(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dCommandList);
 	virtual void UpdateShaderVariables(ID3D12GraphicsCommandList* pd3dCommandList);
@@ -434,6 +437,7 @@ public:
 	virtual void UpdateUsing(const shared_ptr<CGameObject>& pGameObject) {};
 
 	int GetCollisionType() const { return m_nCollisionType; }
+	void SetTransparentObjectInfo(vector<int> vNumbers);
 public:
 	//중복된 메쉬를 없애기 위해 최초 메쉬들을 이곳에 저장한다.
 	static vector<shared_ptr<CMesh>> m_vMeshContainer;
@@ -459,6 +463,9 @@ public:
 	shared_ptr<CAnimationController> m_pSkinnedAnimationController;
 
 	vector<BoundingOrientedBox> m_voobbOrigin;
+	// 투명 오브젝트 분류
+	bool m_bThisContainTransparent = false;
+	vector<int> m_vTransparentMaterialNumbers;
 	bool m_bCollsion = true;
 	int m_nCollisionType = 0; // 0:None, 1:Standard, 2:Picking
 };

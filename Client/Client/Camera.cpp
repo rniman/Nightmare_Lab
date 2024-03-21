@@ -47,7 +47,7 @@ CCamera::CCamera(const shared_ptr<CCamera>& pCamera)
 		m_nMode = 0x00;
 
 		m_xmf4FogColor = XMFLOAT4(0.1f, 0.1f, 0.1f, 1.0f);
-		m_xmf4FogInfo = XMFLOAT4(5.0f, 10.0f, 0.2f, 1.0f);
+		m_xmf4FogInfo = XMFLOAT4(5.0f, 1.0f, 0.02f, 1.0f);
 	}
 }
 
@@ -139,7 +139,9 @@ void CCamera::UpdateShaderVariables(ID3D12GraphicsCommandList* pd3dCommandList)
 
 void CCamera::ReleaseShaderVariables()
 {
-
+	if (m_pd3dcbCamera.Get()) { // ComPtr을 사용하더라도 Unmap을 해주어야 메모리 누수 x
+		m_pd3dcbCamera.Get()->Unmap(0, NULL);
+	}
 }
 
 void CCamera::SetViewportsAndScissorRects(ID3D12GraphicsCommandList* pd3dCommandList)

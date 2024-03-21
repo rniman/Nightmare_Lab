@@ -3,7 +3,6 @@
 #include "Shader.h"
 #include "Scene.h"
 
-
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 //
 CTexture::CTexture(int nTextures, UINT nTextureType, int nSamplers, int nRootParameters)
@@ -266,7 +265,7 @@ void CMaterial::UpdateShaderVariable(ID3D12GraphicsCommandList* pd3dCommandList,
 	for (int i = 0; i < m_nTextures; i++)
 	{
 		if (m_vpTextures[i]) m_vpTextures[i]->UpdateShaderVariables(pd3dCommandList);
-		//		if (m_vpTextures[i]) m_vpTextures[i]->UpdateShaderVariable(pd3dCommandList, 0, 0);
+		//		if (m_vpTextures[subMeshIndex]) m_vpTextures[subMeshIndex]->UpdateShaderVariable(pd3dCommandList, 0, 0);
 	}
 }
 
@@ -399,7 +398,7 @@ CAnimationSet::CAnimationSet(float fLength, int nFramesPerSecond, int nKeyFrames
 	}
 
 	//m_ppxmf4x4KeyFrameTransforms = new XMFLOAT4X4 * [nKeyFrames];
-	//for (int i = 0; i < nKeyFrames; i++) m_ppxmf4x4KeyFrameTransforms[i] = new XMFLOAT4X4[nAnimatedBones];
+	//for (int subMeshIndex = 0; subMeshIndex < nKeyFrames; subMeshIndex++) m_ppxmf4x4KeyFrameTransforms[subMeshIndex] = new XMFLOAT4X4[nAnimatedBones];
 #endif
 }
 
@@ -491,7 +490,7 @@ CAnimationSets::CAnimationSets(int nAnimationSets)
 
 CAnimationSets::~CAnimationSets()
 {
-	//for (int i = 0; i < m_nAnimationSets; i++) if (m_pAnimationSets[i]) delete m_pAnimationSets[i];
+	//for (int subMeshIndex = 0; subMeshIndex < m_nAnimationSets; subMeshIndex++) if (m_pAnimationSets[subMeshIndex]) delete m_pAnimationSets[subMeshIndex];
 	//if (m_pAnimationSets) delete[] m_pAnimationSets;
 
 	//if (m_vpBoneFrameCaches) delete[] m_vpBoneFrameCaches;
@@ -988,27 +987,85 @@ void CGameObject::Collide(float fElapsedTime, const shared_ptr<CGameObject>& pGa
 void CGameObject::Render(ID3D12GraphicsCommandList* pd3dCommandList)
 {
 	if (m_pSkinnedAnimationController) m_pSkinnedAnimationController->UpdateShaderVariables(pd3dCommandList);
-
+	
 	if (m_pMesh)
 	{
 		if (m_nMaterials > 0)
 		{
-			for (int i = 0; i < m_nMaterials; i++)
+			for (int subMeshIndex = 0; subMeshIndex < m_nMaterials; subMeshIndex++)
 			{
-				if (m_vpMaterials[i])
+				if (m_vpMaterials[subMeshIndex])
 				{
-					m_vpMaterials[i]->UpdateShaderVariable(pd3dCommandList, m_cbMappedObject);
+					m_vpMaterials[subMeshIndex]->UpdateShaderVariable(pd3dCommandList, m_cbMappedObject);
 				}
 
 				UpdateShaderVariable(pd3dCommandList, &m_xmf4x4World);
 
-				m_pMesh->Render(pd3dCommandList, i);
+				m_pMesh->Render(pd3dCommandList, subMeshIndex);
 			}
 		}
 	}
 
 	if (m_pSibling) m_pSibling->Render(pd3dCommandList);
 	if (m_pChild) m_pChild->Render(pd3dCommandList);
+}
+
+void CGameObject::RenderOpaque(ID3D12GraphicsCommandList* pd3dCommandList)
+{
+	if (m_pSkinnedAnimationController) m_pSkinnedAnimationController->UpdateShaderVariables(pd3dCommandList);
+
+	if (m_pMesh)
+	{
+		if (m_nMaterials > 0)
+		{
+			for (int subMeshIndex = 0; subMeshIndex < m_nMaterials; subMeshIndex++)
+			{
+				if (find(m_vTransparentMaterialNumbers.begin(), m_vTransparentMaterialNumbers.end(), subMeshIndex) != m_vTransparentMaterialNumbers.end()) {
+					continue;
+				}
+				if (m_vpMaterials[subMeshIndex])
+				{
+					m_vpMaterials[subMeshIndex]->UpdateShaderVariable(pd3dCommandList, m_cbMappedObject);
+				}
+
+				UpdateShaderVariable(pd3dCommandList, &m_xmf4x4World);
+
+				m_pMesh->Render(pd3dCommandList, subMeshIndex);
+			}
+		}
+	}
+
+	if (m_pSibling) m_pSibling->RenderOpaque(pd3dCommandList);
+	if (m_pChild) m_pChild->RenderOpaque(pd3dCommandList);
+}
+
+void CGameObject::RenderTransparent(ID3D12GraphicsCommandList* pd3dCommandList)
+{
+	if (m_pSkinnedAnimationController) m_pSkinnedAnimationController->UpdateShaderVariables(pd3dCommandList);
+
+	if (m_pMesh)
+	{
+		if (m_nMaterials > 0)
+		{
+			for (int subMeshIndex = 0; subMeshIndex < m_nMaterials; subMeshIndex++)
+			{
+				if (find(m_vTransparentMaterialNumbers.begin(), m_vTransparentMaterialNumbers.end(), subMeshIndex) == m_vTransparentMaterialNumbers.end()) {
+					continue;
+				}
+				if (m_vpMaterials[subMeshIndex])
+				{
+					m_vpMaterials[subMeshIndex]->UpdateShaderVariable(pd3dCommandList, m_cbMappedObject);
+				}
+
+				UpdateShaderVariable(pd3dCommandList, &m_xmf4x4World);
+
+				m_pMesh->Render(pd3dCommandList, subMeshIndex);
+			}
+		}
+	}
+
+	if (m_pSibling) m_pSibling->RenderTransparent(pd3dCommandList);
+	if (m_pChild) m_pChild->RenderTransparent(pd3dCommandList);
 }
 
 void CGameObject::CreateShaderVariables(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dCommandList)
@@ -1214,7 +1271,7 @@ void CGameObject::LoadMaterialsFromFile(ID3D12Device* pd3dDevice, ID3D12Graphics
 	for (int i = 0; i < m_nMaterials; i++)
 	{
 		m_vpMaterials.emplace_back();
-		//m_vpMaterials[i] = NULL;
+		//m_vpMaterials[subMeshIndex] = NULL;
 	}
 
 	shared_ptr<CMaterial> pMaterial;
@@ -1622,7 +1679,7 @@ void CGameObject::LoadAnimationFromFile(FILE* pInFile, const shared_ptr<CLoadedM
 				{
 					shared_ptr<CAnimationSet> pAnimationSet = pLoadedModel->m_pAnimationSets->m_vpAnimationSets[nAnimationSet];
 
-					int nKey = ::ReadIntegerFromFile(pInFile); //i
+					int nKey = ::ReadIntegerFromFile(pInFile); //subMeshIndex
 					float fKeyTime = ::ReadFloatFromFile(pInFile);
 
 #ifdef _WITH_ANIMATION_SRT
@@ -1636,7 +1693,7 @@ void CGameObject::LoadAnimationFromFile(FILE* pInFile, const shared_ptr<CLoadedM
 					pAnimationSet->m_vfKeyFrameTimes[i] = fKeyTime;
 					//for (int j = 0; j < pLoadedModel->m_pAnimationSets->m_nBoneFrames; ++j)
 					//{
-					//	nReads = (UINT)::fread(&pAnimationSet->m_vvxmf4x4KeyFrameTransforms[i][j], sizeof(XMFLOAT4X4), 1, pInFile);
+					//	nReads = (UINT)::fread(&pAnimationSet->m_vvxmf4x4KeyFrameTransforms[subMeshIndex][j], sizeof(XMFLOAT4X4), 1, pInFile);
 					//}
 
 					nReads = (UINT)::fread(pAnimationSet->m_vvxmf4x4KeyFrameTransforms[i].data(), sizeof(XMFLOAT4X4), pLoadedModel->m_pAnimationSets->m_nBoneFrames, pInFile);
@@ -1773,6 +1830,19 @@ bool CGameObject::CheckPicking(const weak_ptr<CGameObject>& pGameObject, const X
 	//}
 
 	return false;
+}
+
+void CGameObject::SetTransparentObjectInfo(vector<int> vNumbers)
+{
+	m_bThisContainTransparent = true;
+	m_vTransparentMaterialNumbers = vNumbers;
+
+	if (m_pSibling) {
+		m_pSibling->SetTransparentObjectInfo(vNumbers);
+	}
+	if (m_pChild) {
+		m_pChild->SetTransparentObjectInfo(vNumbers);
+	}
 }
 
 CHexahedronObject::CHexahedronObject(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dCommandList, int nMaterials) 

@@ -22,6 +22,11 @@ cbuffer cbGameObjectInfo : register(b1)
     uint gnTexturesMask : packoffset(c8);
 };
 
+#define FRAME_BUFFER_WIDTH 1600
+#define FRAME_BUFFER_HEIGHT 1024
+
+#include "Light.hlsl"
+
 Texture2D AlbedoTexture : register(t0);
 Texture2D SpecularTexture : register(t1);
 Texture2D NormalTexture : register(t2);
@@ -30,7 +35,8 @@ Texture2D EmissionTexture : register(t4);
 
 Texture2D DFTextureTexture : register(t5);
 Texture2D DFNormalTexture : register(t6);
-Texture2D DFzDepthTexture : register(t7);
+Texture2D<float> DFzDepthTexture : register(t7);
+Texture2D DFPositionTexture : register(t8);
 
 SamplerState gssWrap : register(s0);
 
@@ -140,9 +146,9 @@ struct PS_MULTIPLE_RENDER_TARGETS_OUTPUT
 {    
     float4 cTexture : SV_TARGET0;
     float4 normal : SV_TARGET1;
-    float4 zDepth : SV_TARGET2;
+    float zDepth : SV_TARGET2;
+    float4 position : SV_Target3;
 };
-
 
 PS_MULTIPLE_RENDER_TARGETS_OUTPUT PSStandard(VS_STANDARD_OUTPUT input)
 {
@@ -170,7 +176,7 @@ PS_MULTIPLE_RENDER_TARGETS_OUTPUT PSStandard(VS_STANDARD_OUTPUT input)
     if (gnTexturesMask & MATERIAL_EMISSION_MAP)
         cEmissionColor = EmissionTexture.Sample(gssWrap, input.uv);
     
-    float4 cColor = cAlbedoColor + cSpecularColor + cMetallicColor + cEmissionColor;
+    float4 cColor = (cAlbedoColor * 0.7f) + (cSpecularColor * 0.2f) + (cMetallicColor * 0.05f) + (cEmissionColor * 0.05f);
     
     float3 vCameraPosition = gvCameraPosition.xyz;
     float3 vPostionToCamera = vCameraPosition - input.positionW;
@@ -185,6 +191,7 @@ PS_MULTIPLE_RENDER_TARGETS_OUTPUT PSStandard(VS_STANDARD_OUTPUT input)
     input.normalW = normalize(input.normalW);
     output.normal = float4(input.normalW.xyz * 0.5f + 0.5f, 1.0f);
     output.zDepth = input.position.z;
+    output.position = float4(input.positionW, 1.0f);
     
     return output;
 }
@@ -236,6 +243,8 @@ VS_STANDARD_OUTPUT VSSkinnedAnimationStandard(VS_SKINNED_STANDARD_INPUT input)
     return (output);
 }
 
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+//
 struct PS_POSTPROCESSING_OUT
 {
     float4 position : SV_Position;
@@ -283,6 +292,55 @@ PS_POSTPROCESSING_OUT VSPostProcessing(uint nVertexID : SV_VertexID)
 float4 PSPostProcessing(PS_POSTPROCESSING_OUT input) : SV_Target
 {
     float4 cColor = DFTextureTexture.Sample(gssWrap, input.uv);
+    float3 normal = DFNormalTexture.Sample(gssWrap, input.uv);
+    float4 position = DFPositionTexture.Sample(gssWrap, input.uv);
+    float depth =  DFzDepthTexture.Sample(gssWrap, input.uv);
+    //return float4(depth, depth, depth, 1.0f);
     
+    normal = (normal.xyz - 0.5f) / 0.5f; // 노말 렌더링으로 확인해볼수 있는 문제가 있으므로 일단 최종렌더링에서 변환작업함.
+    
+    float light = Lighting(position, normal);
+    
+    return (cColor * light);
+}
+
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+//
+float4 PSTransparent(VS_STANDARD_OUTPUT input) : SV_Target
+{
+    float4 cAlbedoColor = float4(0.0f, 0.0f, 0.0f, 1.0f);
+    float4 cSpecularColor = float4(0.0f, 0.0f, 0.0f, 1.0f);
+    float4 cNormalColor = float4(0.0f, 0.0f, 0.0f, 1.0f);
+    float4 cMetallicColor = float4(0.0f, 0.0f, 0.0f, 1.0f);
+    float4 cEmissionColor = float4(0.0f, 0.0f, 0.0f, 1.0f);
+    
+    if (gnTexturesMask & MATERIAL_ALBEDO_MAP)
+        cAlbedoColor = AlbedoTexture.Sample(gssWrap, input.uv);
+    if (gnTexturesMask & MATERIAL_SPECULAR_MAP)
+        cSpecularColor = SpecularTexture.Sample(gssWrap, input.uv);
+    if (gnTexturesMask & MATERIAL_NORMAL_MAP)
+        cNormalColor = NormalTexture.Sample(gssWrap, input.uv);
+    if (gnTexturesMask & MATERIAL_METALLIC_MAP)
+        cMetallicColor = MetallicTexture.Sample(gssWrap, input.uv);
+    if (gnTexturesMask & MATERIAL_EMISSION_MAP)
+        cEmissionColor = EmissionTexture.Sample(gssWrap, input.uv);
+    
+    float4 cColor = (cAlbedoColor * 0.7f) + (cSpecularColor * 0.2f) + (cMetallicColor * 0.05f) + (cEmissionColor * 0.05f);
+    
+    float3 vCameraPosition = gvCameraPosition.xyz;
+    float3 vPostionToCamera = vCameraPosition - input.positionW;
+    float fDistanceToCamera = length(vPostionToCamera);
+    
+    float fFogFactor = saturate(1.0f / pow(gvfFogInfo.y + gvfFogInfo.x, pow(fDistanceToCamera * gvfFogInfo.z, 2)));
+    cColor = lerp(gvFogColor, cColor, fFogFactor);
+    
+    float2 uvP = input.position.xy / float2(FRAME_BUFFER_WIDTH, FRAME_BUFFER_HEIGHT);
+    float depth = DFzDepthTexture.Sample(gssWrap,uvP);
+    clip(depth.x - input.position.z);
+    
+    float4 light = Lighting(input.positionW, input.normalW);
+    
+    cColor = (light * cColor);
+    cColor.w *= 0.5f; // 알파값 조절 
     return cColor;
 }

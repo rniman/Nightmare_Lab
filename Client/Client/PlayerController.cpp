@@ -19,10 +19,10 @@ CBlueSuitAnimationController::CBlueSuitAnimationController(ID3D12Device* pd3dDev
 	m_vAnimationTransitions[2].SetTransitionAnimationTrack(1, 2);	// w -> r
 	m_vAnimationTransitions[3].SetTransitionAnimationTrack(2, 1);	// r -> w
 
-	m_vAnimationTransitions[0].SetAnimationTransition(0.01, 0.0f, 0.25f);
-	m_vAnimationTransitions[1].SetAnimationTransition(0.5, 0.0f, 0.25f);
-	m_vAnimationTransitions[2].SetAnimationTransition(0.1, 0.0f, 0.25f);
-	m_vAnimationTransitions[3].SetAnimationTransition(0.1, 0.0f, 0.25f);
+	m_vAnimationTransitions[0].SetAnimationTransition(0.01f, 0.0f, 0.25f);
+	m_vAnimationTransitions[1].SetAnimationTransition(0.5f, 0.0f, 0.25f);
+	m_vAnimationTransitions[2].SetAnimationTransition(0.1f, 0.0f, 0.25f);
+	m_vAnimationTransitions[3].SetAnimationTransition(0.1f, 0.0f, 0.25f);
 
 	m_bTransition = false;
 	m_nNowState = PlayerState::IDLE;
@@ -308,8 +308,8 @@ CZombieAnimationController::CZombieAnimationController(ID3D12Device* pd3dDevice,
 	m_vAnimationTransitions[0].SetTransitionAnimationTrack(0, 1);	// i -> w
 	m_vAnimationTransitions[1].SetTransitionAnimationTrack(1, 0);	// w -> i
 
-	m_vAnimationTransitions[0].SetAnimationTransition(0.01, 0.0f, 0.25f);
-	m_vAnimationTransitions[1].SetAnimationTransition(0.5, 0.0f, 0.25f);
+	m_vAnimationTransitions[0].SetAnimationTransition(0.01f, 0.0f, 0.25f);
+	m_vAnimationTransitions[1].SetAnimationTransition(0.5f, 0.0f, 0.25f);
 
 	m_bTransition = false;
 	m_nNowState = PlayerState::IDLE;

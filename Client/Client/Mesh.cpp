@@ -685,7 +685,7 @@ void CInstanceStandardMesh::UpdateShaderVariables(ID3D12GraphicsCommandList* pd3
 	shared_ptr<CInstanceObject> pOriginInstance = m_pOriginInstance.lock();
 	int i = 0;
 	for (auto& object : pOriginInstance->m_vInstanceObjectInfo)
-	{	
+	{	 // 0312 CJI - 정적인객체들까지 계속 갱신 해줄 필요가 있을까 싶음.(최적화)
 		m_pxmf4x4InstanceTransformMatrix[i++] = Matrix4x4::Transpose(object->m_xmf4x4World);
 	}
 

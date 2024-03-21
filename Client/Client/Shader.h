@@ -31,6 +31,8 @@ public:
 
 	virtual void Render(ID3D12GraphicsCommandList* pd3dCommandList, const shared_ptr<CCamera>& pCamera, int nPipelineState = 0);
 
+	virtual void UpdatePipeLineState(ID3D12GraphicsCommandList* pd3dCommandList, int nPipelineState);
+
 	virtual void ReleaseUploadBuffers();
 
 	//virtual void BuildObjects(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dCommandList, ID3D12RootSignature* pd3dGraphicsRootSignature, CLoadedModelInfo* pModel, void* pContext = NULL) { }
@@ -52,7 +54,7 @@ protected:
 
 	UINT					m_nPipelineState = 1;
 	vector<ComPtr<ID3D12PipelineState>> m_vpd3dPipelineState;
-	
+	UINT					m_PipeLineIndex = 0;
 	//ID3D12PipelineState**	m_ppd3dPipelineState = NULL;
 
 	D3D12_GRAPHICS_PIPELINE_STATE_DESC	m_d3dPipelineStateDesc;
@@ -72,7 +74,7 @@ public:
 	virtual D3D12_SHADER_BYTECODE CreateVertexShader();
 	virtual D3D12_SHADER_BYTECODE CreatePixelShader();
 
-	virtual void CreateShader(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dCommandList, ID3D12RootSignature* pd3dGraphicsRootSignature, UINT nRenderTargets = 1,
+	virtual void CreateShader(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dCommandList, ID3D12RootSignature* pd3dGraphicsRootSignature,  UINT nRenderTargets = 1,
 		DXGI_FORMAT* pdxgiRtvFormats = nullptr, DXGI_FORMAT dxgiDsvFormat = DXGI_FORMAT_D24_UNORM_S8_UINT);
 };
 
@@ -88,6 +90,21 @@ public:
 
 	virtual void Render(ID3D12GraphicsCommandList* pd3dCommandList, const shared_ptr<CCamera>& pCamera, int nPipelineState = 0);
 	virtual void AnimateObjects(float fElapsedTime);
+};
+////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+class TransparentShader : public InstanceStandardShader {
+public:
+	TransparentShader();
+	virtual ~TransparentShader();
+
+	virtual D3D12_RASTERIZER_DESC CreateRasterizerState();
+	virtual D3D12_BLEND_DESC CreateBlendState();
+	virtual D3D12_DEPTH_STENCIL_DESC CreateDepthStencilState();
+
+	virtual D3D12_SHADER_BYTECODE CreatePixelShader();
+
+	virtual void Render(ID3D12GraphicsCommandList* pd3dCommandList, const shared_ptr<CCamera>& pCamera, int nPipelineState = 0);
 };
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -122,20 +139,27 @@ public:
 	virtual void CreateResourcesAndRtvsSrvs(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dCommandList, UINT nRenderTargets, DXGI_FORMAT* pdxgiFormats, D3D12_CPU_DESCRIPTOR_HANDLE d3dRtvCPUDescriptorHandle);
 
 	virtual void OnPrepareRenderTarget(ID3D12GraphicsCommandList* pd3dCommandList, int nRenderTargets, D3D12_CPU_DESCRIPTOR_HANDLE* pd3dRtvCPUHandles, D3D12_CPU_DESCRIPTOR_HANDLE* pd3dDsvCPUHandle);
-	virtual void OnPostRenderTarget(ID3D12GraphicsCommandList* pd3dCommandList);
+	virtual void TransitionRenderTargetToCommon(ID3D12GraphicsCommandList* pd3dCommandList);
+	virtual void TransitionCommonToRenderTarget(ID3D12GraphicsCommandList* pd3dCommandList);
 
 	virtual void Render(ID3D12GraphicsCommandList* pd3dCommandList, const shared_ptr<CCamera>& pCamera);
 
 protected:
 	shared_ptr<CTexture> m_pTexture;
 
-	D3D12_CPU_DESCRIPTOR_HANDLE* m_pd3dRtvCPUDescriptorHandles = NULL;
+	D3D12_CPU_DESCRIPTOR_HANDLE* m_pd3dRtvCPUDescriptorHandles = nullptr;
 
-	FLOAT m_fClearValue[4] = { 0.0f, 0.125f, 0.3f, 1.0f };
+	FLOAT m_fClearValue[4] = { 0.0f, 0.0f, 0.0f, 1.0f };
+
+
+	ComPtr<ID3D12DescriptorHeap> m_pd3dDsvDescriptorHeap;
+	ComPtr<ID3D12Resource> m_pd3dDepthBuffer;
+	D3D12_CPU_DESCRIPTOR_HANDLE* m_d3dDsvDescriptorCPUHandle = nullptr;
 
 public:
 	shared_ptr<CTexture> GetTexture() { return(m_pTexture); }
 	ID3D12Resource* GetTextureResource(UINT nIndex) { return(m_pTexture->GetResource(nIndex)); }
 
 	D3D12_CPU_DESCRIPTOR_HANDLE GetRtvCPUDescriptorHandle(UINT nIndex) { return(m_pd3dRtvCPUDescriptorHandles[nIndex]); }
+	D3D12_CPU_DESCRIPTOR_HANDLE GetDsvCPUDesctriptorHandle(UINT nIndex) { return m_d3dDsvDescriptorCPUHandle[nIndex]; }
 };
