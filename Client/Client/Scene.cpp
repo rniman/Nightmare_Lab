@@ -298,25 +298,6 @@ void CScene::BuildObjects(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* p
 		}
 	}
 
-	ifstream is("Asset/Data/투명객체.txt");
-	// 이름 , 재질개수 , 재질인덱스
-	if (!is) {
-		assert(0);
-	}
-	unordered_map<string, vector<int>> transparentObjects;
-
-	string name;
-	while (is >> name)
-	{
-		int count{};
-		is >> count;
-		for (int i = 0; i < count; ++i) {
-			int mtNum;
-			is >> mtNum;
-			transparentObjects[name].push_back(mtNum);
-		}
-	}
-
 	FILE* pInFile = NULL;
 	::fopen_s(&pInFile, (char*)"Asset/Model/Scene.bin", "rb");
 	::rewind(pInFile);
