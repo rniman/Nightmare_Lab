@@ -246,7 +246,8 @@ bool CStandardMesh::LoadMeshFromFile(ID3D12Device* pd3dDevice, ID3D12GraphicsCom
 	UINT nReads = (UINT)::fread(&m_nVertices, sizeof(int), 1, pInFile);
 
 	::ReadStringFromFile(pInFile, m_pstrMeshName);
-	if (m_pstrMeshName[0] == '@') {
+	if (m_pstrMeshName[0] == '@') 
+	{
 		return false;
 	}
 	for (; ; )
@@ -709,14 +710,56 @@ void CInstanceStandardMesh::CreateInstanceObjectInfo(char* pstrMeshName, XMFLOAT
 		pInstanceObjectInfo = make_shared<CDoorObject>(m_pstrMeshName, xmf4x4WorldMatrix, this);
 		pOriginInstance->m_vInstanceObjectInfo.push_back(pInstanceObjectInfo);
 		size_t nLastIndex = pOriginInstance->m_vInstanceObjectInfo.size() - 1;
-		g_collisonManager.AddCollisionObject(0, pOriginInstance->m_vInstanceObjectInfo[nLastIndex]);
+		g_collisonManager.AddCollisionObject(pOriginInstance->m_vInstanceObjectInfo[nLastIndex]);
 	}
 	else if (!strcmp(pstrMeshName, "Drawer_1") || !strcmp(pstrMeshName, "Drawer_2"))
 	{
 		pInstanceObjectInfo = make_shared<CDrawerObject>(m_pstrMeshName, xmf4x4WorldMatrix, this);
 		pOriginInstance->m_vInstanceObjectInfo.push_back(pInstanceObjectInfo);
 		size_t nLastIndex = pOriginInstance->m_vInstanceObjectInfo.size() - 1;
-		g_collisonManager.AddCollisionObject(0, pOriginInstance->m_vInstanceObjectInfo[nLastIndex]);
+		g_collisonManager.AddCollisionObject(pOriginInstance->m_vInstanceObjectInfo[nLastIndex]);
+	}
+	else if (!strcmp(pstrMeshName, "Door1"))
+	{
+		pInstanceObjectInfo = make_shared<CElevatorDoorObject>(m_pstrMeshName, xmf4x4WorldMatrix, this);
+		pOriginInstance->m_vInstanceObjectInfo.push_back(pInstanceObjectInfo);
+		size_t nLastIndex = pOriginInstance->m_vInstanceObjectInfo.size() - 1;
+		g_collisonManager.AddCollisionObject(pOriginInstance->m_vInstanceObjectInfo[nLastIndex]);
+	}
+	else if (!strcmp(pstrMeshName, "Emergency_Handle"))
+	{
+		pInstanceObjectInfo = make_shared<CElevatorDoorObject>(m_pstrMeshName, xmf4x4WorldMatrix, this);
+		pOriginInstance->m_vInstanceObjectInfo.push_back(pInstanceObjectInfo);
+		size_t nLastIndex = pOriginInstance->m_vInstanceObjectInfo.size() - 1;
+		g_collisonManager.AddCollisionObject(pOriginInstance->m_vInstanceObjectInfo[nLastIndex]);
+	}
+	else if (!strcmp(pstrMeshName, "Laboratory_Wall_1_Corner_1") || !strcmp(pstrMeshName, "Laboratory_Wall_1_Corner_2"))
+	{
+		pInstanceObjectInfo = make_shared<CEnviromentObejct>(m_pstrMeshName, xmf4x4WorldMatrix, this);
+		pOriginInstance->m_vInstanceObjectInfo.push_back(pInstanceObjectInfo);
+		size_t nLastIndex = pOriginInstance->m_vInstanceObjectInfo.size() - 1;
+		g_collisonManager.AddCollisionObject(pOriginInstance->m_vInstanceObjectInfo[nLastIndex]);		
+	}
+	else if (!strcmp(pstrMeshName, "Laboratory_Wall_1_Corner") || !strcmp(pstrMeshName, "Laboratory_Wall_1_Corner2")|| !strcmp(pstrMeshName, "Laboratory_Wall_1"))
+	{
+		pInstanceObjectInfo = make_shared<CEnviromentObejct>(m_pstrMeshName, xmf4x4WorldMatrix, this);
+		pOriginInstance->m_vInstanceObjectInfo.push_back(pInstanceObjectInfo);
+		size_t nLastIndex = pOriginInstance->m_vInstanceObjectInfo.size() - 1;	
+		g_collisonManager.AddCollisionObject(pOriginInstance->m_vInstanceObjectInfo[nLastIndex]);
+	}
+	else if (!strcmp(pstrMeshName, "Laboratory_Wall_Door_1") || !strcmp(pstrMeshName, "Laboratory_Wall_Door_1_2") || !strcmp(pstrMeshName, "Laboratory_Tunnel_1") || !strcmp(pstrMeshName, "Laboratory_Table_1"))
+	{
+		pInstanceObjectInfo = make_shared<CEnviromentObejct>(m_pstrMeshName, xmf4x4WorldMatrix, this);
+		pOriginInstance->m_vInstanceObjectInfo.push_back(pInstanceObjectInfo);
+		size_t nLastIndex = pOriginInstance->m_vInstanceObjectInfo.size() - 1;
+		g_collisonManager.AddCollisionObject(pOriginInstance->m_vInstanceObjectInfo[nLastIndex]);
+	}
+	else if (!strcmp(pstrMeshName, "Laboratory_Tunnel_1_Stairs"))
+	{
+		pInstanceObjectInfo = make_shared<CEnviromentObejct>(m_pstrMeshName, xmf4x4WorldMatrix, this);
+		pOriginInstance->m_vInstanceObjectInfo.push_back(pInstanceObjectInfo);
+		size_t nLastIndex = pOriginInstance->m_vInstanceObjectInfo.size() - 1;
+		g_collisonManager.AddCollisionObject(pOriginInstance->m_vInstanceObjectInfo[nLastIndex]);
 	}
 	else
 	{
@@ -827,11 +870,25 @@ void CSkinnedMesh::LoadSkinInfoFromFile(ID3D12Device* pd3dDevice, ID3D12Graphics
 			XMFLOAT3 xmf3AABBCenter, xmf3AABBExtents;
 			nReads = (UINT)::fread(&xmf3AABBCenter, sizeof(XMFLOAT3), 1, pInFile);
 			nReads = (UINT)::fread(&xmf3AABBExtents, sizeof(XMFLOAT3), 1, pInFile);
-			m_vOOBBs.push_back(BoundingOrientedBox(xmf3AABBCenter, xmf3AABBExtents, XMFLOAT4(0.0f, 0.0f, 0.0f, 1.0f)));
-
+			//m_vOOBBs.push_back(BoundingOrientedBox(xmf3AABBCenter, xmf3AABBExtents, XMFLOAT4(0.0f, 0.0f, 0.0f, 1.0f)));
 			//nReads = (UINT)::fread(&m_xmf3AABBCenter, sizeof(XMFLOAT3), 1, pInFile);
 			//nReads = (UINT)::fread(&m_xmf3AABBExtents, sizeof(XMFLOAT3), 1, pInFile);
 			//m_OOBB = BoundingOrientedBox(m_xmf3AABBCenter, m_xmf3AABBExtents, XMFLOAT4(0.0f, 0.0f, 0.0f, 1.0f));
+		}
+		else if (!strcmp(pstrToken, "<BoxColliders>:"))
+		{
+			int nBoxColliders = 0;
+			nReads = fread(&nBoxColliders, sizeof(int), 1, pInFile);
+			m_vOOBBs.reserve(nBoxColliders);
+		}
+		else if (!strcmp(pstrToken, "<Bound>:"))
+		{
+			int nIndex = 0;
+			XMFLOAT3 xmf3AABBCenter, xmf3AABBExtents;
+			nReads = fread(&nIndex, sizeof(int), 1, pInFile);
+			nReads = (UINT)::fread(&xmf3AABBCenter, sizeof(XMFLOAT3), 1, pInFile);
+			nReads = (UINT)::fread(&xmf3AABBExtents, sizeof(XMFLOAT3), 1, pInFile);
+			m_vOOBBs.emplace_back(xmf3AABBCenter, xmf3AABBExtents, XMFLOAT4(0.0f, 0.0f, 0.0f, 1.0f));
 		}
 		else if (!strcmp(pstrToken, "<BoneNames>:"))
 		{

@@ -154,11 +154,16 @@ PS_MULTIPLE_RENDER_TARGETS_OUTPUT PSStandard(VS_STANDARD_OUTPUT input)
 {
     PS_MULTIPLE_RENDER_TARGETS_OUTPUT output;
     
-    float4 cAlbedoColor = float4(0.0f, 0.0f, 0.0f, 1.0f);
-    float4 cSpecularColor = float4(0.0f, 0.0f, 0.0f, 1.0f);
+    //float4 cAlbedoColor = float4(0.0f, 0.0f, 0.0f, 1.0f);
+    //float4 cSpecularColor = float4(0.0f, 0.0f, 0.0f, 1.0f);
+    //float4 cNormalColor = float4(0.0f, 0.0f, 0.0f, 1.0f);
+    //float4 cMetallicColor = float4(0.0f, 0.0f, 0.0f, 1.0f);
+    //float4 cEmissionColor = float4(0.0f, 0.0f, 0.0f, 1.0f);
+    float4 cAlbedoColor = gMaterial.m_cAlbedo;
+    float4 cSpecularColor = gMaterial.m_cSpecular;
     float4 cNormalColor = float4(0.0f, 0.0f, 0.0f, 1.0f);
     float4 cMetallicColor = float4(0.0f, 0.0f, 0.0f, 1.0f);
-    float4 cEmissionColor = float4(0.0f, 0.0f, 0.0f, 1.0f);
+    float4 cEmissionColor = gMaterial.m_cEmissive;    
     
     if (gnTexturesMask & MATERIAL_ALBEDO_MAP)
         cAlbedoColor = AlbedoTexture.Sample(gssWrap, input.uv);
@@ -180,7 +185,7 @@ PS_MULTIPLE_RENDER_TARGETS_OUTPUT PSStandard(VS_STANDARD_OUTPUT input)
     //float fFogFactor = saturate(((gvfFogInfo.x + gvfFogInfo.y) - fDistanceToCamera) / gvfFogInfo.y);
     float fFogFactor = saturate(1.0f / pow(gvfFogInfo.y + gvfFogInfo.x, pow(fDistanceToCamera * gvfFogInfo.z, 2)));
     //float fFogFactor = saturate(1.0f / pow(gvfFogInfo.y + gvfFogInfo.x, fDistanceToCamera * gvfFogInfo.z));
-    cColor = lerp(gvFogColor, cColor, fFogFactor);
+    //cColor = lerp(gvFogColor, cColor, fFogFactor);
     
     output.cTexture = cColor;
     input.normalW = normalize(input.normalW);

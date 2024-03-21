@@ -1,6 +1,7 @@
 #pragma once
 #include "Timer.h"
 #include "Shader.h"
+#include <stdexcept>
 
 // m_vShader 쉐이더에 AddDefaultObject 시에 접근할 각 쉐이더 인덱스를 의미
 #define STANDARD_SHADER 0
@@ -67,6 +68,7 @@ public:
 	//씬 업데이트 관련
 	bool ProcessInput(UCHAR* pKeysBuffer);
 	void AnimateObjects(float fElapsedTime);
+	void ProcessCollide(float fElapsedTime);
 
 	//렌더링 관련
 	void UpdateShaderVariables(ID3D12GraphicsCommandList* pd3dCommandList);
@@ -83,15 +85,16 @@ public:
 	XMFLOAT4							m_xmf4GlobalAmbient;
 	void BuildLights();
 
-	shared_ptr<CPlayer>					m_pPlayer;
 	void SetPlayer(shared_ptr<CPlayer> pPlayer);
 
 	//씬 내 오브젝트(쉐이더)
 	vector<unique_ptr<CShader>> m_vShader;
 	vector<unique_ptr<CShader>> m_vForwardRenderShader;
+	shared_ptr<CPlayer> m_pPlayer;
 	//메쉬 저장
 	vector<shared_ptr<CMesh>>			m_vMesh;
 
+	float m_fElapsedTime = 0.0f;
 protected:
 	ComPtr<ID3D12RootSignature>			m_pd3dGraphicsRootSignature;
 	//루트 시그너처를 나타내는 인터페이스 포인터

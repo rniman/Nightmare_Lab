@@ -13,7 +13,7 @@ class CAnimationController;
 class CBlueSuitAnimationController : public CAnimationController
 {
 public:
-	CBlueSuitAnimationController(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dCommandList, int nAnimationTracks, CLoadedModelInfo* pModel);
+	CBlueSuitAnimationController(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dCommandList, int nAnimationTracks, const shared_ptr<CLoadedModelInfo>& pModel);
 	~CBlueSuitAnimationController() {};
 
 	virtual void OnRootMotion(CGameObject* pRootGameObject) {}
@@ -36,7 +36,7 @@ private:
 class CZombieAnimationController : public CAnimationController
 {
 public:
-	CZombieAnimationController(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dCommandList, int nAnimationTracks, CLoadedModelInfo* pModel);
+	CZombieAnimationController(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dCommandList, int nAnimationTracks, const shared_ptr<CLoadedModelInfo>& pModel);
 	~CZombieAnimationController() {};
 
 	virtual void OnRootMotion(CGameObject* pRootGameObject) {}

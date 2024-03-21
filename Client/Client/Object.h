@@ -1,6 +1,7 @@
 #pragma once
 #include "Mesh.h"
 #include "Camera.h"
+#include "Collision.h"
 
 struct MATERIAL
 {
@@ -24,7 +25,7 @@ public:
 
 private:
 	//int								m_nReferences = 0;
-	UINT							m_nTextureType;
+	//UINT							m_nTextureType;
 
 	int								m_nTextures = 0;
 	vector<ComPtr<ID3D12Resource>> m_vpd3dTextures;
@@ -65,7 +66,7 @@ public:
 	int GetTextures() { return(m_nTextures); }
 	ID3D12Resource* GetResource(int nIndex) { return(m_vpd3dTextures[nIndex].Get()); }
 
-	UINT GetTextureType() { return(m_nTextureType); }
+	//UINT GetTextureType() { return(m_nTextureType); }
 	UINT GetTextureType(int nIndex) { return(m_vnResourceTypes[nIndex]); }
 	DXGI_FORMAT GetBufferFormat(int nIndex) { return(m_vdxgiBufferFormats[nIndex]); }
 	int GetBufferElements(int nIndex) { return(m_vnBufferElements[nIndex]); }
@@ -85,13 +86,6 @@ class CMaterial
 public:
 	CMaterial(int nTextures);
 	virtual ~CMaterial();
-
-private:
-//	int	m_nReferences = 0;
-//
-//public:
-//	void AddRef() { m_nReferences++; }
-//	void Release() { if (--m_nReferences <= 0) delete this; }
 
 public:
 	static vector<shared_ptr<CTexture>> m_vTextureContainer;
@@ -230,7 +224,7 @@ public:
 class CLoadedModelInfo
 {
 public:
-	CLoadedModelInfo() { }
+	CLoadedModelInfo() {}
 	~CLoadedModelInfo();
 
 	shared_ptr<CGameObject> m_pModelRootObject;
@@ -286,7 +280,7 @@ public:
 class CAnimationController
 {
 public:
-	CAnimationController(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dCommandList, int nAnimationTracks, CLoadedModelInfo* pModel);
+	CAnimationController(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dCommandList, int nAnimationTracks, const shared_ptr<CLoadedModelInfo>& pModel);
 	~CAnimationController();
 
 	void UpdateShaderVariables(ID3D12GraphicsCommandList* pd3dCommandList);
@@ -356,14 +350,11 @@ public:
 	CGameObject(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dCommandList, int nMaterials);
 	virtual ~CGameObject();
 	
-	// 복사 생성자 및 복사 할당 연산자 -> shared_ptr을 위해서 만들었음
-	//CGameObject(const CGameObject& gameObject);            // Declare copy constructor.
-	//CGameObject& operator=(const CGameObject& gameObject); // Declare copy assignment.
-
 	D3D12_GPU_DESCRIPTOR_HANDLE GetDescriptorHandle();
 	void SetDescriptorHandle(D3D12_GPU_DESCRIPTOR_HANDLE handle);
 
 	virtual void Animate(float fElapsedTime);
+	virtual void Collide(float fElapsedTime, const shared_ptr<CGameObject>& pCollidedObject);
 	virtual void Render(ID3D12GraphicsCommandList* pd3dCommandList);
 	//불투명한 재질의 메쉬만 렌더링
 	virtual void RenderOpaque(ID3D12GraphicsCommandList* pd3dCommandList);
@@ -408,14 +399,7 @@ public:
 
 	shared_ptr<CTexture> FindReplicatedTexture(_TCHAR* pstrTextureName);
 
-	UINT GetMeshType()
-	{ 
-		if (m_pMesh)
-		{
-			return m_pMesh->GetType();
-		}
-		return 0x00;
-	}
+	UINT GetMeshType();
 
 	void LoadMaterialsFromFile(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dCommandList, shared_ptr<CGameObject> pParent, FILE* pInFile);
 	static shared_ptr<CGameObject> LoadFrameHierarchyFromFile(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dCommandList, ID3D12RootSignature* pd3dGraphicsRootSignature, shared_ptr<CGameObject> pParent, FILE* pInFile, int* pnSkinnedMeshes);
@@ -430,24 +414,29 @@ public:
 
 	void SetRootMotion(bool bRootMotion) { if (m_pSkinnedAnimationController) m_pSkinnedAnimationController->SetRootMotion(bRootMotion); }
 	
-	static void LoadAnimationFromFile(FILE* pInFile, CLoadedModelInfo* pLoadedModel);
-	static CLoadedModelInfo* LoadGeometryAndAnimationFromFile(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dCommandList, ID3D12RootSignature* pd3dGraphicsRootSignature, const char* pstrFileName);
-	
+	static void LoadAnimationFromFile(FILE* pInFile, const shared_ptr<CLoadedModelInfo>& pLoadedModel);
+	static shared_ptr<CLoadedModelInfo> LoadGeometryAndAnimationFromFile(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dCommandList, ID3D12RootSignature* pd3dGraphicsRootSignature, const char* pstrFileName);
+
+	virtual void LoadModelAndAnimation(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dCommandList, ID3D12RootSignature* pd3dGraphicsRootSignature, const shared_ptr<CLoadedModelInfo>& pLoadModelInfo) {};
+
 	char* GetFrameName() { return m_pstrFrameName; };
 
-	// Collide
-	//vector<CGameObject*> m_vpCollideFrame;	// Collision에 관여하는 프레임 집합
-
 	virtual void SetOOBB() {};
-	virtual void AnimateOOBB() {};
+	virtual void AnimateOOBB();;
+	void AddOOBB(const vector<XMFLOAT3>& vxmf3Center, const vector<XMFLOAT3>& vxmf3Extents);
 	BoundingOrientedBox GetOOBB(int nIndex) const { return m_voobbOrigin[nIndex]; };
 	vector<BoundingOrientedBox> GetVectorOOBB() const { return m_voobbOrigin; };
 
-	// Picking
-	bool CheckPicking(const weak_ptr<CGameObject>& pGameObject, const XMFLOAT3& xmf3PickPosition, const XMFLOAT4X4& mxf4x4ViewMatrix, float& fDistance);
-	virtual void AnimatePicking(float fElapsedTime) {};
-	virtual void CallbackPicking() {};
+	void LoadBoundingBox(vector<BoundingOrientedBox>& voobbOrigin);
 
+	// Picking
+	bool GetCollision()const { return m_bCollsion; }
+
+	bool CheckPicking(const weak_ptr<CGameObject>& pGameObject, const XMFLOAT3& xmf3PickPosition, const XMFLOAT4X4& mxf4x4ViewMatrix, float& fDistance);
+	virtual void UpdatePicking() {};
+	virtual void UpdateUsing(const shared_ptr<CGameObject>& pGameObject) {};
+
+	int GetCollisionType() const { return m_nCollisionType; }
 	void SetTransparentObjectInfo(vector<int> vNumbers);
 public:
 	//중복된 메쉬를 없애기 위해 최초 메쉬들을 이곳에 저장한다.
@@ -477,6 +466,8 @@ public:
 	// 투명 오브젝트 분류
 	bool m_bThisContainTransparent = false;
 	vector<int> m_vTransparentMaterialNumbers;
+	bool m_bCollsion = true;
+	int m_nCollisionType = 0; // 0:None, 1:Standard, 2:Picking
 };
 
 
@@ -497,12 +488,7 @@ class CInstanceObject : public CGameObject
 {
 public:
 	CInstanceObject(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dCommandList);
-	virtual ~CInstanceObject() { 
-		//for (auto& pObject : m_vInstanceObjectInfo)
-		//{
-		//	delete pObject;
-		//}
-	};
+	virtual ~CInstanceObject() {};
 
 	virtual void Animate(float fElapsedTime) override;
 	virtual void Render(ID3D12GraphicsCommandList* pd3dCommandList);
