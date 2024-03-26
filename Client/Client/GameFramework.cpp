@@ -10,6 +10,8 @@
  extern UINT gnRtvDescriptorIncrementSize;
  extern UINT gnDsvDescriptorIncrementSize;
 
+ UCHAR CGameFramework::m_pKeysBuffer[256] = {};
+
  CGameFramework::CGameFramework()
 {
 	m_nSwapChainBufferIndex = 0;
@@ -48,9 +50,7 @@ bool CGameFramework::OnCreate(HINSTANCE hInstance, HWND hMainWnd)
 
 	CoInitialize(NULL);
 
-#ifndef SINGLE_PLAY
-	m_pClientNetwork = new TCPClient;
-#endif // SINGLE_PLAY
+	m_pTcpClient = make_shared<CTcpClient>(hMainWnd);
 
 	g_collisonManager.CreateCollision(4, 10, 10);
 
@@ -389,10 +389,36 @@ void CGameFramework::OnProcessingKeyboardMessage(HWND hWnd, UINT nMessageID, WPA
 	}
 }
 
-LRESULT CALLBACK CGameFramework::OnProcessingWindowMessage(HWND hWnd, UINT nMessageID, WPARAM wParam, LPARAM lParam)
+void CGameFramework::OnProcessingSocketMessage(HWND hWnd, UINT nMessageID, WPARAM wParam, LPARAM lParam)
+{
+
+	// 오류 발생 여부 확인
+	if (WSAGETSELECTERROR(lParam))
+	{
+		err_display(WSAGETSELECTERROR(lParam));
+		return;
+	}
+
+	
+	switch (WSAGETSELECTEVENT(lParam))
+	{
+	case FD_WRITE:	// 소켓이 데이터를 전송할 준비가 되었다.
+	case FD_READ:	// 소켓이 데이터를 읽을 준비가 되었다.
+	case FD_CLOSE:
+		m_pTcpClient->OnProcessingSocketMessage(hWnd, nMessageID, wParam, lParam);
+		break;
+	default:
+		break;
+	}
+}
+
+void CGameFramework::OnProcessingWindowMessage(HWND hWnd, UINT nMessageID, WPARAM wParam, LPARAM lParam)
 {
 	switch (nMessageID)
 	{
+	case WM_SOCKET:
+		OnProcessingSocketMessage(hWnd, nMessageID, wParam, lParam);
+		break;
 	case WM_ACTIVATE:
 	{
 		if (LOWORD(wParam) == WA_INACTIVE)
@@ -415,7 +441,11 @@ LRESULT CALLBACK CGameFramework::OnProcessingWindowMessage(HWND hWnd, UINT nMess
 		OnProcessingKeyboardMessage(hWnd, nMessageID, wParam, lParam);
 		break;
 	}
-	return(0);
+}
+
+UCHAR* CGameFramework::GetKeysBuffer()
+{
+	return m_pKeysBuffer; 
 }
 
 void CGameFramework::OnDestroy()
@@ -490,10 +520,10 @@ void CGameFramework::ReleaseObjects()
 
 void CGameFramework::ProcessInput()
 {
-	static UCHAR pKeysBuffer[256];
+	//static UCHAR pKeysBuffer[256];
 	bool bProcessedByScene = false;
 
-	if (GetKeyboardState(pKeysBuffer) && m_pScene) bProcessedByScene = m_pScene->ProcessInput(pKeysBuffer);
+	if (GetKeyboardState(m_pKeysBuffer) && m_pScene) bProcessedByScene = m_pScene->ProcessInput(m_pKeysBuffer);
 
 	if (!bProcessedByScene)
 	{
@@ -509,26 +539,22 @@ void CGameFramework::ProcessInput()
 		}
 
 		DWORD dwDirection = 0;
-		if (pKeysBuffer[VK_PRIOR] & 0xF0) dwDirection |= DIR_UP;
-		if (pKeysBuffer[VK_NEXT] & 0xF0) dwDirection |= DIR_DOWN;
+		if (m_pKeysBuffer[VK_PRIOR] & 0xF0) dwDirection |= DIR_UP;
+		if (m_pKeysBuffer[VK_NEXT] & 0xF0) dwDirection |= DIR_DOWN;
 
-		if (pKeysBuffer['W'] & 0xF0) dwDirection |= DIR_FORWARD;
-		if (pKeysBuffer['S'] & 0xF0) dwDirection |= DIR_BACKWARD;
-		if (pKeysBuffer['A'] & 0xF0) dwDirection |= DIR_LEFT;
-		if (pKeysBuffer['D'] & 0xF0) dwDirection |= DIR_RIGHT;
+		if (m_pKeysBuffer['W'] & 0xF0) dwDirection |= DIR_FORWARD;
+		if (m_pKeysBuffer['S'] & 0xF0) dwDirection |= DIR_BACKWARD;
+		if (m_pKeysBuffer['A'] & 0xF0) dwDirection |= DIR_LEFT;
+		if (m_pKeysBuffer['D'] & 0xF0) dwDirection |= DIR_RIGHT;
 		//if (pKeysBuffer[VK_LSHIFT] & 0xF0) dwDirection |= LSHIFT;
 
 		if ((dwDirection != 0) || (cxDelta != 0.0f) || (cyDelta != 0.0f))
 		{
 			if (cxDelta || cyDelta)
 			{
-				if (pKeysBuffer[VK_LBUTTON] & 0xF0)
+				if (m_pKeysBuffer[VK_LBUTTON] & 0xF0)
 				{
 					m_pPlayer->Rotate(cyDelta, cxDelta, 0.0f);
-				}
-				else if(pKeysBuffer[VK_RBUTTON] & 0xF0)
-				{
-					//m_pPlayer->Rotate(cyDelta, 0.0f, -cxDelta);
 				}
 			}
 
@@ -674,7 +700,7 @@ void CGameFramework::FrameAdvance()
 	m_GameTimer.GetFrameRate(m_pszFrameRate + 15, 37);
 	size_t nLength = _tcslen(m_pszFrameRate);
 	XMFLOAT3 xmf3Position = m_pPlayer->GetPosition();
-	_stprintf_s(m_pszFrameRate + nLength, 70 - nLength, _T("(%4f, %4f, %4f), (%d, %d, %d)"), xmf3Position.x, xmf3Position.y, xmf3Position.z, m_pPlayer->GetFloor(), m_pPlayer->GetWidth(), m_pPlayer->GetDepth());
+	_stprintf_s(m_pszFrameRate + nLength, 200 - nLength, _T("ID:%d , (%4f, %4f, %4f)"), m_pTcpClient->GetClientId(), xmf3Position.x, xmf3Position.y, xmf3Position.z);
 	::SetWindowText(m_hWnd, m_pszFrameRate);
 
 	//char buf[256];

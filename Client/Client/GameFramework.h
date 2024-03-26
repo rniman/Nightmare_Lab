@@ -38,7 +38,10 @@ public:
 
 	void OnProcessingMouseMessage(HWND hWnd, UINT nMessageID, WPARAM wParam, LPARAM lParam);
 	void OnProcessingKeyboardMessage(HWND hWnd, UINT nMessageID, WPARAM wParam, LPARAM lParam);
-	LRESULT CALLBACK OnProcessingWindowMessage(HWND hWnd, UINT nMessageID, WPARAM wParam, LPARAM lParam);
+	void OnProcessingSocketMessage(HWND hWnd, UINT nMessageID, WPARAM wParam, LPARAM lParam);
+	void OnProcessingWindowMessage(HWND hWnd, UINT nMessageID, WPARAM wParam, LPARAM lParam);
+
+	static UCHAR* GetKeysBuffer();
 
 private:
 	D3D12_VIEWPORT m_d3dViewport;
@@ -88,8 +91,10 @@ private:
 	CPostProcessingShader*				m_pPostProcessingShader = NULL;
 
 	POINT								m_ptOldCursorPos;
-	_TCHAR								m_pszFrameRate[70];
+	_TCHAR								m_pszFrameRate[200];
+	
+	static UCHAR						m_pKeysBuffer[256];
 	//TCPClient
-	TCPClient* m_pClientNetwork = NULL;
+	shared_ptr<CTcpClient>				m_pTcpClient;
 };
 

@@ -26,12 +26,6 @@ void CCollisionManager::AddCollisionObject(const shared_ptr<CGameObject>& pGameO
 {
 	XMFLOAT3 xmf3Position = XMFLOAT3(pGameObject->m_xmf4x4World._41, pGameObject->m_xmf4x4World._42, pGameObject->m_xmf4x4World._43);
 
-	if (xmf3Position.x == 14 && xmf3Position.z == 12)
-	{
-		int x = 0;
-		x++;
-	}
-
 	int nWidth = static_cast<int>((xmf3Position.x - GRID_START_X) / SPACE_SIZE_XZ);
 	int nHeight = static_cast<int>((xmf3Position.y - GRID_START_Y) / SPACE_SIZE_Y);
 	int nDepth = static_cast<int>((xmf3Position.z - GRID_START_Z) / SPACE_SIZE_XZ);
