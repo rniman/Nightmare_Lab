@@ -1,5 +1,7 @@
 #include "stdafx.h"
 #include "TCPServer.h"
+#include "Object.h"
+#include "Player.h"
 
 size_t TCPServer::m_nClient = 0;
 
@@ -15,12 +17,15 @@ void TCPServer::OnProcessingWindowMessage(HWND hWnd, UINT nMessageID, WPARAM wPa
 {
 	switch (nMessageID)
 	{
-	case WM_ACTIVATE:
+	case WM_CREATE:
+		m_timer.Start();
+		break;
+	/*case WM_ACTIVATE:
 		if (LOWORD(wParam) == WA_INACTIVE)
 			m_timer.Stop();
 		else
 			m_timer.Start();
-		break;
+		break;*/
 	default:
 		break;
 	}
@@ -31,13 +36,17 @@ void TCPServer::OnProcessingSocketMessage(HWND hWnd, UINT nMessageID, WPARAM wPa
 	switch (WSAGETSELECTEVENT(lParam))
 	{
 	case FD_ACCEPT:
-		return OnProcessingAcceptMessage(hWnd, nMessageID, wParam, lParam);
+		OnProcessingAcceptMessage(hWnd, nMessageID, wParam, lParam);
+		break;
 	case FD_WRITE:
-		return OnProcessingWriteMessage(hWnd, nMessageID, wParam, lParam);
+		OnProcessingWriteMessage(hWnd, nMessageID, wParam, lParam);
+		break;
 	case FD_READ:
-		return OnProcessingReadMessage(hWnd, nMessageID, wParam, lParam);
+		OnProcessingReadMessage(hWnd, nMessageID, wParam, lParam);
+		break;
 	case FD_CLOSE:
-		RemoveSocketInfo((SOCKET)wParam);
+		OnProcessingCloseMessage(hWnd, nMessageID, wParam, lParam);
+		//RemoveSocketInfo((SOCKET)wParam);
 		break;
 	default:
 		break;
@@ -76,118 +85,138 @@ void TCPServer::OnProcessingAcceptMessage(HWND hWnd, UINT nMessageID, WPARAM wPa
 		RemoveSocketInfo(sockClient);
 	}
 
+	m_apPlayers[nClientIndex] = make_shared<CPlayer>();
+	m_apPlayers[nClientIndex]->SetPlayerId(nClientIndex);
+
+	for (auto& sockInfo : m_vSocketInfoList)
+	{
+		if (!sockInfo.m_bUsed || sockInfo.m_sock == sockClient)
+		{
+			continue;
+		}
+		sockInfo.m_prevSocketState = sockInfo.m_socketState;
+		sockInfo.m_socketState = SOCKET_STATE::SEND_NUM_OF_CLIENT;
+	}
+
 	return;
 }
 
 void TCPServer::OnProcessingReadMessage(HWND hWnd, UINT nMessageID, WPARAM wParam, LPARAM lParam)
 {
+	static int nHead;
+	int nRetval = 1;
+	size_t nBufferSize;
 	int nSocketIndex = GetSocketIndex(wParam);
 	if (!m_vSocketInfoList[nSocketIndex].m_bUsed)
 	{
 		//error
 	}
+	std::shared_ptr<CPlayer> pPlayer = m_apPlayers[nSocketIndex];
 
-	int nRetval;
-	switch (m_vSocketInfoList[nSocketIndex].m_socketState)
+	if(!m_vSocketInfoList[nSocketIndex].m_bRecvHead)
 	{
-	case SOCKET_STATE::RECV_KEY_BUFFER:
-	{
-		UCHAR keysBuffer[257];
-		int nBufferSize = sizeof(keysBuffer);
-		nRetval = recv(m_vSocketInfoList[nSocketIndex].m_sock
-			, (char*)&m_vSocketInfoList[nSocketIndex].m_pCurrentBuffer + m_vSocketInfoList[nSocketIndex].m_nCurrentRecvByte, nBufferSize - m_vSocketInfoList[nSocketIndex].m_nCurrentRecvByte, 0);
-		m_vSocketInfoList[nSocketIndex].m_nCurrentRecvByte += nRetval;
-		if (nRetval == SOCKET_ERROR || nRetval == 0)
+		nBufferSize = sizeof(int);
+		nRetval = RecvData(nSocketIndex, nBufferSize);
+		if (nRetval != 0)
 		{
-			// error
+			//PostMessage(hWnd, WM_SOCKET, (WPARAM)m_vSocketInfoList[nSocketIndex].m_sock, MAKELPARAM(FD_READ, 0));
+			return;
 		}
-		else if (nRetval < nBufferSize)
-		{
-			m_vSocketInfoList[nSocketIndex].m_bRecvDelayed = true;
-		}
-		else
-		{
-			m_vSocketInfoList[nSocketIndex].m_socketState = SOCKET_STATE::SEND_ACK;	// 데이터의 길이를 받을 상태로 바뀐다.
-			m_vSocketInfoList[nSocketIndex].m_nCurrentRecvByte = 0;
-			memcpy(&m_pKeysBuffer, m_vSocketInfoList[nSocketIndex].m_pCurrentBuffer, nBufferSize - 1);
-			
-			if(m_vSocketInfoList[nSocketIndex].m_clientInfo.m_nClientId == 0)
-			{
-				DWORD press = 0;
-				if (m_pKeysBuffer['W'] & 0xF0) press |= 0x01;
-				if (m_pKeysBuffer['S'] & 0xF0) press |= 0x02;
-				if (m_pKeysBuffer['A'] & 0xF0) press |= 0x04;
-				if (m_pKeysBuffer['D'] & 0xF0) press |= 0x08;
-				for (int i = 7; i >= 0; --i)
-				{
-					int result = press >> i & 1;
-					printf("%d", result);
-				}
-				printf("\n");
-			}
-
-			memset(m_vSocketInfoList[nSocketIndex].m_pCurrentBuffer, 0, BUFSIZE);
-			//m_vSocketInfoList[nSocketIndex].m_nRecvDataLength = 0;
-			if (m_vSocketInfoList[nSocketIndex].m_bRecvDelayed)
-			{
-				m_vSocketInfoList[nSocketIndex].m_bRecvDelayed = false;
-			}
-			PostMessage(hWnd, WM_SOCKET, (WPARAM)m_vSocketInfoList[nSocketIndex].m_sock, MAKELPARAM(FD_WRITE, 0));
-		}
-		break; 
+		m_vSocketInfoList[nSocketIndex].m_bRecvHead = true;
+		memcpy(&nHead, m_vSocketInfoList[nSocketIndex].m_pCurrentBuffer, sizeof(int));
+		memset(m_vSocketInfoList[nSocketIndex].m_pCurrentBuffer, 0, BUFSIZE);
 	}
+
+	switch (nHead)
+	{
+	case HEAD_KEYS_BUFFER:
+	{
+		nBufferSize = sizeof(UCHAR[256]) + sizeof(XMFLOAT3) * 2;
+		nRetval = RecvData(nSocketIndex, nBufferSize);
+		if (nRetval != 0)
+		{
+			break;
+		}
+
+		memcpy(pPlayer->GetKeysBuffer(), m_vSocketInfoList[nSocketIndex].m_pCurrentBuffer, sizeof(UCHAR[256]));
+
+		XMFLOAT3 xmf3Look, xmf3Right;
+		memcpy(&xmf3Look, m_vSocketInfoList[nSocketIndex].m_pCurrentBuffer + sizeof(UCHAR[256]), sizeof(XMFLOAT3));
+		memcpy(&xmf3Right, m_vSocketInfoList[nSocketIndex].m_pCurrentBuffer + sizeof(UCHAR[256]) + sizeof(XMFLOAT3), sizeof(XMFLOAT3));
+		pPlayer->SetLook(xmf3Look);
+		pPlayer->SetRight(xmf3Right);
+	}
+		break;
 	default:
 		break;
 	}
 
+	if (nRetval != 0)
+	{
+		//PostMessage(hWnd, WM_SOCKET, (WPARAM)m_vSocketInfoList[nSocketIndex].m_sock, MAKELPARAM(FD_READ, 0));
+		return;
+	}
+	nHead = -1;
+	m_vSocketInfoList[nSocketIndex].m_bRecvHead = false;
+	m_vSocketInfoList[nSocketIndex].m_bRecvDelayed = false;
+	memset(m_vSocketInfoList[nSocketIndex].m_pCurrentBuffer, 0, BUFSIZE);
+	PostMessage(hWnd, WM_SOCKET, (WPARAM)m_vSocketInfoList[nSocketIndex].m_sock, MAKELPARAM(FD_WRITE, 0));
 	return;
 }
 
 void TCPServer::OnProcessingWriteMessage(HWND hWnd, UINT nMessageID, WPARAM wParam, LPARAM lParam)
 {
+	size_t nBufferSize = sizeof(int);
+	int nHead;
 	int nRetval;
 	int nSocketIndex = GetSocketIndex(wParam);
 	if (!m_vSocketInfoList[nSocketIndex].m_bUsed)
 	{
 		//error
 	}
+	std::shared_ptr<CPlayer> pPlayer = m_apPlayers[nSocketIndex];
 
-	if (m_vSocketInfoList[nSocketIndex].m_socketState == SOCKET_STATE::SEND_ID)
+	switch (m_vSocketInfoList[nSocketIndex].m_socketState)
 	{
-		//char* buf = new char[sizeof(int)];
-		//memcpy(buf, (char*)&m_vSocketInfoList[nSocketIndex].m_clientInfo.m_nClientId, sizeof(int));
-		//memcpy(buf, (char*)&m_vSocketInfoList[nSocketIndex].m_clientInfo.m_nClientId, sizeof(int));
-		//memcpy(buf + sizeof(int), (char*)&m_nClient, sizeof(int));
-
-		//int a, b;
-		//memcpy(&a, buf, sizeof(int));
-		//memcpy(&b, buf + sizeof(int), sizeof(int));
-
-   		//nRetval = send(m_vSocketInfoList[nSocketIndex].m_sock, (char*)&buf, sizeof(int), 0);
-   		nRetval = send(m_vSocketInfoList[nSocketIndex].m_sock, (char*)&m_vSocketInfoList[nSocketIndex].m_clientInfo.m_nClientId, sizeof(int), 0);
-		if (nRetval == SOCKET_ERROR)
+	case SOCKET_STATE::SEND_ID:
+		nHead = 0;
+		nBufferSize += sizeof(int) * 2;
+		nRetval = SendData(m_vSocketInfoList[nSocketIndex].m_sock, nBufferSize, nHead, m_aUpdateInfo[nSocketIndex].m_nClientId, (int)m_nClient);
+		if (nRetval == -1)
 		{
-			err_display("send()");
+			//error
 		}
-
-		m_vSocketInfoList[nSocketIndex].m_socketState = SOCKET_STATE::RECV_KEY_BUFFER;
-		//delete[] buf;
-		return;
-	}
-
-	if (m_vSocketInfoList[nSocketIndex].m_socketState == SOCKET_STATE::SEND_ACK)
+		m_vSocketInfoList[nSocketIndex].m_socketState = SOCKET_STATE::SEND_UPDATE_DATA;
+		break;
+	case SOCKET_STATE::SEND_UPDATE_DATA:
 	{
-		int nComplete = 0;
-		nRetval = send(m_vSocketInfoList[nSocketIndex].m_sock, (char*)&nComplete, sizeof(int), 0);
-		if (nRetval == SOCKET_ERROR)
-		{
-			err_display("send()");
-		}
+		nHead = 1;
+		nBufferSize += sizeof(m_aUpdateInfo);
 
-		m_vSocketInfoList[nSocketIndex].m_socketState = SOCKET_STATE::RECV_KEY_BUFFER;
-		return;
+		nRetval = SendData(m_vSocketInfoList[nSocketIndex].m_sock, nBufferSize, nHead, m_aUpdateInfo);
+		if (nRetval == -1)
+		{
+			//error
+		}
 	}
+		break;
+	case SOCKET_STATE::SEND_NUM_OF_CLIENT:
+		nHead = 2;
+		nBufferSize += sizeof(int) + sizeof(m_aUpdateInfo);
+		nRetval = SendData(m_vSocketInfoList[nSocketIndex].m_sock, nBufferSize, nHead, (int)m_nClient, m_aUpdateInfo);
+		m_vSocketInfoList[nSocketIndex].m_socketState = m_vSocketInfoList[nSocketIndex].m_prevSocketState;
+		break;
+	default:
+		break;
+	}
+	//printf("Send [%d] \n", nSocketIndex);
 	return;
+}
+
+void TCPServer::OnProcessingCloseMessage(HWND hWnd, UINT nMessageID, WPARAM wParam, LPARAM lParam)
+{
+	int nIndex = RemoveSocketInfo((SOCKET)wParam);
+	m_apPlayers[nIndex]->SetPlayerId(-1);
 }
 
 bool TCPServer::Init(HWND hWnd)
@@ -229,10 +258,21 @@ bool TCPServer::Init(HWND hWnd)
 	return true;
 }
 
-void TCPServer::Update()
+void TCPServer::SimulationLoop()
 {
+	m_timer.Tick();
 	// 실제 시뮬레이션이 일어날곳
 
+	for (auto& pPlayer : m_apPlayers)
+	{
+		if (!pPlayer || pPlayer->GetPlayerId() == -1)
+			continue;
+
+		float fElapsedTime = m_timer.GetTimeElapsed();
+		pPlayer->Update(fElapsedTime);
+
+		UpdateInformation(pPlayer);
+	}
 }
 
 // 소켓 정보 추가
@@ -255,7 +295,7 @@ int TCPServer::AddSocketInfo(SOCKET sockClient, struct sockaddr_in addrClient, i
 
 	sockInfo.m_nCurrentRecvByte = 0;
 	sockInfo.m_bRecvDelayed = false;
-	sockInfo.m_bSendDelayed = false;
+	sockInfo.m_bRecvHead = false;
 	sockInfo.m_socketState = SOCKET_STATE::SEND_ID;
 	sockInfo.m_prevSocketState = SOCKET_STATE::SEND_ID;
 	
@@ -266,20 +306,15 @@ int TCPServer::AddSocketInfo(SOCKET sockClient, struct sockaddr_in addrClient, i
 		{
 			continue;
 		}
+		m_nClient++;
 
 		// 클라이언트 정보 초기화
-		sockInfo.m_clientInfo.m_nClientId = i;
-		sockInfo.m_clientInfo.x = 0.0f;
-		sockInfo.m_clientInfo.y = 0.0f;
-		sockInfo.m_clientInfo.z = 0.0f;
-
+		m_aUpdateInfo[i].m_nClientId = i;
 		m_vSocketInfoList[i] = sockInfo;
 		nSocketIndex = i;
-
-		m_nClient++;
 		break;
 	}
-	
+
 	return nSocketIndex;
 }
 
@@ -304,11 +339,13 @@ int TCPServer::GetSocketIndex(SOCKET sock)
 }
 
 // 소켓 정보 제거
-void TCPServer::RemoveSocketInfo(SOCKET sock)
+int TCPServer::RemoveSocketInfo(SOCKET sock)
 {
+	int nIndex = -1;
 	// 리스트에서 정보 제거
 	for (auto& sockInfo : m_vSocketInfoList)
 	{
+		nIndex++;
 		if (!sockInfo.m_bUsed)
 		{
 			continue;
@@ -319,12 +356,85 @@ void TCPServer::RemoveSocketInfo(SOCKET sock)
 			printf("[TCP 서버] 클라이언트 종료: IP 주소=%s, 포트 번호=%d\n", sockInfo.m_pAddr, ntohs(sockInfo.m_addrClient.sin_port));
 			closesocket(sockInfo.m_sock); // 소켓 닫기
 			sockInfo.m_bUsed = false;
+			
+			m_aUpdateInfo[nIndex].m_nClientId = -1;
 			m_nClient--;
-			return;
+			for(auto& otherSocketInfo : m_vSocketInfoList)
+			{
+				if (!otherSocketInfo.m_bUsed)
+				{
+					continue;
+				}
+
+				otherSocketInfo.m_prevSocketState = otherSocketInfo.m_socketState;
+				otherSocketInfo.m_socketState = SOCKET_STATE::SEND_NUM_OF_CLIENT;
+			}
+
+			return nIndex;
 		}
 	}
+	return -1;
 }
 
+void TCPServer::UpdateInformation(const shared_ptr<CPlayer>& pPlayer)
+{
+	int nPlayerId = pPlayer->GetPlayerId();
+	m_aUpdateInfo[nPlayerId].m_xmf3Position = pPlayer->GetPosition();
+	m_aUpdateInfo[nPlayerId].m_xmf3Velocity = pPlayer->GetVelocity();
+	m_aUpdateInfo[nPlayerId].m_xmf3Look = pPlayer->GetLook();
+	m_aUpdateInfo[nPlayerId].m_xmf3Right = pPlayer->GetRight();
+}
+
+template<class... Args>
+void TCPServer::CreateSendDataBuffer(char* pBuffer, Args&&... args)
+{
+	size_t nOffset = 0;
+	((memcpy(pBuffer + nOffset, &args, sizeof(args)), nOffset += sizeof(args)), ...);
+}
+
+// 여러개 데이터를 묶어서 보낼때 사용
+template<class... Args>
+int TCPServer::SendData(SOCKET socket, size_t nBufferSize, Args&&... args)
+{
+	int nRetval;
+	char* pBuffer = new char[nBufferSize];
+	(CreateSendDataBuffer(pBuffer, args...));
+
+	nRetval = send(socket, (char*)pBuffer, nBufferSize, 0);
+	delete[] pBuffer;
+	
+	if (nRetval == SOCKET_ERROR)
+	{
+		err_display("send()");
+		return -1;
+	}
+	return 0;
+}
+
+int TCPServer::RecvData(int nSocketIndex, size_t nBufferSize)
+{
+	int nRetval;
+	int nRemainRecvByte = nBufferSize - m_vSocketInfoList[nSocketIndex].m_nCurrentRecvByte;
+
+	nRetval = recv(m_vSocketInfoList[nSocketIndex].m_sock, (char*)&m_vSocketInfoList[nSocketIndex].m_pCurrentBuffer + m_vSocketInfoList[nSocketIndex].m_nCurrentRecvByte, nRemainRecvByte, 0);
+	
+	if (nRetval > 0)m_vSocketInfoList[nSocketIndex].m_nCurrentRecvByte += nRetval;
+	if (nRetval == SOCKET_ERROR || nRetval == 0) // error
+	{
+		return -1;
+	}
+	else if (nRetval < nBufferSize)
+	{
+		m_vSocketInfoList[nSocketIndex].m_bRecvDelayed = true;
+		return 1;
+	}
+	else
+	{
+		m_vSocketInfoList[nSocketIndex].m_nCurrentRecvByte = 0;
+		m_vSocketInfoList[nSocketIndex].m_bRecvDelayed = false;
+		return 0;
+	}
+}
 
 // 소켓 함수 오류 출력 후 종료
 void err_quit(const char* msg)

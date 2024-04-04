@@ -1,7 +1,8 @@
 #pragma once
 #include "Timer.h"
 #include "Shader.h"
-#include <stdexcept>
+#include "TCPClient.h"
+//#include <stdexcept>
 
 // m_vShader 쉐이더에 AddDefaultObject 시에 접근할 각 쉐이더 인덱스를 의미
 #define STANDARD_SHADER 0
@@ -85,12 +86,15 @@ public:
 	XMFLOAT4							m_xmf4GlobalAmbient;
 	void BuildLights();
 
-	void SetPlayer(shared_ptr<CPlayer> pPlayer);
+	void SetPlayer(shared_ptr<CPlayer> pPlayer, int nIndex);
+	void SetMainPlayer(const shared_ptr<CPlayer>& pMainplayer);
 
 	//씬 내 오브젝트(쉐이더)
 	vector<unique_ptr<CShader>> m_vShader;
 	vector<unique_ptr<CShader>> m_vForwardRenderShader;
-	shared_ptr<CPlayer> m_pPlayer;
+	
+	std::array<shared_ptr<CPlayer>, MAX_CLIENT> m_apPlayer;
+	std::shared_ptr<CPlayer> m_pMainPlayer;
 	//메쉬 저장
 	vector<shared_ptr<CMesh>>			m_vMesh;
 

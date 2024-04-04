@@ -1,6 +1,7 @@
 #include "stdafx.h"
 #include "TCPClient.h"
 #include "GameFramework.h"
+#include "Player.h"
 
 CTcpClient::CTcpClient(HWND hWnd)
 {
@@ -9,7 +10,6 @@ CTcpClient::CTcpClient(HWND hWnd)
 
 CTcpClient::~CTcpClient()
 {
-
 }
 
 void CTcpClient::CreateSocket(HWND hWnd)
@@ -47,15 +47,11 @@ void CTcpClient::CreateSocket(HWND hWnd)
 	nRetval = WSAAsyncSelect(m_sock, hWnd, WM_SOCKET, FD_CLOSE | FD_READ | FD_WRITE);	// FD_WRITE가 발생할것이다.
 }
 
-/*
-서버에 연결이 되면 현재 클라이언트 플레이어를 서버에서 생성 후 
-서버에서 클라ID, 좌표(float(x,y,z)) 정보를 클라로 넘김.
-*/
-
 void CTcpClient::OnDestroy()
 {
 
 }
+
 
 XMFLOAT3 CTcpClient::GetPostion(int id)
 {
@@ -64,9 +60,9 @@ XMFLOAT3 CTcpClient::GetPostion(int id)
 	return position;
 }
 
-unordered_map<int, Client_INFO>& CTcpClient::GetUMapClientInfo()
+std::array<CS_CLIENTS_INFO, 5>& CTcpClient::GetArrayClientsInfo()
 {
-	return m_umapClientInfo;
+	return m_aClientInfo;
 }
 
 void CTcpClient::OnProcessingSocketMessage(HWND hWnd, UINT nMessageID, WPARAM wParam, LPARAM lParam)
@@ -91,118 +87,185 @@ void CTcpClient::OnProcessingSocketMessage(HWND hWnd, UINT nMessageID, WPARAM wP
 
 void CTcpClient::OnProcessingReadMessage(HWND hWnd, UINT nMessageID, WPARAM wParam, LPARAM lParam)
 {
-	int nRetval;
-	if (m_nMainClientID == -1)
-	{
-		nRetval = recv(m_sock, (char*)&m_pCurrentBuffer + m_nCurrentRecvByte, sizeof(int) - m_nCurrentRecvByte, 0);
-		m_nCurrentRecvByte += nRetval;
-		if (nRetval == SOCKET_ERROR || nRetval == 0)
-		{
-			// error
-		}
-		else if (nRetval < sizeof(int))
-		{
-			m_bRecvDelayed = true;
-			return;
-		}
-		else
-		{
-			m_socketState = SOCKET_STATE::SEND_KEY_BUFFER;
-			memcpy(&m_nMainClientID, m_pCurrentBuffer, sizeof(int));
-			//memcpy(&m_nClient, m_pCurrentBuffer + sizeof(int), sizeof(int));
+	static int nHead;
+	int nRetval = 1;
+	size_t nBufferSize;
 
-			m_nCurrentRecvByte = 0;
-			memset(m_pCurrentBuffer, 0, BUFSIZE);
-			// 딜레이 되었었다면 다시 메시지를 보내주자. -> 여기서는 그럴필요가없다
-			if (m_bSendDelayed || m_bRecvDelayed)
-			{
-				m_bSendDelayed = false;
-				m_bRecvDelayed = false;
-				PostMessage(hWnd, WM_SOCKET, (WPARAM)m_sock, MAKELPARAM(FD_WRITE, 0));
-			}
+	if(!m_bRecvHead)
+	{
+		nBufferSize = sizeof(int);
+		nRetval = RecvData(nBufferSize);
+		if (nRetval != 0)
+		{
+			//PostMessage(hWnd, WM_SOCKET, (WPARAM)m_sock, MAKELPARAM(FD_READ, 0));
 			return;
 		}
+		m_bRecvHead = true;
+		memcpy(&nHead, m_pCurrentBuffer, sizeof(int));
+		memset(m_pCurrentBuffer, 0, BUFSIZE);
 	}
 
-	if (m_socketState == SOCKET_STATE::RECV_SERVER_ACK)
+	switch (nHead)
 	{
-		nRetval = recv(m_sock, (char*)&m_pCurrentBuffer + m_nCurrentRecvByte, sizeof(int) - m_nCurrentRecvByte, 0);
-		m_nCurrentRecvByte += nRetval;
-		if (nRetval == SOCKET_ERROR || nRetval == 0)
+	case HEAD_INIT:
+		nBufferSize = sizeof(int) * 2;
+		nRetval = RecvData(nBufferSize);
+		if (nRetval != 0)
 		{
-			// error
+			break;
 		}
-		else if (nRetval < sizeof(int))
+
+		memcpy(&m_nMainClientID, m_pCurrentBuffer, sizeof(int));
+		memcpy(&m_nClient, m_pCurrentBuffer + sizeof(int), sizeof(int));
+		break;
+	case HEAD_UPDATE_DATA:
+	{
+		nBufferSize = sizeof(m_aClientInfo);
+		nRetval = RecvData(nBufferSize);
+		if (nRetval != 0)
 		{
-			m_bRecvDelayed = true;
-			return;
+			break;
 		}
-		else
+		
+		for (int i = 0; i < MAX_CLIENT; ++i)
 		{
-			int nComplete = -1;
-			m_socketState = SOCKET_STATE::SEND_KEY_BUFFER;
-			memcpy(&nComplete, m_pCurrentBuffer, sizeof(int));
-			if (nComplete != 0)
-			{
-				//error
-				exit(-1);
-			}
+			memcpy(&m_aClientInfo[i], m_pCurrentBuffer + sizeof(CS_CLIENTS_INFO) * i, sizeof(CS_CLIENTS_INFO));
 
-			m_nCurrentRecvByte = 0;
-			memset(m_pCurrentBuffer, 0, BUFSIZE);
-			if (m_bSendDelayed || m_bRecvDelayed)
+			if (m_apPlayers[i])
 			{
-				m_bSendDelayed = false;
-				m_bRecvDelayed = false;
+				m_apPlayers[i]->SetClientId(m_aClientInfo[i].m_nClientId);
+				m_apPlayers[i]->SetPosition(m_aClientInfo[i].m_xmf3Position);
+				m_apPlayers[i]->SetVelocity(m_aClientInfo[i].m_xmf3Velocity);
+				
+				if(i != m_nMainClientID)
+				{
+					m_apPlayers[i]->SetLook(m_aClientInfo[i].m_xmf3Look);
+					m_apPlayers[i]->SetRight(m_aClientInfo[i].m_xmf3Right);
+				}
 			}
-			PostMessage(hWnd, WM_SOCKET, (WPARAM)m_sock, MAKELPARAM(FD_WRITE, 0));
-
-			return;
 		}
 	}
+		break;
+	case HEAD_NUM_OF_CLIENT:
+		nBufferSize = sizeof(int) + sizeof(m_aClientInfo);
+		nRetval = RecvData(nBufferSize);
+		if (nRetval != 0)
+		{
+			break;
+		}
+
+		memcpy(&m_nClient, m_pCurrentBuffer, sizeof(int));
+		memcpy(&m_aClientInfo, m_pCurrentBuffer + sizeof(int), sizeof(m_aClientInfo));
+		for(int i=0;i<MAX_CLIENT;++i)
+		{
+			if (m_apPlayers[i])
+			{
+				m_apPlayers[i]->SetClientId(m_aClientInfo[i].m_nClientId);
+			}
+		}
+		break;
+	default:
+		break;
+	}
+
+	if (nRetval != 0)
+	{
+		//PostMessage(hWnd, WM_SOCKET, (WPARAM)m_sock, MAKELPARAM(FD_READ, 0));
+		return;
+	}
+	nHead = -1;
+	m_bRecvHead = false;
+	m_bRecvDelayed = false;
+	memset(m_pCurrentBuffer, 0, BUFSIZE);
+	PostMessage(hWnd, WM_SOCKET, (WPARAM)m_sock, MAKELPARAM(FD_WRITE, 0));
+
 	return;
 }
 
 void CTcpClient::OnProcessingWriteMessage(HWND hWnd, UINT nMessageID, WPARAM wParam, LPARAM lParam)
 {
+	size_t nBufferSize = sizeof(int);
+	int nHead;
 	int nRetval;
-	if (m_nMainClientID == -1)	// 아직 ID를 넘겨 받지 못했다.
+	if (m_nMainClientID == -1  || m_bRecvDelayed == true)	// 아직 ID를 넘겨 받지 못했거나 딜레이 되었다.
 	{
-		m_bSendDelayed = true;
 		return;
 	}
 
-	if (m_bRecvDelayed == true)	// recv가 딜레이되었다
-	{
-		m_bSendDelayed = true;
-		return;
-	}
-	
 	switch (m_socketState)
 	{
 	case SOCKET_STATE::SEND_KEY_BUFFER:
 	{
-		UCHAR keysBuffer[257];
-		int nBufferSize = sizeof(keysBuffer);
+		nHead = 0;
+		UCHAR keysBuffer[256];
+		nBufferSize += sizeof(keysBuffer);
 		UCHAR* pKeysBuffer = CGameFramework::GetKeysBuffer();
 		if (pKeysBuffer != nullptr)
 		{
-			memcpy(keysBuffer, pKeysBuffer, 256);
+			memcpy(keysBuffer, pKeysBuffer, nBufferSize - sizeof(int));
 		}
-		keysBuffer[256] = '\0';
-		unsigned long bytesInBuffer;
-		int result = ioctlsocket(m_sock, FIONREAD, &bytesInBuffer);
-		nRetval = send(wParam, (char*)keysBuffer, nBufferSize, 0);
 
+		nBufferSize += sizeof(XMFLOAT3) * 2;		
+		// 임시로 키버퍼에 LOOK, UP, RIGHT 같이 보내주기
+		nRetval = SendData(wParam, nBufferSize, nHead, keysBuffer, m_apPlayers[m_nMainClientID]->GetLook(), m_apPlayers[m_nMainClientID]->GetRight());
 		if (nRetval == SOCKET_ERROR)
 		{
 			err_display("send()");
 		}
-		m_socketState = SOCKET_STATE::RECV_SERVER_ACK;
 	}
 		break;
 	default:
-		m_bSendDelayed = true;
 		break;
+	}
+}
+
+template<class... Args>
+void CTcpClient::CreateSendDataBuffer(char* pBuffer, Args&&... args)
+{
+	size_t nOffset = 0;
+	((memcpy(pBuffer + nOffset, &args, sizeof(args)), nOffset += sizeof(args)), ...);
+}
+
+template<class... Args>
+int CTcpClient::SendData(SOCKET socket, size_t nBufferSize, Args&&... args)
+{
+	int nRetval;
+	char* pBuffer = new char[nBufferSize];
+	(CreateSendDataBuffer(pBuffer, args...));
+
+	SendNum++;
+	nRetval = send(socket, (char*)pBuffer, nBufferSize, 0);
+	delete[] pBuffer;
+
+	if (nRetval == SOCKET_ERROR)
+	{
+		err_display("send()");
+		return -1;
+	}
+	return 0;
+}
+
+int CTcpClient::RecvData(size_t nBufferSize)
+{
+	int nRetval;
+	int nRemainRecvByte = nBufferSize - m_nCurrentRecvByte;
+
+	RecvNum++;
+	nRetval = recv(m_sock, (char*)&m_pCurrentBuffer + m_nCurrentRecvByte, nRemainRecvByte, 0);
+	if(nRetval > 0) m_nCurrentRecvByte += nRetval;
+	if (nRetval == SOCKET_ERROR || nRetval == 0) // error
+	{
+		return -1;
+	}
+	else if (nRetval < nBufferSize)
+	{
+		m_bRecvDelayed = true;
+		return 1;
+	}
+	else
+	{
+		m_nCurrentRecvByte = 0;
+		m_bRecvDelayed = false;
+		return 0;
 	}
 }

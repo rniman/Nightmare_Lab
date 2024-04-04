@@ -214,11 +214,11 @@ void CScene::BuildObjects(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* p
 	// CBV(RootObject) : //육면체(1), 오브젝트(1), DeskObject(1), DoorObject(1), flashLight(1), 서버인원예상(20), fuse(3)
 	// CBV(Model) : Zom(72),  Zom_Controller(2 * N),// BlueSuit(85), BlueSuit_Controller(2 * N), Desk(3), Door(5), flashLight(1), Fuse(6)
 	int nCntCbv = 1 + 1 + 66 +
-				  72 + 2 + 85 + 2 + 2 + 7;
+				  72 + 2 + (85 + 2) * 5 + 2 + 7;
 	// SRV(Default) : 디퍼드렌더링텍스처(ADD_RENDERTARGET_COUNT로 정의된 개수임)
 	// SRV(Scene Load) : 79
-	// SRV: Zombie(3), // BlueSuit(6), 육면체(1), 엘런(8(오클루젼맵제거), Desk(3), Door(9), flashLight(3)
-	int nCntSrv = ADD_RENDERTARGET_COUNT + 6 + 79 + 3 + 3;
+	// SRV: Zombie(3), // BlueSuit(6), 육면체(1), Desk(3), Door(9), flashLight(3)
+	int nCntSrv = ADD_RENDERTARGET_COUNT + 6 * 5 + 79 + 3 + 3;
 	CreateCbvSrvDescriptorHeaps(pd3dDevice, nCntCbv, nCntSrv);
 
 	// 쉐이더 vector에 삽입한 순서대로 인덱스 define한 값으로 접근
@@ -236,15 +236,15 @@ void CScene::BuildObjects(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* p
 	m_vForwardRenderShader[TRANSPARENT_SHADER]->CreateShader(pd3dDevice, pd3dCommandList, m_pd3dGraphicsRootSignature.Get(), 1, nullptr, DXGI_FORMAT_D24_UNORM_S8_UINT);
 
 	//Player 생성
-	m_pPlayer = make_shared<CBlueSuitPlayer>(pd3dDevice, pd3dCommandList, m_pd3dGraphicsRootSignature.Get(), nullptr);
+	//m_apPlayer[0] = make_shared<CBlueSuitPlayer>(pd3dDevice, pd3dCommandList, m_pd3dGraphicsRootSignature.Get(), nullptr);
+	//shared_ptr<CLoadedModelInfo> pBlueSuitPlayerModel = CGameObject::LoadGeometryAndAnimationFromFile(pd3dDevice, pd3dCommandList, m_pd3dGraphicsRootSignature.Get(), "Asset/Model/BlueSuitFree01.bin");
+	//m_apPlayer[0]->LoadModelAndAnimation(pd3dDevice, pd3dCommandList, m_pd3dGraphicsRootSignature.Get(), pBlueSuitPlayerModel);
 	//m_pPlayer = make_shared<CZombiePlayer>(pd3dDevice, pd3dCommandList, m_pd3dGraphicsRootSignature.Get(), nullptr);
-	m_pPlayer->GetCamera()->SetPlayer(m_pPlayer);
-
-	shared_ptr<CLoadedModelInfo> pBlueSuitPlayerModel = CGameObject::LoadGeometryAndAnimationFromFile(pd3dDevice, pd3dCommandList, m_pd3dGraphicsRootSignature.Get(), "Asset/Model/BlueSuitFree01.bin");
 	//shared_ptr<CLoadedModelInfo> pZombiePlayerModel = CGameObject::LoadGeometryAndAnimationFromFile(pd3dDevice, pd3dCommandList, m_pd3dGraphicsRootSignature.Get(), "Asset/Model/Zom_1.bin");
-	m_pPlayer->LoadModelAndAnimation(pd3dDevice, pd3dCommandList, m_pd3dGraphicsRootSignature.Get(), pBlueSuitPlayerModel);
 	//m_pPlayer->LoadModelAndAnimation(pd3dDevice, pd3dCommandList, m_pd3dGraphicsRootSignature.Get(), pZombiePlayerModel);
-	m_vShader[SKINNEDANIMATION_STANDARD_SHADER]->AddGameObject(m_pPlayer);
+	//m_pMainPlayer = m_apPlayer[0];
+	//m_pMainPlayer->GetCamera()->SetPlayer(m_apPlayer[0]);
+	//m_vShader[SKINNEDANIMATION_STANDARD_SHADER]->AddGameObject(m_apPlayer[0]);
 
 	// 육면체 메쉬 - 테스트 용도 목적 ,모델파일을 읽어서 메쉬를 사용하기 때문 
 	//m_vMesh.push_back(make_shared<HexahedronMesh>(pd3dDevice, pd3dCommandList, 10.0f, 10.0f, 10.0f));
@@ -405,9 +405,14 @@ void CScene::BuildLights()
 	m_pLights[0].m_fTheta = (float)cos(XMConvertToRadians(15.0f));
 }
 
-void CScene::SetPlayer(shared_ptr<CPlayer> pPlayer)
+void CScene::SetPlayer(shared_ptr<CPlayer> pPlayer, int nIndex)
 {
-	m_pPlayer = pPlayer;
+	m_apPlayer[nIndex] = pPlayer;
+}
+
+void CScene::SetMainPlayer(const shared_ptr<CPlayer>& pMainPlayer)
+{
+	m_pMainPlayer = pMainPlayer;
 }
 
 void CScene::CreateShaderVariables(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dCommandList)
@@ -422,8 +427,8 @@ void CScene::CreateShaderVariables(ID3D12Device* pd3dDevice, ID3D12GraphicsComma
 
 void CScene::UpdateShaderVariables(ID3D12GraphicsCommandList* pd3dCommandList)
 {
-	m_pLights[0].m_xmf3Position = m_pPlayer->GetCamera()->GetPosition();
-	m_pLights[0].m_xmf3Direction = m_pPlayer->GetCamera()->GetLookVector();
+	m_pLights[0].m_xmf3Position = m_pMainPlayer->GetCamera()->GetPosition();
+	m_pLights[0].m_xmf3Direction = m_pMainPlayer->GetCamera()->GetLookVector();
 
 	::memcpy(m_pcbMappedLights->m_pLights, m_pLights, sizeof(LIGHT) * m_nLights);
 	::memcpy(&m_pcbMappedLights->m_xmf4GlobalAmbient, &m_xmf4GlobalAmbient, sizeof(XMFLOAT4));

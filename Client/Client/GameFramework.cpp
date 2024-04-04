@@ -309,13 +309,17 @@ void CGameFramework::OnProcessingMouseMessage(HWND hWnd, UINT nMessageID, WPARAM
 	case WM_LBUTTONDOWN:
 		::SetCapture(hWnd);
 		::GetCursorPos(&m_ptOldCursorPos);
-		if(dynamic_cast<CZombiePlayer*>(m_pPlayer.get()))
+		if (!m_pMainPlayer)
 		{
-			m_pPlayer->m_pSkinnedAnimationController->SetTrackEnable(2, true);
+			break;
+		}
+		if(dynamic_cast<CZombiePlayer*>(m_pMainPlayer.get()))
+		{
+			m_pMainPlayer->m_pSkinnedAnimationController->SetTrackEnable(2, true);
 		}
 		break;
 	case WM_RBUTTONDOWN:
-		m_pPlayer->SetPickedObject(LOWORD(lParam), HIWORD(lParam), m_pScene.get());
+		m_pMainPlayer->SetPickedObject(LOWORD(lParam), HIWORD(lParam), m_pScene.get());
 		break;
 	case WM_LBUTTONUP:
 	case WM_RBUTTONUP:
@@ -343,8 +347,12 @@ void CGameFramework::OnProcessingKeyboardMessage(HWND hWnd, UINT nMessageID, WPA
 			break;
 		case VK_F1:
 		case VK_F2:
-			m_pPlayer->ChangeCamera((DWORD)(wParam - VK_F1 + 1), m_GameTimer.GetTimeElapsed());
-			m_pCamera = m_pPlayer->GetCamera();
+			if (!m_pMainPlayer)
+			{
+				break;
+			}
+			m_pMainPlayer->ChangeCamera((DWORD)(wParam - VK_F1 + 1), m_GameTimer.GetTimeElapsed());
+			m_pCamera = m_pMainPlayer->GetCamera();
 			break;
 		case VK_F3:
 			break;
@@ -353,33 +361,50 @@ void CGameFramework::OnProcessingKeyboardMessage(HWND hWnd, UINT nMessageID, WPA
 			break;
 		case VK_PRIOR:
 		{
+			if (!m_pMainPlayer)
+			{
+				break;
+			}
 			XMFLOAT3 xmf3Shift = XMFLOAT3(0, 0, 0);
-			XMFLOAT3 xmf3Up = m_pPlayer->GetUpVector();
-			if (m_pPlayer->GetPosition().y < 13.5f + FLT_EPSILON) xmf3Shift = Vector3::Add(xmf3Shift, xmf3Up, 4.5f);
+			XMFLOAT3 xmf3Up = m_pMainPlayer->GetUpVector();
+			if (m_pMainPlayer->GetPosition().y < 13.5f + FLT_EPSILON) xmf3Shift = Vector3::Add(xmf3Shift, xmf3Up, 4.5f);
 
-			m_pPlayer->SetPosition(Vector3::Add(m_pPlayer->GetPosition(), xmf3Shift));
+			m_pMainPlayer->SetPosition(Vector3::Add(m_pMainPlayer->GetPosition(), xmf3Shift));
 		}
 			break;
 		case VK_NEXT:
 		{
+			if (!m_pMainPlayer)
+			{
+				break;
+			}
 			XMFLOAT3 xmf3Shift = XMFLOAT3(0, 0, 0);
-			XMFLOAT3 xmf3Up = m_pPlayer->GetUpVector();
-			if (m_pPlayer->GetPosition().y > 0.0f + FLT_EPSILON) xmf3Shift = Vector3::Add(xmf3Shift, xmf3Up, -4.5f);
+			XMFLOAT3 xmf3Up = m_pMainPlayer->GetUpVector();
+			if (m_pMainPlayer->GetPosition().y > 0.0f + FLT_EPSILON) xmf3Shift = Vector3::Add(xmf3Shift, xmf3Up, -4.5f);
 
-			m_pPlayer->SetPosition(Vector3::Add(m_pPlayer->GetPosition(), xmf3Shift));
+			m_pMainPlayer->SetPosition(Vector3::Add(m_pMainPlayer->GetPosition(), xmf3Shift));
 		}
 			break;
 		case 'E': //상호작용
-			if (shared_ptr<CGameObject> pPickedObject = m_pPlayer->GetPickedObject().lock())
+			if (!m_pMainPlayer)
 			{
-				m_pPlayer->UpdatePicking();
+				break;
+			}
+			if (shared_ptr<CGameObject> pPickedObject = m_pMainPlayer->GetPickedObject().lock())
+			{
+				m_pMainPlayer->UpdatePicking();
 			}
 			break;
 		case '1':
 		case '2':
 		case '3':
 		case '4':
-			m_pPlayer->UseItem(wParam - '1');
+			if (!m_pMainPlayer)
+			{
+				break;
+			}
+			m_pMainPlayer->UseItem(wParam - '1');
+			break;
 		default:
 			break;
 		}
@@ -448,6 +473,15 @@ UCHAR* CGameFramework::GetKeysBuffer()
 	return m_pKeysBuffer; 
 }
 
+void CGameFramework::SetPlayerObjectOfClient(int nClientId)
+{
+	m_pMainPlayer = m_apPlayer[nClientId];
+	m_pMainPlayer->GetCamera()->SetPlayer(m_pMainPlayer);
+	m_pScene->SetMainPlayer(m_pMainPlayer);
+	m_pCamera = m_pMainPlayer->GetCamera();
+	g_collisonManager.m_pPlayer = m_pMainPlayer;
+}
+
 void CGameFramework::OnDestroy()
 {
 	ReleaseObjects();
@@ -466,26 +500,27 @@ void CGameFramework::OnDestroy()
 
 void CGameFramework::BuildObjects()
 {
+
 	m_d3dCommandList->Reset(m_d3dCommandAllocator.Get(), NULL);
 
 	m_pScene = make_shared<CScene>();
-	if (m_pScene.get()) m_pScene->BuildObjects(m_d3d12Device.Get(), m_d3dCommandList.Get());
-
-	m_pPlayer = m_pScene->m_pPlayer;
-	m_pCamera = m_pPlayer->GetCamera();
-	g_collisonManager.m_pPlayer = m_pPlayer;
-
-#ifndef SINGLE_PLAY
-	for (const auto& [id,info] : m_pClientNetwork->GetClientInfos()) {
-		m_pScene->AddDefaultObject(m_d3d12Device.Get(), m_d3dCommandList.Get(),
-			ObjectType::HEXAHERON,XMFLOAT3(m_pClientNetwork->GetPostion(id)),
-			STANDARD_SHADER, HEXAHEDRONMESH);
+	if (m_pScene.get())
+	{
+		m_pScene->BuildObjects(m_d3d12Device.Get(), m_d3dCommandList.Get());
 	}
-#else
-	/*m_pScene->AddDefaultObject(m_d3d12Device.Get(), m_d3dCommandList.Get(),
-		ObjectType::HEXAHERON,XMFLOAT3(m_pClientNetwork->GetPostion(0)),
-		STANDARD_SHADER, HEXAHEDRONMESH);*/
-#endif // NOT DEFINE SINGLE_PLAY
+
+	//m_pPlayer = make_shared<CZombiePlayer>(pd3dDevice, pd3dCommandList, m_pd3dGraphicsRootSignature.Get(), nullptr);
+	//shared_ptr<CLoadedModelInfo> pZombiePlayerModel = CGameObject::LoadGeometryAndAnimationFromFile(pd3dDevice, pd3dCommandList, m_pd3dGraphicsRootSignature.Get(), "Asset/Model/Zom_1.bin");
+	//m_pPlayer->LoadModelAndAnimation(pd3dDevice, pd3dCommandList, m_pd3dGraphicsRootSignature.Get(), pZombiePlayerModel);
+	for(int i = 0; i< MAX_CLIENT;++i)
+	{
+		ComPtr<ID3D12RootSignature> pRootSignature = m_pScene->GetGraphicsRootSignature();
+		m_apPlayer[i] = std::make_shared<CBlueSuitPlayer>(m_d3d12Device.Get(), m_d3dCommandList.Get(), pRootSignature.Get(), nullptr);
+		shared_ptr<CLoadedModelInfo> pBlueSuitPlayerModel = CGameObject::LoadGeometryAndAnimationFromFile(m_d3d12Device.Get(), m_d3dCommandList.Get(), pRootSignature.Get(), "Asset/Model/BlueSuitFree01.bin");
+		m_apPlayer[i]->LoadModelAndAnimation(m_d3d12Device.Get(), m_d3dCommandList.Get(), pRootSignature.Get(), pBlueSuitPlayerModel);
+		m_pScene->m_vShader[SKINNEDANIMATION_STANDARD_SHADER]->AddGameObject(m_apPlayer[i]);
+		m_pTcpClient->SetPlayer(m_apPlayer[i],i);
+	}
 
 	m_pPostProcessingShader = new CPostProcessingShader();
 	m_pPostProcessingShader->CreateShader(m_d3d12Device.Get(), m_d3dCommandList.Get(), m_pScene->GetGraphicsRootSignature().Get(), 1, NULL, DXGI_FORMAT_D24_UNORM_S8_UINT);
@@ -525,6 +560,11 @@ void CGameFramework::ProcessInput()
 
 	if (GetKeyboardState(m_pKeysBuffer) && m_pScene) bProcessedByScene = m_pScene->ProcessInput(m_pKeysBuffer);
 
+	if (!m_pMainPlayer)
+	{
+		return;
+	}
+
 	if (!bProcessedByScene)
 	{
 		float cxDelta = 0.0f, cyDelta = 0.0f;
@@ -538,33 +578,19 @@ void CGameFramework::ProcessInput()
 			SetCursorPos(m_ptOldCursorPos.x, m_ptOldCursorPos.y);
 		}
 
-		DWORD dwDirection = 0;
-		if (m_pKeysBuffer[VK_PRIOR] & 0xF0) dwDirection |= DIR_UP;
-		if (m_pKeysBuffer[VK_NEXT] & 0xF0) dwDirection |= DIR_DOWN;
-
-		if (m_pKeysBuffer['W'] & 0xF0) dwDirection |= DIR_FORWARD;
-		if (m_pKeysBuffer['S'] & 0xF0) dwDirection |= DIR_BACKWARD;
-		if (m_pKeysBuffer['A'] & 0xF0) dwDirection |= DIR_LEFT;
-		if (m_pKeysBuffer['D'] & 0xF0) dwDirection |= DIR_RIGHT;
-		//if (pKeysBuffer[VK_LSHIFT] & 0xF0) dwDirection |= LSHIFT;
-
-		if ((dwDirection != 0) || (cxDelta != 0.0f) || (cyDelta != 0.0f))
+		if ((cxDelta != 0.0f) || (cyDelta != 0.0f))
 		{
 			if (cxDelta || cyDelta)
 			{
 				if (m_pKeysBuffer[VK_LBUTTON] & 0xF0)
 				{
-					m_pPlayer->Rotate(cyDelta, cxDelta, 0.0f);
+					m_pMainPlayer->Rotate(cyDelta, cxDelta, 0.0f);
 				}
 			}
 
-			if (dwDirection)
-			{
-				m_pPlayer->Move(dwDirection, 12.25f, true);
-			}
 		}
 	}
-	m_pPlayer->Update(m_GameTimer.GetTimeElapsed());
+	m_pMainPlayer->Update(m_GameTimer.GetTimeElapsed());
 }
 
 void CGameFramework::AnimateObjects()
@@ -573,11 +599,14 @@ void CGameFramework::AnimateObjects()
 
 	if (m_pScene) m_pScene->AnimateObjects(fElapsedTime);
 	
-	if(shared_ptr<CGameObject> pPickedObject = m_pPlayer->GetPickedObject().lock()) 
+	if (m_pMainPlayer)
 	{
-		//pPickedObject->UpdatePicking();
+		shared_ptr<CGameObject> pPickedObject = m_pMainPlayer->GetPickedObject().lock();
 	}
-	//m_pPlayer->Animate(fElapsedTime);
+	//{
+	//	//pPickedObject->UpdatePicking();
+	//}
+	////m_pPlayer->Animate(fElapsedTime);
 }
 
 void CGameFramework::ProcessCollide()
@@ -618,6 +647,21 @@ void CGameFramework::MoveToNextFrame()
 void CGameFramework::FrameAdvance()
 {
 	m_GameTimer.Tick(0.0f);
+
+	if (!m_pMainPlayer)
+	{
+		int nClientId = m_pTcpClient->GetClientId();
+		if(nClientId != -1)
+		{
+			SetPlayerObjectOfClient(nClientId);
+		}
+
+		m_GameTimer.GetFrameRate(m_pszFrameRate + 15, 37);
+		size_t nLength = _tcslen(m_pszFrameRate);
+		_stprintf_s(m_pszFrameRate + nLength, 200 - nLength, _T("ID:%d, NumOfClinet: %d"), m_pTcpClient->GetClientId(), m_pTcpClient->GetNumOfClient());
+		::SetWindowText(m_hWnd, m_pszFrameRate);
+		return;
+	}
 
 	ProcessInput();
 
@@ -699,8 +743,8 @@ void CGameFramework::FrameAdvance()
 
 	m_GameTimer.GetFrameRate(m_pszFrameRate + 15, 37);
 	size_t nLength = _tcslen(m_pszFrameRate);
-	XMFLOAT3 xmf3Position = m_pPlayer->GetPosition();
-	_stprintf_s(m_pszFrameRate + nLength, 200 - nLength, _T("ID:%d , (%4f, %4f, %4f)"), m_pTcpClient->GetClientId(), xmf3Position.x, xmf3Position.y, xmf3Position.z);
+	XMFLOAT3 xmf3Position = xmf3Position = m_pMainPlayer->GetPosition();
+	_stprintf_s(m_pszFrameRate + nLength, 200 - nLength, _T("ID:%d, NumOfClinet: %d, (%4f, %4f, %4f)"), m_pTcpClient->GetClientId(), m_pTcpClient->GetNumOfClient(), xmf3Position.x, xmf3Position.y, xmf3Position.z);
 	::SetWindowText(m_hWnd, m_pszFrameRate);
 
 	//char buf[256];

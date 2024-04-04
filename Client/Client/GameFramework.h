@@ -43,6 +43,7 @@ public:
 
 	static UCHAR* GetKeysBuffer();
 
+	void SetPlayerObjectOfClient(int nClientId);
 private:
 	D3D12_VIEWPORT m_d3dViewport;
 	D3D12_RECT m_d3dScissorRect;
@@ -83,10 +84,12 @@ private:
 #endif
 
 	CGameTimer							m_GameTimer;
-
+	
 	shared_ptr<CScene>					m_pScene;
-	shared_ptr<CPlayer>					m_pPlayer;
-	weak_ptr<CCamera>					m_pCamera;
+
+	std::shared_ptr<CPlayer>					m_pMainPlayer;	// 클라이언트ID에 해당하는 인덱스가 해당 클라이언트의 Main플레이어로 설정된다
+	std::array<shared_ptr<CPlayer>, MAX_CLIENT>	m_apPlayer;		// 클라이언트ID와 인덱스는 동일하다.
+	weak_ptr<CCamera>							m_pCamera;
 
 	CPostProcessingShader*				m_pPostProcessingShader = NULL;
 

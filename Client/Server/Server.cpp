@@ -52,7 +52,7 @@ int main()
 		}
 		else
 		{
-			g_tcpServer.Update();
+			g_tcpServer.SimulationLoop();
 		}
 	}
 
@@ -94,10 +94,11 @@ LRESULT CALLBACK OnProcessingWindowMessage(HWND hWnd, UINT uMsg, WPARAM wParam, 
 LRESULT CALLBACK OnProcessingSocketMessage(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 {
 	// 오류 발생 여부 확인
-	if (WSAGETSELECTERROR(lParam)) 
+	if (WSAGETSELECTERROR(lParam) && WSAGETSELECTEVENT(lParam) != FD_CLOSE) 
 	{
 		err_display(WSAGETSELECTERROR(lParam));
-		g_tcpServer.RemoveSocketInfo(wParam);
+		int nIndex = g_tcpServer.RemoveSocketInfo(wParam);
+		g_tcpServer.GetPlayer(nIndex).reset();
 		return -1;
 	}
 

@@ -126,31 +126,10 @@ void CPlayer::Rotate(float x, float y, float z)
 
 void CPlayer::Update(float fElapsedTime)
 {
-	m_xmf3Velocity = Vector3::Add(m_xmf3Velocity, m_xmf3Gravity);
-	float fLength = sqrtf(m_xmf3Velocity.x * m_xmf3Velocity.x + m_xmf3Velocity.z * m_xmf3Velocity.z);
-	float fMaxVelocityXZ = m_fMaxVelocityXZ;
-	if (fLength > m_fMaxVelocityXZ)
-	{
-		m_xmf3Velocity.x *= (fMaxVelocityXZ / fLength);
-		m_xmf3Velocity.z *= (fMaxVelocityXZ / fLength);
-	}
-	float fMaxVelocityY = m_fMaxVelocityY;
-	fLength = sqrtf(m_xmf3Velocity.y * m_xmf3Velocity.y);
-	if (fLength > m_fMaxVelocityY) m_xmf3Velocity.y *= (fMaxVelocityY / fLength);
-
-	XMFLOAT3 xmf3Velocity = Vector3::ScalarProduct(m_xmf3Velocity, fElapsedTime, false);
-	if(!Vector3::IsZero(xmf3Velocity)) m_xmf3OldVelocity = xmf3Velocity;
-	Move(xmf3Velocity, false);
-
 	DWORD nCurrentCameraMode = m_pCamera->GetMode();
-	/*if (nCurrentCameraMode == THIRD_PERSON_CAMERA) */m_pCamera->Update(m_xmf3Position, fElapsedTime);
+	m_pCamera->Update(m_xmf3Position, fElapsedTime);
 	if (m_pCameraUpdatedContext) OnCameraUpdateCallback(fElapsedTime);
 	m_pCamera->RegenerateViewMatrix();
-
-	fLength = Vector3::Length(m_xmf3Velocity);
-	float fDeceleration = (m_fFriction * fElapsedTime);
-	if (fDeceleration > fLength) fDeceleration = fLength;
-	m_xmf3Velocity = Vector3::Add(m_xmf3Velocity, Vector3::ScalarProduct(m_xmf3Velocity, -fDeceleration, true));
 }
 
 void CPlayer::CalculateSpace()
@@ -256,10 +235,6 @@ void CPlayer::Collide(float fElapsedTime, const shared_ptr<CGameObject>& pCollid
 {
 	XMFLOAT3 xmf3Velocity;
 	XMFLOAT3 xmf3NormalOfVelocity = Vector3::Normalize(m_xmf3Velocity);
-	//if (Vector3::IsZero(m_xmf3Velocity))
-	//{
-	//	xmf3NormalOfVelocity = Vector3::Normalize(m_xmf3OldVelocity);
-	//}
 
 	XMFLOAT3 xmf3OldPosition = m_xmf3OldPosition;
 	m_bCollision = false;
@@ -365,6 +340,11 @@ void CPlayer::Collide(float fElapsedTime, const shared_ptr<CGameObject>& pCollid
 
 void CPlayer::Render(ID3D12GraphicsCommandList* pd3dCommandList)
 {
+	if (m_nClientId == -1)
+	{
+		return;
+	}
+
 	CGameObject::Render(pd3dCommandList);
 }
 
@@ -495,7 +475,6 @@ void CBlueSuitPlayer::Update(float fElapsedTime)
 			m_bAbleRun = true;
 		}
 	}
-
 
 	CPlayer::Update(fElapsedTime);
 
