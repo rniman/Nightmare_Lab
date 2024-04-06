@@ -673,8 +673,6 @@ void CGameFramework::FrameAdvance()
 
 	AnimateObjects();
 
-	ProcessCollide();
-
 	HRESULT hResult = m_d3dCommandAllocator->Reset();
 	hResult = m_d3dCommandList->Reset(m_d3dCommandAllocator.Get(), NULL);
 

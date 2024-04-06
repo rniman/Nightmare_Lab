@@ -135,8 +135,10 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
-    <ClCompile Include="Object.cpp" />
-    <ClCompile Include="Player.cpp" />
+    <ClCompile Include="EnviromentObject.cpp" />
+    <ClCompile Include="Collision.cpp" />
+    <ClCompile Include="ServerObject.cpp" />
+    <ClCompile Include="ServerPlayer.cpp" />
     <ClCompile Include="Server.cpp" />
     <ClCompile Include="stdafx.cpp">
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">Create</PrecompiledHeader>
@@ -148,8 +150,10 @@
     <ClCompile Include="Timer.cpp" />
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="Object.h" />
-    <ClInclude Include="Player.h" />
+    <ClInclude Include="EnviromentObject.h" />
+    <ClInclude Include="Collision.h" />
+    <ClInclude Include="ServerObject.h" />
+    <ClInclude Include="ServerPlayer.h" />
     <ClInclude Include="stdafx.h" />
     <ClInclude Include="TCPServer.h" />
     <ClInclude Include="Timer.h" />

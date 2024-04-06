@@ -1,7 +1,9 @@
 #include "stdafx.h"
 #include "TCPServer.h"
-#include "Object.h"
-#include "Player.h"
+#include "ServerObject.h"
+#include "EnviromentObject.h"
+#include "ServerPlayer.h"
+#include "Collision.h"
 
 size_t TCPServer::m_nClient = 0;
 
@@ -87,6 +89,7 @@ void TCPServer::OnProcessingAcceptMessage(HWND hWnd, UINT nMessageID, WPARAM wPa
 
 	m_apPlayers[nClientIndex] = make_shared<CPlayer>();
 	m_apPlayers[nClientIndex]->SetPlayerId(nClientIndex);
+	m_pCollisionManager->AddCollisionPlayer(m_apPlayers[nClientIndex], nClientIndex);
 
 	for (auto& sockInfo : m_vSocketInfoList)
 	{
@@ -255,6 +258,10 @@ bool TCPServer::Init(HWND hWnd)
 		err_quit("WSAAsyncSelect()");
 	}
 
+	m_pCollisionManager = make_shared<CCollisionManager>();
+	m_pCollisionManager->CreateCollision(4, 10, 10);
+
+	LoadScene();
 	return true;
 }
 
@@ -263,16 +270,21 @@ void TCPServer::SimulationLoop()
 	m_timer.Tick();
 	// 실제 시뮬레이션이 일어날곳
 
+	float fElapsedTime = m_timer.GetTimeElapsed();
 	for (auto& pPlayer : m_apPlayers)
 	{
 		if (!pPlayer || pPlayer->GetPlayerId() == -1)
 			continue;
 
-		float fElapsedTime = m_timer.GetTimeElapsed();
 		pPlayer->Update(fElapsedTime);
 
 		UpdateInformation(pPlayer);
+
+		m_pCollisionManager->Collide(fElapsedTime, pPlayer);
+
+		UpdateInformation(pPlayer);
 	}
+
 }
 
 // 소켓 정보 추가
@@ -383,6 +395,147 @@ void TCPServer::UpdateInformation(const shared_ptr<CPlayer>& pPlayer)
 	m_aUpdateInfo[nPlayerId].m_xmf3Velocity = pPlayer->GetVelocity();
 	m_aUpdateInfo[nPlayerId].m_xmf3Look = pPlayer->GetLook();
 	m_aUpdateInfo[nPlayerId].m_xmf3Right = pPlayer->GetRight();
+}
+
+void TCPServer::LoadScene()
+{
+	FILE* pInFile = NULL;
+	::fopen_s(&pInFile, (char*)"ServerScene.bin", "rb");
+	::rewind(pInFile);
+	int fileEnd{};
+	int nReads;
+	while (true)
+	{
+		char pstrToken[128] = { '\0' };
+		for (; ; )
+		{
+			if (::ReadStringFromFile(pInFile, pstrToken))
+			{
+				if (!strcmp(pstrToken, "<Hierarchy>:"))
+				{
+					char pStrFrameName[64];
+					int nChild, nBoxCollider;
+					XMFLOAT3 xmf3AABBCenter, xmf3AABBExtents;
+					std::vector<BoundingOrientedBox> voobb;
+					for (;;)
+					{
+						if (::ReadStringFromFile(pInFile, pstrToken))
+						{
+							if (!strcmp(pstrToken, "<Frame>:"))
+							{
+								::ReadIntegerFromFile(pInFile);
+								::ReadStringFromFile(pInFile, pStrFrameName);
+							}
+							else if (!strcmp(pstrToken, "<Children>:"))
+							{
+								nChild = ::ReadIntegerFromFile(pInFile);
+							}
+							else if (!strcmp(pstrToken, "<BoxColliders>:"))
+							{
+								nBoxCollider = ::ReadIntegerFromFile(pInFile);
+								voobb.reserve(nBoxCollider);
+								for (int i = 0; i < nBoxCollider; ++i)
+								{
+									::ReadStringFromFile(pInFile, pstrToken);	// <Bound>
+									int nIndex = 0;
+									nReads = fread(&nIndex, sizeof(int), 1, pInFile);
+									nReads = (UINT)::fread(&xmf3AABBCenter, sizeof(XMFLOAT3), 1, pInFile);
+									nReads = (UINT)::fread(&xmf3AABBExtents, sizeof(XMFLOAT3), 1, pInFile);
+									XMFLOAT4 xmf4Orientation;
+									XMStoreFloat4(&xmf4Orientation, XMQuaternionIdentity());
+									voobb.emplace_back(xmf3AABBCenter, xmf3AABBExtents, xmf4Orientation);
+								}
+							}
+							else if (!strcmp(pstrToken, "<Matrix>:"))
+							{
+								nChild = ::ReadIntegerFromFile(pInFile);
+								XMFLOAT4X4* xmf4x4World = new XMFLOAT4X4[nChild];
+								nReads = (UINT)::fread(xmf4x4World, sizeof(XMFLOAT4X4), nChild, pInFile);
+								for (int i = 0; i < nChild; ++i)
+								{
+									// 오브젝트 생성
+									CreateSceneObject(pStrFrameName, Matrix4x4::Transpose(xmf4x4World[i]), voobb);
+								}
+								delete[] xmf4x4World;
+							}
+							else if (!strcmp(pstrToken, "</Frame>"))
+							{
+								break;
+							}
+						}
+					}
+				}
+				else if (!strcmp(pstrToken, "</Hierarchy>"))
+				{
+					break;
+				}
+				else if (!strcmp(pstrToken, "</Scene>:"))
+				{
+					fileEnd = 1;
+					break;
+				}
+			}
+			else
+			{
+				break;
+			}
+		}
+		if (fileEnd) 
+		{
+			break;
+		}
+	}
+}
+
+void TCPServer::CreateSceneObject(char* pstrFrameName, const XMFLOAT4X4& xmf4x4World, const vector<BoundingOrientedBox>& voobb)
+{
+	shared_ptr<CGameObject> pGameObject;
+
+	if (!strcmp(pstrFrameName, "Door_1"))
+	{
+		pGameObject = make_shared<CDoorObject>(pstrFrameName, xmf4x4World, voobb);
+		m_pCollisionManager->AddCollisionObject(pGameObject);
+	}
+	else if (!strcmp(pstrFrameName, "Drawer_1") || !strcmp(pstrFrameName, "Drawer_2"))
+	{
+		pGameObject = make_shared<CDrawerObject>(pstrFrameName, xmf4x4World, voobb);
+		m_pCollisionManager->AddCollisionObject(pGameObject);
+	}
+	else if (!strcmp(pstrFrameName, "Door1"))
+	{
+		pGameObject = make_shared<CElevatorDoorObject>(pstrFrameName, xmf4x4World, voobb);
+		m_pCollisionManager->AddCollisionObject(pGameObject);
+	}
+	else if (!strcmp(pstrFrameName, "Emergency_Handle"))
+	{
+		pGameObject = make_shared<CElevatorDoorObject>(pstrFrameName, xmf4x4World, voobb);
+		m_pCollisionManager->AddCollisionObject(pGameObject);
+	}
+	else if (!strcmp(pstrFrameName, "Laboratory_Wall_1_Corner_1") || !strcmp(pstrFrameName, "Laboratory_Wall_1_Corner_2"))
+	{
+		pGameObject = make_shared<CEnviromentObejct>(pstrFrameName, xmf4x4World, voobb);
+		m_pCollisionManager->AddCollisionObject(pGameObject);
+	}
+	else if (!strcmp(pstrFrameName, "Laboratory_Wall_1_Corner") || !strcmp(pstrFrameName, "Laboratory_Wall_1_Corner2") || !strcmp(pstrFrameName, "Laboratory_Wall_1"))
+	{
+		pGameObject = make_shared<CEnviromentObejct>(pstrFrameName, xmf4x4World, voobb);
+		m_pCollisionManager->AddCollisionObject(pGameObject);
+	}
+	else if (!strcmp(pstrFrameName, "Laboratory_Wall_Door_1") || !strcmp(pstrFrameName, "Laboratory_Wall_Door_1_2") || !strcmp(pstrFrameName, "Laboratory_Tunnel_1") || !strcmp(pstrFrameName, "Laboratory_Table_1"))
+	{
+		pGameObject = make_shared<CEnviromentObejct>(pstrFrameName, xmf4x4World, voobb);
+		m_pCollisionManager->AddCollisionObject(pGameObject);
+	}
+	else if (!strcmp(pstrFrameName, "Laboratory_Tunnel_1_Stairs"))
+	{
+		pGameObject = make_shared<CEnviromentObejct>(pstrFrameName, xmf4x4World, voobb);
+		m_pCollisionManager->AddCollisionObject(pGameObject);
+	}
+	else
+	{
+		pGameObject = make_shared<CGameObject>(pstrFrameName, xmf4x4World, voobb);
+		m_pCollisionManager->AddCollisionObject(pGameObject);
+	}
 }
 
 template<class... Args>

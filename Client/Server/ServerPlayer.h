@@ -1,5 +1,5 @@
 #pragma once
-#include "Object.h"
+#include "ServerObject.h"
 
 constexpr WORD DIR_FORWARD = 0x01;
 constexpr WORD DIR_BACKWARD = 0x02;
@@ -17,8 +17,11 @@ public:
 	virtual ~CPlayer() {};
 
 	virtual void Update(float fElapsedTime) override;
+	virtual void Collide(const shared_ptr<CCollisionManager>& pCollisionManager, float fElapsedTime, shared_ptr<CGameObject> pCollided) override;
 	void Move(const XMFLOAT3& xmf3Shift, bool bUpdateVelocity);
 
+	void CalculateSpace();
+	void OnUpdateToParent();
 	// Interface
 	void SetPlayerId(int nPlayerId) { m_nPlayerId = nPlayerId; }
 
@@ -37,6 +40,10 @@ public:
 	XMFLOAT3 GetVelocity() const { return m_xmf3Velocity; }
 	XMFLOAT3 GetLook() const { return m_xmf3Look; }
 	XMFLOAT3 GetRight() const { return m_xmf3Right; }
+
+	int GetWidth()const { return m_nWidth; }
+	int GetDepth()const { return m_nDepth; }
+	int GetFloor()const { return m_nFloor; }
 protected:
 	// 통시을 통해 받는 정보
 	int m_nPlayerId = -1;
@@ -70,3 +77,20 @@ protected:
 ///
 ///
 /// 
+
+class CBlueSuitPlayer : public CPlayer
+{
+public:
+
+	void Teleport() {};
+};
+
+///
+///
+/// 
+
+
+class CZombiePlayer : public CPlayer
+{
+
+};
