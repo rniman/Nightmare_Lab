@@ -776,6 +776,37 @@ void CAnimationController::AdvanceTime(float fElapsedTime, CGameObject* pRootGam
 	}
 }
 
+
+XMFLOAT4X4 CAnimationController::GetBoneFrameTransform(int index)
+{
+	return m_pAnimationSets->m_vpBoneFrameCaches[index]->m_xmf4x4ToParent;
+}
+
+XMFLOAT3 CAnimationController::GetBoneFramePositionVector(int index)
+{
+	XMFLOAT4X4* matrix = &m_pAnimationSets->m_vpBoneFrameCaches[index]->m_xmf4x4World;
+	return XMFLOAT3{ matrix->_41, matrix->_42, matrix->_43 };
+}
+
+
+XMFLOAT3 CAnimationController::GetBoneFrameLookVector(int index)
+{
+	XMFLOAT4X4* matrix = &m_pAnimationSets->m_vpBoneFrameCaches[index]->m_xmf4x4World;
+	return XMFLOAT3{ matrix->_31, matrix->_32, matrix->_33 };
+}
+
+XMFLOAT3 CAnimationController::GetBoneFrameUpVector(int index)
+{
+	XMFLOAT4X4* matrix = &m_pAnimationSets->m_vpBoneFrameCaches[index]->m_xmf4x4World;
+	return XMFLOAT3{ matrix->_21, matrix->_22, matrix->_23 };
+}
+
+XMFLOAT3 CAnimationController::GetBoneFrameRightVector(int index)
+{
+	XMFLOAT4X4* matrix = &m_pAnimationSets->m_vpBoneFrameCaches[index]->m_xmf4x4World;
+	return XMFLOAT3{ matrix->_11, matrix->_12, matrix->_13 };
+}
+
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 CLoadedModelInfo::~CLoadedModelInfo()
@@ -987,7 +1018,8 @@ void CGameObject::Collide(float fElapsedTime, const shared_ptr<CGameObject>& pGa
 void CGameObject::Render(ID3D12GraphicsCommandList* pd3dCommandList)
 {
 	if (m_pSkinnedAnimationController) m_pSkinnedAnimationController->UpdateShaderVariables(pd3dCommandList);
-	
+
+
 	if (m_pMesh)
 	{
 		if (m_nMaterials > 0)

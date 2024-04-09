@@ -305,6 +305,13 @@ public:
 
 	virtual void OnRootMotion(CGameObject* pRootGameObject) { }
 	virtual void OnAnimationIK(CGameObject* pRootGameObject) { }
+
+	//
+	XMFLOAT4X4 GetBoneFrameTransform(int index);
+	XMFLOAT3 GetBoneFramePositionVector(int index);
+	XMFLOAT3 GetBoneFrameLookVector(int index);
+	XMFLOAT3 GetBoneFrameRightVector(int index);
+	XMFLOAT3 GetBoneFrameUpVector(int index);
 public:
 	float 							m_fTime = 0.0f;
 
@@ -341,7 +348,7 @@ public:
 
 /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
- //Rendering을 위한 오브젝트임 결국 CShaader에 포함될 운명임,  근데 인스턴싱 오브젝트의 경우 따로 정보를 결국 저장해둬야함
+ //Rendering을 위한 오브젝트임 결국 CShader에 포함될 운명임,  근데 인스턴싱 오브젝트의 경우 따로 정보를 결국 저장해둬야함
 class CGameObject : public std::enable_shared_from_this<CGameObject>
 {
 public:
@@ -355,6 +362,8 @@ public:
 
 	virtual void Animate(float fElapsedTime);
 	virtual void Collide(float fElapsedTime, const shared_ptr<CGameObject>& pCollidedObject);
+
+	//Rendering
 	virtual void Render(ID3D12GraphicsCommandList* pd3dCommandList);
 	//불투명한 재질의 메쉬만 렌더링
 	virtual void RenderOpaque(ID3D12GraphicsCommandList* pd3dCommandList);
@@ -362,11 +371,11 @@ public:
 	virtual void RenderTransparent(ID3D12GraphicsCommandList* pd3dCommandList);
 
 	virtual void CreateShaderVariables(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dCommandList);
-	virtual void UpdateShaderVariables(ID3D12GraphicsCommandList* pd3dCommandList);
-	virtual void ReleaseShaderVariables();
 
+	virtual void UpdateShaderVariables(ID3D12GraphicsCommandList* pd3dCommandList);
 	virtual void UpdateShaderVariable(ID3D12GraphicsCommandList* pd3dCommandList, XMFLOAT4X4* pxmf4x4World);
 
+	virtual void ReleaseShaderVariables();
 	virtual void ReleaseUploadBuffers();
 
 	void SetMesh(const shared_ptr<CMesh>& pMesh);
@@ -463,7 +472,8 @@ public:
 	shared_ptr<CAnimationController> m_pSkinnedAnimationController;
 
 	vector<BoundingOrientedBox> m_voobbOrigin;
-	// 투명 오브젝트 분류
+
+	// 투명 오브젝트를 포함하는가?
 	bool m_bThisContainTransparent = false;
 	vector<int> m_vTransparentMaterialNumbers;
 	bool m_bCollsion = true;

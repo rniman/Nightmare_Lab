@@ -169,7 +169,6 @@ void CGameFramework::CreateDirect3DDevice()
 
 	::gnCbvSrvDescriptorIncrementSize = m_d3d12Device->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
 	::gnRtvDescriptorIncrementSize = m_d3d12Device->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_RTV);
-	::gnDsvDescriptorIncrementSize = m_d3d12Device->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_DSV);
 
 	if (pd3dAdapter) pd3dAdapter->Release();
 }
@@ -194,7 +193,7 @@ void CGameFramework::CreateRtvAndDsvDescriptorHeaps()
 {
 	D3D12_DESCRIPTOR_HEAP_DESC d3dDescriptorHeapDesc;
 	::ZeroMemory(&d3dDescriptorHeapDesc, sizeof(D3D12_DESCRIPTOR_HEAP_DESC));
-	d3dDescriptorHeapDesc.NumDescriptors = m_nSwapChainBuffers + ADD_RENDERTARGET_COUNT;
+	d3dDescriptorHeapDesc.NumDescriptors = m_nSwapChainBuffers + ADD_RENDERTARGET_COUNT + 2 ;
 	d3dDescriptorHeapDesc.Type = D3D12_DESCRIPTOR_HEAP_TYPE_RTV;
 	d3dDescriptorHeapDesc.Flags = D3D12_DESCRIPTOR_HEAP_FLAG_NONE;
 	d3dDescriptorHeapDesc.NodeMask = 0;
@@ -466,7 +465,10 @@ void CGameFramework::BuildObjects()
 	DXGI_FORMAT pdxgiResourceFormats[ADD_RENDERTARGET_COUNT] = { DXGI_FORMAT_R8G8B8A8_UNORM,  DXGI_FORMAT_R8G8B8A8_UNORM, DXGI_FORMAT_R32_FLOAT ,DXGI_FORMAT_R32G32B32A32_FLOAT };
 	m_pPostProcessingShader->CreateResourcesAndRtvsSrvs(m_d3d12Device.Get(), m_d3dCommandList.Get(), ADD_RENDERTARGET_COUNT, pdxgiResourceFormats, d3dRtvCPUDescriptorHandle); //SRV to (Render Targets) + (Depth Buffer)
 
+	d3dRtvCPUDescriptorHandle.ptr += (::gnRtvDescriptorIncrementSize * ADD_RENDERTARGET_COUNT);
+	m_pPostProcessingShader->CreateShadowMapResource(m_d3d12Device.Get(), m_d3dCommandList.Get(),m_pScene->m_nLights, d3dRtvCPUDescriptorHandle);
 	//D3D12_GPU_DESCRIPTOR_HANDLE d3dDsvGPUDescriptorHandle = CScene::CreateShaderResourceView(m_d3d12Device.Get(), m_d3dDepthStencilBuffer.Get(), DXGI_FORMAT_R32_FLOAT);
+	m_pPostProcessingShader->CreateLightCamera(m_d3d12Device.Get(), m_d3dCommandList.Get(), m_pScene.get());
 
 	m_d3dCommandList->Close();
 	ID3D12CommandList* ppd3dCommandLists[] = { m_d3dCommandList.Get()};
@@ -474,12 +476,15 @@ void CGameFramework::BuildObjects()
 
 	WaitForGpuComplete();
 
+
 	if (m_pScene)
 	{
 		m_pScene->ReleaseUploadBuffers();
 	}
 
 	m_GameTimer.Reset();
+	PreRenderTasks(); // 사전 렌더링 작업
+
 }
 
 void CGameFramework::ReleaseObjects()
@@ -534,7 +539,7 @@ void CGameFramework::ProcessInput()
 
 			if (dwDirection)
 			{
-				m_pPlayer->Move(dwDirection, 12.25f, true);
+				m_pPlayer->Move(dwDirection, 12.5f, true);
 			}
 		}
 	}
@@ -560,6 +565,7 @@ void CGameFramework::ProcessCollide()
 
 	if (m_pScene) m_pScene->ProcessCollide(fElapsedTime);
 }
+
 
 void CGameFramework::WaitForGpuComplete()
 {
@@ -587,8 +593,59 @@ void CGameFramework::MoveToNextFrame()
 	}
 }
 
-//#define _WITH_PLAYER_TOP
+void CGameFramework::PreRenderTasks()
+{
+	//ProcessInput();
+	m_pPlayer->Update(m_GameTimer.GetTimeElapsed());
 
+	AnimateObjects();
+	// 이곳에서 렌더링 하기전에 준비작업을 시행하도록한다. ex) 쉐도우맵 베이킹
+	// buildobject함수 호출 이후 처리되어야할 작업이다. -> 모든 객체들이 렌더링되어야 그림자맵을 생성함.
+	HRESULT hResult = m_d3dCommandAllocator->Reset();
+	hResult = m_d3dCommandList->Reset(m_d3dCommandAllocator.Get(), NULL);
+
+	SynchronizeResourceTransition(m_d3dCommandList.Get(), m_d3dSwapChainBackBuffers[m_nSwapChainBufferIndex].Get(), D3D12_RESOURCE_STATE_PRESENT, D3D12_RESOURCE_STATE_RENDER_TARGET);
+	
+	// 그림자맵에 해당하는 텍스처를 렌더타겟으로 변환
+	m_pPostProcessingShader->OnShadowPrepareRenderTarget(m_d3dCommandList.Get());
+
+	D3D12_CPU_DESCRIPTOR_HANDLE d3dRtvCPUDescriptorHandle = m_d3dRtvDescriptorHeap->GetCPUDescriptorHandleForHeapStart();
+	d3dRtvCPUDescriptorHandle.ptr += (m_nSwapChainBufferIndex * ::gnRtvDescriptorIncrementSize);
+	D3D12_CPU_DESCRIPTOR_HANDLE d3dDsvCPUDescriptorHandle = m_pPostProcessingShader->GetDsvCPUDesctriptorHandle(0);
+
+	auto& vlightCamera = m_pPostProcessingShader->GetLightCamera();
+
+	for (int i = 0; i < m_pPostProcessingShader->GetShadowTexture()->GetTextures();++i) {
+		D3D12_CPU_DESCRIPTOR_HANDLE shadowRTVDescriptorHandle = m_pPostProcessingShader->GetShadowRtvCPUDescriptorHandle(i);
+		{
+			m_d3dCommandList->ClearDepthStencilView(d3dDsvCPUDescriptorHandle, D3D12_CLEAR_FLAG_DEPTH | D3D12_CLEAR_FLAG_STENCIL, 1.0f, 0, 0, NULL);
+
+			m_d3dCommandList->OMSetRenderTargets(1, &shadowRTVDescriptorHandle, TRUE, &d3dDsvCPUDescriptorHandle);
+
+			//1차 렌더링
+			if (m_pScene)
+			{
+				m_pScene->Render(m_d3dCommandList.Get(), vlightCamera[i], 1); // 카메라만 빛의 위치대로 설정해서 렌더링함.
+			}
+		}
+	}
+	// 그림자맵에 해당하는 렌더타겟을 텍스처로 변환
+	m_pPostProcessingShader->TransitionShadowMapRenderTargetToCommon(m_d3dCommandList.Get());
+	SynchronizeResourceTransition(m_d3dCommandList.Get(), m_d3dSwapChainBackBuffers[m_nSwapChainBufferIndex].Get(), D3D12_RESOURCE_STATE_RENDER_TARGET, D3D12_RESOURCE_STATE_PRESENT);
+
+	hResult = m_d3dCommandList->Close();
+
+	ID3D12CommandList* ppd3dCommandLists[] = { m_d3dCommandList.Get() };
+	m_d3dCommandQueue->ExecuteCommandLists(1, ppd3dCommandLists);
+
+	WaitForGpuComplete();
+
+	m_dxgiSwapChain->Present(0, 0);
+
+	MoveToNextFrame();
+}
+
+//#define _WITH_PLAYER_TOP
 void CGameFramework::FrameAdvance()
 {
 	m_GameTimer.Tick(0.0f);
@@ -608,6 +665,51 @@ void CGameFramework::FrameAdvance()
 	HRESULT hResult = m_d3dCommandAllocator->Reset();
 	hResult = m_d3dCommandList->Reset(m_d3dCommandAllocator.Get(), NULL);
 
+	{
+		int ndynamicShadowMap = 25;
+		// 그림자맵에 해당하는 텍스처를 렌더타겟으로 변환
+		m_pPostProcessingShader->OnShadowPrepareRenderTarget(m_d3dCommandList.Get(), ndynamicShadowMap); //플레이어의 손전등 1개 -> [0] 번째 요소에 들어있음.
+
+		D3D12_CPU_DESCRIPTOR_HANDLE d3dDsvCPUDescriptorHandle = m_pPostProcessingShader->GetDsvCPUDesctriptorHandle(0);
+
+		auto& vlightCamera = m_pPostProcessingShader->GetLightCamera();
+
+		XMFLOAT4X4* xmf4x4playerLight = &m_pScene->flashlightObject->m_xmf4x4World;
+		vlightCamera[0]->SetPosition(XMFLOAT3(xmf4x4playerLight->_41, xmf4x4playerLight->_42, xmf4x4playerLight->_43));
+		vlightCamera[0]->SetLookVector(XMFLOAT3(xmf4x4playerLight->_21, xmf4x4playerLight->_22, xmf4x4playerLight->_23));
+		vlightCamera[0]->RegenerateViewMatrix();
+		vlightCamera[0]->MultiplyViewProjection();
+
+		XMFLOAT4X4 xmf4x4ToTexture = {
+		0.5f, 0.0f, 0.0f, 0.0f,
+		0.0f, -0.5f, 0.0f, 0.0f,
+		0.0f, 0.0f, 1.0f, 0.0f,
+		0.5f, 0.5f, 0.0f, 1.0f };
+		XMMATRIX xmProjectionToTexture = XMLoadFloat4x4(&xmf4x4ToTexture);
+
+		XMFLOAT4X4 viewProjection = vlightCamera[0]->GetViewProjection();
+		XMMATRIX xmmtxViewProjection = XMLoadFloat4x4(&viewProjection);
+		XMStoreFloat4x4(&m_pScene->m_pLights[0].m_xmf4x4ViewProjection, XMMatrixTranspose(xmmtxViewProjection * xmProjectionToTexture));
+
+		for (int i = 0; i < ndynamicShadowMap/*m_pPostProcessingShader->GetShadowTexture()->GetTextures()*/;++i) {
+			D3D12_CPU_DESCRIPTOR_HANDLE shadowRTVDescriptorHandle = m_pPostProcessingShader->GetShadowRtvCPUDescriptorHandle(i);
+			{
+				m_d3dCommandList->ClearDepthStencilView(d3dDsvCPUDescriptorHandle, D3D12_CLEAR_FLAG_DEPTH | D3D12_CLEAR_FLAG_STENCIL, 1.0f, 0, 0, NULL);
+
+				m_d3dCommandList->OMSetRenderTargets(1, &shadowRTVDescriptorHandle, TRUE, &d3dDsvCPUDescriptorHandle);
+
+				//1차 렌더링
+				if (m_pScene)
+				{
+					m_pScene->Render(m_d3dCommandList.Get(), vlightCamera[i], 1/*nPipelinestate*/); // 카메라만 빛의 위치대로 설정해서 렌더링함.
+				}
+			}
+		}
+		// 그림자맵에 해당하는 렌더타겟을 텍스처로 변환
+		m_pPostProcessingShader->TransitionShadowMapRenderTargetToCommon(m_d3dCommandList.Get(), ndynamicShadowMap); //플레이어의 손전등 1개 -> [0] 번째 요소에 들어있음.
+	}
+
+
 	SynchronizeResourceTransition(m_d3dCommandList.Get(), m_d3dSwapChainBackBuffers[m_nSwapChainBufferIndex].Get(), D3D12_RESOURCE_STATE_PRESENT, D3D12_RESOURCE_STATE_RENDER_TARGET);
 
 	D3D12_CPU_DESCRIPTOR_HANDLE d3dRtvCPUDescriptorHandle = m_d3dRtvDescriptorHeap->GetCPUDescriptorHandleForHeapStart();
@@ -623,13 +725,13 @@ void CGameFramework::FrameAdvance()
 		//1차 렌더링
 		if (m_pScene)
 		{
-			m_pScene->Render(m_d3dCommandList.Get(), m_pCamera.lock());
+			m_pScene->Render(m_d3dCommandList.Get(), m_pCamera.lock(), 0);
 		}
 
 #ifdef _WITH_PLAYER_TOP
 		m_d3dCommandList->ClearDepthStencilView(d3dDsvCPUDescriptorHandle, D3D12_CLEAR_FLAG_DEPTH | D3D12_CLEAR_FLAG_STENCIL, 1.0f, 0, 0, NULL);
 #endif
-		//m_pPlayer->Render(m_d3dCommandList.Get());
+		//m_pPlayer->Render(m_d3dCommandList.Get()); //[CJI 0405] 씬에 플레이어가 존재하므로 렌더링 x
 
 		m_pPostProcessingShader->TransitionRenderTargetToCommon(m_d3dCommandList.Get());
 

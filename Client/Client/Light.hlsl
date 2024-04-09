@@ -1,5 +1,5 @@
 //--------------------------------------------------------------------------------------
-#define MAX_LIGHTS			16 
+#define MAX_LIGHTS			25
 #define MAX_MATERIALS		16 
 
 #define POINT_LIGHT			1
@@ -12,6 +12,7 @@
 
 struct LIGHT
 {
+    float4x4				m_viewProjection;
 	float4					m_cAmbient;
     float4					m_cAlbedo;
 	float4					m_cSpecular;
@@ -33,6 +34,12 @@ cbuffer cbLights : register(b2)
 	float4					gcGlobalAmbientLight;
 	int						gnLights;
 };
+
+Texture2D<float> ShadowMapTexture[MAX_LIGHTS] : register(t20);
+SamplerComparisonState gssComparisonPCFShadow : register(s2);
+
+#define DELTA_X					(1.0f / FRAME_BUFFER_WIDTH)
+#define DELTA_Y					(1.0f / FRAME_BUFFER_HEIGHT)
 
 float4 DirectionalLight(int nIndex, float3 vNormal, float3 vToCamera)
 {
@@ -119,9 +126,37 @@ float SpotFactor(int nLightType,float3 vLight,float3 vToLight,float fTheta,float
 
 }
 
-float4 SpotLight(int nIndex, float3 vPosition, float3 vNormal, float3 vToCamera)
+float Shadowdecrease(int nIndex, float3 vPosition, float3 vToCamera)
 {
+    //if (nIndex > 0)
+    {
+        float4 uvs = mul(float4(vPosition, 1.0f), gLights[nIndex].m_viewProjection);
+        
+        float wPositionDepth = uvs.z / uvs.w; //ÇÈ¼¿ ±íÀÌ¸¦ ÀÇ¹ÌÇÔ.
+        //float shadow = ShadowMapTexture[1].SampleLevel(gssWrap, uvs.xy / uvs.ww, 0).r;
+        wPositionDepth -= 0.01f;
+        float shadow = ShadowMapTexture[nIndex].SampleCmpLevelZero(gssComparisonPCFShadow, uvs.xy / uvs.ww, wPositionDepth).x;
+        shadow += ShadowMapTexture[nIndex].SampleCmpLevelZero(gssComparisonPCFShadow, uvs.xy / uvs.ww + float2(-DELTA_X, 0.0f), wPositionDepth).x;
+        shadow += ShadowMapTexture[nIndex].SampleCmpLevelZero(gssComparisonPCFShadow, uvs.xy / uvs.ww + float2(+DELTA_X, 0.0f), wPositionDepth).x;
+        shadow += ShadowMapTexture[nIndex].SampleCmpLevelZero(gssComparisonPCFShadow, uvs.xy / uvs.ww + float2(0.0f, -DELTA_Y), wPositionDepth).x;
+        shadow += ShadowMapTexture[nIndex].SampleCmpLevelZero(gssComparisonPCFShadow, uvs.xy / uvs.ww + float2(0.0f, +DELTA_Y), wPositionDepth).x;
+        shadow += ShadowMapTexture[nIndex].SampleCmpLevelZero(gssComparisonPCFShadow, uvs.xy / uvs.ww + float2(-DELTA_X, -DELTA_Y), wPositionDepth).x;
+        shadow += ShadowMapTexture[nIndex].SampleCmpLevelZero(gssComparisonPCFShadow, uvs.xy / uvs.ww + float2(-DELTA_X, +DELTA_Y), wPositionDepth).x;
+        shadow += ShadowMapTexture[nIndex].SampleCmpLevelZero(gssComparisonPCFShadow, uvs.xy / uvs.ww + float2(+DELTA_X, -DELTA_Y), wPositionDepth).x;
+        shadow += ShadowMapTexture[nIndex].SampleCmpLevelZero(gssComparisonPCFShadow, uvs.xy / uvs.ww + float2(+DELTA_X, +DELTA_Y), wPositionDepth).x;
+        return shadow / 9.0f;
+        if (wPositionDepth-0.0001f > shadow)
+        {
+            return 0.0f;
+        }
+    }
+    return 1.0f;
+}
+
+float4 SpotLight(int nIndex, float3 vPosition, float3 vNormal, float3 vToCamera)
+{    
     float3 vToLight = gLights[nIndex].m_vPosition - vPosition;
+  
     float fDistance = length(vToLight);
 	
     if (fDistance <= gLights[nIndex].m_fRange)
@@ -153,12 +188,15 @@ float4 Lighting(float3 vPosition, float3 vNormal)
 {
 	float3 vCameraPosition = float3(gvCameraPosition.x, gvCameraPosition.y, gvCameraPosition.z);
 	float3 vToCamera = normalize(vCameraPosition - vPosition);
-
+    
 	float4 cColor = float4(0.0f, 0.0f, 0.0f, 0.0f);
 	[unroll(MAX_LIGHTS)] for (int i = 0; i < gnLights; i++)
 	{
 		if (gLights[i].m_bEnable)
 		{
+            float fShadowFactor = 1.0f;
+            fShadowFactor = Shadowdecrease(i, vPosition, vCameraPosition);
+           
 			if (gLights[i].m_nType == DIRECTIONAL_LIGHT)
 			{
 				//cColor += DirectionalLight(i, vNormal, vToCamera);
@@ -168,11 +206,11 @@ float4 Lighting(float3 vPosition, float3 vNormal)
 				//cColor += PointLight(i, vPosition, vNormal, vToCamera);
 			}
 			else if (gLights[i].m_nType == SPOT_LIGHT)
-			{
-                cColor += SpotLight(i, vPosition, vNormal, vCameraPosition);
+            {
+                cColor += SpotLight(i, vPosition, vNormal, vCameraPosition) * fShadowFactor;
 
             }
-		}
+        }
 	}
 	cColor += (gcGlobalAmbientLight * gMaterial.m_cAmbient);
 	cColor.a = gMaterial.m_cAlbedo.a;

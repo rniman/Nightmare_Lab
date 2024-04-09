@@ -18,6 +18,10 @@ D3D12_GPU_DESCRIPTOR_HANDLE	CScene::m_d3dCbvGPUDescriptorNextHandle;
 D3D12_CPU_DESCRIPTOR_HANDLE	CScene::m_d3dSrvCPUDescriptorNextHandle;
 D3D12_GPU_DESCRIPTOR_HANDLE	CScene::m_d3dSrvGPUDescriptorNextHandle;
 
+vector<unique_ptr<CShader>> CScene::m_vShader;
+//CShader* CScene::m_pRefShader;
+
+int ReadLightObjectInfo(vector<XMFLOAT3>& positions, vector<XMFLOAT3>& looks);
 
 CScene::CScene()
 {
@@ -30,7 +34,7 @@ CScene::~CScene()
 
 void CScene::CreateGraphicsRootSignature(ID3D12Device* pd3dDevice)
 {
-	D3D12_DESCRIPTOR_RANGE pd3dDescriptorRanges[11];
+	D3D12_DESCRIPTOR_RANGE pd3dDescriptorRanges[12];
 
 	pd3dDescriptorRanges[0].RangeType = D3D12_DESCRIPTOR_RANGE_TYPE_CBV;
 	pd3dDescriptorRanges[0].NumDescriptors = 1;
@@ -98,7 +102,13 @@ void CScene::CreateGraphicsRootSignature(ID3D12Device* pd3dDevice)
 	pd3dDescriptorRanges[10].RegisterSpace = 0;
 	pd3dDescriptorRanges[10].OffsetInDescriptorsFromTableStart = 0;
 
-	D3D12_ROOT_PARAMETER pd3dRootParameters[11];
+	pd3dDescriptorRanges[11].RangeType = D3D12_DESCRIPTOR_RANGE_TYPE_SRV;
+	pd3dDescriptorRanges[11].NumDescriptors = 25;
+	pd3dDescriptorRanges[11].BaseShaderRegister = 20; //t20~ Shadow Map
+	pd3dDescriptorRanges[11].RegisterSpace = 0;
+	pd3dDescriptorRanges[11].OffsetInDescriptorsFromTableStart = 0;
+
+	D3D12_ROOT_PARAMETER pd3dRootParameters[12];
 
 	pd3dRootParameters[0].ParameterType = D3D12_ROOT_PARAMETER_TYPE_DESCRIPTOR_TABLE;
 	pd3dRootParameters[0].DescriptorTable.NumDescriptorRanges = 1; //Camera
@@ -155,22 +165,53 @@ void CScene::CreateGraphicsRootSignature(ID3D12Device* pd3dDevice)
 	pd3dRootParameters[10].DescriptorTable.pDescriptorRanges = &pd3dDescriptorRanges[10]; //Deferred Render Texture
 	pd3dRootParameters[10].ShaderVisibility = D3D12_SHADER_VISIBILITY_PIXEL;
 
-	D3D12_STATIC_SAMPLER_DESC pd3dSamplerDescs[1];
+	pd3dRootParameters[11].ParameterType = D3D12_ROOT_PARAMETER_TYPE_DESCRIPTOR_TABLE;
+	pd3dRootParameters[11].DescriptorTable.NumDescriptorRanges = 1;
+	pd3dRootParameters[11].DescriptorTable.pDescriptorRanges = &pd3dDescriptorRanges[11]; //Shadow Map
+	pd3dRootParameters[11].ShaderVisibility = D3D12_SHADER_VISIBILITY_PIXEL;
 
-	pd3dSamplerDescs[0].Filter = D3D12_FILTER_MIN_MAG_MIP_LINEAR;
-	pd3dSamplerDescs[0].AddressU = D3D12_TEXTURE_ADDRESS_MODE_WRAP;
-	pd3dSamplerDescs[0].AddressV = D3D12_TEXTURE_ADDRESS_MODE_WRAP;
-	pd3dSamplerDescs[0].AddressW = D3D12_TEXTURE_ADDRESS_MODE_WRAP;
-	pd3dSamplerDescs[0].MipLODBias = 0;
-	pd3dSamplerDescs[0].MaxAnisotropy = 1;
-	pd3dSamplerDescs[0].ComparisonFunc = D3D12_COMPARISON_FUNC_ALWAYS;
-	pd3dSamplerDescs[0].MinLOD = 0;
-	pd3dSamplerDescs[0].MaxLOD = D3D12_FLOAT32_MAX;
-	pd3dSamplerDescs[0].ShaderRegister = 0;
-	pd3dSamplerDescs[0].RegisterSpace = 0;
-	pd3dSamplerDescs[0].ShaderVisibility = D3D12_SHADER_VISIBILITY_PIXEL;
+	D3D12_STATIC_SAMPLER_DESC d3dSamplerDescs[3];
+
+	d3dSamplerDescs[0].Filter = D3D12_FILTER_MIN_MAG_MIP_LINEAR;
+	d3dSamplerDescs[0].AddressU = D3D12_TEXTURE_ADDRESS_MODE_WRAP;
+	d3dSamplerDescs[0].AddressV = D3D12_TEXTURE_ADDRESS_MODE_WRAP;
+	d3dSamplerDescs[0].AddressW = D3D12_TEXTURE_ADDRESS_MODE_WRAP;
+	d3dSamplerDescs[0].MipLODBias = 0;
+	d3dSamplerDescs[0].MaxAnisotropy = 1;
+	d3dSamplerDescs[0].ComparisonFunc = D3D12_COMPARISON_FUNC_ALWAYS;
+	d3dSamplerDescs[0].MinLOD = 0;
+	d3dSamplerDescs[0].MaxLOD = D3D12_FLOAT32_MAX;
+	d3dSamplerDescs[0].ShaderRegister = 0;
+	d3dSamplerDescs[0].RegisterSpace = 0;
+	d3dSamplerDescs[0].ShaderVisibility = D3D12_SHADER_VISIBILITY_PIXEL;
 
 
+	d3dSamplerDescs[1].Filter = D3D12_FILTER_COMPARISON_MIN_MAG_LINEAR_MIP_POINT;
+	d3dSamplerDescs[1].AddressU = D3D12_TEXTURE_ADDRESS_MODE_BORDER;
+	d3dSamplerDescs[1].AddressV = D3D12_TEXTURE_ADDRESS_MODE_BORDER;
+	d3dSamplerDescs[1].AddressW = D3D12_TEXTURE_ADDRESS_MODE_BORDER;
+	d3dSamplerDescs[1].MipLODBias = 0.0f;
+	d3dSamplerDescs[1].MaxAnisotropy = 1;
+	d3dSamplerDescs[1].ComparisonFunc = D3D12_COMPARISON_FUNC_LESS_EQUAL; //D3D12_COMPARISON_FUNC_LESS
+	d3dSamplerDescs[1].BorderColor = D3D12_STATIC_BORDER_COLOR_OPAQUE_WHITE; // D3D12_STATIC_BORDER_COLOR_OPAQUE_BLACK;
+	d3dSamplerDescs[1].MinLOD = 0;
+	d3dSamplerDescs[1].MaxLOD = D3D12_FLOAT32_MAX;
+	d3dSamplerDescs[1].ShaderRegister = 2;
+	d3dSamplerDescs[1].RegisterSpace = 0;
+	d3dSamplerDescs[1].ShaderVisibility = D3D12_SHADER_VISIBILITY_PIXEL;
+
+	d3dSamplerDescs[2].Filter = D3D12_FILTER_MIN_MAG_LINEAR_MIP_POINT;
+	d3dSamplerDescs[2].AddressU = D3D12_TEXTURE_ADDRESS_MODE_WRAP;
+	d3dSamplerDescs[2].AddressV = D3D12_TEXTURE_ADDRESS_MODE_WRAP;
+	d3dSamplerDescs[2].AddressW = D3D12_TEXTURE_ADDRESS_MODE_WRAP;
+	d3dSamplerDescs[2].MipLODBias = 0;
+	d3dSamplerDescs[2].MaxAnisotropy = 1;
+	d3dSamplerDescs[2].ComparisonFunc = D3D12_COMPARISON_FUNC_ALWAYS;
+	d3dSamplerDescs[2].MinLOD = 0;
+	d3dSamplerDescs[2].MaxLOD = D3D12_FLOAT32_MAX;
+	d3dSamplerDescs[2].ShaderRegister = 3;
+	d3dSamplerDescs[2].RegisterSpace = 0;
+	d3dSamplerDescs[2].ShaderVisibility = D3D12_SHADER_VISIBILITY_PIXEL;
 	D3D12_ROOT_SIGNATURE_FLAGS d3dRootSignatureFlags =
 		D3D12_ROOT_SIGNATURE_FLAG_ALLOW_INPUT_ASSEMBLER_INPUT_LAYOUT |
 		D3D12_ROOT_SIGNATURE_FLAG_DENY_HULL_SHADER_ROOT_ACCESS |
@@ -181,8 +222,8 @@ void CScene::CreateGraphicsRootSignature(ID3D12Device* pd3dDevice)
 	::ZeroMemory(&d3dRootSignatureDesc, sizeof(D3D12_ROOT_SIGNATURE_DESC));
 	d3dRootSignatureDesc.NumParameters = _countof(pd3dRootParameters);
 	d3dRootSignatureDesc.pParameters = pd3dRootParameters;
-	d3dRootSignatureDesc.NumStaticSamplers = _countof(pd3dSamplerDescs);
-	d3dRootSignatureDesc.pStaticSamplers = pd3dSamplerDescs;
+	d3dRootSignatureDesc.NumStaticSamplers = _countof(d3dSamplerDescs);
+	d3dRootSignatureDesc.pStaticSamplers = d3dSamplerDescs;
 	d3dRootSignatureDesc.Flags = d3dRootSignatureFlags;
 
 	ID3DBlob* pd3dSignatureBlob = NULL;
@@ -207,31 +248,33 @@ ComPtr<ID3D12RootSignature> CScene::GetGraphicsRootSignature()
 
 void CScene::BuildObjects(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dCommandList)
 {
+	BuildLights();
 	CreateGraphicsRootSignature(pd3dDevice);
 
-	// CBV(Default) :  카메라(1), 플레이어(1)
+	// CBV(Default) :  카메라(1), 플레이어(1) , 라이트카메라(2(임시))
 	// CBC(Scene Load): 66
 	// CBV(RootObject) : //육면체(1), 오브젝트(1), DeskObject(1), DoorObject(1), flashLight(1), 서버인원예상(20), fuse(3)
-	// CBV(Model) : Zom(72),  Zom_Controller(2 * N),// BlueSuit(85), BlueSuit_Controller(2 * N), Desk(3), Door(5), flashLight(1), Fuse(6)
-	int nCntCbv = 1 + 1 + 66 +
-				  72 + 2 + 85 + 2 + 2 + 7;
+	// CBV(Model) : Zom(72),  Zom_Controller(2 * N),// BlueSuit(85), BlueSuit_Controller(2 * N), Desk(3), Door(5), flashLight(1), Fuse(6), 레이더(5)
+	int nCntCbv = 1 + 1 + 2 + 66 +
+		72 + 2 + 85 + 2 + 2 + 7 + 10 + 5;
 	// SRV(Default) : 디퍼드렌더링텍스처(ADD_RENDERTARGET_COUNT로 정의된 개수임)
 	// SRV(Scene Load) : 79
-	// SRV: Zombie(3), // BlueSuit(6), 육면체(1), 엘런(8(오클루젼맵제거), Desk(3), Door(9), flashLight(3)
-	int nCntSrv = ADD_RENDERTARGET_COUNT + 6 + 79 + 3 + 3;
+	// SRV: Zombie(3), // BlueSuit(6), 육면체(1), 엘런(8(오클루젼맵제거), Desk(3), Door(9), flashLight(3) , m_nLights
+	int nCntSrv = ADD_RENDERTARGET_COUNT + 6 + 79 + 3 + 3 + 3 + m_nLights;
 	CreateCbvSrvDescriptorHeaps(pd3dDevice, nCntCbv, nCntSrv);
 
 	// 쉐이더 vector에 삽입한 순서대로 인덱스 define한 값으로 접근
 	m_vShader.push_back(make_unique<StandardShader>());
 	DXGI_FORMAT pdxgiRtvFormats[4] = { DXGI_FORMAT_R8G8B8A8_UNORM, DXGI_FORMAT_R8G8B8A8_UNORM, DXGI_FORMAT_R32_FLOAT,DXGI_FORMAT_R32G32B32A32_FLOAT };
+	DXGI_FORMAT pdxgiRtvShadowFormat = DXGI_FORMAT_R32_FLOAT;
 	m_vShader[STANDARD_SHADER]->CreateShader(pd3dDevice, pd3dCommandList, m_pd3dGraphicsRootSignature.Get(), 4, pdxgiRtvFormats, DXGI_FORMAT_D24_UNORM_S8_UINT);
-
+	
 	m_vShader.push_back(make_unique<InstanceStandardShader>());
 	m_vShader[INSTANCE_STANDARD_SHADER]->CreateShader(pd3dDevice, pd3dCommandList, m_pd3dGraphicsRootSignature.Get(), ADD_RENDERTARGET_COUNT, pdxgiRtvFormats, DXGI_FORMAT_D24_UNORM_S8_UINT);
 	
 	m_vShader.push_back(make_unique< CSkinnedAnimationStandardShader>());
 	m_vShader[SKINNEDANIMATION_STANDARD_SHADER]->CreateShader(pd3dDevice, pd3dCommandList, m_pd3dGraphicsRootSignature.Get(), ADD_RENDERTARGET_COUNT, pdxgiRtvFormats, DXGI_FORMAT_D24_UNORM_S8_UINT);
-
+	
 	m_vForwardRenderShader.push_back(make_unique<TransparentShader>());
 	m_vForwardRenderShader[TRANSPARENT_SHADER]->CreateShader(pd3dDevice, pd3dCommandList, m_pd3dGraphicsRootSignature.Get(), 1, nullptr, DXGI_FORMAT_D24_UNORM_S8_UINT);
 
@@ -239,6 +282,7 @@ void CScene::BuildObjects(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* p
 	m_pPlayer = make_shared<CBlueSuitPlayer>(pd3dDevice, pd3dCommandList, m_pd3dGraphicsRootSignature.Get(), nullptr);
 	//m_pPlayer = make_shared<CZombiePlayer>(pd3dDevice, pd3dCommandList, m_pd3dGraphicsRootSignature.Get(), nullptr);
 	m_pPlayer->GetCamera()->SetPlayer(m_pPlayer);
+	m_pPlayer->SetPosition(XMFLOAT3(0.0f, 0.0f, 0.0f));
 
 	shared_ptr<CLoadedModelInfo> pBlueSuitPlayerModel = CGameObject::LoadGeometryAndAnimationFromFile(pd3dDevice, pd3dCommandList, m_pd3dGraphicsRootSignature.Get(), "Asset/Model/BlueSuitFree01.bin");
 	//shared_ptr<CLoadedModelInfo> pZombiePlayerModel = CGameObject::LoadGeometryAndAnimationFromFile(pd3dDevice, pd3dCommandList, m_pd3dGraphicsRootSignature.Get(), "Asset/Model/Zom_1.bin");
@@ -253,9 +297,14 @@ void CScene::BuildObjects(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* p
 	shared_ptr<CLoadedModelInfo> pTeleportModel = CGameObject::LoadGeometryAndAnimationFromFile(pd3dDevice, pd3dCommandList, m_pd3dGraphicsRootSignature.Get(), (char*)"Asset/Model/Flashlight.bin");
 
 	flashLight->LoadModelAndAnimation(pd3dDevice, pd3dCommandList, m_pd3dGraphicsRootSignature.Get(), pTeleportModel);
-	flashLight->SetPosition(1.0f, 1.0f, -1.0f);
 	g_collisonManager.AddCollisionObject(flashLight);
 	m_vShader[STANDARD_SHADER]->AddGameObject(flashLight);
+	flashlightObject = flashLight.get();
+
+	shared_ptr<CLoadedModelInfo> pRaiderModel = CGameObject::LoadGeometryAndAnimationFromFile(pd3dDevice, pd3dCommandList, m_pd3dGraphicsRootSignature.Get(), (char*)"Asset/Model/레이더.bin");
+	g_collisonManager.AddCollisionObject(pRaiderModel->m_pModelRootObject);
+	m_vShader[STANDARD_SHADER]->AddGameObject(pRaiderModel->m_pModelRootObject);
+	m_pRaiderObject = pRaiderModel->m_pModelRootObject.get();
 
 	/*shared_ptr<CLoadedModelInfo> pFusetModel = CGameObject::LoadGeometryAndAnimationFromFile(pd3dDevice, pd3dCommandList, m_pd3dGraphicsRootSignature.Get(), (char*)"Asset/Model/fuse_hi-obj.bin");
 	vector<shared_ptr<CFuseObject>> vpFuse;
@@ -279,6 +328,78 @@ void CScene::BuildObjects(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* p
 		m_vShader[STANDARD_SHADER]->AddGameObject(vpFuse[i]);
 	}
 
+
+	LoadScene(pd3dDevice, pd3dCommandList);
+
+	CreateShaderVariables(pd3dDevice, pd3dCommandList);
+}
+
+
+void CScene::AddDefaultObject(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dCommandList, ObjectType type, XMFLOAT3 position, int shader, int mesh)
+{
+	shared_ptr<CGameObject> pObject;
+	switch (type)
+	{
+	case ObjectType::DEFAULT:
+		pObject = make_shared<CGameObject>(pd3dDevice, pd3dCommandList, 1);
+		break;
+	case ObjectType::HEXAHERON:
+		pObject = make_shared<CHexahedronObject>(pd3dDevice, pd3dCommandList, 1);
+		break;
+	default:
+		break;
+	}
+	pObject->SetMesh(m_vMesh[mesh]);
+	pObject->SetPosition(position);
+
+	m_vShader[shader]->AddGameObject(pObject);
+}
+
+void CScene::BuildLights()
+{
+	m_nLights = ReadLightObjectInfo(m_xmf3lightPositions, m_xmf3lightLooks) + 1/*플레이어 조명*/;
+	
+	m_pLights = new LIGHT[m_nLights];
+	::ZeroMemory(m_pLights, sizeof(LIGHT) * m_nLights);
+
+	m_xmf4GlobalAmbient = XMFLOAT4(0.15f, 0.15f, 0.15f, 1.0f);
+
+	for (int i = 0; i < m_xmf3lightPositions.size();++i) {
+		m_pLights[i + 1].m_bEnable = true;
+		m_pLights[i + 1].m_nType = SPOT_LIGHT;
+		m_pLights[i + 1].m_fRange = 30.0f;
+		m_pLights[i + 1].m_xmf4Ambient = XMFLOAT4(0.6f, 0.0f, 0.0f, 0.0f);
+		m_pLights[i + 1].m_xmf4Diffuse = XMFLOAT4(0.6f, 0.0f, 0.0f, 0.0f);
+		m_pLights[i + 1].m_xmf4Specular = XMFLOAT4(1.0f, 0.0f, 0.0f, 0.0f);
+		m_pLights[i + 1].m_xmf3Position = m_xmf3lightPositions[i];
+		m_pLights[i + 1].m_xmf3Direction = m_xmf3lightLooks[i];
+		m_pLights[i + 1].m_xmf3Attenuation = XMFLOAT3(1.0f, -0.1f, 0.01f);
+		m_pLights[i + 1].m_fFalloff = 1.0f;
+		m_pLights[i + 1].m_fPhi = (float)cos(XMConvertToRadians(45.0f));
+		m_pLights[i + 1].m_fTheta = (float)cos(XMConvertToRadians(35.0f));
+	}
+
+	m_xmf3lightPositions.insert(m_xmf3lightPositions.begin(), XMFLOAT3(0.0f, 3.0f, 0.0f));
+	m_xmf3lightLooks.insert(m_xmf3lightLooks.begin(), XMFLOAT3(0.0f, 0.0f, 1.0f));
+
+	m_pLights[0].m_bEnable         = true;
+	m_pLights[0].m_nType           = SPOT_LIGHT;
+	m_pLights[0].m_fRange          = 30.0f;
+	m_pLights[0].m_xmf4Ambient     = XMFLOAT4(1.0f, 1.0f, 1.0f, 1.0f);
+	m_pLights[0].m_xmf4Diffuse     = XMFLOAT4(1.0f, 1.0f, 1.0f, 1.0f);
+	m_pLights[0].m_xmf4Specular    = XMFLOAT4(1.0f, 1.0f, 1.0f, 1.0f);
+	m_pLights[0].m_xmf3Position    = XMFLOAT3(0.0f, 3.0f, 0.0f);
+	m_pLights[0].m_xmf3Direction   = XMFLOAT3(0.0f, 0.0f, 1.0f);
+	m_pLights[0].m_xmf3Attenuation = XMFLOAT3(1.0f, -0.1f, 0.01f);
+	m_pLights[0].m_fFalloff        = 1.0f;
+	m_pLights[0].m_fPhi            = (float)cos(XMConvertToRadians(35.0f));
+	m_pLights[0].m_fTheta          = (float)cos(XMConvertToRadians(25.0f));
+
+	
+}
+
+void CScene::LoadScene(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dCommandList)
+{
 	ifstream is("Asset/Data/투명객체.txt");
 	// 이름 , 재질개수 , 재질인덱스
 	if (!is) {
@@ -317,17 +438,17 @@ void CScene::BuildObjects(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* p
 					pLoadedModel->m_pModelRootObject = CGameObject::LoadInstanceFrameHierarchyFromFile(pd3dDevice, pd3dCommandList, m_pd3dGraphicsRootSignature.Get(), NULL, pInFile, &pLoadedModel->m_nSkinnedMeshes);
 					::ReadStringFromFile(pInFile, pstrToken); //"</Hierarchy>"
 					pLoadedModel->m_pModelRootObject->Rotate(0.0f, 0.0f, 0.0f);
-					if(!strcmp(pLoadedModel->m_pModelRootObject->m_pstrFrameName, "Zom_1")) 
+					if (!strcmp(pLoadedModel->m_pModelRootObject->m_pstrFrameName, "Zom_1"))
 					{ // 씬을 바이너리로 쓸때 스키닝 정보는 넣지 않음(그러므로 이 객체는 정보 x)
 						m_vShader[SKINNEDANIMATION_STANDARD_SHADER]->AddGameObject(pLoadedModel->m_pModelRootObject);
 					}
 					else if (!transparentObjects[pLoadedModel->m_pModelRootObject->m_pstrFrameName].empty()) {
 						pLoadedModel->m_pModelRootObject->SetTransparentObjectInfo(transparentObjects[pLoadedModel->m_pModelRootObject->m_pstrFrameName]);
-						m_vShader[INSTANCE_STANDARD_SHADER]->AddGameObject((pLoadedModel->m_pModelRootObject)); 
-						m_vForwardRenderShader[TRANSPARENT_SHADER]->AddGameObject((pLoadedModel->m_pModelRootObject)); 
+						m_vShader[INSTANCE_STANDARD_SHADER]->AddGameObject((pLoadedModel->m_pModelRootObject));
+						m_vForwardRenderShader[TRANSPARENT_SHADER]->AddGameObject((pLoadedModel->m_pModelRootObject));
 						// 첫번째 쉐이더는 불투명한 재질들만 렌더링, 두번째 쉐이더는 투명한 재질들만 렌더링 분류를 위함이고 마지막에 렌더링해야하기 떄문에 두 쉐이더에 모두 포함한다. 
 					}
-					else 
+					else
 					{
 						m_vShader[INSTANCE_STANDARD_SHADER]->AddGameObject((pLoadedModel->m_pModelRootObject));
 					}
@@ -357,52 +478,69 @@ void CScene::BuildObjects(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* p
 		}
 
 	}
-
-	BuildLights();
-	CreateShaderVariables(pd3dDevice, pd3dCommandList);
 }
 
-
-void CScene::AddDefaultObject(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dCommandList, ObjectType type, XMFLOAT3 position, int shader, int mesh)
+bool StreamReadString(ifstream& in, string& str)
 {
-	shared_ptr<CGameObject> pObject;
-	switch (type)
-	{
-	case ObjectType::DEFAULT:
-		pObject = make_shared<CGameObject>(pd3dDevice, pd3dCommandList, 1);
-		break;
-	case ObjectType::HEXAHERON:
-		pObject = make_shared<CHexahedronObject>(pd3dDevice, pd3dCommandList, 1);
-		break;
-	default:
-		break;
+	// 문자열의 길이 읽기
+	char strLength;
+	in.read(reinterpret_cast<char*>(&strLength), sizeof(char));
+
+	// 파일 끝에 도달하면 종료
+	if (in.eof()) return false;
+
+	// 문자열 읽기
+	char* buffer = new char[strLength + 1]; // 문자열 끝에 NULL 문자('\0')를 추가하기 위해 +1
+	in.read(buffer, strLength);
+	buffer[strLength] = '\0'; // NULL 문자 추가
+	str = buffer;
+	delete[] buffer;
+
+	//cout << str << endl;
+	return true;
+}
+
+template<class T>
+void StreamReadVariable(ifstream& in, T& data)
+{
+	in.read(reinterpret_cast<char*>(&data), sizeof(T));
+}
+
+int ReadLightObjectInfo(vector<XMFLOAT3>& positions,vector<XMFLOAT3>& looks)
+{
+	ifstream in("Asset/Data/LightObject.bin", ios::binary);
+	if (!in.is_open()) {
+		assert(0);
 	}
-	pObject->SetMesh(m_vMesh[mesh]);
-	pObject->SetPosition(position);
+	// 문자열을 저장할 변수
+	string str;
+	XMFLOAT3 xmfloat3;
+	int objCount{};
 
-	m_vShader[shader]->AddGameObject(pObject);
-}
+	// 파일로부터 문자열 읽기
+	while (true) {
+		if (!StreamReadString(in, str)) {
+			break;
+		}
+		if (str == "<TotalObject>: ") {
+			StreamReadVariable(in, objCount);
+		}
+		else if ("<GameObjects>:" == str) {
+			if (!StreamReadString(in, str)) break;
 
-void CScene::BuildLights()
-{
-	m_nLights = 1;
-	m_pLights = new LIGHT[m_nLights];
-	::ZeroMemory(m_pLights, sizeof(LIGHT) * m_nLights);
+			if ("<Position>:" == str) {
+				StreamReadVariable(in, xmfloat3);
+				positions.push_back(xmfloat3);
+			}
 
-	m_xmf4GlobalAmbient = XMFLOAT4(0.15f, 0.15f, 0.15f, 1.0f);
-
-	m_pLights[0].m_bEnable = true;
-	m_pLights[0].m_nType = SPOT_LIGHT;
-	m_pLights[0].m_fRange = 30.0f;
-	m_pLights[0].m_xmf4Ambient = XMFLOAT4(1.0f, 1.0f, 1.0f, 1.0f);
-	m_pLights[0].m_xmf4Diffuse = XMFLOAT4(1.0f, 1.0f, 1.0f, 1.0f);
-	m_pLights[0].m_xmf4Specular = XMFLOAT4(1.0f, 1.0f, 1.0f, 1.0f);
-	m_pLights[0].m_xmf3Position = XMFLOAT3(0.0f, 3.0f, 0.0f);
-	m_pLights[0].m_xmf3Direction = XMFLOAT3(0.0f, 0.0f, 1.0f);
-	m_pLights[0].m_xmf3Attenuation = XMFLOAT3(1.0f, -0.1f, 0.01f);
-	m_pLights[0].m_fFalloff = 1.0f;
-	m_pLights[0].m_fPhi = (float)cos(XMConvertToRadians(30.0f));
-	m_pLights[0].m_fTheta = (float)cos(XMConvertToRadians(15.0f));
+			if (!StreamReadString(in, str)) break;
+			if ("<Look>:" == str) {
+				StreamReadVariable(in, xmfloat3);
+				looks.push_back(xmfloat3);
+			}
+		}
+	}
+	return objCount;
 }
 
 void CScene::SetPlayer(shared_ptr<CPlayer> pPlayer)
@@ -422,10 +560,14 @@ void CScene::CreateShaderVariables(ID3D12Device* pd3dDevice, ID3D12GraphicsComma
 
 void CScene::UpdateShaderVariables(ID3D12GraphicsCommandList* pd3dCommandList)
 {
-	m_pLights[0].m_xmf3Position = m_pPlayer->GetCamera()->GetPosition();
-	m_pLights[0].m_xmf3Direction = m_pPlayer->GetCamera()->GetLookVector();
+	//XMFLOAT4X4 xmf4x4playerLight = dynamic_pointer_cast<CBlueSuitPlayer>(m_pPlayer)->GetFlashLightWorldTransform();
+	XMFLOAT4X4* xmf4x4playerLight = &flashlightObject->m_xmf4x4World;
 
-	::memcpy(m_pcbMappedLights->m_pLights, m_pLights, sizeof(LIGHT) * m_nLights);
+	m_pLights[0].m_xmf3Position = XMFLOAT3(xmf4x4playerLight->_41, xmf4x4playerLight->_42, xmf4x4playerLight->_43);//m_pPlayer->GetCamera()->GetPosition();
+	m_pLights[0].m_xmf3Direction = XMFLOAT3(xmf4x4playerLight->_21, xmf4x4playerLight->_22, xmf4x4playerLight->_23);/*XMFLOAT3(xmf4x4playerLight._31, xmf4x4playerLight._32, xmf4x4playerLight._33);*/ //m_pPlayer->GetCamera()->GetLookVector();
+
+	
+	::memcpy(m_pcbMappedLights->m_pLights, m_pLights, sizeof(LIGHT)* m_nLights);
 	::memcpy(&m_pcbMappedLights->m_xmf4GlobalAmbient, &m_xmf4GlobalAmbient, sizeof(XMFLOAT4));
 	::memcpy(&m_pcbMappedLights->m_nLights, &m_nLights, sizeof(int));
 
@@ -572,10 +714,18 @@ bool CScene::ProcessInput(UCHAR* pKeysBuffer)
 void CScene::AnimateObjects(float fElapsedTime)
 {
 	m_fElapsedTime = fElapsedTime;
+
 	for (auto& shader : m_vShader)
 	{
 		shader->AnimateObjects(fElapsedTime);
 	}
+
+	//플레이어의 플래시라이트
+	XMFLOAT4X4 mtx = dynamic_pointer_cast<CBlueSuitPlayer>(m_pPlayer)->GetFlashLightWorldTransform();
+	flashlightObject->UpdateTransform(&mtx);
+	//플레이어의 왼손: 레이더
+	XMFLOAT4X4 mtx2 = dynamic_pointer_cast<CBlueSuitPlayer>(m_pPlayer)->GetRightHandItemRaiderWorldTransform();
+	m_pRaiderObject->UpdateTransform(&mtx2);
 }
 
 void CScene::ProcessCollide(float fElapsedTime)
@@ -594,12 +744,12 @@ void CScene::PrepareRender(ID3D12GraphicsCommandList* pd3dCommandList, const sha
 	UpdateShaderVariables(pd3dCommandList);
 }
 
-void CScene::Render(ID3D12GraphicsCommandList* pd3dCommandList, const shared_ptr<CCamera>& pCamera)
+void CScene::Render(ID3D12GraphicsCommandList* pd3dCommandList, const shared_ptr<CCamera>& pCamera, int nPipelineState)
 {
 	PrepareRender(pd3dCommandList, pCamera);
 
 	for (auto& shader : m_vShader) 
 	{
-		shader->Render(pd3dCommandList, pCamera);
+		shader->Render(pd3dCommandList, pCamera, nPipelineState);
 	}
 }

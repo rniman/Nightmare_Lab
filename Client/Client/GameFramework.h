@@ -31,6 +31,7 @@ public:
 	void ProcessInput();
 	void AnimateObjects();
 	void ProcessCollide();
+	void PreRenderTasks();
 	void FrameAdvance();
 
 	void WaitForGpuComplete();
@@ -39,7 +40,7 @@ public:
 	void OnProcessingMouseMessage(HWND hWnd, UINT nMessageID, WPARAM wParam, LPARAM lParam);
 	void OnProcessingKeyboardMessage(HWND hWnd, UINT nMessageID, WPARAM wParam, LPARAM lParam);
 	LRESULT CALLBACK OnProcessingWindowMessage(HWND hWnd, UINT nMessageID, WPARAM wParam, LPARAM lParam);
-
+	
 private:
 	D3D12_VIEWPORT m_d3dViewport;
 	D3D12_RECT m_d3dScissorRect;

@@ -114,6 +114,7 @@ CDoorObject::CDoorObject(char* pstrFrameName, XMFLOAT4X4& xmf4x4World, CMesh* pM
 
 CDoorObject::~CDoorObject()
 {
+
 }
 
 void CDoorObject::Animate(float fElapsedTime)

@@ -9,6 +9,7 @@ struct VS_CB_CAMERA_INFO
 {
 	XMFLOAT4X4		m_xmf4x4View;
 	XMFLOAT4X4		m_xmf4x4Projection;
+	XMFLOAT4X4		m_xmf4x4InverseViewProjection;
 	XMFLOAT4		m_xmf4Position;
 	XMFLOAT4		m_xmf4FogColor;
 	XMFLOAT4		m_xmf4FogInfo; //START, RANGE, Density, MOD
@@ -31,6 +32,9 @@ public:
 	void GenerateViewMatrix(XMFLOAT3 xmf3Position, XMFLOAT3 xmf3LookAt, XMFLOAT3 xmf3Up);
 	void RegenerateViewMatrix();
 
+	void MultiplyViewProjection();
+	XMFLOAT4X4 GetViewProjection() const { return m_xmf4x4ViewProjection; }
+
 	void GenerateProjectionMatrix(float fNearPlaneDistance, float fFarPlaneDistance, float fAspectRatio, float fFOVAngle);
 
 	void SetViewport(int xTopLeft, int yTopLeft, int nWidth, int nHeight, float fMinZ = 0.0f, float fMaxZ = 1.0f);
@@ -46,6 +50,8 @@ public:
 
 	void SetPosition(XMFLOAT3 xmf3Position) { m_xmf3Position = xmf3Position; }
 	XMFLOAT3& GetPosition() { return(m_xmf3Position); }
+
+	void SetLookVector(XMFLOAT3 look) { m_xmf3Look = look; }
 
 	void SetLookAtPosition(XMFLOAT3 xmf3LookAtWorld) { m_xmf3LookAtWorld = xmf3LookAtWorld; }
 	XMFLOAT3& GetLookAtPosition() { return(m_xmf3LookAtWorld); }
@@ -95,6 +101,8 @@ protected:
 
 	XMFLOAT4X4						m_xmf4x4View;
 	XMFLOAT4X4						m_xmf4x4Projection;
+
+	XMFLOAT4X4						m_xmf4x4ViewProjection;
 
 	D3D12_VIEWPORT					m_d3dViewport;
 	D3D12_RECT						m_d3dScissorRect;

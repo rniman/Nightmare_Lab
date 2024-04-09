@@ -13,7 +13,7 @@
 // m_vMesh 메쉬에 접근할 각 인덱스를 의미
 #define HEXAHEDRONMESH 0
 
-#define MAX_LIGHTS						16 
+#define MAX_LIGHTS						25
 
 #define POINT_LIGHT						1
 #define SPOT_LIGHT						2
@@ -21,6 +21,7 @@
 
 struct LIGHT
 {
+	XMFLOAT4X4							m_xmf4x4ViewProjection = Matrix4x4::Identity();
 	XMFLOAT4							m_xmf4Ambient;
 	XMFLOAT4							m_xmf4Diffuse;
 	XMFLOAT4							m_xmf4Specular;
@@ -59,7 +60,8 @@ public:
 
 	void CreateShaderVariables(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dCommandList);
 	void BuildObjects(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dCommandList);
-	
+	void LoadScene(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dCommandList);
+
 	//오브젝트 소멸 관련
 	void ReleaseObjects();
 	void ReleaseShaderVariables();
@@ -73,24 +75,31 @@ public:
 	//렌더링 관련
 	void UpdateShaderVariables(ID3D12GraphicsCommandList* pd3dCommandList);
 	void PrepareRender(ID3D12GraphicsCommandList* pd3dCommandList, const shared_ptr<CCamera>& pCamera);
-	void Render(ID3D12GraphicsCommandList* pd3dCommandList, const shared_ptr<CCamera>& pCamera);
+	void Render(ID3D12GraphicsCommandList* pd3dCommandList, const shared_ptr<CCamera>& pCamera,int nPipelineState);
 
 	void AddDefaultObject(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dCommandList, ObjectType type, XMFLOAT3 position,int shader, int mesh);
 	
+	// 빛 관련
 	D3D12_GPU_DESCRIPTOR_HANDLE			m_d3dLightCbvGPUDescriptorHandle;
-	LIGHT*								m_pLights = NULL;
+	LIGHT*								m_pLights = nullptr;
 	int									m_nLights = 0;
 	ComPtr<ID3D12Resource>				m_pd3dcbLights;
 	LIGHTS*								m_pcbMappedLights = NULL;
 	XMFLOAT4							m_xmf4GlobalAmbient;
+	vector<XMFLOAT3>					m_xmf3lightPositions, m_xmf3lightLooks;
+	vector<XMFLOAT3>& GetLightPositions() { return m_xmf3lightPositions; }
+	vector<XMFLOAT3>& GetLightLooks() { return m_xmf3lightLooks; }
 	void BuildLights();
 
 	void SetPlayer(shared_ptr<CPlayer> pPlayer);
 
 	//씬 내 오브젝트(쉐이더)
-	vector<unique_ptr<CShader>> m_vShader;
+	static vector<unique_ptr<CShader>> m_vShader;
 	vector<unique_ptr<CShader>> m_vForwardRenderShader;
+
 	shared_ptr<CPlayer> m_pPlayer;
+	CGameObject* flashlightObject = nullptr;
+	CGameObject* m_pRaiderObject = nullptr;
 	//메쉬 저장
 	vector<shared_ptr<CMesh>>			m_vMesh;
 

@@ -124,8 +124,8 @@ D3D12_RASTERIZER_DESC CShader::CreateRasterizerState()
 	::ZeroMemory(&d3dRasterizerDesc, sizeof(D3D12_RASTERIZER_DESC));
 	//d3dRasterizerDesc.FillMode = D3D12_FILL_MODE_WIREFRAME;
 	d3dRasterizerDesc.FillMode = D3D12_FILL_MODE_SOLID;
-	//d3dRasterizerDesc.CullMode = D3D12_CULL_MODE_BACK;
 	d3dRasterizerDesc.CullMode = D3D12_CULL_MODE_BACK;
+	//d3dRasterizerDesc.CullMode = D3D12_CULL_MODE_FRONT;
 	d3dRasterizerDesc.FrontCounterClockwise = FALSE;
 	d3dRasterizerDesc.DepthBias = 0;
 	d3dRasterizerDesc.DepthBiasClamp = 0.0f;
@@ -295,19 +295,28 @@ D3D12_SHADER_BYTECODE StandardShader::CreateVertexShader()
 
 D3D12_SHADER_BYTECODE StandardShader::CreatePixelShader()
 {
-	return(CShader::CompileShaderFromFile(L"Shaders.hlsl", "PSStandard", "ps_5_1", m_pd3dPixelShaderBlob.GetAddressOf()));
+	if (m_PipeLineIndex == 0) { // 기본 파이프라인
+		return(CShader::CompileShaderFromFile(L"Shaders.hlsl", "PSStandard", "ps_5_1", m_pd3dPixelShaderBlob.GetAddressOf()));
+	}
+	else if (m_PipeLineIndex == 1) { // 그림자맵 생성 파이프 라인
+		return(CShader::CompileShaderFromFile(L"Shadow.hlsl", "PS_Shadow", "ps_5_1", m_pd3dPixelShaderBlob.GetAddressOf()));
+	}
 }
 
 
 void StandardShader::CreateShader(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dCommandList, ID3D12RootSignature* pd3dGraphicsRootSignature, UINT nRenderTargets, DXGI_FORMAT* pdxgiRtvFormats, DXGI_FORMAT dxgiDsvFormat)
 {
-	m_nPipelineState = 1;
+	m_nPipelineState = 2;
 	m_vpd3dPipelineState.reserve(m_nPipelineState);
 	for (int i = 0; i < m_nPipelineState; ++i)
 		m_vpd3dPipelineState.emplace_back();
 	//m_ppd3dPipelineState = new ID3D12PipelineState * [m_nPipelineState];
 
 	CShader::CreateShader(pd3dDevice, pd3dCommandList, pd3dGraphicsRootSignature, nRenderTargets, pdxgiRtvFormats, dxgiDsvFormat); //m_ppd3dPipelineStates[0] 생성
+
+	DXGI_FORMAT shadowFormat = DXGI_FORMAT_R32_FLOAT;
+	CShader::CreateShader(pd3dDevice, pd3dCommandList, pd3dGraphicsRootSignature, 1, &shadowFormat, dxgiDsvFormat);
+
 }
 
 InstanceStandardShader::InstanceStandardShader()
@@ -487,7 +496,7 @@ CPostProcessingShader::CPostProcessingShader()
 
 CPostProcessingShader::~CPostProcessingShader()
 {
-	if (m_pd3dRtvCPUDescriptorHandles) delete[] m_pd3dRtvCPUDescriptorHandles;
+
 }
 
 D3D12_INPUT_LAYOUT_DESC CPostProcessingShader::CreateInputLayout()
@@ -528,7 +537,24 @@ D3D12_SHADER_BYTECODE CPostProcessingShader::CreateVertexShader()
 
 D3D12_SHADER_BYTECODE CPostProcessingShader::CreatePixelShader()
 {
-	return(CShader::CompileShaderFromFile(L"Shaders.hlsl", "PSPostProcessing", "ps_5_1", m_pd3dPixelShaderBlob.GetAddressOf()));
+	if (m_PipeLineIndex == 0) {
+		return(CShader::CompileShaderFromFile(L"Shaders.hlsl", "PSPostProcessing", "ps_5_1", m_pd3dPixelShaderBlob.GetAddressOf()));
+	}
+	else if (m_PipeLineIndex == 1) {
+		return(CShader::CompileShaderFromFile(L"Shadow.hlsl", "PS_Shadow", "ps_5_1", m_pd3dPixelShaderBlob.GetAddressOf()));
+	}
+}
+
+D3D12_RASTERIZER_DESC CPostProcessingShader::CreateRasterizerState()
+{
+	if (m_PipeLineIndex == 0) {
+		return(CShader::CreateRasterizerState());
+	}
+	else if (m_PipeLineIndex == 1) {
+		D3D12_RASTERIZER_DESC resState = CShader::CreateRasterizerState();
+		resState.CullMode = D3D12_CULL_MODE_FRONT;
+		return resState;
+	}
 }
 
 void CPostProcessingShader::CreateShader(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dCommandList, ID3D12RootSignature* pd3dGraphicsRootSignature,UINT nRenderTargets, DXGI_FORMAT* pdxgiRtvFormats, DXGI_FORMAT dxgiDsvFormat)
@@ -542,7 +568,11 @@ void CPostProcessingShader::CreateShader(ID3D12Device* pd3dDevice, ID3D12Graphic
 		m_vpd3dPipelineState.emplace_back();
 	}
 
+	//기본 파이프라인
 	CShader::CreateShader(pd3dDevice, pd3dCommandList, pd3dGraphicsRootSignature, nRenderTargets, pdxgiRtvFormats, dxgiDsvFormat);
+	////그림자 파이프라인
+	//DXGI_FORMAT shadowformat = DXGI_FORMAT_R32_FLOAT;
+	//CShader::CreateShader(pd3dDevice, pd3dCommandList, pd3dGraphicsRootSignature, nRenderTargets, &shadowformat, dxgiDsvFormat);
 }
 
 void CPostProcessingShader::CreateResourcesAndRtvsSrvs(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dCommandList, UINT nRenderTargets, DXGI_FORMAT* pdxgiFormats, D3D12_CPU_DESCRIPTOR_HANDLE d3dRtvCPUDescriptorHandle)
@@ -572,14 +602,12 @@ void CPostProcessingShader::CreateResourcesAndRtvsSrvs(ID3D12Device* pd3dDevice,
 	d3dRenderTargetViewDesc.Texture2D.MipSlice = 0;
 	d3dRenderTargetViewDesc.Texture2D.PlaneSlice = 0;
 
-	m_pd3dRtvCPUDescriptorHandles = new D3D12_CPU_DESCRIPTOR_HANDLE[nRenderTargets];
-
 	for (UINT i = 0; i < nRenderTargets; i++)
 	{
 		d3dRenderTargetViewDesc.Format = pdxgiFormats[i];
 		ID3D12Resource* pd3dTextureResource = m_pTexture->GetResource(i);
 		pd3dDevice->CreateRenderTargetView(pd3dTextureResource, &d3dRenderTargetViewDesc, d3dRtvCPUDescriptorHandle);
-		m_pd3dRtvCPUDescriptorHandles[i] = d3dRtvCPUDescriptorHandle;
+		m_vpRtvCPUDescriptorHandles.push_back(make_unique<D3D12_CPU_DESCRIPTOR_HANDLE>(d3dRtvCPUDescriptorHandle));
 		d3dRtvCPUDescriptorHandle.ptr += ::gnRtvDescriptorIncrementSize;
 	}
 
@@ -626,10 +654,12 @@ void CPostProcessingShader::CreateResourcesAndRtvsSrvs(ID3D12Device* pd3dDevice,
 	d3dDepthStencilViewDesc.ViewDimension = D3D12_DSV_DIMENSION_TEXTURE2D;
 	d3dDepthStencilViewDesc.Flags = D3D12_DSV_FLAG_NONE;
 
-	m_d3dDsvDescriptorCPUHandle = new D3D12_CPU_DESCRIPTOR_HANDLE[ADD_DEPTH_MAP_COUNT];
+	//m_vpDsvDescriptorCPUHandles = new D3D12_CPU_DESCRIPTOR_HANDLE[ADD_DEPTH_MAP_COUNT];
+	D3D12_CPU_DESCRIPTOR_HANDLE handle = m_pd3dDsvDescriptorHeap.Get()->GetCPUDescriptorHandleForHeapStart();
 	for (int i = 0; i < ADD_DEPTH_MAP_COUNT;++i) {
-		m_d3dDsvDescriptorCPUHandle[i] = m_pd3dDsvDescriptorHeap.Get()->GetCPUDescriptorHandleForHeapStart();
-		pd3dDevice->CreateDepthStencilView(m_pd3dDepthBuffer.Get(), &d3dDepthStencilViewDesc, m_d3dDsvDescriptorCPUHandle[i]);
+		m_vpDsvDescriptorCPUHandles.push_back(make_unique<D3D12_CPU_DESCRIPTOR_HANDLE>(handle));
+		pd3dDevice->CreateDepthStencilView(m_pd3dDepthBuffer.Get(), &d3dDepthStencilViewDesc, *m_vpDsvDescriptorCPUHandles[i]);
+		handle.ptr = ::gnDsvDescriptorIncrementSize;
 	}
 
 }
@@ -664,12 +694,58 @@ void CPostProcessingShader::OnPrepareRenderTarget(ID3D12GraphicsCommandList* pd3
 	if (pd3dAllRtvCPUHandles) delete[] pd3dAllRtvCPUHandles;
 }
 
+void CPostProcessingShader::OnPrepareRenderTarget2(ID3D12GraphicsCommandList* pd3dCommandList, int nRenderTargets, D3D12_CPU_DESCRIPTOR_HANDLE* pd3dRtvCPUHandles,
+	D3D12_CPU_DESCRIPTOR_HANDLE* pd3dDsvCPUHandle, D3D12_CPU_DESCRIPTOR_HANDLE* pd3dshadowRTVDescriptorHandle)
+{
+	int nResources = m_pTexture->GetTextures();
+	D3D12_CPU_DESCRIPTOR_HANDLE* pd3dAllRtvCPUHandles = new D3D12_CPU_DESCRIPTOR_HANDLE[nRenderTargets + nResources];
+
+	for (int i = 0; i < nRenderTargets; i++)
+	{
+		pd3dAllRtvCPUHandles[i] = pd3dRtvCPUHandles[i];
+		pd3dCommandList->ClearRenderTargetView(pd3dRtvCPUHandles[i], m_fClearValue, 0, NULL);
+	}
+
+	for (int i = 0; i < nResources; i++)
+	{
+		::SynchronizeResourceTransition(pd3dCommandList, GetTextureResource(i), D3D12_RESOURCE_STATE_COMMON, D3D12_RESOURCE_STATE_RENDER_TARGET);
+
+		D3D12_CPU_DESCRIPTOR_HANDLE d3dRtvCPUDescriptorHandle = GetRtvCPUDescriptorHandle(i);
+		if (i == 2) { // 깊이값을 저장하는 렌더타겟
+			FLOAT value[4] = { 1.0f,1.0f,1.0f,1.0f };
+			pd3dCommandList->ClearRenderTargetView(*pd3dshadowRTVDescriptorHandle, value, 0, NULL);
+			d3dRtvCPUDescriptorHandle = *pd3dshadowRTVDescriptorHandle;
+		}
+		else {
+			pd3dCommandList->ClearRenderTargetView(d3dRtvCPUDescriptorHandle, m_fClearValue, 0, NULL);
+		}
+		pd3dAllRtvCPUHandles[nRenderTargets + i] = d3dRtvCPUDescriptorHandle;
+	}
+	pd3dCommandList->OMSetRenderTargets(nRenderTargets + nResources, pd3dAllRtvCPUHandles, FALSE, pd3dDsvCPUHandle);
+
+	if (pd3dAllRtvCPUHandles) delete[] pd3dAllRtvCPUHandles;
+}
+
+
 void CPostProcessingShader::TransitionRenderTargetToCommon(ID3D12GraphicsCommandList* pd3dCommandList)
 {
 	int nResources = m_pTexture->GetTextures();
 	for (int i = 0; i < nResources; i++)
 	{
 		::SynchronizeResourceTransition(pd3dCommandList, GetTextureResource(i), D3D12_RESOURCE_STATE_RENDER_TARGET, D3D12_RESOURCE_STATE_COMMON);
+	}
+}
+
+void CPostProcessingShader::TransitionShadowMapRenderTargetToCommon(ID3D12GraphicsCommandList* pd3dCommandList,int nTransition)
+{
+	int nResources = m_pShadowTextures->GetTextures();
+	if (nTransition != 0) {
+		nResources = nTransition;
+	}
+
+	for (int i = 0; i < nResources; i++)
+	{
+		::SynchronizeResourceTransition(pd3dCommandList, GetShadowTextureResource(i), D3D12_RESOURCE_STATE_RENDER_TARGET, D3D12_RESOURCE_STATE_COMMON);
 	}
 }
 
@@ -687,8 +763,112 @@ void CPostProcessingShader::Render(ID3D12GraphicsCommandList* pd3dCommandList, c
 	CShader::Render(pd3dCommandList, pCamera);
 
 	if (m_pTexture) m_pTexture->UpdateShaderVariables(pd3dCommandList);
+	if (m_pShadowTextures) m_pShadowTextures->UpdateShaderVariables(pd3dCommandList);
 
 	pd3dCommandList->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
 	pd3dCommandList->DrawInstanced(6, 1, 0, 0);
 }
 
+void CPostProcessingShader::ShadowTextureWriteRender(ID3D12GraphicsCommandList* pd3dCommandList, const shared_ptr<CCamera>& pCamera)
+{
+	CShader::Render(pd3dCommandList, pCamera, m_iShadowPipeLineIndex);
+
+	if (m_pTexture) m_pTexture->UpdateShaderVariables(pd3dCommandList);
+	if (m_pShadowTextures) m_pShadowTextures->UpdateShaderVariables(pd3dCommandList);
+
+	pd3dCommandList->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
+	pd3dCommandList->DrawInstanced(6, 1, 0, 0);
+}
+
+void CPostProcessingShader::CreateShadowMapResource(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dCommandList,UINT nlight, D3D12_CPU_DESCRIPTOR_HANDLE d3dRtvCPUDescriptorHandle)
+{
+	D3D12_DESCRIPTOR_HEAP_DESC d3dDescriptorHeapDesc;
+	::ZeroMemory(&d3dDescriptorHeapDesc, sizeof(D3D12_DESCRIPTOR_HEAP_DESC));
+	d3dDescriptorHeapDesc.NumDescriptors = nlight; // 빛의 개수만큼 렌더타겟을 생성
+	d3dDescriptorHeapDesc.Type = D3D12_DESCRIPTOR_HEAP_TYPE_RTV;
+	d3dDescriptorHeapDesc.Flags = D3D12_DESCRIPTOR_HEAP_FLAG_NONE;
+	d3dDescriptorHeapDesc.NodeMask = 0;
+	HRESULT hResult = pd3dDevice->CreateDescriptorHeap(&d3dDescriptorHeapDesc, __uuidof(ID3D12DescriptorHeap), (void**)m_pd3dShadowRtvDescriptorHeap.GetAddressOf());
+
+	D3D12_CPU_DESCRIPTOR_HANDLE rtvHandle = m_pd3dShadowRtvDescriptorHeap->GetCPUDescriptorHandleForHeapStart();
+
+	m_pShadowTextures = make_shared<CTexture>(nlight, RESOURCE_TEXTURE2D, 0, 1);
+
+	DXGI_FORMAT pdxgiFormat = DXGI_FORMAT_R32_FLOAT;
+	D3D12_CLEAR_VALUE d3dClearValue(pdxgiFormat, { 1.0f, 1.0f, 1.0f, 1.0f });
+
+	for (UINT i = 0; i < nlight; i++)
+	{
+		m_pShadowTextures->CreateTexture(pd3dDevice, i, RESOURCE_TEXTURE2D, FRAME_BUFFER_WIDTH, FRAME_BUFFER_HEIGHT, 1, 0, pdxgiFormat, D3D12_RESOURCE_FLAG_ALLOW_RENDER_TARGET, D3D12_RESOURCE_STATE_COMMON, &d3dClearValue);
+	}
+
+	CreateShaderVariables(pd3dDevice, pd3dCommandList);
+	CScene::CreateShaderResourceViews(pd3dDevice, m_pShadowTextures, 0, 11);
+
+	D3D12_RENDER_TARGET_VIEW_DESC d3dRenderTargetViewDesc;
+	d3dRenderTargetViewDesc.ViewDimension = D3D12_RTV_DIMENSION_TEXTURE2D;
+	d3dRenderTargetViewDesc.Texture2D.MipSlice = 0;
+	d3dRenderTargetViewDesc.Texture2D.PlaneSlice = 0;
+	d3dRenderTargetViewDesc.Format = pdxgiFormat;
+
+	for (UINT i = 0; i < nlight; i++)
+	{
+		ID3D12Resource* pd3dTextureResource = m_pShadowTextures->GetResource(i);
+		pd3dDevice->CreateRenderTargetView(pd3dTextureResource, &d3dRenderTargetViewDesc, rtvHandle);
+		m_vpShadowRtvCPUDescriptorHandles.push_back(make_unique<D3D12_CPU_DESCRIPTOR_HANDLE>(rtvHandle));
+		rtvHandle.ptr += ::gnRtvDescriptorIncrementSize;
+		/*pd3dDevice->CreateRenderTargetView(pd3dTextureResource, &d3dRenderTargetViewDesc, d3dRtvCPUDescriptorHandle);
+		m_vpShadowRtvCPUDescriptorHandles.push_back(make_unique<D3D12_CPU_DESCRIPTOR_HANDLE>(d3dRtvCPUDescriptorHandle));
+		d3dRtvCPUDescriptorHandle.ptr += ::gnRtvDescriptorIncrementSize;*/
+	}
+}
+
+void CPostProcessingShader::CreateLightCamera(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dCommandList,CScene* scene)
+{
+	vector<XMFLOAT3> positions = scene->GetLightPositions();
+	vector<XMFLOAT3> looks = scene->GetLightLooks();
+
+	XMFLOAT3 xmf3Right = XMFLOAT3(1.0f, 0.0f, 0.0f);
+
+	XMFLOAT4X4 xmf4x4ToTexture = {
+		0.5f, 0.0f, 0.0f, 0.0f,
+		0.0f, -0.5f, 0.0f, 0.0f,
+		0.0f, 0.0f, 1.0f, 0.0f,
+		0.5f, 0.5f, 0.0f, 1.0f };
+
+	XMMATRIX xmProjectionToTexture = XMLoadFloat4x4(&xmf4x4ToTexture);
+	XMMATRIX xmmtxViewProjection;
+
+	for (int i = 0;i < positions.size();++i) {
+		m_pLightCamera.push_back(make_shared<CCamera>());
+
+		XMFLOAT3 xmf3Up = Vector3::CrossProduct(looks[i], xmf3Right);
+		XMFLOAT3 lookAtPosition = Vector3::Add(positions[i], looks[i]);
+		m_pLightCamera[i]->GenerateViewMatrix(positions[i], lookAtPosition, xmf3Up);
+		m_pLightCamera[i]->MultiplyViewProjection();
+
+		XMFLOAT4X4 viewProjection = m_pLightCamera[i]->GetViewProjection();
+		xmmtxViewProjection = XMLoadFloat4x4(&viewProjection);
+		XMStoreFloat4x4(&scene->m_pLights[i].m_xmf4x4ViewProjection, XMMatrixTranspose(xmmtxViewProjection * xmProjectionToTexture));
+		//[CJI 0404] i+1인 이유 : 맨처음 light는 플레이어의 라이트이므로. 나중에 플래시 아이템으로 비출경우 i로 수정하고 깊이맵만들어서 처리해야함.
+
+		m_pLightCamera[i]->CreateShaderVariables(pd3dDevice, pd3dCommandList);
+	}
+}
+
+
+void CPostProcessingShader::OnShadowPrepareRenderTarget(ID3D12GraphicsCommandList* pd3dCommandList,int nclearcount)
+{
+	int nResources = m_pShadowTextures->GetTextures();
+	if (nclearcount != 0) {
+		nResources = nclearcount;
+	}
+	FLOAT clearValue[4] = { 1.0f,1.0f,1.0f,1.0f };
+	for (int i = 0; i < nResources; i++)
+	{
+		::SynchronizeResourceTransition(pd3dCommandList, GetShadowTextureResource(i), D3D12_RESOURCE_STATE_COMMON, D3D12_RESOURCE_STATE_RENDER_TARGET);
+
+		D3D12_CPU_DESCRIPTOR_HANDLE d3dRtvCPUDescriptorHandle = GetShadowRtvCPUDescriptorHandle(i);
+		pd3dCommandList->ClearRenderTargetView(d3dRtvCPUDescriptorHandle, clearValue, 0, NULL);
+	}
+}

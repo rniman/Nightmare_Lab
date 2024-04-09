@@ -6,7 +6,7 @@
 CCamera::CCamera()
 {
 	m_xmf4x4View = Matrix4x4::Identity();
-	GenerateProjectionMatrix(1.01f, 500.0f, ASPECT_RATIO, 60.0f);
+	GenerateProjectionMatrix(1.01f, 30.0f, ASPECT_RATIO, 90.0f);
 	m_d3dViewport = { 0, 0, FRAME_BUFFER_WIDTH , FRAME_BUFFER_HEIGHT, 0.0f, 1.0f };
 	m_d3dScissorRect = { 0, 0, FRAME_BUFFER_WIDTH , FRAME_BUFFER_HEIGHT };
 	m_xmf3Position = XMFLOAT3(0.0f, 0.0f, 0.0f);
@@ -94,6 +94,11 @@ void CCamera::GenerateViewMatrix()
 	m_xmf4x4View = Matrix4x4::LookAtLH(m_xmf3Position, m_xmf3LookAtWorld, m_xmf3Up);
 }
 
+void CCamera::MultiplyViewProjection()
+{
+	m_xmf4x4ViewProjection = Matrix4x4::Multiply(m_xmf4x4View, m_xmf4x4Projection);
+}
+
 void CCamera::RegenerateViewMatrix()
 {
 	m_xmf3Look = Vector3::Normalize(m_xmf3Look);
@@ -127,6 +132,12 @@ void CCamera::UpdateShaderVariables(ID3D12GraphicsCommandList* pd3dCommandList)
 	XMFLOAT4X4 xmf4x4Projection;
 	XMStoreFloat4x4(&xmf4x4Projection, XMMatrixTranspose(XMLoadFloat4x4(&m_xmf4x4Projection)));
 	::memcpy(&m_pcbMappedCamera->m_xmf4x4Projection, &xmf4x4Projection, sizeof(XMFLOAT4X4));
+
+	XMMATRIX xmmtxInverseViewProjection;
+	xmmtxInverseViewProjection = XMMatrixTranspose(XMMatrixInverse(nullptr, XMLoadFloat4x4(&m_xmf4x4ViewProjection)));
+	XMFLOAT4X4 xmf4x4InverseViewProjection;
+	XMStoreFloat4x4(&xmf4x4InverseViewProjection, xmmtxInverseViewProjection);
+	::memcpy(&m_pcbMappedCamera->m_xmf4x4InverseViewProjection, &xmf4x4InverseViewProjection, sizeof(XMFLOAT4X4));
 
 	XMFLOAT4 xmf4Position = XMFLOAT4(m_xmf3Position.x, m_xmf3Position.y, m_xmf3Position.z, 0.0f);
 	::memcpy(&m_pcbMappedCamera->m_xmf4Position, &xmf4Position, sizeof(XMFLOAT4));

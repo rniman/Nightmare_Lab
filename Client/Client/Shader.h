@@ -122,6 +122,8 @@ public:
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 //
+class CScene;
+
 class CPostProcessingShader : public CShader
 {
 public:
@@ -133,12 +135,15 @@ public:
 
 	virtual D3D12_SHADER_BYTECODE CreateVertexShader();
 	virtual D3D12_SHADER_BYTECODE CreatePixelShader();
+	virtual D3D12_RASTERIZER_DESC CreateRasterizerState();
 
 	virtual void CreateShader(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dCommandList, ID3D12RootSignature* pd3dGraphicsRootSignature, UINT nRenderTargets = 1,
 		DXGI_FORMAT* pdxgiRtvFormats = nullptr, DXGI_FORMAT dxgiDsvFormat = DXGI_FORMAT_D24_UNORM_S8_UINT);
 	virtual void CreateResourcesAndRtvsSrvs(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dCommandList, UINT nRenderTargets, DXGI_FORMAT* pdxgiFormats, D3D12_CPU_DESCRIPTOR_HANDLE d3dRtvCPUDescriptorHandle);
 
 	virtual void OnPrepareRenderTarget(ID3D12GraphicsCommandList* pd3dCommandList, int nRenderTargets, D3D12_CPU_DESCRIPTOR_HANDLE* pd3dRtvCPUHandles, D3D12_CPU_DESCRIPTOR_HANDLE* pd3dDsvCPUHandle);
+	virtual void OnPrepareRenderTarget2(ID3D12GraphicsCommandList* pd3dCommandList, int nRenderTargets, 
+		D3D12_CPU_DESCRIPTOR_HANDLE* pd3dRtvCPUHandles, D3D12_CPU_DESCRIPTOR_HANDLE* pd3dDsvCPUHandle, D3D12_CPU_DESCRIPTOR_HANDLE* pd3dshadowRTVDescriptorHandle);
 	virtual void TransitionRenderTargetToCommon(ID3D12GraphicsCommandList* pd3dCommandList);
 	virtual void TransitionCommonToRenderTarget(ID3D12GraphicsCommandList* pd3dCommandList);
 
@@ -147,19 +152,47 @@ public:
 protected:
 	shared_ptr<CTexture> m_pTexture;
 
-	D3D12_CPU_DESCRIPTOR_HANDLE* m_pd3dRtvCPUDescriptorHandles = nullptr;
+	vector<unique_ptr<D3D12_CPU_DESCRIPTOR_HANDLE>> m_vpRtvCPUDescriptorHandles;
 
 	FLOAT m_fClearValue[4] = { 0.0f, 0.0f, 0.0f, 1.0f };
 
-
 	ComPtr<ID3D12DescriptorHeap> m_pd3dDsvDescriptorHeap;
 	ComPtr<ID3D12Resource> m_pd3dDepthBuffer;
-	D3D12_CPU_DESCRIPTOR_HANDLE* m_d3dDsvDescriptorCPUHandle = nullptr;
+	vector<unique_ptr<D3D12_CPU_DESCRIPTOR_HANDLE>> m_vpDsvDescriptorCPUHandles;
 
 public:
 	shared_ptr<CTexture> GetTexture() { return(m_pTexture); }
 	ID3D12Resource* GetTextureResource(UINT nIndex) { return(m_pTexture->GetResource(nIndex)); }
 
-	D3D12_CPU_DESCRIPTOR_HANDLE GetRtvCPUDescriptorHandle(UINT nIndex) { return(m_pd3dRtvCPUDescriptorHandles[nIndex]); }
-	D3D12_CPU_DESCRIPTOR_HANDLE GetDsvCPUDesctriptorHandle(UINT nIndex) { return m_d3dDsvDescriptorCPUHandle[nIndex]; }
+	D3D12_CPU_DESCRIPTOR_HANDLE GetRtvCPUDescriptorHandle(UINT nIndex) { return(*m_vpRtvCPUDescriptorHandles[nIndex]); }
+	D3D12_CPU_DESCRIPTOR_HANDLE GetDsvCPUDesctriptorHandle(UINT nIndex) { return (*m_vpDsvDescriptorCPUHandles[nIndex]); }
+	
+//ShadowMap Processing
+protected:
+	shared_ptr<CTexture> m_pShadowTextures;
+	vector<shared_ptr<CCamera>> m_pLightCamera;
+
+	vector<unique_ptr<D3D12_CPU_DESCRIPTOR_HANDLE>> m_vpShadowRtvCPUDescriptorHandles;
+	vector<unique_ptr<D3D12_CPU_DESCRIPTOR_HANDLE>> m_vpShadowDsvDescriptorCPUHandles;
+
+	ComPtr<ID3D12DescriptorHeap> m_pd3dShadowRtvDescriptorHeap;
+	ComPtr<ID3D12DescriptorHeap> m_pd3dShadowDsvDescriptorHeap;
+	ComPtr<ID3D12Resource> m_pd3dShadowDepthBuffer;
+
+	const UINT m_iShadowPipeLineIndex = 1;
+public:
+	shared_ptr<CTexture> GetShadowTexture() { return(m_pShadowTextures); }
+	ID3D12Resource* GetShadowTextureResource(UINT nIndex) { return(m_pShadowTextures->GetResource(nIndex)); }
+
+	D3D12_CPU_DESCRIPTOR_HANDLE GetShadowRtvCPUDescriptorHandle(UINT nIndex) { return(*m_vpShadowRtvCPUDescriptorHandles[nIndex]); }
+	D3D12_CPU_DESCRIPTOR_HANDLE GetShadowDsvCPUDesctriptorHandle(UINT nIndex) { return (*m_vpShadowDsvDescriptorCPUHandles[nIndex]); }
+
+	void CreateShadowMapResource(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dCommandList, UINT nlight, D3D12_CPU_DESCRIPTOR_HANDLE d3dRtvCPUDescriptorHandle);
+	void OnShadowPrepareRenderTarget(ID3D12GraphicsCommandList* pd3dCommandList, int nclearcount = 0);
+	void ShadowTextureWriteRender(ID3D12GraphicsCommandList* pd3dCommandList, const shared_ptr<CCamera>& pCamera);
+
+	void TransitionShadowMapRenderTargetToCommon(ID3D12GraphicsCommandList* pd3dCommandList, int nTransition=0);
+
+	void CreateLightCamera(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dCommandList,CScene* scene);
+	vector<shared_ptr<CCamera>>& GetLightCamera() { return  m_pLightCamera; }
 };

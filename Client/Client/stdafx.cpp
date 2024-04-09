@@ -2,7 +2,7 @@
 #include "stdafx.h"
 
 #include "DDSTextureLoader12.h"
-#include "WICTextureLoader12.h"
+//#include "WICTextureLoader12.h"
 
 // DescriptorIncrementSize
 UINT gnCbvSrvDescriptorIncrementSize = 0;
@@ -249,13 +249,63 @@ ID3D12Resource* CreateTexture2DResource(ID3D12Device* pd3dDevice, UINT nWidth, U
 	return(pd3dTexture);
 }
 
+// 텍스처 배열을 생성하는 함수
+std::vector<ID3D12Resource*> CreateTextureArray(ID3D12Device* device, int width, int height, int mipLevels, int arraySize, DXGI_FORMAT format) {
+	std::vector<ID3D12Resource*> textureArray(arraySize);
+
+	D3D12_HEAP_PROPERTIES heapProps = CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_DEFAULT);
+
+	D3D12_RESOURCE_DESC texDesc = {};
+	texDesc.Dimension = D3D12_RESOURCE_DIMENSION_TEXTURE2D;
+	texDesc.Alignment = 0;
+	texDesc.Width = width;
+	texDesc.Height = height;
+	texDesc.DepthOrArraySize = arraySize; // 배열 크기 설정
+	texDesc.MipLevels = mipLevels;
+	texDesc.Format = format;
+	texDesc.SampleDesc.Count = 1;
+	texDesc.SampleDesc.Quality = 0;
+	texDesc.Layout = D3D12_TEXTURE_LAYOUT_UNKNOWN;
+	texDesc.Flags = D3D12_RESOURCE_FLAG_NONE;
+
+	for (int i = 0; i < arraySize; ++i) {
+		device->CreateCommittedResource(
+			&heapProps,
+			D3D12_HEAP_FLAG_NONE,
+			&texDesc,
+			D3D12_RESOURCE_STATE_COPY_DEST,
+			nullptr,
+			IID_PPV_ARGS(&textureArray[i])
+		);
+	}
+
+	return textureArray;
+}
+
+// 텍스처 배열을 채우는 함수
+void FillTextureArray(ID3D12Device* device, ID3D12GraphicsCommandList* commandList, std::vector<ID3D12Resource*>& textures) {
+	// 여기에 각 텍스처를 채우는 코드를 구현합니다.
+	// 예시로 단일 색상으로 텍스처를 채웁니다.
+	// 이 부분은 실제로는 텍스처 데이터를 로드하고 업로드하는 코드로 대체되어야 합니다.
+	// 여기서는 단순화를 위해 흰색으로 채웁니다.
+	const float clearColor[] = { 1.0f, 1.0f, 1.0f, 1.0f }; // RGBA, 흰색
+	for (int i = 0; i < textures.size(); ++i) {
+		D3D12_RESOURCE_DESC desc = textures[i]->GetDesc();
+		CD3DX12_RESOURCE_BARRIER barrier = CD3DX12_RESOURCE_BARRIER::Transition(textures[i], D3D12_RESOURCE_STATE_COPY_DEST, D3D12_RESOURCE_STATE_RENDER_TARGET);
+		commandList->ResourceBarrier(1, &barrier);
+		//commandList->ClearRenderTargetView(/*RenderTargetView of textures[i]*/, clearColor, 0, nullptr);
+		barrier = CD3DX12_RESOURCE_BARRIER::Transition(textures[i], D3D12_RESOURCE_STATE_RENDER_TARGET, D3D12_RESOURCE_STATE_COPY_DEST);
+		commandList->ResourceBarrier(1, &barrier);
+	}
+}
+
 ID3D12Resource* CreateTextureResourceFromWICFile(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dCommandList, wchar_t* pszFileName, ID3D12Resource** ppd3dUploadBuffer, D3D12_RESOURCE_STATES d3dResourceStates)
 {
 	ID3D12Resource* pd3dTexture = NULL;
 	std::unique_ptr<uint8_t[]> decodedData;
 	D3D12_SUBRESOURCE_DATA d3dSubresource;
 
-	HRESULT hResult = DirectX::LoadWICTextureFromFileEx(pd3dDevice, pszFileName, 0, D3D12_RESOURCE_FLAG_NONE, WIC_LOADER_DEFAULT, &pd3dTexture, decodedData, d3dSubresource);
+	//HRESULT hResult = DirectX::LoadWICTextureFromFileEx(pd3dDevice, pszFileName, 0, D3D12_RESOURCE_FLAG_NONE, WIC_LOADER_DEFAULT, &pd3dTexture, decodedData, d3dSubresource);
 
 	D3D12_HEAP_PROPERTIES d3dHeapPropertiesDesc;
 	::ZeroMemory(&d3dHeapPropertiesDesc, sizeof(D3D12_HEAP_PROPERTIES));

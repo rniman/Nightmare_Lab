@@ -63,9 +63,6 @@
     <ClInclude Include="DDSTextureLoader12.h">
       <Filter>Helper</Filter>
     </ClInclude>
-    <ClInclude Include="WICTextureLoader12.h">
-      <Filter>Helper</Filter>
-    </ClInclude>
     <ClInclude Include="TCPClient.h">
       <Filter>Server</Filter>
     </ClInclude>
@@ -113,9 +110,6 @@
     <ClCompile Include="DDSTextureLoader12.cpp">
       <Filter>Helper</Filter>
     </ClCompile>
-    <ClCompile Include="WICTextureLoader12.cpp">
-      <Filter>Helper</Filter>
-    </ClCompile>
     <ClCompile Include="TCPClient.cpp">
       <Filter>Server</Filter>
     </ClCompile>
@@ -150,6 +144,6 @@
     <FxCompile Include="Light.hlsl" />
   </ItemGroup>
   <ItemGroup>
-    <None Include="Fog.hlsl" />
+    <None Include="Shadow.hlsl" />
   </ItemGroup>
 </Project>
