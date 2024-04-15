@@ -159,6 +159,12 @@ ID3D12Resource* CTexture::CreateTexture(ID3D12Device* pd3dDevice, UINT nIndex, U
 	return(m_vpd3dTextures[nIndex].Get());
 }
 
+void CTexture::SetTextures(UINT nResourceType, ID3D12Resource* pResource, int idx)
+{
+	m_vnResourceTypes[idx] = nResourceType;
+	m_vpd3dTextures[idx] = pResource;
+}
+
 D3D12_SHADER_RESOURCE_VIEW_DESC CTexture::GetShaderResourceViewDesc(int nIndex)
 {
 	ID3D12Resource* pShaderResource = GetResource(nIndex);

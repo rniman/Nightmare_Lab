@@ -290,21 +290,22 @@ void CScene::BuildObjects(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* p
 	//m_pPlayer->LoadModelAndAnimation(pd3dDevice, pd3dCommandList, m_pd3dGraphicsRootSignature.Get(), pZombiePlayerModel);
 	m_vShader[SKINNEDANIMATION_STANDARD_SHADER]->AddGameObject(m_pPlayer);
 
-	// 육면체 메쉬 - 테스트 용도 목적 ,모델파일을 읽어서 메쉬를 사용하기 때문 
-	//m_vMesh.push_back(make_shared<HexahedronMesh>(pd3dDevice, pd3dCommandList, 10.0f, 10.0f, 10.0f));
-	
+	//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+	///////////////////////////// 아이템
+	//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 	shared_ptr<CTeleportObject> flashLight = make_shared<CTeleportObject>(pd3dDevice, pd3dCommandList, m_pd3dGraphicsRootSignature.Get());
 	shared_ptr<CLoadedModelInfo> pTeleportModel = CGameObject::LoadGeometryAndAnimationFromFile(pd3dDevice, pd3dCommandList, m_pd3dGraphicsRootSignature.Get(), (char*)"Asset/Model/Flashlight.bin");
 
 	flashLight->LoadModelAndAnimation(pd3dDevice, pd3dCommandList, m_pd3dGraphicsRootSignature.Get(), pTeleportModel);
 	g_collisonManager.AddCollisionObject(flashLight);
 	m_vShader[STANDARD_SHADER]->AddGameObject(flashLight);
-	flashlightObject = flashLight.get();
+	dynamic_pointer_cast<CBlueSuitPlayer>(m_pPlayer)->SetFlashLight(flashLight);
 
 	shared_ptr<CLoadedModelInfo> pRaiderModel = CGameObject::LoadGeometryAndAnimationFromFile(pd3dDevice, pd3dCommandList, m_pd3dGraphicsRootSignature.Get(), (char*)"Asset/Model/레이더.bin");
 	g_collisonManager.AddCollisionObject(pRaiderModel->m_pModelRootObject);
 	m_vShader[STANDARD_SHADER]->AddGameObject(pRaiderModel->m_pModelRootObject);
-	m_pRaiderObject = pRaiderModel->m_pModelRootObject.get();
+	dynamic_pointer_cast<CBlueSuitPlayer>(m_pPlayer)->SetRaider(pRaiderModel->m_pModelRootObject);
+
 
 	/*shared_ptr<CLoadedModelInfo> pFusetModel = CGameObject::LoadGeometryAndAnimationFromFile(pd3dDevice, pd3dCommandList, m_pd3dGraphicsRootSignature.Get(), (char*)"Asset/Model/fuse_hi-obj.bin");
 	vector<shared_ptr<CFuseObject>> vpFuse;
@@ -329,7 +330,7 @@ void CScene::BuildObjects(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* p
 	}
 
 
-	LoadScene(pd3dDevice, pd3dCommandList);
+	//LoadScene(pd3dDevice, pd3dCommandList);
 
 	CreateShaderVariables(pd3dDevice, pd3dCommandList);
 }
@@ -560,8 +561,7 @@ void CScene::CreateShaderVariables(ID3D12Device* pd3dDevice, ID3D12GraphicsComma
 
 void CScene::UpdateShaderVariables(ID3D12GraphicsCommandList* pd3dCommandList)
 {
-	//XMFLOAT4X4 xmf4x4playerLight = dynamic_pointer_cast<CBlueSuitPlayer>(m_pPlayer)->GetFlashLightWorldTransform();
-	XMFLOAT4X4* xmf4x4playerLight = &flashlightObject->m_xmf4x4World;
+	XMFLOAT4X4* xmf4x4playerLight = dynamic_pointer_cast<CBlueSuitPlayer>(m_pPlayer)->GetFlashLigthWorldTransform();
 
 	m_pLights[0].m_xmf3Position = XMFLOAT3(xmf4x4playerLight->_41, xmf4x4playerLight->_42, xmf4x4playerLight->_43);//m_pPlayer->GetCamera()->GetPosition();
 	m_pLights[0].m_xmf3Direction = XMFLOAT3(xmf4x4playerLight->_21, xmf4x4playerLight->_22, xmf4x4playerLight->_23);/*XMFLOAT3(xmf4x4playerLight._31, xmf4x4playerLight._32, xmf4x4playerLight._33);*/ //m_pPlayer->GetCamera()->GetLookVector();
@@ -719,13 +719,6 @@ void CScene::AnimateObjects(float fElapsedTime)
 	{
 		shader->AnimateObjects(fElapsedTime);
 	}
-
-	//플레이어의 플래시라이트
-	XMFLOAT4X4 mtx = dynamic_pointer_cast<CBlueSuitPlayer>(m_pPlayer)->GetFlashLightWorldTransform();
-	flashlightObject->UpdateTransform(&mtx);
-	//플레이어의 왼손: 레이더
-	XMFLOAT4X4 mtx2 = dynamic_pointer_cast<CBlueSuitPlayer>(m_pPlayer)->GetRightHandItemRaiderWorldTransform();
-	m_pRaiderObject->UpdateTransform(&mtx2);
 }
 
 void CScene::ProcessCollide(float fElapsedTime)

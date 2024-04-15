@@ -55,6 +55,8 @@ bool CGameFramework::OnCreate(HINSTANCE hInstance, HWND hMainWnd)
 	g_collisonManager.CreateCollision(4, 10, 10);
 
 	BuildObjects();
+
+	PrepareDrawText();// Scene이 초기화 되고 나서 수행해야함 SRV를 Scene이 가지고 있음.
 	
 	return(true);
 }
@@ -183,9 +185,13 @@ void CGameFramework::CreateCommandQueueAndList()
 	d3dCommandQueueDesc.Type = D3D12_COMMAND_LIST_TYPE_DIRECT;
 	hResult = m_d3d12Device->CreateCommandQueue(&d3dCommandQueueDesc, _uuidof(ID3D12CommandQueue), (void**)m_d3dCommandQueue.GetAddressOf());
 
-	hResult = m_d3d12Device->CreateCommandAllocator(D3D12_COMMAND_LIST_TYPE_DIRECT, __uuidof(ID3D12CommandAllocator), (void**)m_d3dCommandAllocator.GetAddressOf());
+	//hResult = m_d3d12Device->CreateCommandAllocator(D3D12_COMMAND_LIST_TYPE_DIRECT, __uuidof(ID3D12CommandAllocator), (void**)m_d3dCommandAllocator.GetAddressOf());
 
-	hResult = m_d3d12Device->CreateCommandList(0, D3D12_COMMAND_LIST_TYPE_DIRECT, m_d3dCommandAllocator.Get(), NULL, __uuidof(ID3D12GraphicsCommandList), (void**)m_d3dCommandList.GetAddressOf());
+	for (int i = 0;i < m_nSwapChainBuffers;++i) {
+		hResult = m_d3d12Device->CreateCommandAllocator(D3D12_COMMAND_LIST_TYPE_DIRECT, __uuidof(ID3D12CommandAllocator), (void**)m_d3dCommandAllocator[i].GetAddressOf());
+		//ThrowIfFailed(m_d3d12Device->CreateCommandAllocator(D3D12_COMMAND_LIST_TYPE_DIRECT, IID_PPV_ARGS(&m_d3dCommandAllocator[i])));
+	}
+	hResult = m_d3d12Device->CreateCommandList(0, D3D12_COMMAND_LIST_TYPE_DIRECT,m_d3dCommandAllocator[m_nSwapChainBufferIndex].Get(), NULL, __uuidof(ID3D12GraphicsCommandList), (void**)m_d3dCommandList.GetAddressOf());
 	hResult = m_d3dCommandList->Close();
 }
 
@@ -253,7 +259,7 @@ void CGameFramework::CreateDepthStencilView()
 	d3dClearValue.DepthStencil.Depth = 1.0f;
 	d3dClearValue.DepthStencil.Stencil = 0;
 
-	m_d3d12Device->CreateCommittedResource(&d3dHeapProperties, D3D12_HEAP_FLAG_NONE, &d3dResourceDesc, D3D12_RESOURCE_STATE_DEPTH_WRITE, &d3dClearValue, __uuidof(ID3D12Resource), (void**)m_d3dDepthStencilBuffer.GetAddressOf());
+	m_d3d12Device->CreateCommittedResource(&d3dHeapProperties, D3D12_HEAP_FLAG_NONE, &d3dResourceDesc, D3D12_RESOURCE_STATE_COMMON, &d3dClearValue, __uuidof(ID3D12Resource), (void**)m_d3dDepthStencilBuffer.GetAddressOf());
 
 	D3D12_DEPTH_STENCIL_VIEW_DESC d3dDepthStencilViewDesc;
 	::ZeroMemory(&d3dDepthStencilViewDesc, sizeof(D3D12_DEPTH_STENCIL_VIEW_DESC));
@@ -300,6 +306,150 @@ void CGameFramework::ChangeSwapChainState()
 	CreateRenderTargetViews();
 }
 
+void CGameFramework::PrepareDrawText()
+{
+
+	D2D1_FACTORY_OPTIONS d2dFactoryOptions = {}; //drawText
+	d2dFactoryOptions.debugLevel = D2D1_DEBUG_LEVEL_INFORMATION;
+
+	//DrawText
+	ComPtr<ID3D11Device> d3d11Device;
+	D3D11On12CreateDevice(
+		m_d3d12Device.Get(),
+		D3D11_CREATE_DEVICE_BGRA_SUPPORT,
+		nullptr,
+		0,
+		reinterpret_cast<IUnknown**>(m_d3dCommandQueue.GetAddressOf()),
+		1,
+		0,
+		d3d11Device.GetAddressOf(),
+		m_d3d11DeviceContext.GetAddressOf(),
+		nullptr
+	);
+
+	ThrowIfFailed(d3d11Device.As(&m_d3d11On12Device));
+	{
+		D2D1_DEVICE_CONTEXT_OPTIONS deviceOptions = D2D1_DEVICE_CONTEXT_OPTIONS_NONE;
+		ThrowIfFailed(D2D1CreateFactory(D2D1_FACTORY_TYPE_SINGLE_THREADED, __uuidof(ID2D1Factory3), &d2dFactoryOptions, &m_d2dFactory));
+		ComPtr<IDXGIDevice> dxgiDevice;
+		ThrowIfFailed(m_d3d11On12Device.As(&dxgiDevice));
+		ThrowIfFailed(m_d2dFactory->CreateDevice(dxgiDevice.Get(), &m_d2dDevice));
+		ThrowIfFailed(m_d2dDevice->CreateDeviceContext(deviceOptions, &m_d2dDeviceContext));
+		ThrowIfFailed(DWriteCreateFactory(DWRITE_FACTORY_TYPE_SHARED, __uuidof(IDWriteFactory), &m_dWriteFactory));
+	}
+
+	float dpiX;
+	float dpiY;
+
+#pragma warning(push)
+#pragma warning(disable : 4996) // GetDesktopDpi is deprecated.
+	m_d2dFactory->GetDesktopDpi(&dpiX, &dpiY);
+#pragma warning(pop)
+	D2D1_BITMAP_PROPERTIES1 bitmapProperties = D2D1::BitmapProperties1(
+		D2D1_BITMAP_OPTIONS_TARGET | D2D1_BITMAP_OPTIONS_CANNOT_DRAW,
+		D2D1::PixelFormat(DXGI_FORMAT_UNKNOWN, D2D1_ALPHA_MODE_PREMULTIPLIED),
+		dpiX,
+		dpiY
+	);
+
+	//[CJI 0412] 텍스트를 렌더타겟에 그리고 이를 텍스처로 바꾼이후 다른 사물에 매핑하려고 했으나 실패(시간너무 끌어서 패스).. 나중에 한번 해보자. 
+	//m_pTextobject = make_unique<TextObject>(m_d3d12Device.Get(), m_d3dCommandList.Get(), m_d3dSwapChainBackBuffers);
+
+	//D3D12_CPU_DESCRIPTOR_HANDLE rtvHandle =m_d3dRtvDescriptorHeap->GetCPUDescriptorHandleForHeapStart();
+
+	for (UINT n = 0; n < m_nSwapChainBuffers; n++)
+	{
+		//ThrowIfFailed(m_dxgiSwapChain->GetBuffer(n, IID_PPV_ARGS(&pRenderTargetResource)));
+		//m_d3d12Device->CreateRenderTargetView(pRenderTargetResource, &d3dRenderTargetViewDesc, rtvHandle);
+
+		D3D11_RESOURCE_FLAGS d3d11Flags = { D3D11_BIND_RENDER_TARGET };
+		ThrowIfFailed(m_d3d11On12Device->CreateWrappedResource(
+			m_d3dSwapChainBackBuffers[n].Get(),
+			&d3d11Flags,
+			D3D12_RESOURCE_STATE_RENDER_TARGET,
+			D3D12_RESOURCE_STATE_PRESENT,
+			IID_PPV_ARGS(&m_wrappedBackBuffers[n])
+		));
+
+		ComPtr<IDXGISurface> surface;
+		ThrowIfFailed(m_wrappedBackBuffers[n].As(&surface));
+		ThrowIfFailed(m_d2dDeviceContext->CreateBitmapFromDxgiSurface(
+			surface.Get(),
+			&bitmapProperties,
+			&m_d2dRenderTargets[n]
+		));
+
+		//rtvHandle.ptr = rtvHandle.ptr + ::gnRtvDescriptorIncrementSize;
+
+		//ThrowIfFailed(m_d3d12Device->CreateCommandAllocator(D3D12_COMMAND_LIST_TYPE_DIRECT, IID_PPV_ARGS(&m_d3dCommandAllocator[n])));
+	}
+
+	// Create D2D/DWrite objects for rendering text.
+	{
+		ThrowIfFailed(m_d2dDeviceContext->CreateSolidColorBrush(D2D1::ColorF(D2D1::ColorF::Cyan), &m_textBrush));
+		ThrowIfFailed(m_dWriteFactory->CreateTextFormat(
+			L"Verdana",
+			NULL,
+			DWRITE_FONT_WEIGHT_NORMAL,
+			DWRITE_FONT_STYLE_NORMAL,
+			DWRITE_FONT_STRETCH_NORMAL,
+			50,
+			L"en-us",
+			&m_textFormat
+		));
+		ThrowIfFailed(m_textFormat->SetTextAlignment(DWRITE_TEXT_ALIGNMENT_CENTER));
+		ThrowIfFailed(m_textFormat->SetParagraphAlignment(DWRITE_PARAGRAPH_ALIGNMENT_CENTER));
+	}
+}
+
+//float uiX{}, uiY{};
+
+void CGameFramework::RenderUI()
+{
+	
+	D2D1_SIZE_F rtSize = m_d2dRenderTargets[m_nSwapChainBufferIndex]->GetSize();
+	D2D1_RECT_F textRect = D2D1::RectF(0, 0, rtSize.width, rtSize.height);
+
+	float escapelength = dynamic_pointer_cast<CBlueSuitPlayer>(m_pPlayer)->GetEscapeLength();
+
+	wchar_t text[20]; // 변환된 유니코드 문자열을 저장할 버퍼
+
+	// 부동 소수점 값을 문자열로 변환 후 유니코드 문자열로 저장
+	int len = swprintf(text, 20, L"%d", (int)escapelength);
+	text[len] = 'M'; 
+	len += 1;
+	text[len+1] = '\0';
+	
+	//static const WCHAR text[] = buffer;
+	
+	// 현재 백 버퍼에 대한 래핑된 렌더 타겟 자원을 획득합니다.
+	m_d3d11On12Device->AcquireWrappedResources(m_wrappedBackBuffers[m_nSwapChainBufferIndex].GetAddressOf(), 1);
+	m_d2dDeviceContext->SetTarget(m_d2dRenderTargets[m_nSwapChainBufferIndex].Get());
+	m_d2dDeviceContext->BeginDraw();
+	if (dynamic_pointer_cast<CBlueSuitPlayer>(m_pPlayer)->PlayRaiderUI()) {
+
+		D2D1::Matrix3x2F mat = D2D1::Matrix3x2F::Identity();
+		static D2D1_POINT_2F point = { 455.f,180.f };
+		mat = mat.Translation(point.x, point.y);
+		m_d2dDeviceContext->SetTransform(mat);
+		m_d2dDeviceContext->DrawText(
+			text,
+			/*_countof(text)*/len,
+			m_textFormat.Get(),
+			&textRect,
+			m_textBrush.Get()
+		);
+
+	}
+	ThrowIfFailed(m_d2dDeviceContext->EndDraw());
+	// 래핑된 렌더 타겟 자원을 해제합니다. 해제하면 래핑된 자원이 생성될 때 지정된 OutState로 백 버퍼 자원이 전환됩니다
+	m_d3d11On12Device->ReleaseWrappedResources(m_wrappedBackBuffers[m_nSwapChainBufferIndex].GetAddressOf(), 1);
+
+	//명령 목록을 공유 명령 큐에 제출하기 위해 플러시합니다.
+	m_d3d11DeviceContext->Flush();
+}
+
+
 void CGameFramework::OnProcessingMouseMessage(HWND hWnd, UINT nMessageID, WPARAM wParam, LPARAM lParam)
 {
 	if (m_pScene) m_pScene->OnProcessingMouseMessage(hWnd, nMessageID, wParam, lParam);
@@ -315,6 +465,7 @@ void CGameFramework::OnProcessingMouseMessage(HWND hWnd, UINT nMessageID, WPARAM
 		break;
 	case WM_RBUTTONDOWN:
 		m_pPlayer->SetPickedObject(LOWORD(lParam), HIWORD(lParam), m_pScene.get());
+		m_pPlayer->RightClickProcess();
 		break;
 	case WM_LBUTTONUP:
 	case WM_RBUTTONUP:
@@ -375,7 +526,11 @@ void CGameFramework::OnProcessingKeyboardMessage(HWND hWnd, UINT nMessageID, WPA
 			}
 			break;
 		case '1':
+			//uiX += 10.f;
+			break;
 		case '2':
+			//uiY += 10.f;
+			break;
 		case '3':
 		case '4':
 			m_pPlayer->UseItem(wParam - '1');
@@ -435,7 +590,7 @@ void CGameFramework::OnDestroy()
 
 void CGameFramework::BuildObjects()
 {
-	m_d3dCommandList->Reset(m_d3dCommandAllocator.Get(), NULL);
+	m_d3dCommandList->Reset(m_d3dCommandAllocator[m_nSwapChainBufferIndex].Get(), NULL);
 
 	m_pScene = make_shared<CScene>();
 	if (m_pScene.get()) m_pScene->BuildObjects(m_d3d12Device.Get(), m_d3dCommandList.Get());
@@ -601,8 +756,9 @@ void CGameFramework::PreRenderTasks()
 	AnimateObjects();
 	// 이곳에서 렌더링 하기전에 준비작업을 시행하도록한다. ex) 쉐도우맵 베이킹
 	// buildobject함수 호출 이후 처리되어야할 작업이다. -> 모든 객체들이 렌더링되어야 그림자맵을 생성함.
-	HRESULT hResult = m_d3dCommandAllocator->Reset();
-	hResult = m_d3dCommandList->Reset(m_d3dCommandAllocator.Get(), NULL);
+	//HRESULT hResult = m_d3dCommandAllocator->Reset();
+	HRESULT hResult = m_d3dCommandAllocator[m_nSwapChainBufferIndex]->Reset();
+	hResult = m_d3dCommandList->Reset(m_d3dCommandAllocator[m_nSwapChainBufferIndex].Get(), NULL);
 
 	SynchronizeResourceTransition(m_d3dCommandList.Get(), m_d3dSwapChainBackBuffers[m_nSwapChainBufferIndex].Get(), D3D12_RESOURCE_STATE_PRESENT, D3D12_RESOURCE_STATE_RENDER_TARGET);
 	
@@ -662,11 +818,11 @@ void CGameFramework::FrameAdvance()
 
 	ProcessCollide();
 
-	HRESULT hResult = m_d3dCommandAllocator->Reset();
-	hResult = m_d3dCommandList->Reset(m_d3dCommandAllocator.Get(), NULL);
+	HRESULT hResult = m_d3dCommandAllocator[m_nSwapChainBufferIndex]->Reset();
+	hResult = m_d3dCommandList->Reset(m_d3dCommandAllocator[m_nSwapChainBufferIndex].Get(), NULL);
 
 	{
-		int ndynamicShadowMap = 25;
+		int ndynamicShadowMap = 1;
 		// 그림자맵에 해당하는 텍스처를 렌더타겟으로 변환
 		m_pPostProcessingShader->OnShadowPrepareRenderTarget(m_d3dCommandList.Get(), ndynamicShadowMap); //플레이어의 손전등 1개 -> [0] 번째 요소에 들어있음.
 
@@ -674,7 +830,7 @@ void CGameFramework::FrameAdvance()
 
 		auto& vlightCamera = m_pPostProcessingShader->GetLightCamera();
 
-		XMFLOAT4X4* xmf4x4playerLight = &m_pScene->flashlightObject->m_xmf4x4World;
+		XMFLOAT4X4* xmf4x4playerLight = dynamic_pointer_cast<CBlueSuitPlayer>(m_pScene->m_pPlayer)->GetFlashLigthWorldTransform();
 		vlightCamera[0]->SetPosition(XMFLOAT3(xmf4x4playerLight->_41, xmf4x4playerLight->_42, xmf4x4playerLight->_43));
 		vlightCamera[0]->SetLookVector(XMFLOAT3(xmf4x4playerLight->_21, xmf4x4playerLight->_22, xmf4x4playerLight->_23));
 		vlightCamera[0]->RegenerateViewMatrix();
@@ -708,8 +864,7 @@ void CGameFramework::FrameAdvance()
 		// 그림자맵에 해당하는 렌더타겟을 텍스처로 변환
 		m_pPostProcessingShader->TransitionShadowMapRenderTargetToCommon(m_d3dCommandList.Get(), ndynamicShadowMap); //플레이어의 손전등 1개 -> [0] 번째 요소에 들어있음.
 	}
-
-
+	
 	SynchronizeResourceTransition(m_d3dCommandList.Get(), m_d3dSwapChainBackBuffers[m_nSwapChainBufferIndex].Get(), D3D12_RESOURCE_STATE_PRESENT, D3D12_RESOURCE_STATE_RENDER_TARGET);
 
 	D3D12_CPU_DESCRIPTOR_HANDLE d3dRtvCPUDescriptorHandle = m_d3dRtvDescriptorHeap->GetCPUDescriptorHandleForHeapStart();
@@ -733,7 +888,13 @@ void CGameFramework::FrameAdvance()
 #endif
 		//m_pPlayer->Render(m_d3dCommandList.Get()); //[CJI 0405] 씬에 플레이어가 존재하므로 렌더링 x
 
+		
 		m_pPostProcessingShader->TransitionRenderTargetToCommon(m_d3dCommandList.Get());
+
+		FLOAT ClearValue[4] = { 1.0f,1.0f,1.0f,1.0f };
+		
+		ClearValue[3] = 1.0f;
+		m_d3dCommandList->ClearRenderTargetView(d3dRtvCPUDescriptorHandle, ClearValue, 0, NULL);
 
 		//OM 최종타겟으로 재설정
 		m_d3dCommandList->OMSetRenderTargets(1, &d3dRtvCPUDescriptorHandle, TRUE, &d3dDsvCPUDescriptorHandle);
@@ -746,16 +907,18 @@ void CGameFramework::FrameAdvance()
 			m_pScene->m_vForwardRenderShader[0]->Render(m_d3dCommandList.Get(), m_pCamera.lock());
 		}
 	}
-
-	SynchronizeResourceTransition(m_d3dCommandList.Get(), m_d3dSwapChainBackBuffers[m_nSwapChainBufferIndex].Get(), D3D12_RESOURCE_STATE_RENDER_TARGET, D3D12_RESOURCE_STATE_PRESENT);
+	//SynchronizeResourceTransition(m_d3dCommandList.Get(), m_d3dSwapChainBackBuffers[m_nSwapChainBufferIndex].Get(), D3D12_RESOURCE_STATE_RENDER_TARGET, D3D12_RESOURCE_STATE_PRESENT);
+	//[CJI 0411] -> RenderUI에서 렌더타겟 사용이 끝나면 m_wrappedBackBuffers가 자원을 해제할때 자동적으로 상태를 D3D12_RESOURCE_STATE_PRESENT으로 되돌리기 때문에 불필요
 
 	hResult = m_d3dCommandList->Close();
 
 	ID3D12CommandList* ppd3dCommandLists[] = { m_d3dCommandList.Get()};
 	m_d3dCommandQueue->ExecuteCommandLists(1, ppd3dCommandLists);
 
-	WaitForGpuComplete();
+	RenderUI();
 
+	WaitForGpuComplete();
+	
 #ifdef _WITH_PRESENT_PARAMETERS
 	DXGI_PRESENT_PARAMETERS dxgiPresentParameters;
 	dxgiPresentParameters.DirtyRectsCount = 0;
@@ -783,4 +946,3 @@ void CGameFramework::FrameAdvance()
 	//sprintf_s(buf, sizeof(buf), "Debug: %f %f %f\n", xmf3Position.x, xmf3Position.y, xmf3Position.z);
 	//OutputDebugStringA(buf);
 }
-

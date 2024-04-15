@@ -141,7 +141,6 @@ void CPlayer::Update(float fElapsedTime)
 	XMFLOAT3 xmf3Velocity = Vector3::ScalarProduct(m_xmf3Velocity, fElapsedTime, false);
 	if(!Vector3::IsZero(xmf3Velocity)) m_xmf3OldVelocity = xmf3Velocity;
 	Move(xmf3Velocity, false);
-
 	DWORD nCurrentCameraMode = m_pCamera->GetMode();
 	/*if (nCurrentCameraMode == THIRD_PERSON_CAMERA) */m_pCamera->Update(m_xmf3Position, fElapsedTime);
 	if (m_pCameraUpdatedContext) OnCameraUpdateCallback(fElapsedTime);
@@ -194,7 +193,7 @@ shared_ptr<CCamera> CPlayer::ChangeCamera(DWORD nNewCameraMode, float fElapsedTi
 		SetMaxVelocityY(40.0f);
 		m_pCamera = OnChangeCamera(FIRST_PERSON_CAMERA, nCurrentCameraMode);
 		m_pCamera->SetTimeLag(0.01f);
-		m_pCamera->SetOffset(XMFLOAT3(0.0f, 2.0f, 0.0f));
+		m_pCamera->SetOffset(XMFLOAT3(0.0f, 1.54f, 0.0f));
 		m_pCamera->GenerateProjectionMatrix(0.01f, 100.0f, ASPECT_RATIO, 60.0f);
 		m_pCamera->SetViewport(0, 0, FRAME_BUFFER_WIDTH, FRAME_BUFFER_HEIGHT, 0.0f, 1.0f);
 		m_pCamera->SetScissorRect(0, 0, FRAME_BUFFER_WIDTH, FRAME_BUFFER_HEIGHT);
@@ -365,7 +364,10 @@ void CPlayer::Collide(float fElapsedTime, const shared_ptr<CGameObject>& pCollid
 
 void CPlayer::Render(ID3D12GraphicsCommandList* pd3dCommandList)
 {
-	CGameObject::Render(pd3dCommandList);
+	if (m_pCamera->GetMode() == THIRD_PERSON_CAMERA) 
+	{
+		CGameObject::Render(pd3dCommandList);
+	}
 }
 
 void CPlayer::SetPickedObject(int nx, int ny, CScene* pScene)
@@ -428,6 +430,9 @@ CBlueSuitPlayer::CBlueSuitPlayer(ID3D12Device* pd3dDevice, ID3D12GraphicsCommand
 {
 	m_xmf3Scale = XMFLOAT3(1.0f,1.0f,1.0f);
 
+	m_xmf4x4Raider = Matrix4x4::Identity();
+	m_pRaider = make_unique<CRadarObject>(pd3dDevice, pd3dCommandList, pd3dGraphicsRootSignature);
+
 	SetPlayerUpdatedContext(pContext);
 	SetCameraUpdatedContext(pContext);
 }
@@ -458,6 +463,27 @@ void CBlueSuitPlayer::LoadModelAndAnimation(ID3D12Device* pd3dDevice, ID3D12Grap
 	//	m_pSkinnedAnimationController->SetAnimationCallbackHandler(1, pAnimationCallbackHandler);
 
 	if (m_pSkinnedAnimationController) m_pSkinnedAnimationController->UpdateShaderVariables(pd3dCommandList);
+}
+
+shared_ptr<CCamera> CBlueSuitPlayer::ChangeCamera(DWORD nNewCameraMode, float fElapsedTime)
+{
+	shared_ptr<CCamera> camera = CPlayer::ChangeCamera(nNewCameraMode, fElapsedTime);
+	if (camera->GetMode() != THIRD_PERSON_CAMERA) {
+		int index = dynamic_pointer_cast<CBlueSuitAnimationController>(m_pSkinnedAnimationController)->GetBoneFrameIndex((char*)"Head_M");
+		XMFLOAT3 offset = m_pSkinnedAnimationController->GetBoneFramePositionVector(index);
+		offset.x = 0.0f; offset.z = 0.0f;
+		camera->SetOffset(offset);
+		camera->SetPosition(Vector3::Add(m_xmf3Position, m_pCamera->GetOffset()));
+	}
+
+	return camera;
+}
+
+void CBlueSuitPlayer::Rotate(float x, float y, float z)
+{
+	CPlayer::Rotate(x, y, z);
+
+	dynamic_pointer_cast<CBlueSuitAnimationController>(m_pSkinnedAnimationController)->SetElbowPitch(m_fPitch);
 }
 
 void CBlueSuitPlayer::Move(DWORD dwDirection, float fDistance, bool bUpdateVelocity)
@@ -572,6 +598,17 @@ void CBlueSuitPlayer::Update(float fElapsedTime)
 	}
 }
 
+void CBlueSuitPlayer::Animate(float fElapsedTime)
+{
+	CPlayer::Animate(fElapsedTime);
+
+	//플래시라이트
+	m_pFlashlight->UpdateTransform(GetLeftHandItemFlashLightModelTransform());
+	//플레이어의 왼손: 레이더 // 내 눈에서만 레이더가 확대되는것처럼 보임. 즉, 자신의 오른손에 레이더는 사라지고 확대창으로.
+	// 다른 플레이어를 렌더링 할때는 손에 있는 형태로 보여야함.
+	m_pRaider->UpdateTransform(RaiderUpdate(fElapsedTime));
+}
+
 void CBlueSuitPlayer::UpdatePicking() 
 {
 	shared_ptr<CGameObject> pPickiedObject = m_pPickedObject.lock();
@@ -580,6 +617,22 @@ void CBlueSuitPlayer::UpdatePicking()
 	{
 		pPickiedObject->UpdatePicking();
 	}
+}
+
+void CBlueSuitPlayer::RightClickProcess()
+{
+	switch (m_selectItem)
+	{
+	case CBlueSuitPlayer::NONE:
+		break;
+	case CBlueSuitPlayer::RAIDER:
+		m_bRightClick = !m_bRightClick;
+		m_fOpenRaiderTime = 0.3f;
+		break;
+	default:
+		break;
+	}
+
 }
 
 int CBlueSuitPlayer::AddItem(const shared_ptr<CGameObject>& pGameObject)
@@ -666,6 +719,88 @@ void CBlueSuitPlayer::Teleport()
 	XMFLOAT3 randomPos = { 4.0f, 4.0f, 4.0f };
 	SetPosition(randomPos);
 }
+
+XMFLOAT4X4* CBlueSuitPlayer::GetLeftHandItemFlashLightModelTransform() const
+{
+	auto controller = m_pSkinnedAnimationController.get();
+	int i = dynamic_pointer_cast<CBlueSuitAnimationController>(m_pSkinnedAnimationController)->GetBoneFrameIndexToFlashLight();
+
+	return &controller->m_pAnimationSets->m_vpBoneFrameCaches[i]->m_xmf4x4World;
+}
+
+XMFLOAT4X4 CBlueSuitPlayer::GetRightHandItemRaiderModelTransform() const
+{
+	auto controller = m_pSkinnedAnimationController.get();
+	int i = dynamic_pointer_cast<CBlueSuitAnimationController>(m_pSkinnedAnimationController)->GetBoneFrameIndexToRightHandRaiderItem();
+
+	return controller->m_pAnimationSets->m_vpBoneFrameCaches[i]->m_xmf4x4World;
+}
+
+XMFLOAT4X4* CBlueSuitPlayer::RaiderUpdate(float fElapsedTime)
+{
+	//우클릭을 누를시에 아이템 확대(시점을 내려다보면 아이템이 확인되고 우클릭을 누르면 확대되어 확인가능)
+	if (m_bRightClick) {
+		if (m_fOpenRaiderTime > 0.0f) {
+			m_fOpenRaiderTime -= fElapsedTime;
+			if (m_fOpenRaiderTime < 0.0f) {
+				m_fOpenRaiderTime = 0.0f;
+			}
+		}
+		m_xmf4x4Raider = Matrix4x4::Identity();
+		// 플레이어의 카메라 위치 가져오기
+		XMFLOAT3 cPos = GetCamera()->GetPosition();
+		XMVECTOR pos = { cPos.x, cPos.y, cPos.z, 1.0f };
+
+		// 플레이어의 카메라가 바라보는 방향 벡터 가져오기
+		XMFLOAT3 cLook = GetCamera()->GetLookVector();
+		XMVECTOR look = { cLook.x, cLook.y, cLook.z, 1.0f };
+
+		// 카메라의 Right, Up 벡터
+		XMFLOAT3 cRight = GetCamera()->GetRightVector();
+		XMVECTOR right = { cRight.x, cRight.y, cRight.z, 1.0f };
+
+		XMFLOAT3 cUp = GetCamera()->GetUpVector();
+		XMVECTOR up = { cUp.x, cUp.y, cUp.z, 1.0f };
+
+		// 카메라가 바라보는 방향으로 이동할 벡터 계산
+		XMVECTOR translation = XMVectorScale(look, 0.5f);
+		right = XMVectorScale(right, 0.25f);
+		up = XMVectorScale(up, m_fOpenRaiderTime + 0.1f);
+		translation += right - up;
+
+		// Right, Up, Look 벡터로 m_xmf4x4Raider 행렬 업데이트
+		m_xmf4x4Raider._11 = cRight.x; m_xmf4x4Raider._12 = cRight.y; m_xmf4x4Raider._13 = cRight.z;
+		m_xmf4x4Raider._21 = cUp.x; m_xmf4x4Raider._22 = cUp.y; m_xmf4x4Raider._23 = cUp.z;
+		m_xmf4x4Raider._31 = cLook.x; m_xmf4x4Raider._32 = cLook.y; m_xmf4x4Raider._33 = cLook.z;
+		
+		// m_xmf4x4Raider 행렬을 변환하여 업데이트
+		XMStoreFloat4x4(&m_xmf4x4Raider,
+			(XMMatrixRotationZ(XMConvertToRadians(175.0f)) * XMMatrixRotationX(XMConvertToRadians(90.0f)))
+			* XMLoadFloat4x4(&m_xmf4x4Raider)
+			* XMMatrixTranslationFromVector(translation + pos));
+	}
+	else {
+		m_xmf4x4Raider = GetRightHandItemRaiderModelTransform();
+	}
+
+	return &m_xmf4x4Raider;
+}
+
+float CBlueSuitPlayer::GetEscapeLength()
+{
+	XMFLOAT3 escapePos = { 0.f, 0.f, 0.f };
+	XMFLOAT3 pos = GetPosition();
+	XMFLOAT3 escapePosToPos = Vector3::Subtract(pos, escapePos);
+	float length = Vector3::Length(escapePosToPos);
+
+	return length;
+}
+
+XMFLOAT4X4* CBlueSuitPlayer::GetFlashLigthWorldTransform()
+{
+	return &m_pFlashlight->m_xmf4x4World;
+}
+
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 // 

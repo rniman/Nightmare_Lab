@@ -46,6 +46,11 @@ CBlueSuitAnimationController::CBlueSuitAnimationController(ID3D12Device* pd3dDev
 		if (strncmp(frameName, "Spine1_M", strlen(frameName)) == 0) m_nStartSpine = i;
 		if (strncmp(frameName, "Neck_M", strlen(frameName)) == 0) m_nStartNeck = i;
 		if (strncmp(frameName, "JawEnd_M", strlen(frameName)) == 0) m_nEndNeck = i;
+		if (strncmp(frameName, "Player_Flashlight", strlen(frameName)) == 0) m_nPlayerFlashLight = i;
+		if (strncmp(frameName, "Elbow_L", strlen(frameName)) == 0) m_nElbow_L = i;
+		if (strncmp(frameName, "Head_M", strlen(frameName)) == 0) m_nHead_M = i;
+		if (strncmp(frameName, "Item_Raider", strlen(frameName)) == 0) m_nRaiderItem = i;
+		
 	}
 }
 
@@ -79,6 +84,7 @@ void CBlueSuitAnimationController::AdvanceTime(float fElapsedTime, CGameObject* 
 
 				for (int j = 0; j < m_pAnimationSets->m_nBoneFrames; j++)
 				{
+					if (j == m_nStartSpine) continue;
 					XMFLOAT4X4 xmf4x4WALKTransform = m_pAnimationSets->m_vpBoneFrameCaches[j]->m_xmf4x4ToParent;	// WALK
 					XMFLOAT4X4 xmf4x4IDLETransform = pAnimationSet->GetSRT(j, fPosition);					// IDLE
 					xmf4x4IDLETransform = Matrix4x4::Scale(xmf4x4IDLETransform, m_vAnimationTracks[0].m_fWeight);
@@ -111,6 +117,7 @@ void CBlueSuitAnimationController::AdvanceTime(float fElapsedTime, CGameObject* 
 
 				for (int j = 0; j < m_pAnimationSets->m_nBoneFrames; j++)
 				{
+					if (j == m_nStartSpine) continue;
 					XMFLOAT4X4 xmf4x4WALKTransform = m_pAnimationSets->m_vpBoneFrameCaches[j]->m_xmf4x4ToParent;	// WALK
 					XMFLOAT4X4 xmf4x4IDLETransform = pAnimationSet->GetSRT(j, fPosition);					// IDLE
 					xmf4x4IDLETransform = Matrix4x4::Scale(xmf4x4IDLETransform, m_vAnimationTracks[0].m_fWeight);
@@ -262,6 +269,12 @@ void CBlueSuitAnimationController::AdvanceTime(float fElapsedTime, CGameObject* 
 
 		}
 
+		//[CJI 0407] ¿ÞÂÊ ÆÈ²ÞÄ¡¸¦ Áß½ÉÀ¸·Î ÃàÀ» È¸Àü
+		XMFLOAT3 axis = { 0.f,0.f,1.f };
+		XMMATRIX xmmtxRotate = XMMatrixRotationAxis(XMLoadFloat3(&axis), XMConvertToRadians(m_fElbowPitch));
+		XMStoreFloat4x4(&m_pAnimationSets->m_vpBoneFrameCaches[m_nElbow_L]->m_xmf4x4ToParent,
+			XMMatrixMultiply(xmmtxRotate, XMLoadFloat4x4(&m_pAnimationSets->m_vpBoneFrameCaches[m_nElbow_L]->m_xmf4x4ToParent)));
+
 		pRootGameObject->UpdateTransform(NULL);
 
 		OnRootMotion(pRootGameObject);
@@ -291,6 +304,38 @@ void CBlueSuitAnimationController::BlendAnimation(int nTrack1, int nTrack2, floa
 	}
 	m_vAnimationTracks[nTrack1].HandleCallback();
 	m_vAnimationTracks[nTrack2].HandleCallback();
+}
+
+void CBlueSuitAnimationController::SetElbowPitch(float value)
+{
+	float fOld_pitch = m_fElbowPitch;
+	m_fElbowPitch = value;
+
+	if (m_fElbowPitch > 19.0f || m_fElbowPitch < -45.0f) {
+		m_fElbowPitch = fOld_pitch;
+	}
+}
+
+int CBlueSuitAnimationController::GetBoneFrameIndex(char* frameName)
+{
+	int i = -1;
+	if (strncmp(frameName, "Scapula_L", strlen(frameName)) == 0) i = m_nStartLArm ;
+	if (strncmp(frameName, "ThumbFinger4_L", strlen(frameName)) == 0) i = m_nEndLArm ;
+	if (strncmp(frameName, "Scapula_R", strlen(frameName)) == 0) i = m_nStartRArm ;
+	if (strncmp(frameName, "ThumbFinger4_R", strlen(frameName)) == 0) i = m_nEndRArm ;
+	if (strncmp(frameName, "Spine1_M", strlen(frameName)) == 0) i = m_nStartSpine ;
+	if (strncmp(frameName, "Neck_M", strlen(frameName)) == 0) i = m_nStartNeck ;
+	if (strncmp(frameName, "JawEnd_M", strlen(frameName)) == 0) i = m_nEndNeck ;
+	if (strncmp(frameName, "Player_Flashlight", strlen(frameName)) == 0) i = m_nPlayerFlashLight ;
+	if (strncmp(frameName, "Elbow_L", strlen(frameName)) == 0) i = m_nElbow_L ;
+	if (strncmp(frameName, "Head_M", strlen(frameName)) == 0) i = m_nHead_M ;
+	if (strncmp(frameName, "Item_Raider", strlen(frameName)) == 0) i = m_nRaiderItem;
+	
+	if (i == -1) {
+		assert(0);
+	}
+
+	return i;
 }
 
 CZombieAnimationController::CZombieAnimationController(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dCommandList, int nAnimationTracks, const shared_ptr<CLoadedModelInfo>& pModel)

@@ -4,6 +4,7 @@
 #include "TCPClient.h"
 
 //constexpr size_t SWAPCHAIN_BUFFER_NUM = 2;
+//class TextObject;
 
 class CGameFramework
 {
@@ -68,7 +69,7 @@ private:
 	ComPtr<ID3D12Resource>				m_d3dDepthStencilBuffer;
 	ComPtr<ID3D12DescriptorHeap>		m_d3dDsvDescriptorHeap;
 
-	ComPtr<ID3D12CommandAllocator>		m_d3dCommandAllocator;
+	ComPtr<ID3D12CommandAllocator>		m_d3dCommandAllocator[m_nSwapChainBuffers];
 	ComPtr<ID3D12CommandQueue>			m_d3dCommandQueue;
 	ComPtr<ID3D12GraphicsCommandList>	m_d3dCommandList;
 
@@ -92,5 +93,25 @@ private:
 	_TCHAR								m_pszFrameRate[70];
 	//TCPClient
 	TCPClient* m_pClientNetwork = NULL;
+
+public:
+	void PrepareDrawText();
+	void RenderUI();
+
+private:
+	//DrawText
+	ComPtr<ID3D11DeviceContext> m_d3d11DeviceContext;
+	ComPtr<ID3D11On12Device> m_d3d11On12Device;
+	ComPtr<IDWriteFactory> m_dWriteFactory;
+	ComPtr<ID3D11Resource> m_wrappedBackBuffers[m_nSwapChainBuffers];
+	ComPtr<ID2D1Factory3> m_d2dFactory;
+	ComPtr<ID2D1Device2> m_d2dDevice;
+	ComPtr<ID2D1Bitmap1> m_d2dRenderTargets[m_nSwapChainBuffers];
+	ComPtr<ID2D1DeviceContext2> m_d2dDeviceContext;
+
+	ComPtr<ID2D1SolidColorBrush> m_textBrush;
+	ComPtr<IDWriteTextFormat> m_textFormat;
+
+	//unique_ptr<TextObject> m_pTextobject;
 };
 

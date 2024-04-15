@@ -38,6 +38,16 @@ using namespace std;
 #include <DirectXCollision.h>
 #include <stdexcept>
 
+//-> draw text
+#pragma comment (lib, "d3d11.lib")
+#pragma comment (lib, "d2d1.lib")
+#pragma comment (lib, "dwrite.lib")
+#include <d2d1_3.h>
+#include <dwrite.h>
+#include <d3d11on12.h>
+#include <stdexcept>
+//<-
+
 // PlaySound
 #pragma comment(lib, "winmm.lib")
 #include <Mmsystem.h>
@@ -97,6 +107,7 @@ inline bool IsZero(float fValue, float fEpsilon) { return((fabsf(fValue) < fEpsi
 inline bool IsEqual(float fA, float fB, float fEpsilon) { return(::IsZero(fA - fB, fEpsilon)); }
 inline float InverseSqrt(float fValue) { return 1.0f / sqrtf(fValue); }
 inline void Swap(float* pfS, float* pfT) { float fTemp = *pfS; *pfS = *pfT; *pfT = fTemp; }
+
 
 namespace Vector3
 {

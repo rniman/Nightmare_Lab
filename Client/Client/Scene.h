@@ -98,8 +98,6 @@ public:
 	vector<unique_ptr<CShader>> m_vForwardRenderShader;
 
 	shared_ptr<CPlayer> m_pPlayer;
-	CGameObject* flashlightObject = nullptr;
-	CGameObject* m_pRaiderObject = nullptr;
 	//메쉬 저장
 	vector<shared_ptr<CMesh>>			m_vMesh;
 

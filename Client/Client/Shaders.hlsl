@@ -314,7 +314,7 @@ float4 PSPostProcessing(PS_POSTPROCESSING_OUT input) : SV_Target
     
     float4 light = Lighting(position, normal);
     
-    return (cColor * light);
+    return (cColor /** light*/);
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////

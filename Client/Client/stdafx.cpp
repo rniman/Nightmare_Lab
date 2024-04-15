@@ -412,3 +412,6 @@ void err_display(int errcode)
 	printf("[¿À·ù] %s\n", (char*)lpMsgBuf);
 	LocalFree(lpMsgBuf);
 }
+
+
+
