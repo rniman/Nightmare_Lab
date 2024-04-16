@@ -1,6 +1,6 @@
 #include "stdafx.h"
 #include "Player.h"
-#include "EnviromentObject.h"
+#include "EnvironmentObject.h"
 
 CItemObject::CItemObject(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dCommandList, ID3D12RootSignature* pd3dGraphicsRootSignature)
 	: CGameObject(pd3dDevice, pd3dCommandList)
@@ -19,15 +19,15 @@ void CItemObject::Render(ID3D12GraphicsCommandList* pd3dCommandList)
 
 /// <CGameObject - CItemObject>
 ////// /// /// /// /// /// /// /// /// /// /// /// /// /// /// /// /// /// /// /// /// /// /// /// /// /// /// /// ///  
-/// <CGameObject - CEnviromentObejct>
+/// <CGameObject - CEnvironmentObject>
 
-CEnviromentObejct::CEnviromentObejct(char* pstrFrameName, XMFLOAT4X4& xmf4x4World, CMesh* pMesh)
+CEnvironmentObject::CEnvironmentObject(char* pstrFrameName, XMFLOAT4X4& xmf4x4World, CMesh* pMesh)
 	: CGameObject(pstrFrameName, xmf4x4World, pMesh)
 {
 	m_nCollisionType = 1;
 }
 
-/// <CGameObject - CEnviromentObejct>
+/// <CGameObject - CEnvironmentObject>
 ////// /// /// /// /// /// /// /// /// /// /// /// /// /// /// /// /// /// /// /// /// /// /// /// /// /// /// /// ///  
 /// <CGameObject - CDoorObject>
 
@@ -48,42 +48,42 @@ CDrawerObject::~CDrawerObject()
 
 void CDrawerObject::Animate(float fElapsedTime)
 {
-	XMFLOAT3 xmf3Position = XMFLOAT3(m_xmf4x4World._41, m_xmf4x4World._42, m_xmf4x4World._43);
-	float fDistance = Vector3::Distance(xmf3Position, m_xmf3OriginPosition);
+	//XMFLOAT3 xmf3Position = XMFLOAT3(m_xmf4x4World._41, m_xmf4x4World._42, m_xmf4x4World._43);
+	//float fDistance = Vector3::Distance(xmf3Position, m_xmf3OriginPosition);
 
-	if (m_bAnimate)
-	{
-		if (m_bOpened)
-		{
-			if (fDistance < 0.6f)
-			{
-				XMFLOAT3 xmf3Offset = Vector3::ScalarProduct(m_xmf3Forward, fElapsedTime * 2.0f);
-				Move(xmf3Offset);
-			}
-			else
-			{
-				m_bAnimate = false;
-			}
-		}
-		else
-		{
-			if (fDistance >= 0.0f)
-			{
-				XMFLOAT3 xmf3Offset = Vector3::ScalarProduct(m_xmf3Forward, -fElapsedTime * 2.0f);
-				Move(xmf3Offset);
-				xmf3Position = XMFLOAT3(m_xmf4x4World._41, m_xmf4x4World._42, m_xmf4x4World._43);
-				XMFLOAT3 xmf3ToPosition = Vector3::Subtract(xmf3Position, m_xmf3OriginPosition);
-				if (Vector3::DotProduct(m_xmf3Forward, xmf3ToPosition) < 0.0f)
-				{
-					m_xmf4x4World._41 = m_xmf3OriginPosition.x;
-					m_xmf4x4World._42 = m_xmf3OriginPosition.y;
-					m_xmf4x4World._43 = m_xmf3OriginPosition.z;
-					m_bAnimate = false;
-				}
-			}
-		}
-	}
-
+	//if (m_bAnimate)
+	//{
+	//	if (m_bOpened)
+	//	{
+	//		if (fDistance < 0.6f)
+	//		{
+	//			XMFLOAT3 xmf3Offset = Vector3::ScalarProduct(m_xmf3Forward, fElapsedTime * 2.0f);
+	//			Move(xmf3Offset);
+	//		}
+	//		else
+	//		{
+	//			m_bAnimate = false;
+	//		}
+	//	}
+	//	else
+	//	{
+	//		if (fDistance >= 0.0f)
+	//		{
+	//			XMFLOAT3 xmf3Offset = Vector3::ScalarProduct(m_xmf3Forward, -fElapsedTime * 2.0f);
+	//			Move(xmf3Offset);
+	//			xmf3Position = XMFLOAT3(m_xmf4x4World._41, m_xmf4x4World._42, m_xmf4x4World._43);
+	//			XMFLOAT3 xmf3ToPosition = Vector3::Subtract(xmf3Position, m_xmf3OriginPosition);
+	//			if (Vector3::DotProduct(m_xmf3Forward, xmf3ToPosition) < 0.0f)
+	//			{
+	//				m_xmf4x4World._41 = m_xmf3OriginPosition.x;
+	//				m_xmf4x4World._42 = m_xmf3OriginPosition.y;
+	//				m_xmf4x4World._43 = m_xmf3OriginPosition.z;
+	//				m_bAnimate = false;
+	//			}
+	//		}
+	//	}
+	//}
+	CGameObject::Animate(fElapsedTime);
 }
 
 void CDrawerObject::UpdatePicking()

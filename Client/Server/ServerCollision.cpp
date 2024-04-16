@@ -1,8 +1,11 @@
 #include "stdafx.h"
 #include "TCPServer.h"
-#include "Collision.h"
+#include "ServerCollision.h"
 #include "ServerObject.h"
 #include "ServerPlayer.h"
+#include "ServerEnvironmentObject.h"
+
+int CCollisionManager::m_nCollisionObject = 0;
 
 void CCollisionManager::CreateCollision(int nHeight, int nWidth, int nDepth)
 {
@@ -19,6 +22,8 @@ void CCollisionManager::CreateCollision(int nHeight, int nWidth, int nDepth)
 			m_collisionGridGameObjects[i][j].resize(m_nDepth);
 		}
 	}
+	m_pCollisionObject.reserve(1000);
+
 }
 
 void CCollisionManager::AddCollisionObject(const shared_ptr<CGameObject>& pGameObject)
@@ -31,6 +36,8 @@ void CCollisionManager::AddCollisionObject(const shared_ptr<CGameObject>& pGameO
 	int nDepth = static_cast<int>((xmf3Position.z - GRID_START_Z) / SPACE_SIZE_XZ);
 
 	m_collisionGridGameObjects[nHeight][nWidth][nDepth].push_back(pGameObject);
+	pGameObject->SetCollisionNum(m_nCollisionObject++);
+	m_pCollisionObject.emplace_back(pGameObject);
 }
 
 void CCollisionManager::AddCollisionPlayer(const shared_ptr<CPlayer>& pPlayer, int nIndex)
@@ -45,9 +52,19 @@ vpObjects_t& CCollisionManager::GetSpaceGameObjects(int nHeight, int nWidth, int
 	return m_collisionGridGameObjects[nHeight][nWidth][nDepth];
 }
 
+void CCollisionManager::Update(float fElapsedTime)
+{
+	for (auto& pGameObject : m_pCollisionObject)
+	{
+		if (pGameObject.lock())
+		{
+			pGameObject.lock()->Update(fElapsedTime);
+		}
+	}
+}
+
 void CCollisionManager::Collide(float fElapsedTime, const shared_ptr<CPlayer>& pPlayer)
 {
-	/*shared_ptr<CPlayer> pPlayer = wpPlayer.lock();*/
 	if (!pPlayer || pPlayer->GetPlayerId() == -1)
 	{
 		return;
@@ -61,9 +78,9 @@ void CCollisionManager::Collide(float fElapsedTime, const shared_ptr<CPlayer>& p
 	XMVECTOR xmvTranslation = XMVectorSet(pPlayer->GetPosition().x, pPlayer->GetPosition().y, pPlayer->GetPosition().z, 1.0f);
 	aabbPlayer.Transform(aabbPlayer, 1.0f, XMQuaternionIdentity(), xmvTranslation);
 
-	for (int i = pPlayer->GetWidth() - 1; i <= pPlayer->GetWidth() + 1; ++i)
+	for (int i = pPlayer->GetWidth() - 2; i <= pPlayer->GetWidth() + 2; ++i)
 	{
-		for (int j = pPlayer->GetDepth() - 1; j <= pPlayer->GetDepth() + 1; ++j)
+		for (int j = pPlayer->GetDepth() - 2; j <= pPlayer->GetDepth() + 2; ++j)
 		{
 			if (i < 0 || i >= GetWidth() || j < 0 || j >= GetDepth())
 			{
@@ -77,7 +94,32 @@ void CCollisionManager::Collide(float fElapsedTime, const shared_ptr<CPlayer>& p
 					continue;
 				}
 
-				if (pGameObject->GetCollisionType() == 2) // 임시로 2면 넘김
+				if (pGameObject->GetCollisionType() == StairTrigger)
+				{
+					BoundingOrientedBox oobb;
+					XMFLOAT4X4 xmf4x4World = pGameObject->GetWorldMatrix();
+					pGameObject->GetOOBB(0).Transform(oobb, XMLoadFloat4x4(&xmf4x4World));
+					XMStoreFloat4(&oobb.Orientation, XMQuaternionNormalize(XMLoadFloat4(&oobb.Orientation)));
+					if (oobb.Intersects(aabbPlayer))
+					{
+						pPlayer->SetStair(true);
+						shared_ptr<CStairTriggerObject> pStairObject = dynamic_pointer_cast<CStairTriggerObject>(pGameObject);
+						if (pStairObject)
+						{
+							if (pStairObject->GetOffsetY() < 0.0f)
+							{
+								pPlayer->SetStairY(pStairObject->GetY() - 0.2f, pStairObject->GetY() - 0.2f - 4.5f);								
+							}
+							else
+							{
+								pPlayer->SetStairY(pStairObject->GetY() - 0.2f + 4.5f, pStairObject->GetY() - 0.2f);
+							}
+							pPlayer->SetStairPlane(pStairObject->GetStairPlane());
+						}
+					}
+					continue;
+				}
+				else if (pGameObject->GetCollisionType() != Standard)
 				{
 					continue;
 				}
@@ -100,6 +142,21 @@ void CCollisionManager::Collide(float fElapsedTime, const shared_ptr<CPlayer>& p
 			}
 		}
 	}
-
+	
+	if (pPlayer->IsStair())
+	{
+		XMFLOAT3 xmf3StairPosition = Plane::CalculatePointY(pPlayer->GetStairPlane(), pPlayer->GetPosition());
+		if (xmf3StairPosition.y - EPSILON <= pPlayer->GetStairMin())
+		{
+			xmf3StairPosition.y = pPlayer->GetStairMin();
+			pPlayer->SetStair(false);
+		}
+		else if (xmf3StairPosition.y + EPSILON >= pPlayer->GetStairMax())
+		{
+			xmf3StairPosition.y = pPlayer->GetStairMax();
+			pPlayer->SetStair(false);
+		}
+		pPlayer->SetPosition(xmf3StairPosition);
+	}
 }
 

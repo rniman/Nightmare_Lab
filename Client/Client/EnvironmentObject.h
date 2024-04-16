@@ -1,12 +1,13 @@
 #pragma once
-#include "ServerObject.h"
+#include "Object.h"
 
 class CItemObject : public CGameObject
 {
 public:
+	CItemObject(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dCommandList, ID3D12RootSignature* pd3dGraphicsRootSignature);
 	virtual ~CItemObject() {};
 
-	virtual void UpdateUsing(const shared_ptr<CGameObject>& pGameObject) {};
+	virtual void Render(ID3D12GraphicsCommandList* pd3dCommandList) override;;
 
 	bool GetObtained() const { return m_bObtained; }
 protected:
@@ -17,11 +18,11 @@ protected:
 ////// /// /// /// /// /// /// /// /// /// /// /// /// /// /// /// /// /// /// /// /// /// /// /// /// /// /// /// ///  
 /// <CGameObject - CEnviromentObejct>
 
-class CEnviromentObejct :public CGameObject
+class CEnvironmentObject :public CGameObject
 {
 public:
-	CEnviromentObejct(char* pstrFrameName, const XMFLOAT4X4& xmf4x4World, const vector<BoundingOrientedBox>& voobb);
-	virtual ~CEnviromentObejct() {};
+	CEnvironmentObject(char* pstrFrameName, XMFLOAT4X4& xmf4x4World, CMesh* pMesh);
+	virtual ~CEnvironmentObject() {};
 
 private:
 
@@ -34,16 +35,18 @@ private:
 class CDrawerObject : public CGameObject
 {
 public:
-	CDrawerObject(char* pstrFrameName, const XMFLOAT4X4& xmf4x4World, const vector<BoundingOrientedBox>& voobb);
+	CDrawerObject(char* pstrFrameName, XMFLOAT4X4& xmf4x4World, CMesh* pMesh);
 	virtual ~CDrawerObject();
 
-	virtual void Update(float fElapsedTime) override;
+	virtual void SetOOBB() override {};
+	virtual void Animate(float fElapsedTime) override;
+	virtual void AnimateOOBB() override {};
 	virtual void UpdatePicking() override;
 private:
 	bool m_bOpened = false;
 	bool m_bAnimate = false;
 	XMFLOAT3 m_xmf3OriginPosition;
-	XMFLOAT3 m_xmf3Forward;
+	XMFLOAT3 m_xmf3Forward;	
 };
 
 /// <CGameObject - CDrawerObject>
@@ -53,10 +56,12 @@ private:
 class CDoorObject : public CGameObject
 {
 public:
-	CDoorObject(char* pstrFrameName, const XMFLOAT4X4& xmf4x4World, const vector<BoundingOrientedBox>& voobb);
+	CDoorObject(char* pstrFrameName, XMFLOAT4X4& xmf4x4World, CMesh* pMesh);
 	virtual ~CDoorObject();
 
-	virtual void Update(float fElapsedTime) override;
+	virtual void SetOOBB() override {};
+	virtual void Animate(float fElapsedTime) override;
+	virtual void AnimateOOBB() override;;
 	virtual void UpdatePicking() override;
 
 private:
@@ -64,6 +69,7 @@ private:
 	float m_fDoorAngle = 0.0f;
 	float m_fRotationAngle = 0.0f;
 
+	XMFLOAT4 m_xmf4Quaternion = { 0.0f, 0.0f, 0.0f, 1.0f };
 };
 
 /// <CGameObject - CDrawerObject>
@@ -73,10 +79,11 @@ private:
 class CElevatorDoorObject : public CGameObject
 {
 public:
-	CElevatorDoorObject(char* pstrFrameName, const XMFLOAT4X4& xmf4x4World, const vector<BoundingOrientedBox>& voobb);
+	CElevatorDoorObject(char* pstrFrameName, XMFLOAT4X4& xmf4x4World, CMesh* pMesh);
 	virtual ~CElevatorDoorObject() {};
 
-	virtual void Update(float fElapsedTime) override;
+	virtual void Animate(float fElapsedTime) override;
+	virtual void AnimateOOBB() override {};
 	virtual void UpdatePicking() override;
 private:
 	bool m_bOpened = false;
@@ -92,8 +99,14 @@ private:
 class CTeleportObject : public CItemObject
 {
 public:
+	CTeleportObject(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dCommandList, ID3D12RootSignature* pd3dGraphicsRootSignature);
 	virtual ~CTeleportObject();;
 
+	virtual void LoadModelAndAnimation(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dCommandList, ID3D12RootSignature* pd3dGraphicsRootSignature, const shared_ptr<CLoadedModelInfo>& pLoadModelInfo) override;
+
+	virtual void SetOOBB() override;
+	virtual void Animate(float fElapsedTime) override;
+	virtual void AnimateOOBB() override;
 	virtual void UpdatePicking() override;
 	virtual void UpdateUsing(const shared_ptr<CGameObject>& pGameObject) override;
 };
@@ -105,10 +118,17 @@ public:
 class CMineObject : public CItemObject
 {
 public:
+	CMineObject(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dCommandList, ID3D12RootSignature* pd3dGraphicsRootSignature);
 	virtual ~CMineObject();
 
+	virtual void LoadModelAndAnimation(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dCommandList, ID3D12RootSignature* pd3dGraphicsRootSignature, const shared_ptr<CLoadedModelInfo>& pLoadModelInfo) override;
+
+	virtual void SetOOBB() override;
+	virtual void Animate(float fElapsedTime) override;
+	virtual void AnimateOOBB() override;
 	virtual void UpdatePicking() override;
 	virtual void UpdateUsing(const shared_ptr<CGameObject>& pGameObject) override;
+
 private:
 
 };
@@ -120,8 +140,14 @@ private:
 class CFuseObject : public CItemObject
 {
 public:
+	CFuseObject(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dCommandList, ID3D12RootSignature* pd3dGraphicsRootSignature);
 	virtual ~CFuseObject();
 
+	virtual void LoadModelAndAnimation(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dCommandList, ID3D12RootSignature* pd3dGraphicsRootSignature, const shared_ptr<CLoadedModelInfo>& pLoadModelInfo) override;
+
+	virtual void SetOOBB() override;
+	virtual void Animate(float fElapsedTime) override;
+	virtual void AnimateOOBB() override;
 	virtual void UpdatePicking() override;
 	virtual void UpdateUsing(const shared_ptr<CGameObject>& pGameObject) override;
 
@@ -136,8 +162,15 @@ private:
 class CRadarObject : public CItemObject
 {
 public:
+	CRadarObject(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dCommandList, ID3D12RootSignature* pd3dGraphicsRootSignature);
 	virtual ~CRadarObject();
 
+	virtual void LoadModelAndAnimation(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dCommandList, ID3D12RootSignature* pd3dGraphicsRootSignature, const shared_ptr<CLoadedModelInfo>& pLoadModelInfo) override;
+
+	virtual void SetOOBB() override;
+	virtual void Animate(float fElapsedTime) override;
+	virtual void AnimateOOBB() override;
 	virtual void UpdatePicking() override;
 	virtual void UpdateUsing(const shared_ptr<CGameObject>& pGameObject) override;
+
 };

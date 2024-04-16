@@ -24,8 +24,10 @@ void CTcpClient::CreateSocket(HWND hWnd)
 	}
 
 	// 소켓 생성
-	m_sock = socket(AF_INET, SOCK_STREAM, 0);
-	if (m_sock == INVALID_SOCKET)
+	SOCKET s = socket(AF_INET, SOCK_STREAM, 0);
+	m_sock = s;
+	//m_sock = socket(AF_INET, SOCK_STREAM, 0);
+	if (s == INVALID_SOCKET)
 	{
 		err_quit("socket()");
 	}
@@ -37,14 +39,16 @@ void CTcpClient::CreateSocket(HWND hWnd)
 	inet_pton(AF_INET, SERVERIP, &serveraddr.sin_addr);
 	serveraddr.sin_port = htons(SERVERPORT);
 
-	nRetval = connect(m_sock, (struct sockaddr*)&serveraddr, sizeof(serveraddr));
+	//nRetval = connect(m_sock, (struct sockaddr*)&serveraddr, sizeof(serveraddr));
+	nRetval = connect(s, (struct sockaddr*)&serveraddr, sizeof(serveraddr));
 	if (nRetval == SOCKET_ERROR) 
 	{
 		err_quit("connect()");
 		return;
 	}
 
-	nRetval = WSAAsyncSelect(m_sock, hWnd, WM_SOCKET, FD_CLOSE | FD_READ | FD_WRITE);	// FD_WRITE가 발생할것이다.
+	//nRetval = WSAAsyncSelect(m_sock, hWnd, WM_SOCKET, FD_CLOSE | FD_READ | FD_WRITE);	// FD_WRITE가 발생할것이다.
+	nRetval = WSAAsyncSelect(s, hWnd, WM_SOCKET, FD_CLOSE | FD_READ | FD_WRITE);	// FD_WRITE가 발생할것이다.
 }
 
 void CTcpClient::OnDestroy()
@@ -70,14 +74,14 @@ void CTcpClient::OnProcessingSocketMessage(HWND hWnd, UINT nMessageID, WPARAM wP
 	
 	switch (WSAGETSELECTEVENT(lParam))
 	{
-	case FD_WRITE:	// 소켓이 데이터를 전송할 준비가 되었다.
-		OnProcessingWriteMessage(hWnd, nMessageID, wParam, lParam);
-		break;
 	case FD_READ:	// 소켓이 데이터를 읽을 준비가 되었다.
 		OnProcessingReadMessage(hWnd, nMessageID, wParam, lParam);
 		break;
+	case FD_WRITE:	// 소켓이 데이터를 전송할 준비가 되었다.
+		OnProcessingWriteMessage(hWnd, nMessageID, wParam, lParam);
+		break;
 	case FD_CLOSE:
-		closesocket(m_sock);
+		closesocket(wParam);
 		WSACleanup();	
 		break;
 	default:
@@ -94,10 +98,15 @@ void CTcpClient::OnProcessingReadMessage(HWND hWnd, UINT nMessageID, WPARAM wPar
 	if(!m_bRecvHead)
 	{
 		nBufferSize = sizeof(int);
-		nRetval = RecvData(nBufferSize);
+		nRetval = RecvData(wParam, nBufferSize);
 		if (nRetval != 0)
 		{
-			//PostMessage(hWnd, WM_SOCKET, (WPARAM)m_sock, MAKELPARAM(FD_READ, 0));
+			if (nRetval == SOCKET_ERROR && WSAGetLastError() == WSAEWOULDBLOCK)
+			{
+				m_bRecvHead = false;
+				nHead = -1;
+				memset(m_pCurrentBuffer, 0, BUFSIZE);
+			}
 			return;
 		}
 		m_bRecvHead = true;
@@ -109,7 +118,8 @@ void CTcpClient::OnProcessingReadMessage(HWND hWnd, UINT nMessageID, WPARAM wPar
 	{
 	case HEAD_INIT:
 		nBufferSize = sizeof(int) * 2;
-		nRetval = RecvData(nBufferSize);
+		RecvNum++;
+		nRetval = RecvData(wParam, nBufferSize);
 		if (nRetval != 0)
 		{
 			break;
@@ -121,7 +131,8 @@ void CTcpClient::OnProcessingReadMessage(HWND hWnd, UINT nMessageID, WPARAM wPar
 	case HEAD_UPDATE_DATA:
 	{
 		nBufferSize = sizeof(m_aClientInfo);
-		nRetval = RecvData(nBufferSize);
+		RecvNum++;
+		nRetval = RecvData(wParam, nBufferSize);
 		if (nRetval != 0)
 		{
 			break;
@@ -129,6 +140,11 @@ void CTcpClient::OnProcessingReadMessage(HWND hWnd, UINT nMessageID, WPARAM wPar
 		
 		for (int i = 0; i < MAX_CLIENT; ++i)
 		{
+			//if (m_apPlayers[i]->GetClientId() == -1)
+			//{
+			//	continue;
+			//}
+
 			memcpy(&m_aClientInfo[i], m_pCurrentBuffer + sizeof(CS_CLIENTS_INFO) * i, sizeof(CS_CLIENTS_INFO));
 
 			if (m_apPlayers[i])
@@ -142,13 +158,33 @@ void CTcpClient::OnProcessingReadMessage(HWND hWnd, UINT nMessageID, WPARAM wPar
 					m_apPlayers[i]->SetLook(m_aClientInfo[i].m_xmf3Look);
 					m_apPlayers[i]->SetRight(m_aClientInfo[i].m_xmf3Right);
 				}
+
 			}
+
+			int nNumOfGameObject = m_aClientInfo[i].m_nNumOfObject;
+			for (int j = 0; j < nNumOfGameObject; ++j)
+			{
+				int nObjectNum = m_aClientInfo[i].m_anObjectNum[j];
+				if (nObjectNum == -1)
+				{
+					continue;
+				}
+				shared_ptr<CGameObject> pGameObject = g_collisionManager.GetCollisionObjectWithNumber(nObjectNum).lock();
+				if (pGameObject)
+				{
+					pGameObject->m_xmf4x4World = m_aClientInfo[i].m_axmf4x4World[j];
+					pGameObject->m_xmf4x4ToParent = m_aClientInfo[i].m_axmf4x4World[j];
+				}
+			}
+
 		}
+		
 	}
 		break;
 	case HEAD_NUM_OF_CLIENT:
 		nBufferSize = sizeof(int) + sizeof(m_aClientInfo);
-		nRetval = RecvData(nBufferSize);
+		RecvNum++;
+		nRetval = RecvData(wParam, nBufferSize);
 		if (nRetval != 0)
 		{
 			break;
@@ -170,14 +206,17 @@ void CTcpClient::OnProcessingReadMessage(HWND hWnd, UINT nMessageID, WPARAM wPar
 
 	if (nRetval != 0)
 	{
-		//PostMessage(hWnd, WM_SOCKET, (WPARAM)m_sock, MAKELPARAM(FD_READ, 0));
+		if (nRetval == SOCKET_ERROR && WSAGetLastError() == WSAEWOULDBLOCK)
+		{
+			m_bRecvHead = true;
+			memset(m_pCurrentBuffer, 0, BUFSIZE);
+		}
 		return;
 	}
 	nHead = -1;
 	m_bRecvHead = false;
 	m_bRecvDelayed = false;
 	memset(m_pCurrentBuffer, 0, BUFSIZE);
-	PostMessage(hWnd, WM_SOCKET, (WPARAM)m_sock, MAKELPARAM(FD_WRITE, 0));
 
 	return;
 }
@@ -198,20 +237,33 @@ void CTcpClient::OnProcessingWriteMessage(HWND hWnd, UINT nMessageID, WPARAM wPa
 	{
 		nHead = 0;
 		UCHAR keysBuffer[256];
+	
+		std::chrono::time_point<std::chrono::steady_clock> now = std::chrono::steady_clock::now();
+
 		nBufferSize += sizeof(keysBuffer);
 		UCHAR* pKeysBuffer = CGameFramework::GetKeysBuffer();
 		if (pKeysBuffer != nullptr)
 		{
 			memcpy(keysBuffer, pKeysBuffer, nBufferSize - sizeof(int));
 		}
-
+		nBufferSize += sizeof(std::chrono::time_point<std::chrono::steady_clock>);
+		nBufferSize += sizeof(XMFLOAT4X4);
 		nBufferSize += sizeof(XMFLOAT3) * 2;		
-		// 임시로 키버퍼에 LOOK, UP, RIGHT 같이 보내주기
-		nRetval = SendData(wParam, nBufferSize, nHead, keysBuffer, m_apPlayers[m_nMainClientID]->GetLook(), m_apPlayers[m_nMainClientID]->GetRight());
-		if (nRetval == SOCKET_ERROR)
+
+		SendNum++;
+		// 키버퍼, 카메라Matrix, LOOK,RIGHT 같이 보내주기
+		nRetval = SendData(wParam, nBufferSize, 
+							nHead,
+							now,
+							keysBuffer,
+							m_apPlayers[m_nMainClientID]->GetCamera()->GetViewMatrix(),
+							m_apPlayers[m_nMainClientID]->GetLook(), 
+							m_apPlayers[m_nMainClientID]->GetRight());
+
+		if (nRetval == -1 && WSAGetLastError() == WSAEWOULDBLOCK)
 		{
-			err_display("send()");
 		}
+
 	}
 		break;
 	default:
@@ -233,31 +285,32 @@ int CTcpClient::SendData(SOCKET socket, size_t nBufferSize, Args&&... args)
 	char* pBuffer = new char[nBufferSize];
 	(CreateSendDataBuffer(pBuffer, args...));
 
-	SendNum++;
 	nRetval = send(socket, (char*)pBuffer, nBufferSize, 0);
 	delete[] pBuffer;
 
 	if (nRetval == SOCKET_ERROR)
 	{
-		err_display("send()");
 		return -1;
 	}
 	return 0;
 }
 
-int CTcpClient::RecvData(size_t nBufferSize)
+int CTcpClient::RecvData(SOCKET socket, size_t nBufferSize)
 {
 	int nRetval;
 	int nRemainRecvByte = nBufferSize - m_nCurrentRecvByte;
 
-	RecvNum++;
-	nRetval = recv(m_sock, (char*)&m_pCurrentBuffer + m_nCurrentRecvByte, nRemainRecvByte, 0);
+	nRetval = recv(socket, (char*)&m_pCurrentBuffer + m_nCurrentRecvByte, nRemainRecvByte, 0);
 	if(nRetval > 0) m_nCurrentRecvByte += nRetval;
-	if (nRetval == SOCKET_ERROR || nRetval == 0) // error
+	if (nRetval == SOCKET_ERROR)
 	{
-		return -1;
+		return SOCKET_ERROR;
 	}
-	else if (nRetval < nBufferSize)
+	else if (nRetval == 0)
+	{
+		return -2;
+	}
+	else if (m_nCurrentRecvByte < nBufferSize)
 	{
 		m_bRecvDelayed = true;
 		return 1;

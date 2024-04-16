@@ -1,18 +1,18 @@
 #include "stdafx.h"
-#include "EnviromentObject.h"
+#include "ServerEnvironmentObject.h"
 #include "ServerPlayer.h"
 
 /// <CGameObject - CItemObject>
 ////// /// /// /// /// /// /// /// /// /// /// /// /// /// /// /// /// /// /// /// /// /// /// /// /// /// /// /// ///  
-/// <CGameObject - CEnviromentObejct>
+/// <CGameObject - CEnvironmentObject>
 
-CEnviromentObejct::CEnviromentObejct(char* pstrFrameName, const XMFLOAT4X4& xmf4x4World, const vector<BoundingOrientedBox>& voobb)
+CEnvironmentObject::CEnvironmentObject(char* pstrFrameName, const XMFLOAT4X4& xmf4x4World, const vector<BoundingOrientedBox>& voobb)
 	: CGameObject(pstrFrameName, xmf4x4World, voobb)
 {
 	m_nCollisionType = Standard;
 }
 
-/// <CGameObject - CEnviromentObejct>
+/// <CGameObject - CEnvironmentObject>
 ////// /// /// /// /// /// /// /// /// /// /// /// /// /// /// /// /// /// /// /// /// /// /// /// /// /// /// /// ///  
 /// <CGameObject - CDoorObject>
 
@@ -91,7 +91,7 @@ void CDrawerObject::UpdatePicking()
 CDoorObject::CDoorObject(char* pstrFrameName, const XMFLOAT4X4& xmf4x4World, const vector<BoundingOrientedBox>& voobb)
 	: CGameObject(pstrFrameName, xmf4x4World, voobb)
 {
-	m_nCollisionType = Picking;
+	m_nCollisionType = Standard;
 }
 
 CDoorObject::~CDoorObject()
@@ -142,7 +142,7 @@ void CDoorObject::UpdatePicking()
 CElevatorDoorObject::CElevatorDoorObject(char* pstrFrameName, const XMFLOAT4X4& xmf4x4World, const vector<BoundingOrientedBox>& voobb)
 	: CGameObject(pstrFrameName, xmf4x4World, voobb)
 {
-	m_nCollisionType = Picking;
+	m_nCollisionType = Standard;
 
 	m_xmf3OriginPosition = XMFLOAT3(xmf4x4World._41, xmf4x4World._42, xmf4x4World._43);
 	m_xmf3Right = XMFLOAT3(0.0f, 1.0f, 0.0f);
@@ -261,7 +261,7 @@ CFuseObject::~CFuseObject()
 void CFuseObject::UpdatePicking()
 {
 	m_bObtained = true;
-	m_bCollsion = false;
+	m_bCollision = false;
 }
 
 void CFuseObject::UpdateUsing(const shared_ptr<CGameObject>& pGameObject)
@@ -272,7 +272,7 @@ void CFuseObject::UpdateUsing(const shared_ptr<CGameObject>& pGameObject)
 		return;
 	}
 	m_bObtained = false;
-	m_bCollsion = true;
+	m_bCollision = true;
 }
 
 /// <CGameObject - CFuseObject>
@@ -292,3 +292,65 @@ void CRadarObject::UpdateUsing(const shared_ptr<CGameObject>& pGameObject)
 
 }
 
+/// <CGameObject - CRadarObject>
+////// /// /// /// /// /// /// /// /// /// /// /// /// /// /// /// /// /// /// /// /// /// /// /// /// /// /// /// ///  
+/// <CGameObject - CStairTriggerObject>
+
+CStairTriggerObject::CStairTriggerObject(char* pstrFrameName, const XMFLOAT4X4& xmf4x4World, const vector<BoundingOrientedBox>& voobb)
+	: CGameObject(pstrFrameName, xmf4x4World, voobb)
+{
+	m_nCollisionType = COLLISION_TYPE::StairTrigger;
+	XMFLOAT3 xmf3Position = XMFLOAT3(m_xmf4x4World._41, m_xmf4x4World._42, m_xmf4x4World._43);
+	XMFLOAT3 xmf3Point1, xmf3Point2, xmf3Point3;
+
+	/*float fx, fy, fz, fOffsetY;*/
+	if (xmf3Position.y < 1.0f) // 1類
+	{
+		m_fy = 0.2f;
+	}
+	else if (xmf3Position.y < 5.5f) // 2類
+	{
+		m_fy = 4.7f;
+	}
+	else if (xmf3Position.y < 10.0f) // 3類
+	{
+		m_fy = 9.2f;
+	}
+	else if (xmf3Position.y < 14.5f) // 4類
+	{
+		m_fy = 13.7f;
+	}
+
+	if (xmf3Position.z > 0.0f) 
+	{
+		if (xmf3Position.x > 0.0f) // 啗欽 嬴楚
+		{
+			m_fOffsetY = 4.5f;
+			m_fx = 8.0f;
+		}
+		else
+		{
+			m_fOffsetY = -4.5f;
+			m_fx = -8.0f;
+		}
+		m_fz = 13.9;
+	}
+	else
+	{
+		if (xmf3Position.x > 0.0f) // 啗欽 嬪
+		{
+			m_fOffsetY = -4.5f;
+			m_fx = 8.0f;
+		}
+		else
+		{
+			m_fOffsetY = 4.5f;
+			m_fx = -8.0f;
+		}
+		m_fz = -13.9;
+	}
+	xmf3Point1 = XMFLOAT3(m_fx, m_fy, m_fz + 3.5f / 2.f);
+	xmf3Point2 = XMFLOAT3(m_fx, m_fy, m_fz - 3.5f / 2.f);
+	xmf3Point3 = XMFLOAT3(-m_fx, m_fy + m_fOffsetY, m_fz + 3.5f / 2.f);
+	m_xmf4Plane = Plane::CreateFromPoints(xmf3Point1, xmf3Point2, xmf3Point3);
+}

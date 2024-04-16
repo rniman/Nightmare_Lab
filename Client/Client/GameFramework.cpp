@@ -52,7 +52,7 @@ bool CGameFramework::OnCreate(HINSTANCE hInstance, HWND hMainWnd)
 
 	m_pTcpClient = make_shared<CTcpClient>(hMainWnd);
 
-	g_collisonManager.CreateCollision(4, 10, 10);
+	g_collisionManager.CreateCollision(4, 10, 10);
 
 	BuildObjects();
 	
@@ -385,16 +385,16 @@ void CGameFramework::OnProcessingKeyboardMessage(HWND hWnd, UINT nMessageID, WPA
 			m_pMainPlayer->SetPosition(Vector3::Add(m_pMainPlayer->GetPosition(), xmf3Shift));
 		}
 			break;
-		case 'E': //상호작용
-			if (!m_pMainPlayer)
-			{
-				break;
-			}
-			if (shared_ptr<CGameObject> pPickedObject = m_pMainPlayer->GetPickedObject().lock())
-			{
-				m_pMainPlayer->UpdatePicking();
-			}
-			break;
+		//case 'E': //상호작용
+		//	if (!m_pMainPlayer)
+		//	{
+		//		break;
+		//	}
+		//	if (shared_ptr<CGameObject> pPickedObject = m_pMainPlayer->GetPickedObject().lock())
+		//	{
+		//		m_pMainPlayer->UpdatePicking();
+		//	}
+		//	break;
 		case '1':
 		case '2':
 		case '3':
@@ -424,7 +424,6 @@ void CGameFramework::OnProcessingSocketMessage(HWND hWnd, UINT nMessageID, WPARA
 		return;
 	}
 
-	
 	switch (WSAGETSELECTEVENT(lParam))
 	{
 	case FD_WRITE:	// 소켓이 데이터를 전송할 준비가 되었다.
@@ -479,7 +478,7 @@ void CGameFramework::SetPlayerObjectOfClient(int nClientId)
 	m_pMainPlayer->GetCamera()->SetPlayer(m_pMainPlayer);
 	m_pScene->SetMainPlayer(m_pMainPlayer);
 	m_pCamera = m_pMainPlayer->GetCamera();
-	g_collisonManager.m_pPlayer = m_pMainPlayer;
+	g_collisionManager.m_pPlayer = m_pMainPlayer;
 }
 
 void CGameFramework::OnDestroy()
@@ -500,7 +499,6 @@ void CGameFramework::OnDestroy()
 
 void CGameFramework::BuildObjects()
 {
-
 	m_d3dCommandList->Reset(m_d3dCommandAllocator.Get(), NULL);
 
 	m_pScene = make_shared<CScene>();
@@ -519,7 +517,8 @@ void CGameFramework::BuildObjects()
 		shared_ptr<CLoadedModelInfo> pBlueSuitPlayerModel = CGameObject::LoadGeometryAndAnimationFromFile(m_d3d12Device.Get(), m_d3dCommandList.Get(), pRootSignature.Get(), "Asset/Model/BlueSuitFree01.bin");
 		m_apPlayer[i]->LoadModelAndAnimation(m_d3d12Device.Get(), m_d3dCommandList.Get(), pRootSignature.Get(), pBlueSuitPlayerModel);
 		m_pScene->m_vShader[SKINNEDANIMATION_STANDARD_SHADER]->AddGameObject(m_apPlayer[i]);
-		m_pTcpClient->SetPlayer(m_apPlayer[i],i);
+		m_pTcpClient->SetPlayer(m_apPlayer[i], i);
+
 	}
 
 	m_pPostProcessingShader = new CPostProcessingShader();
@@ -555,10 +554,10 @@ void CGameFramework::ReleaseObjects()
 
 void CGameFramework::ProcessInput()
 {
-	//static UCHAR pKeysBuffer[256];
 	bool bProcessedByScene = false;
 
 	if (GetKeyboardState(m_pKeysBuffer) && m_pScene) bProcessedByScene = m_pScene->ProcessInput(m_pKeysBuffer);
+	PostMessage(m_hWnd, WM_SOCKET, (WPARAM)m_pTcpClient->m_sock, MAKELPARAM(FD_WRITE, 0));
 
 	if (!m_pMainPlayer)
 	{
@@ -590,7 +589,15 @@ void CGameFramework::ProcessInput()
 
 		}
 	}
-	m_pMainPlayer->Update(m_GameTimer.GetTimeElapsed());
+
+	for(auto& pPlayer: m_apPlayer)
+	{
+		if (pPlayer->GetClientId() == -1)
+		{
+			continue;
+		}
+		pPlayer->Update(m_GameTimer.GetTimeElapsed());
+	}
 }
 
 void CGameFramework::AnimateObjects()
@@ -607,13 +614,6 @@ void CGameFramework::AnimateObjects()
 	//	//pPickedObject->UpdatePicking();
 	//}
 	////m_pPlayer->Animate(fElapsedTime);
-}
-
-void CGameFramework::ProcessCollide()
-{
-	float fElapsedTime = m_GameTimer.GetTimeElapsed();
-
-	if (m_pScene) m_pScene->ProcessCollide(fElapsedTime);
 }
 
 void CGameFramework::WaitForGpuComplete()

@@ -1,6 +1,7 @@
 #pragma once
 #include "Timer.h"
 constexpr size_t MAX_CLIENT{ 5 };
+constexpr size_t MAX_SEND_OBJECT_INFO{ 60 };
 
 // 소켓 정보 저장을 위한 구조체와 변수
 class CGameObject;
@@ -14,6 +15,10 @@ struct SC_UPDATE_INFO
 	XMFLOAT3 m_xmf3Velocity;
 	XMFLOAT3 m_xmf3Look;
 	XMFLOAT3 m_xmf3Right;
+
+	int m_nNumOfObject = -1;
+	std::array<int, MAX_SEND_OBJECT_INFO> m_anObjectNum;
+	std::array<XMFLOAT4X4, MAX_SEND_OBJECT_INFO> m_axmf4x4World;
 };
 
 enum class SOCKET_STATE
@@ -37,6 +42,8 @@ struct SOCKETINFO
 	int m_nAddrlen;
 	char m_pAddr[INET_ADDRSTRLEN];
 
+	int m_nHead = -1;
+
 	bool m_bRecvDelayed = false;	// 오는 데이터를 전부 받지 못했다
 	bool m_bRecvHead = false;	// 오는 데이터를 전부 받지 못했다
 	int m_nCurrentRecvByte = 0;		// 현재까지 받은 데이터의 길이
@@ -44,6 +51,9 @@ struct SOCKETINFO
 
 	SOCKET_STATE m_socketState = SOCKET_STATE::SEND_ID;
 	SOCKET_STATE m_prevSocketState = SOCKET_STATE::SEND_ID;
+
+	int SendNum = 0;
+	int RecvNum = 0;
 };
 
 class TCPServer
@@ -68,7 +78,7 @@ public:
 	int GetSocketIndex(SOCKET sockClient);
 	int RemoveSocketInfo(SOCKET sock);
 
-	void UpdateInformation(const shared_ptr<CPlayer>& pPlayer);
+	void UpdateInformation();
 
 	template<class... Args>
 	void CreateSendDataBuffer(char* pBuffer, Args&&... args);
@@ -78,11 +88,15 @@ public:
 
 	void LoadScene();
 	void CreateSceneObject(char* pstrFrameName, const XMFLOAT4X4& xmf4x4World, const vector<BoundingOrientedBox>& voobb);
+	void CreatSendObject();
+
 	// Interface
 	shared_ptr<CPlayer> GetPlayer(int nIndex) { return m_apPlayers[nIndex]; }
 private:
 	CTimer m_timer;
 	static size_t m_nClient;
+	HWND m_hWnd;
+	bool m_bSend = true;
 
 	// 접속한 클라이언트들의 정보를 저장.
 	std::array<SOCKETINFO, MAX_CLIENT> m_vSocketInfoList;	// 소켓 인덱스는 순차적으로 배정받는다

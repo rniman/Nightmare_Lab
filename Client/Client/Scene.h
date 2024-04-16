@@ -69,7 +69,6 @@ public:
 	//씬 업데이트 관련
 	bool ProcessInput(UCHAR* pKeysBuffer);
 	void AnimateObjects(float fElapsedTime);
-	void ProcessCollide(float fElapsedTime);
 
 	//렌더링 관련
 	void UpdateShaderVariables(ID3D12GraphicsCommandList* pd3dCommandList);

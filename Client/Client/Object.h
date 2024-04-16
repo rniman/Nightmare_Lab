@@ -437,6 +437,8 @@ public:
 	virtual void UpdateUsing(const shared_ptr<CGameObject>& pGameObject) {};
 
 	int GetCollisionType() const { return m_nCollisionType; }
+	int GetCollisionNum() const { return m_nCollisionNum; }
+
 	void SetTransparentObjectInfo(vector<int> vNumbers);
 public:
 	//중복된 메쉬를 없애기 위해 최초 메쉬들을 이곳에 저장한다.
@@ -463,11 +465,13 @@ public:
 	shared_ptr<CAnimationController> m_pSkinnedAnimationController;
 
 	vector<BoundingOrientedBox> m_voobbOrigin;
+	bool m_bCollsion = true;
+	int m_nCollisionType = 0; // 0:None, 1:Standard, 2:Picking
+	int m_nCollisionNum = -1;
+
 	// 투명 오브젝트 분류
 	bool m_bThisContainTransparent = false;
 	vector<int> m_vTransparentMaterialNumbers;
-	bool m_bCollsion = true;
-	int m_nCollisionType = 0; // 0:None, 1:Standard, 2:Picking
 };
 
 

@@ -1,10 +1,14 @@
 #include "stdafx.h"
 #include "ServerPlayer.h"
-#include "Collision.h"
+#include "ServerCollision.h"
+#include "ServerEnvironmentObject.h"
 
 CPlayer::CPlayer()
-	:CGameObject()
+	: CGameObject()
 {
+	m_xmf3Position = XMFLOAT3(9.f, 0.0f, 13.9);
+	m_xmf3OldPosition = m_xmf3Position;
+
 	XMFLOAT3 xmf3Center = XMFLOAT3(0.0f, 0.8f, 0.0f);
 	XMFLOAT3 xmf3Extents = XMFLOAT3(0.4f, 0.8f, 0.4f);
 	XMFLOAT4 xmf4Orientation;
@@ -16,6 +20,11 @@ CPlayer::CPlayer()
 	SetGravity(XMFLOAT3(0.0f, 0.0f, 0.0f));
 	SetMaxVelocityXZ(8.0f);
 	SetMaxVelocityY(40.0f);
+
+	m_xmf4x4Projection = Matrix4x4::PerspectiveFovLH(XMConvertToRadians(60.0f), ASPECT_RATIO, 0.01f, 100.0f); // 1ÀÎÄª
+	//m_xmf4x4Projection = Matrix4x4::PerspectiveFovLH(XMConvertToRadians(60.0f), ASPECT_RATIO, 1.01f, 100.0f);
+
+	XMMATRIX mtxProjection = XMLoadFloat4x4(&m_xmf4x4Projection);
 }
 
 void CPlayer::Update(float fElapsedTime)
@@ -28,8 +37,6 @@ void CPlayer::Update(float fElapsedTime)
 	DWORD dwDirection = 0;
 	if (m_pKeysBuffer[VK_LBUTTON] & 0xF0) dwDirection |= PRESS_LBUTTON;
 	if (m_pKeysBuffer[VK_RBUTTON] & 0xF0) dwDirection |= PRESS_RBUTTON;
-	//if (m_pKeysBuffer[VK_PRIOR] & 0xF0) dwDirection |= DIR_UP;
-	//if (m_pKeysBuffer[VK_NEXT] & 0xF0) dwDirection |= DIR_DOWN;
 
 	if (m_pKeysBuffer['W'] & 0xF0) dwDirection |= DIR_FORWARD;
 	if (m_pKeysBuffer['S'] & 0xF0) dwDirection |= DIR_BACKWARD;
@@ -68,14 +75,7 @@ void CPlayer::Update(float fElapsedTime)
 	if (fDeceleration > fLength) fDeceleration = fLength;
 	m_xmf3Velocity = Vector3::Add(m_xmf3Velocity, Vector3::ScalarProduct(m_xmf3Velocity, -fDeceleration, true));
 
-
-	//for (int i = 7; i >= 0; --i)
-	//{
-	//	int result = dwDirection >> i & 1;
-	//	printf("%d", result);
-	//}
-	//printf("  Vel: %f, %f", m_xmf3Position.x, m_xmf3Position.z);
-	//printf("\n");
+	printf("%d %d %d\n\n", m_nFloor, m_nWidth, m_nDepth);
 }
 
 void CPlayer::Collide(const shared_ptr<CCollisionManager>& pCollisionManager, float fElapsedTime, shared_ptr<CGameObject> pCollided)
@@ -115,7 +115,6 @@ void CPlayer::Collide(const shared_ptr<CCollisionManager>& pCollisionManager, fl
 		m_bCollision = false;
 		xmf3SubVelocity[k] = Vector3::ScalarProduct(xmf3SubVelocity[k], Vector3::Length(xmf3ResultVelocity), false);
 		Move(xmf3SubVelocity[k], false);
-		//m_pCamera->Move(Vector3::ScalarProduct(xmf3SubVelocity[k], -1.0f, false));
 
 		OnUpdateToParent();
 		aabbPlayer.Center = m_voobbOrigin[0].Center;
@@ -123,9 +122,9 @@ void CPlayer::Collide(const shared_ptr<CCollisionManager>& pCollisionManager, fl
 		XMVECTOR xmvTranslation = XMVectorSet(m_xmf3Position.x, m_xmf3Position.y, m_xmf3Position.z, 1.0f);
 		aabbPlayer.Transform(aabbPlayer, 1.0f, XMQuaternionIdentity(), xmvTranslation);
 
-		for (int i = m_nWidth - 1; i <= m_nWidth + 1 && !m_bCollision; ++i)
+		for (int i = m_nWidth - 2; i <= m_nWidth +  2 && !m_bCollision; ++i)
 		{
-			for (int j = m_nDepth - 1; j <= m_nDepth + 1 && !m_bCollision; ++j)
+			for (int j = m_nDepth - 2; j <= m_nDepth + 2 && !m_bCollision; ++j)
 			{
 				if (i < 0 || i >= pCollisionManager->GetWidth() || j < 0 || j >= pCollisionManager->GetDepth())
 				{
@@ -134,7 +133,33 @@ void CPlayer::Collide(const shared_ptr<CCollisionManager>& pCollisionManager, fl
 
 				for (const auto& pGameObject : pCollisionManager->GetSpaceGameObjects(m_nFloor, i, j))
 				{
-					if (!pGameObject || pGameObject->GetCollisionType() == 2)	//ÀÓ½Ã·Î 2¸é ³Ñ±è
+					if (pGameObject->GetCollisionType() == StairTrigger)
+					{
+						BoundingOrientedBox oobb;
+						XMFLOAT4X4 xmf4x4World = pGameObject->GetWorldMatrix();
+						pGameObject->GetOOBB(0).Transform(oobb, XMLoadFloat4x4(&xmf4x4World));
+						XMStoreFloat4(&oobb.Orientation, XMQuaternionNormalize(XMLoadFloat4(&oobb.Orientation)));
+						if (oobb.Intersects(aabbPlayer))
+						{
+							m_bStair = true;
+							shared_ptr<CStairTriggerObject> pStairObject = dynamic_pointer_cast<CStairTriggerObject>(pGameObject);
+							if (pStairObject)
+							{
+								if (pStairObject->GetOffsetY() < 0.0f)
+								{
+									SetStairY(pStairObject->GetY() - 0.2f, pStairObject->GetY() - 0.2f - 4.5f);
+								}
+								else
+								{
+									SetStairY(pStairObject->GetY() - 0.2f + 4.5f, pStairObject->GetY() - 0.2f);
+								}
+								m_xmf4StairPlane = pStairObject->GetStairPlane();
+							}
+						}
+						continue;
+					}
+
+					if (!pGameObject || pGameObject->GetCollisionType() != Standard) //ÀÓ½Ã·Î 2¸é ³Ñ±è
 					{
 						continue;
 					}
@@ -175,11 +200,6 @@ void CPlayer::Collide(const shared_ptr<CCollisionManager>& pCollisionManager, fl
 		m_xmf3Position = m_xmf3OldPosition = xmf3OldPosition;
 		CalculateSpace();
 	}
-
-	//DWORD nCurrentCameraMode = m_pCamera->GetMode();
-	//m_pCamera->Update(m_xmf3Position, fElapsedTime);
-	//m_pCamera->RegenerateViewMatrix();
-
 	OnUpdateToParent();
 }
 
@@ -197,7 +217,6 @@ void CPlayer::Move(const XMFLOAT3& xmf3Shift, bool bUpdateVelocity)
 		}
 		m_xmf3Position = Vector3::Add(m_xmf3Position, xmf3Shift);
 		CalculateSpace();
-		//m_pCamera->Move(xmf3Shift);
 	}
 }
 
@@ -217,4 +236,198 @@ void CPlayer::OnUpdateToParent()
 
 	XMMATRIX xmtxScale = XMMatrixScaling(1.0f, 1.0f, 1.0f);
 	m_xmf4x4ToParent = Matrix4x4::Multiply(xmtxScale, m_xmf4x4ToParent);
+}
+
+void CPlayer::SetPickedObject(const shared_ptr<CCollisionManager> pCollisionManager)
+{
+	if (!IsRecvData())
+	{
+		return;
+	}
+
+	if (!(m_pKeysBuffer[VK_RBUTTON] & 0xF0))
+		return;
+
+	m_pPickedObject.reset();
+
+	// 1ÀÎÄª
+	XMFLOAT3 pickPosition;
+	pickPosition.x = 0.0f;
+	pickPosition.y = 0.0f;
+	pickPosition.z = 1.0f;
+
+	float fNearestHitDistance = FLT_MAX;
+	for (int i = m_nWidth - 1; i <= m_nWidth + 1; ++i)
+	{
+		for (int j = m_nDepth - 1; j <= m_nDepth + 1; ++j)
+		{
+			if (i < 0 || i >= pCollisionManager->GetWidth() || j < 0 || j >= pCollisionManager->GetDepth())
+			{
+				continue;
+			}
+
+			for (auto& pCollisionObject : pCollisionManager->GetSpaceGameObjects(m_nFloor, i, j))
+			{
+				if (!pCollisionObject || pCollisionObject->GetCollisionType() == COLLISION_TYPE::None) //
+				{
+					continue;
+				}
+
+				float fHitDistance = FLT_MAX;
+				if (CGameObject::CheckPicking(pCollisionObject, pickPosition, m_xmf4x4View, fHitDistance))
+				{
+					if (fHitDistance < fNearestHitDistance)
+					{
+						fNearestHitDistance = fHitDistance;
+						m_pPickedObject = pCollisionObject;
+					}
+				}
+			}
+		}
+	}
+}
+
+////
+////
+////
+
+CBlueSuitPlayer::CBlueSuitPlayer()
+	: CPlayer()
+{
+}
+
+void CBlueSuitPlayer::Update(float fElapsedTime)
+{
+	if (m_bShiftRun)
+	{
+		m_fStamina -= fElapsedTime;
+		if (m_fStamina < 0.0f)
+		{
+			m_bAbleRun = false;
+			m_bShiftRun = false;
+		}
+	}
+	else if (m_fStamina < 5.0f)
+	{
+		m_fStamina += fElapsedTime;
+		if (!m_bAbleRun && m_fStamina > 3.0f)
+		{
+			m_bAbleRun = true;
+		}
+	}
+
+	CPlayer::Update(fElapsedTime);
+}
+
+void CBlueSuitPlayer::UpdatePicking()
+{
+	shared_ptr<CGameObject> pPickiedObject = m_pPickedObject.lock();
+	if (!pPickiedObject)
+	{
+		return;
+	}
+
+	if (!(m_pKeysBuffer['E'] & 0xF0))
+	{
+		m_bPressed = false;
+		return;
+	}
+	else if (!m_bPressed)	// Press°¡ Áö¼ÓµÊ
+	{
+		m_bPressed = true;
+	}
+	else
+	{
+		return;
+	}
+
+	if (AddItem(pPickiedObject) != -2)
+	{
+		pPickiedObject->UpdatePicking();
+	}
+}
+
+int CBlueSuitPlayer::AddItem(const shared_ptr<CGameObject>& pGameObject)
+{
+	int nSlot = -2;
+	if (dynamic_pointer_cast<CTeleportObject>(pGameObject))
+	{
+		nSlot = 0;
+	}
+	else if (dynamic_pointer_cast<CRadarObject>(pGameObject))
+	{
+		nSlot = 1;
+	}
+	else if (dynamic_pointer_cast<CMineObject>(pGameObject))
+	{
+		nSlot = 2;
+	}
+	else if (dynamic_pointer_cast<CFuseObject>(pGameObject))
+	{
+		if (dynamic_pointer_cast<CFuseObject>(pGameObject)->GetObtained())
+		{
+			return nSlot;
+		}
+
+		if (m_nFuseNum < 3)
+		{
+			m_apFuseItems[m_nFuseNum].reset();
+			m_apFuseItems[m_nFuseNum] = pGameObject;
+			m_nFuseNum++;
+			nSlot = -1;
+		}
+	}
+	else
+	{
+		nSlot = -1;
+	}
+
+	if (nSlot <= -1)
+	{
+		return nSlot;
+	}
+
+	if (m_apSlotItems[nSlot].lock())
+	{
+
+	}
+	else
+	{
+		m_apSlotItems[nSlot].reset();
+		m_apSlotItems[nSlot] = pGameObject;
+	}
+
+	return nSlot;
+}
+
+void CBlueSuitPlayer::UseItem(int nSlot)
+{
+	if (nSlot == 3)
+	{
+		UseFuse();
+	}
+	else if (shared_ptr<CGameObject> pGameObject = m_apSlotItems[nSlot].lock())
+	{
+		pGameObject->UpdateUsing(shared_from_this());
+		m_apSlotItems[nSlot].reset();
+	}
+}
+
+void CBlueSuitPlayer::UseFuse()
+{
+	for (auto& fuseItem : m_apFuseItems)
+	{
+		if (fuseItem.lock())
+		{
+			fuseItem.lock()->UpdateUsing(shared_from_this());
+			fuseItem.reset();
+		}
+	}
+	m_nFuseNum = 0;
+}
+
+void CBlueSuitPlayer::Teleport()
+{
+	//XMFLOAT3 randomPos = { 4.0f, 4.0f, 4.0f };
+	//SetPosition(randomPos);
 }

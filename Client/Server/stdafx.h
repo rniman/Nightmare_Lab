@@ -4,7 +4,7 @@
 #include <array>
 #include <memory>
 #include <Bit>
-
+#include <chrono>
 
 #include <DirectXMath.h>
 #include <DirectXCollision.h>
@@ -323,5 +323,36 @@ namespace Matrix4x4
 		XMFLOAT4X4 xmf4x4Result;
 		XMStoreFloat4x4(&xmf4x4Result, XMMatrixLookAtLH(XMLoadFloat3(&xmf3EyePosition), XMLoadFloat3(&xmf3LookAtPosition), XMLoadFloat3(&xmf3UpDirection)));
 		return(xmf4x4Result);
+	}
+}
+
+namespace Plane
+{
+	inline XMFLOAT4 CreateFromPoints(const XMFLOAT3& xmf3Point1, const XMFLOAT3& xmf3Point2, const XMFLOAT3& xmf3Point3)
+	{
+		XMVECTOR vectorPoint1 = XMLoadFloat3(&xmf3Point1);
+		XMVECTOR vectorPoint2 = XMLoadFloat3(&xmf3Point2);
+		XMVECTOR vectorPoint3 = XMLoadFloat3(&xmf3Point3);
+		
+		XMFLOAT4 xmf4Result;
+		XMStoreFloat4(&xmf4Result, XMPlaneFromPoints(vectorPoint1, vectorPoint2, vectorPoint3));
+		return xmf4Result;
+	}
+
+	inline XMFLOAT3 CalculatePointY(const XMFLOAT4& xmf4Plane, const XMFLOAT3& xmf3Point)
+	{
+		float fy;
+		fy = -(xmf4Plane.x * xmf3Point.x + xmf4Plane.z * xmf3Point.z + xmf4Plane.w) / xmf4Plane.y;
+		
+		XMFLOAT3 xmf3Result;
+		xmf3Result = XMFLOAT3(xmf3Point.x, fy, xmf3Point.z);
+		return xmf3Result;
+	}
+
+	inline XMFLOAT4 Normalize(XMFLOAT4& xmf4Plane)
+	{
+		XMFLOAT4 xmf4Result;
+		XMStoreFloat4(&xmf4Result, XMPlaneNormalize(XMLoadFloat4(&xmf4Plane)));
+		return(xmf4Result);
 	}
 }

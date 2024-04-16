@@ -30,7 +30,6 @@ public:
 
 	void ProcessInput();
 	void AnimateObjects();
-	void ProcessCollide();
 	void FrameAdvance();
 
 	void WaitForGpuComplete();

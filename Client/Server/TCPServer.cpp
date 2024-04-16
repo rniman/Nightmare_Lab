@@ -1,9 +1,9 @@
 #include "stdafx.h"
 #include "TCPServer.h"
 #include "ServerObject.h"
-#include "EnviromentObject.h"
+#include "ServerEnvironmentObject.h"
 #include "ServerPlayer.h"
-#include "Collision.h"
+#include "ServerCollision.h"
 
 size_t TCPServer::m_nClient = 0;
 
@@ -22,12 +22,6 @@ void TCPServer::OnProcessingWindowMessage(HWND hWnd, UINT nMessageID, WPARAM wPa
 	case WM_CREATE:
 		m_timer.Start();
 		break;
-	/*case WM_ACTIVATE:
-		if (LOWORD(wParam) == WA_INACTIVE)
-			m_timer.Stop();
-		else
-			m_timer.Start();
-		break;*/
 	default:
 		break;
 	}
@@ -40,15 +34,13 @@ void TCPServer::OnProcessingSocketMessage(HWND hWnd, UINT nMessageID, WPARAM wPa
 	case FD_ACCEPT:
 		OnProcessingAcceptMessage(hWnd, nMessageID, wParam, lParam);
 		break;
+	case FD_READ:
+		OnProcessingReadMessage(hWnd, nMessageID, wParam, lParam);
 	case FD_WRITE:
 		OnProcessingWriteMessage(hWnd, nMessageID, wParam, lParam);
 		break;
-	case FD_READ:
-		OnProcessingReadMessage(hWnd, nMessageID, wParam, lParam);
-		break;
 	case FD_CLOSE:
 		OnProcessingCloseMessage(hWnd, nMessageID, wParam, lParam);
-		//RemoveSocketInfo((SOCKET)wParam);
 		break;
 	default:
 		break;
@@ -87,7 +79,8 @@ void TCPServer::OnProcessingAcceptMessage(HWND hWnd, UINT nMessageID, WPARAM wPa
 		RemoveSocketInfo(sockClient);
 	}
 
-	m_apPlayers[nClientIndex] = make_shared<CPlayer>();
+	// 임시로 CBlueSuitPlayer만 생성
+	m_apPlayers[nClientIndex] = make_shared<CBlueSuitPlayer>();
 	m_apPlayers[nClientIndex]->SetPlayerId(nClientIndex);
 	m_pCollisionManager->AddCollisionPlayer(m_apPlayers[nClientIndex], nClientIndex);
 
@@ -106,69 +99,98 @@ void TCPServer::OnProcessingAcceptMessage(HWND hWnd, UINT nMessageID, WPARAM wPa
 
 void TCPServer::OnProcessingReadMessage(HWND hWnd, UINT nMessageID, WPARAM wParam, LPARAM lParam)
 {
-	static int nHead;
 	int nRetval = 1;
 	size_t nBufferSize;
 	int nSocketIndex = GetSocketIndex(wParam);
 	if (!m_vSocketInfoList[nSocketIndex].m_bUsed)
 	{
 		//error
+		exit(-1);
 	}
 	std::shared_ptr<CPlayer> pPlayer = m_apPlayers[nSocketIndex];
 
 	if(!m_vSocketInfoList[nSocketIndex].m_bRecvHead)
 	{
 		nBufferSize = sizeof(int);
+
 		nRetval = RecvData(nSocketIndex, nBufferSize);
-		if (nRetval != 0)
+		if (nRetval == SOCKET_ERROR)
 		{
-			//PostMessage(hWnd, WM_SOCKET, (WPARAM)m_vSocketInfoList[nSocketIndex].m_sock, MAKELPARAM(FD_READ, 0));
+			if (WSAGetLastError() == WSAEWOULDBLOCK)
+			{
+				m_vSocketInfoList[nSocketIndex].m_bRecvHead = false;
+				m_vSocketInfoList[nSocketIndex].m_nHead = -1;
+				memset(m_vSocketInfoList[nSocketIndex].m_pCurrentBuffer, 0, BUFSIZE);
+			}
 			return;
 		}
 		m_vSocketInfoList[nSocketIndex].m_bRecvHead = true;
-		memcpy(&nHead, m_vSocketInfoList[nSocketIndex].m_pCurrentBuffer, sizeof(int));
+		memcpy(&m_vSocketInfoList[nSocketIndex].m_nHead, m_vSocketInfoList[nSocketIndex].m_pCurrentBuffer, sizeof(int));
 		memset(m_vSocketInfoList[nSocketIndex].m_pCurrentBuffer, 0, BUFSIZE);
 	}
 
-	switch (nHead)
+	switch (m_vSocketInfoList[nSocketIndex].m_nHead)
 	{
 	case HEAD_KEYS_BUFFER:
 	{
-		nBufferSize = sizeof(UCHAR[256]) + sizeof(XMFLOAT3) * 2;
+		if (!pPlayer->IsRecvData())
+		{
+			pPlayer->SetRecvData(true);
+		}
+		 
+		std::chrono::time_point<std::chrono::steady_clock> now = std::chrono::steady_clock::now();
+		std::chrono::time_point<std::chrono::steady_clock> client;
+
+		// Time, KeysBuffer, viewMatrix, vecLook, vecRight
+		nBufferSize = sizeof(__int64) + sizeof(UCHAR[256]) + sizeof(XMFLOAT4X4) + sizeof(XMFLOAT3) * 2;
+		m_vSocketInfoList[nSocketIndex].RecvNum++;
 		nRetval = RecvData(nSocketIndex, nBufferSize);
-		if (nRetval != 0)
+		if (nRetval == SOCKET_ERROR)
 		{
 			break;
 		}
 
-		memcpy(pPlayer->GetKeysBuffer(), m_vSocketInfoList[nSocketIndex].m_pCurrentBuffer, sizeof(UCHAR[256]));
+		memcpy(&client, m_vSocketInfoList[nSocketIndex].m_pCurrentBuffer, sizeof(std::chrono::time_point<std::chrono::steady_clock>));
+		std::chrono::duration<double> deltaTime = now - client;
+		//printf("dif: %lf ms\n", deltaTime.count() * 1000.0f);
+
+		memcpy(pPlayer->GetKeysBuffer(), m_vSocketInfoList[nSocketIndex].m_pCurrentBuffer + sizeof(__int64), sizeof(UCHAR[256]));
+
+		XMFLOAT4X4 xmf4x4View;
+		memcpy(&xmf4x4View, m_vSocketInfoList[nSocketIndex].m_pCurrentBuffer + sizeof(__int64) + sizeof(UCHAR[256]), sizeof(XMFLOAT4X4));
+		pPlayer->SetViewMatrix(xmf4x4View);
 
 		XMFLOAT3 xmf3Look, xmf3Right;
-		memcpy(&xmf3Look, m_vSocketInfoList[nSocketIndex].m_pCurrentBuffer + sizeof(UCHAR[256]), sizeof(XMFLOAT3));
-		memcpy(&xmf3Right, m_vSocketInfoList[nSocketIndex].m_pCurrentBuffer + sizeof(UCHAR[256]) + sizeof(XMFLOAT3), sizeof(XMFLOAT3));
+		memcpy(&xmf3Look, m_vSocketInfoList[nSocketIndex].m_pCurrentBuffer + sizeof(__int64) + sizeof(UCHAR[256]) + sizeof(XMFLOAT4X4), sizeof(XMFLOAT3));
+		memcpy(&xmf3Right, m_vSocketInfoList[nSocketIndex].m_pCurrentBuffer + sizeof(__int64) + sizeof(UCHAR[256]) + sizeof(XMFLOAT4X4) + sizeof(XMFLOAT3), sizeof(XMFLOAT3));
 		pPlayer->SetLook(xmf3Look);
 		pPlayer->SetRight(xmf3Right);
+
 	}
 		break;
 	default:
 		break;
 	}
 
-	if (nRetval != 0)
+	if (nRetval == SOCKET_ERROR)
 	{
-		//PostMessage(hWnd, WM_SOCKET, (WPARAM)m_vSocketInfoList[nSocketIndex].m_sock, MAKELPARAM(FD_READ, 0));
+		if (WSAGetLastError() == WSAEWOULDBLOCK)
+		{
+			m_vSocketInfoList[nSocketIndex].m_bRecvHead = true;
+			memset(m_vSocketInfoList[nSocketIndex].m_pCurrentBuffer, 0, BUFSIZE);
+		}
 		return;
 	}
-	nHead = -1;
+	m_vSocketInfoList[nSocketIndex].m_nHead = -1;
 	m_vSocketInfoList[nSocketIndex].m_bRecvHead = false;
 	m_vSocketInfoList[nSocketIndex].m_bRecvDelayed = false;
 	memset(m_vSocketInfoList[nSocketIndex].m_pCurrentBuffer, 0, BUFSIZE);
-	PostMessage(hWnd, WM_SOCKET, (WPARAM)m_vSocketInfoList[nSocketIndex].m_sock, MAKELPARAM(FD_WRITE, 0));
 	return;
 }
 
 void TCPServer::OnProcessingWriteMessage(HWND hWnd, UINT nMessageID, WPARAM wParam, LPARAM lParam)
 {
+
 	size_t nBufferSize = sizeof(int);
 	int nHead;
 	int nRetval;
@@ -184,35 +206,41 @@ void TCPServer::OnProcessingWriteMessage(HWND hWnd, UINT nMessageID, WPARAM wPar
 	case SOCKET_STATE::SEND_ID:
 		nHead = 0;
 		nBufferSize += sizeof(int) * 2;
+
+		m_vSocketInfoList[nSocketIndex].SendNum++;
 		nRetval = SendData(m_vSocketInfoList[nSocketIndex].m_sock, nBufferSize, nHead, m_aUpdateInfo[nSocketIndex].m_nClientId, (int)m_nClient);
-		if (nRetval == -1)
+		if (nRetval == -1 && WSAGetLastError() == WSAEWOULDBLOCK)
 		{
-			//error
 		}
 		m_vSocketInfoList[nSocketIndex].m_socketState = SOCKET_STATE::SEND_UPDATE_DATA;
+
 		break;
 	case SOCKET_STATE::SEND_UPDATE_DATA:
 	{
 		nHead = 1;
 		nBufferSize += sizeof(m_aUpdateInfo);
 
+		m_vSocketInfoList[nSocketIndex].SendNum++;
 		nRetval = SendData(m_vSocketInfoList[nSocketIndex].m_sock, nBufferSize, nHead, m_aUpdateInfo);
-		if (nRetval == -1)
+		if (nRetval == -1 && WSAGetLastError() == WSAEWOULDBLOCK)
 		{
-			//error
 		}
 	}
 		break;
 	case SOCKET_STATE::SEND_NUM_OF_CLIENT:
 		nHead = 2;
 		nBufferSize += sizeof(int) + sizeof(m_aUpdateInfo);
+
 		nRetval = SendData(m_vSocketInfoList[nSocketIndex].m_sock, nBufferSize, nHead, (int)m_nClient, m_aUpdateInfo);
+		if (nRetval == -1 && WSAGetLastError() == WSAEWOULDBLOCK)
+		{
+		}
 		m_vSocketInfoList[nSocketIndex].m_socketState = m_vSocketInfoList[nSocketIndex].m_prevSocketState;
+
 		break;
 	default:
 		break;
 	}
-	//printf("Send [%d] \n", nSocketIndex);
 	return;
 }
 
@@ -224,6 +252,7 @@ void TCPServer::OnProcessingCloseMessage(HWND hWnd, UINT nMessageID, WPARAM wPar
 
 bool TCPServer::Init(HWND hWnd)
 {
+	m_hWnd = hWnd;
 	// 윈속 초기화
 	WSADATA wsa;
 	if (WSAStartup(MAKEWORD(2, 2), &wsa) != 0)
@@ -269,22 +298,28 @@ void TCPServer::SimulationLoop()
 {
 	m_timer.Tick();
 	// 실제 시뮬레이션이 일어날곳
-
 	float fElapsedTime = m_timer.GetTimeElapsed();
+	
 	for (auto& pPlayer : m_apPlayers)
 	{
 		if (!pPlayer || pPlayer->GetPlayerId() == -1)
+		{
 			continue;
+		}
+
+		pPlayer->SetPickedObject(m_pCollisionManager);	
 
 		pPlayer->Update(fElapsedTime);
-
-		UpdateInformation(pPlayer);
-
+		pPlayer->UpdatePicking();
+		//UpdateInformation(pPlayer);
 		m_pCollisionManager->Collide(fElapsedTime, pPlayer);
 
-		UpdateInformation(pPlayer);
 	}
 
+	m_pCollisionManager->Update(fElapsedTime);
+
+	UpdateInformation();
+	CreatSendObject();
 }
 
 // 소켓 정보 추가
@@ -388,13 +423,29 @@ int TCPServer::RemoveSocketInfo(SOCKET sock)
 	return -1;
 }
 
-void TCPServer::UpdateInformation(const shared_ptr<CPlayer>& pPlayer)
+void TCPServer::UpdateInformation()
 {
-	int nPlayerId = pPlayer->GetPlayerId();
-	m_aUpdateInfo[nPlayerId].m_xmf3Position = pPlayer->GetPosition();
-	m_aUpdateInfo[nPlayerId].m_xmf3Velocity = pPlayer->GetVelocity();
-	m_aUpdateInfo[nPlayerId].m_xmf3Look = pPlayer->GetLook();
-	m_aUpdateInfo[nPlayerId].m_xmf3Right = pPlayer->GetRight();
+	for (const auto& pPlayer : m_apPlayers)
+	{
+		int nPlayerId;
+		if (!pPlayer || pPlayer->GetPlayerId() == -1)
+		{
+			continue;
+		}
+		nPlayerId = pPlayer->GetPlayerId();
+
+		m_aUpdateInfo[nPlayerId].m_xmf3Position = pPlayer->GetPosition();
+		m_aUpdateInfo[nPlayerId].m_xmf3Velocity = pPlayer->GetVelocity();
+		m_aUpdateInfo[nPlayerId].m_xmf3Look = pPlayer->GetLook();
+		m_aUpdateInfo[nPlayerId].m_xmf3Right = pPlayer->GetRight();
+
+		// 업데이트 오브젝트는 리셋
+		m_aUpdateInfo[nPlayerId].m_nNumOfObject = 0;
+		for (int i = 0; i < 20; ++i)
+		{
+			m_aUpdateInfo[nPlayerId].m_anObjectNum[i] = -1;
+		}		
+	}
 }
 
 void TCPServer::LoadScene()
@@ -513,28 +564,85 @@ void TCPServer::CreateSceneObject(char* pstrFrameName, const XMFLOAT4X4& xmf4x4W
 	}
 	else if (!strcmp(pstrFrameName, "Laboratory_Wall_1_Corner_1") || !strcmp(pstrFrameName, "Laboratory_Wall_1_Corner_2"))
 	{
-		pGameObject = make_shared<CEnviromentObejct>(pstrFrameName, xmf4x4World, voobb);
+		pGameObject = make_shared<CEnvironmentObject>(pstrFrameName, xmf4x4World, voobb);
 		m_pCollisionManager->AddCollisionObject(pGameObject);
 	}
 	else if (!strcmp(pstrFrameName, "Laboratory_Wall_1_Corner") || !strcmp(pstrFrameName, "Laboratory_Wall_1_Corner2") || !strcmp(pstrFrameName, "Laboratory_Wall_1"))
 	{
-		pGameObject = make_shared<CEnviromentObejct>(pstrFrameName, xmf4x4World, voobb);
+		pGameObject = make_shared<CEnvironmentObject>(pstrFrameName, xmf4x4World, voobb);
 		m_pCollisionManager->AddCollisionObject(pGameObject);
 	}
-	else if (!strcmp(pstrFrameName, "Laboratory_Wall_Door_1") || !strcmp(pstrFrameName, "Laboratory_Wall_Door_1_2") || !strcmp(pstrFrameName, "Laboratory_Tunnel_1") || !strcmp(pstrFrameName, "Laboratory_Table_1"))
+	else if (!strcmp(pstrFrameName, "Laboratory_Wall_Door_1") || !strcmp(pstrFrameName, "Laboratory_Wall_Door_1_2") 
+			|| !strcmp(pstrFrameName, "Laboratory_Tunnel_1") || !strcmp(pstrFrameName, "Laboratory_Table_1"))
 	{
-		pGameObject = make_shared<CEnviromentObejct>(pstrFrameName, xmf4x4World, voobb);
+		pGameObject = make_shared<CEnvironmentObject>(pstrFrameName, xmf4x4World, voobb);
 		m_pCollisionManager->AddCollisionObject(pGameObject);
 	}
 	else if (!strcmp(pstrFrameName, "Laboratory_Tunnel_1_Stairs"))
 	{
-		pGameObject = make_shared<CEnviromentObejct>(pstrFrameName, xmf4x4World, voobb);
+		pGameObject = make_shared<CEnvironmentObject>(pstrFrameName, xmf4x4World, voobb);
+		m_pCollisionManager->AddCollisionObject(pGameObject);
+	}
+	else if (!strcmp(pstrFrameName, "BoxCollider_Stair_Start"))
+	{
+		pGameObject = make_shared<CStairTriggerObject>(pstrFrameName, xmf4x4World, voobb);
 		m_pCollisionManager->AddCollisionObject(pGameObject);
 	}
 	else
 	{
 		pGameObject = make_shared<CGameObject>(pstrFrameName, xmf4x4World, voobb);
 		m_pCollisionManager->AddCollisionObject(pGameObject);
+	}
+}
+
+void TCPServer::CreatSendObject()
+{
+	int nIndex = 0;
+	for (const auto& pPlayer : m_apPlayers)
+	{
+		if (!pPlayer || pPlayer->GetPlayerId() == -1)
+		{
+			continue;
+		}
+
+		int nId = pPlayer->GetPlayerId();
+
+		// 층은 나중에 계단쪽에서만 추가할수있도록해야할듯
+		// if(계단 쪽이면 위층 or 아래층범위 검사)
+
+		for (int j = pPlayer->GetWidth() - 1; j <= pPlayer->GetWidth() + 1 && nIndex < MAX_SEND_OBJECT_INFO; ++j)
+		{
+			if (j < 0 || j > m_pCollisionManager->GetWidth() - 1)
+			{
+				continue;
+			}
+
+			for (int k = pPlayer->GetDepth() - 1; k <= pPlayer->GetDepth() + 1 && nIndex < MAX_SEND_OBJECT_INFO; ++k)
+			{
+				if (k < 0 || k > m_pCollisionManager->GetDepth() - 1)
+				{
+					continue;
+				}
+
+				for (const auto& pGameObject : m_pCollisionManager->GetSpaceGameObjects(pPlayer->GetFloor(), j, k))
+				{
+					if (!pGameObject)
+					{
+						continue;
+					}
+
+					m_aUpdateInfo[nId].m_anObjectNum[nIndex] = pGameObject->GetCollisionNum();
+					m_aUpdateInfo[nId].m_axmf4x4World[nIndex] = pGameObject->GetWorldMatrix();
+
+					nIndex++;
+					if (nIndex == MAX_SEND_OBJECT_INFO)
+					{
+						break;
+					}
+				}
+				m_aUpdateInfo[nId].m_nNumOfObject = nIndex;
+			}
+		}
 	}
 }
 
@@ -559,7 +667,7 @@ int TCPServer::SendData(SOCKET socket, size_t nBufferSize, Args&&... args)
 	if (nRetval == SOCKET_ERROR)
 	{
 		err_display("send()");
-		return -1;
+		return SOCKET_ERROR;
 	}
 	return 0;
 }
@@ -569,6 +677,7 @@ int TCPServer::RecvData(int nSocketIndex, size_t nBufferSize)
 	int nRetval;
 	int nRemainRecvByte = nBufferSize - m_vSocketInfoList[nSocketIndex].m_nCurrentRecvByte;
 
+	
 	nRetval = recv(m_vSocketInfoList[nSocketIndex].m_sock, (char*)&m_vSocketInfoList[nSocketIndex].m_pCurrentBuffer + m_vSocketInfoList[nSocketIndex].m_nCurrentRecvByte, nRemainRecvByte, 0);
 	
 	if (nRetval > 0)m_vSocketInfoList[nSocketIndex].m_nCurrentRecvByte += nRetval;
@@ -576,7 +685,7 @@ int TCPServer::RecvData(int nSocketIndex, size_t nBufferSize)
 	{
 		return -1;
 	}
-	else if (nRetval < nBufferSize)
+	else if (m_vSocketInfoList[nSocketIndex].m_nCurrentRecvByte < nBufferSize)
 	{
 		m_vSocketInfoList[nSocketIndex].m_bRecvDelayed = true;
 		return 1;

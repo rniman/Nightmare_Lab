@@ -135,8 +135,8 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
-    <ClCompile Include="EnviromentObject.cpp" />
-    <ClCompile Include="Collision.cpp" />
+    <ClCompile Include="ServerEnvironmentObject.cpp" />
+    <ClCompile Include="ServerCollision.cpp" />
     <ClCompile Include="ServerObject.cpp" />
     <ClCompile Include="ServerPlayer.cpp" />
     <ClCompile Include="Server.cpp" />
@@ -150,8 +150,8 @@
     <ClCompile Include="Timer.cpp" />
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="EnviromentObject.h" />
-    <ClInclude Include="Collision.h" />
+    <ClInclude Include="ServerEnvironmentObject.h" />
+    <ClInclude Include="ServerCollision.h" />
     <ClInclude Include="ServerObject.h" />
     <ClInclude Include="ServerPlayer.h" />
     <ClInclude Include="stdafx.h" />

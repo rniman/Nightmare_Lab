@@ -33,10 +33,10 @@
     <ClCompile Include="ServerPlayer.cpp">
       <Filter>소스 파일</Filter>
     </ClCompile>
-    <ClCompile Include="Collision.cpp">
+    <ClCompile Include="ServerCollision.cpp">
       <Filter>소스 파일</Filter>
     </ClCompile>
-    <ClCompile Include="EnviromentObject.cpp">
+    <ClCompile Include="ServerEnvironmentObject.cpp">
       <Filter>소스 파일</Filter>
     </ClCompile>
   </ItemGroup>
@@ -56,10 +56,10 @@
     <ClInclude Include="ServerPlayer.h">
       <Filter>헤더 파일</Filter>
     </ClInclude>
-    <ClInclude Include="Collision.h">
+    <ClInclude Include="ServerCollision.h">
       <Filter>헤더 파일</Filter>
     </ClInclude>
-    <ClInclude Include="EnviromentObject.h">
+    <ClInclude Include="ServerEnvironmentObject.h">
       <Filter>헤더 파일</Filter>
     </ClInclude>
   </ItemGroup>

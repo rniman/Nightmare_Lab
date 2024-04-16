@@ -3,7 +3,7 @@
 #include "Shader.h"
 #include "Player.h"
 #include "PlayerController.h"
-#include "EnviromentObject.h"
+#include "EnvironmentObject.h"
 #include "Collision.h"
 
 ComPtr<ID3D12DescriptorHeap> CScene::m_pd3dCbvSrvDescriptorHeap;
@@ -254,7 +254,7 @@ void CScene::BuildObjects(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* p
 
 	flashLight->LoadModelAndAnimation(pd3dDevice, pd3dCommandList, m_pd3dGraphicsRootSignature.Get(), pTeleportModel);
 	flashLight->SetPosition(1.0f, 1.0f, -1.0f);
-	g_collisonManager.AddCollisionObject(flashLight);
+	//g_collisonManager.AddCollisionObject(flashLight);
 	m_vShader[STANDARD_SHADER]->AddGameObject(flashLight);
 
 	/*shared_ptr<CLoadedModelInfo> pFusetModel = CGameObject::LoadGeometryAndAnimationFromFile(pd3dDevice, pd3dCommandList, m_pd3dGraphicsRootSignature.Get(), (char*)"Asset/Model/fuse_hi-obj.bin");
@@ -275,7 +275,7 @@ void CScene::BuildObjects(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* p
 		vpFuse.push_back(make_shared<CFuseObject>(pd3dDevice, pd3dCommandList, m_pd3dGraphicsRootSignature.Get()));
 		vpFuse[i]->LoadModelAndAnimation(pd3dDevice, pd3dCommandList, m_pd3dGraphicsRootSignature.Get(), pFusetModel); // 모델을 계속 재사용
 		vpFuse[i]->SetPosition(1.0f, 1.0f + i, 1.0f);
-		g_collisonManager.AddCollisionObject(vpFuse[i]);
+		//g_collisonManager.AddCollisionObject(vpFuse[i]);
 		m_vShader[STANDARD_SHADER]->AddGameObject(vpFuse[i]);
 	}
 
@@ -583,10 +583,6 @@ void CScene::AnimateObjects(float fElapsedTime)
 	}
 }
 
-void CScene::ProcessCollide(float fElapsedTime)
-{
-	g_collisonManager.Collide(fElapsedTime);
-}
 
 void CScene::PrepareRender(ID3D12GraphicsCommandList* pd3dCommandList, const shared_ptr<CCamera>& pCamera)
 {
