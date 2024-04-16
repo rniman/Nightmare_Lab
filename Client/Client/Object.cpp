@@ -1602,7 +1602,7 @@ shared_ptr<CGameObject> CGameObject::LoadInstanceFrameHierarchyFromFile(ID3D12De
 				shared_ptr<CGameObject> pBoundinBoxObject = make_shared<CGameObject>(pFrameName, xmf4x4TranposeMatrix, nullptr);
 				pBoundinBoxObject->AddOOBB(vxmf3AABBCenter, vxmf3AABBExtents);
 				pGameObject->m_vInstanceObjectInfo.push_back(pBoundinBoxObject);
-				g_collisonManager.AddCollisionObject(pBoundinBoxObject);
+				g_collisionManager.AddCollisionObject(pBoundinBoxObject);
 			}
 			delete[] pxmf4x4InstanceTransformMatrix;
 		}

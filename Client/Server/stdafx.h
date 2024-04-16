@@ -1,106 +1,21 @@
-﻿#pragma once
+#pragma once
+#include "../Common.h"
 
-#define WIN32_LEAN_AND_MEAN             // 거의 사용되지 않는 내용은 Windows 헤더에서 제외합니다.
-#define _CRT_SECURE_NO_WARNINGS // 구형 C 함수 사용 시 경고 끄기
-#define _WINSOCK_DEPRECATED_NO_WARNINGS // 구형 소켓 API 사용 시 경고 끄기
-// Windows 헤더 파일:
-#include <windows.h>
-
-#include <winsock2.h> // 윈속2 메인 헤더
-#include <ws2tcpip.h> // 윈속2 확장 헤더
-#include <stdio.h>
-
-// C의 런타임 헤더 파일입니다.
-#include <stdlib.h>
-#include <malloc.h>
-#include <memory.h>
-#include <tchar.h>
-#include <math.h>
-
-#include <string>
-#include <wrl.h>
-#include <shellapi.h>
-
-// STL
-#include <fstream>
 #include <array>
-#include <vector>
-#include <unordered_map>
+#include <memory>
+#include <Bit>
 #include <chrono>
 
-using namespace std;
-
-#include <d3d12.h>
-#include <dxgi1_4.h>
-#include <D3Dcompiler.h>
 #include <DirectXMath.h>
-#include <DirectXPackedVector.h>
-#include <DirectXColors.h>
 #include <DirectXCollision.h>
-#include <stdexcept>
-
-//-> draw text
-#pragma comment (lib, "d3d11.lib")
-#pragma comment (lib, "d2d1.lib")
-#pragma comment (lib, "dwrite.lib")
-#include <d2d1_3.h>
-#include <dwrite.h>
-#include <d3d11on12.h>
-#include <stdexcept>
-//<-
-
-// PlaySound
-#pragma comment(lib, "winmm.lib")
-#include <Mmsystem.h>
-
-#ifdef _DEBUG
-#include <dxgidebug.h>
-#endif
-
 using namespace DirectX;
-using namespace DirectX::PackedVector;
+//using namespace DirectX::PackedVector;
 
-using Microsoft::WRL::ComPtr;
-
-extern HINSTANCE						ghAppInstance;
-
-//#define _WITH_SWAPCHAIN_FULLSCREEN_STATE
-
-#pragma comment(lib, "d3dcompiler.lib")
-#pragma comment(lib, "d3d12.lib")
-#pragma comment(lib, "dxgi.lib")
-
-#pragma comment(lib, "dxguid.lib")
-
-#pragma comment(lib, "ws2_32") // ws2_32.lib 링크
-
-// TODO: 프로그램에 필요한 추가 헤더는 여기에서 참조합니다.
-#include "GlobalDefine.h"
-
-extern UINT	gnCbvSrvDescriptorIncrementSize;
-extern UINT	gnRtvDescriptorIncrementSize;
-extern UINT gnDsvDescriptorIncrementSize;
-
-extern void SynchronizeResourceTransition(ID3D12GraphicsCommandList* pd3dCommandList, ID3D12Resource* pd3dResource, D3D12_RESOURCE_STATES d3dStateBefore, D3D12_RESOURCE_STATES d3dStateAfter);
-extern void WaitForGpuComplete(ID3D12CommandQueue* pd3dCommandQueue, ID3D12Fence* pd3dFence, UINT64 nFenceValue, HANDLE hFenceEvent);
-extern void ExecuteCommandList(ID3D12GraphicsCommandList* pd3dCommandList, ID3D12CommandQueue* pd3dCommandQueue, ID3D12Fence* pd3dFence, UINT64 nFenceValue, HANDLE hFenceEvent);
-
-extern ID3D12Resource* CreateBufferResource(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dCommandList, void* pData, UINT nBytes, D3D12_HEAP_TYPE d3dHeapType = D3D12_HEAP_TYPE_UPLOAD, D3D12_RESOURCE_STATES d3dResourceStates = D3D12_RESOURCE_STATE_VERTEX_AND_CONSTANT_BUFFER, ID3D12Resource** ppd3dUploadBuffer = NULL);
-extern ID3D12Resource* CreateTextureResourceFromDDSFile(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dCommandList, wchar_t* pszFileName, ID3D12Resource** ppd3dUploadBuffer, D3D12_RESOURCE_STATES d3dResourceStates = D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
-extern ID3D12Resource* CreateTexture2DResource(ID3D12Device* pd3dDevice, UINT nWidth, UINT nHeight, UINT nElements, UINT nMipLevels, DXGI_FORMAT dxgiFormat, D3D12_RESOURCE_FLAGS d3dResourceFlags, D3D12_RESOURCE_STATES d3dResourceStates, D3D12_CLEAR_VALUE* pd3dClearValue);
-extern ID3D12Resource* CreateTextureResourceFromWICFile(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dCommandList, wchar_t* pszFileName, ID3D12Resource** ppd3dUploadBuffer, D3D12_RESOURCE_STATES d3dResourceStates = D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
+constexpr float EPSILON = 1.0e-10f;
 
 extern BYTE ReadStringFromFile(FILE* pInFile, char* pstrToken);
 extern int ReadIntegerFromFile(FILE* pInFile);
 extern float ReadFloatFromFile(FILE* pInFile);
-
-// 소켓 함수 오류 출력 후 종료
-extern void err_quit(const char* msg);
-// 소켓 함수 오류 출력
-extern void err_display(const char* msg);
-// 소켓 함수 오류 출력
-extern void err_display(int errcode);
-
 
 inline bool IsZero(float fValue) { return((fabsf(fValue) < EPSILON)); }
 inline bool IsEqual(float fA, float fB) { return(::IsZero(fA - fB)); }
@@ -108,7 +23,6 @@ inline bool IsZero(float fValue, float fEpsilon) { return((fabsf(fValue) < fEpsi
 inline bool IsEqual(float fA, float fB, float fEpsilon) { return(::IsZero(fA - fB, fEpsilon)); }
 inline float InverseSqrt(float fValue) { return 1.0f / sqrtf(fValue); }
 inline void Swap(float* pfS, float* pfT) { float fTemp = *pfS; *pfS = *pfT; *pfT = fTemp; }
-
 
 namespace Vector3
 {
@@ -412,16 +326,29 @@ namespace Matrix4x4
 	}
 }
 
-namespace Triangle
-{
-	inline bool Intersect(XMFLOAT3& xmf3RayPosition, XMFLOAT3& xmf3RayDirection, XMFLOAT3& v0, XMFLOAT3& v1, XMFLOAT3& v2, float& fHitDistance)
-	{
-		return(TriangleTests::Intersects(XMLoadFloat3(&xmf3RayPosition), XMLoadFloat3(&xmf3RayDirection), XMLoadFloat3(&v0), XMLoadFloat3(&v1), XMLoadFloat3(&v2), fHitDistance));
-	}
-}
-
 namespace Plane
 {
+	inline XMFLOAT4 CreateFromPoints(const XMFLOAT3& xmf3Point1, const XMFLOAT3& xmf3Point2, const XMFLOAT3& xmf3Point3)
+	{
+		XMVECTOR vectorPoint1 = XMLoadFloat3(&xmf3Point1);
+		XMVECTOR vectorPoint2 = XMLoadFloat3(&xmf3Point2);
+		XMVECTOR vectorPoint3 = XMLoadFloat3(&xmf3Point3);
+		
+		XMFLOAT4 xmf4Result;
+		XMStoreFloat4(&xmf4Result, XMPlaneFromPoints(vectorPoint1, vectorPoint2, vectorPoint3));
+		return xmf4Result;
+	}
+
+	inline XMFLOAT3 CalculatePointY(const XMFLOAT4& xmf4Plane, const XMFLOAT3& xmf3Point)
+	{
+		float fy;
+		fy = -(xmf4Plane.x * xmf3Point.x + xmf4Plane.z * xmf3Point.z + xmf4Plane.w) / xmf4Plane.y;
+		
+		XMFLOAT3 xmf3Result;
+		xmf3Result = XMFLOAT3(xmf3Point.x, fy, xmf3Point.z);
+		return xmf3Result;
+	}
+
 	inline XMFLOAT4 Normalize(XMFLOAT4& xmf4Plane)
 	{
 		XMFLOAT4 xmf4Result;

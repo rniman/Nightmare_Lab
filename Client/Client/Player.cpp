@@ -4,7 +4,7 @@
 #include "Shader.h"
 #include "PlayerController.h"
 #include "Collision.h"
-#include "EnviromentObject.h"
+#include "EnvironmentObject.h"
 //#define _WITH_DEBUG_CALLBACK_DATA
 
 void CSoundCallbackHandler::HandleCallback(void* pCallbackData, float fTrackPosition)
@@ -126,30 +126,10 @@ void CPlayer::Rotate(float x, float y, float z)
 
 void CPlayer::Update(float fElapsedTime)
 {
-	m_xmf3Velocity = Vector3::Add(m_xmf3Velocity, m_xmf3Gravity);
-	float fLength = sqrtf(m_xmf3Velocity.x * m_xmf3Velocity.x + m_xmf3Velocity.z * m_xmf3Velocity.z);
-	float fMaxVelocityXZ = m_fMaxVelocityXZ;
-	if (fLength > m_fMaxVelocityXZ)
-	{
-		m_xmf3Velocity.x *= (fMaxVelocityXZ / fLength);
-		m_xmf3Velocity.z *= (fMaxVelocityXZ / fLength);
-	}
-	float fMaxVelocityY = m_fMaxVelocityY;
-	fLength = sqrtf(m_xmf3Velocity.y * m_xmf3Velocity.y);
-	if (fLength > m_fMaxVelocityY) m_xmf3Velocity.y *= (fMaxVelocityY / fLength);
-
-	XMFLOAT3 xmf3Velocity = Vector3::ScalarProduct(m_xmf3Velocity, fElapsedTime, false);
-	if(!Vector3::IsZero(xmf3Velocity)) m_xmf3OldVelocity = xmf3Velocity;
-	Move(xmf3Velocity, false);
 	DWORD nCurrentCameraMode = m_pCamera->GetMode();
-	/*if (nCurrentCameraMode == THIRD_PERSON_CAMERA) */m_pCamera->Update(m_xmf3Position, fElapsedTime);
+	m_pCamera->Update(m_xmf3Position, fElapsedTime);
 	if (m_pCameraUpdatedContext) OnCameraUpdateCallback(fElapsedTime);
 	m_pCamera->RegenerateViewMatrix();
-
-	fLength = Vector3::Length(m_xmf3Velocity);
-	float fDeceleration = (m_fFriction * fElapsedTime);
-	if (fDeceleration > fLength) fDeceleration = fLength;
-	m_xmf3Velocity = Vector3::Add(m_xmf3Velocity, Vector3::ScalarProduct(m_xmf3Velocity, -fDeceleration, true));
 }
 
 void CPlayer::CalculateSpace()
@@ -231,6 +211,11 @@ void CPlayer::OnUpdateToParent()
 
 void CPlayer::Animate(float fElapsedTime)
 {
+	if (m_nClientId == -1)
+	{
+		return;
+	}
+
 	OnUpdateToParent();
 
 	if (m_pSkinnedAnimationController) m_pSkinnedAnimationController->AdvanceTime(fElapsedTime, this);
@@ -253,117 +238,118 @@ void CPlayer::AnimateOOBB()
 
 void CPlayer::Collide(float fElapsedTime, const shared_ptr<CGameObject>& pCollidedObject)
 {
-	XMFLOAT3 xmf3Velocity;
-	XMFLOAT3 xmf3NormalOfVelocity = Vector3::Normalize(m_xmf3Velocity);
-	//if (Vector3::IsZero(m_xmf3Velocity))
+	//XMFLOAT3 xmf3Velocity;
+	//XMFLOAT3 xmf3NormalOfVelocity = Vector3::Normalize(m_xmf3Velocity);
+
+	//XMFLOAT3 xmf3OldPosition = m_xmf3OldPosition;
+	//m_bCollision = false;
+
+	//BoundingBox aabbPlayer;
+
+	//XMFLOAT3 xmf3SubVelocity[3];
+	//xmf3SubVelocity[0] = XMFLOAT3(xmf3NormalOfVelocity.x, 0.0f, xmf3NormalOfVelocity.z);
+	//xmf3SubVelocity[1] = XMFLOAT3(xmf3NormalOfVelocity.x, 0.0f, 0.0f);
+	//xmf3SubVelocity[2] = XMFLOAT3(0.0f, 0.0f, xmf3NormalOfVelocity.z);
+
+	//xmf3Velocity = Vector3::Add(m_xmf3Velocity, m_xmf3Gravity);
+	//float fLength = sqrtf(xmf3Velocity.x * xmf3Velocity.x + xmf3Velocity.z * xmf3Velocity.z);
+	//float fMaxVelocityXZ = m_fMaxVelocityXZ;
+	//if (fLength > m_fMaxVelocityXZ)
 	//{
-	//	xmf3NormalOfVelocity = Vector3::Normalize(m_xmf3OldVelocity);
+	//	xmf3Velocity.x *= (fMaxVelocityXZ / fLength);
+	//	xmf3Velocity.z *= (fMaxVelocityXZ / fLength);
+	//}
+	//float fMaxVelocityY = m_fMaxVelocityY;
+	//fLength = sqrtf(xmf3Velocity.y * xmf3Velocity.y);
+	//if (fLength > m_fMaxVelocityY) xmf3Velocity.y *= (fMaxVelocityY / fLength);
+
+	//XMFLOAT3 xmf3ResultVelocity = Vector3::ScalarProduct(xmf3Velocity, fElapsedTime, false);
+
+	//for (int k = 0; k < 3; ++k)
+	//{
+	//	m_xmf3Position = xmf3OldPosition;
+	//	CalculateSpace();
+
+	//	m_bCollision = false;
+	//	xmf3SubVelocity[k] = Vector3::ScalarProduct(xmf3SubVelocity[k], Vector3::Length(xmf3ResultVelocity), false);
+	//	Move(xmf3SubVelocity[k], false);
+	//	m_pCamera->Move(Vector3::ScalarProduct(xmf3SubVelocity[k], -1.0f, false));
+
+	//	OnUpdateToParent();
+	//	aabbPlayer.Center = m_voobbOrigin[0].Center;
+	//	aabbPlayer.Extents = m_voobbOrigin[0].Extents;
+	//	XMVECTOR xmvTranslation = XMVectorSet(m_xmf3Position.x, m_xmf3Position.y, m_xmf3Position.z, 1.0f);
+	//	aabbPlayer.Transform(aabbPlayer, 1.0f, XMQuaternionIdentity(), xmvTranslation);
+
+	//	for (int i = m_nWidth - 1; i <= m_nWidth + 1 && !m_bCollision; ++i)
+	//	{
+	//		for (int j = m_nDepth - 1; j <= m_nDepth + 1 && !m_bCollision; ++j)
+	//		{
+	//			if (i < 0 || i >= g_collisionManager.GetWidth() || j < 0 || j >= g_collisionManager.GetDepth())
+	//			{
+	//				continue;
+	//			}
+
+	//			for (const auto& object : g_collisonManager.GetSpaceGameObjects(m_nFloor, i, j))
+	//			{
+	//				shared_ptr<CGameObject> pGameObject = object.lock();
+	//				if (!pGameObject || pGameObject->GetCollisionType() == 2)	//임시로 2면 넘김
+	//				{
+	//					continue;
+	//				}
+
+	//				for (const auto& oobbOrigin : pGameObject->GetVectorOOBB())
+	//				{
+	//					BoundingOrientedBox oobb;
+	//					oobbOrigin.Transform(oobb, XMLoadFloat4x4(&pGameObject->m_xmf4x4World));
+	//					XMStoreFloat4(&oobb.Orientation, XMQuaternionNormalize(XMLoadFloat4(&oobb.Orientation)));
+
+	//					if (oobb.Intersects(aabbPlayer))
+	//					{ 
+	//						m_bCollision = true;
+	//						break;
+	//					}
+	//				}
+
+	//				if (m_bCollision)
+	//				{
+	//					break;
+	//				}
+	//			}
+	//		}
+	//	}
+	//	if (!m_bCollision)
+	//	{
+	//		if(!Vector3::IsZero(xmf3SubVelocity[k]))
+	//		{
+	//			m_xmf3OldVelocity = xmf3SubVelocity[k];
+	//		}
+	//		break;
+	//	}
+	//}
+	//
+	//if (m_bCollision)
+	//{
+	//	m_xmf3Position = m_xmf3OldPosition = xmf3OldPosition;
+	//	//m_xmf3Velocity = XMFLOAT3(0.0f, 0.0f, 0.0f);
+	//	CalculateSpace();
 	//}
 
-	XMFLOAT3 xmf3OldPosition = m_xmf3OldPosition;
-	m_bCollision = false;
-
-	BoundingBox aabbPlayer;
-
-	XMFLOAT3 xmf3SubVelocity[3];
-	xmf3SubVelocity[0] = XMFLOAT3(xmf3NormalOfVelocity.x, 0.0f, xmf3NormalOfVelocity.z);
-	xmf3SubVelocity[1] = XMFLOAT3(xmf3NormalOfVelocity.x, 0.0f, 0.0f);
-	xmf3SubVelocity[2] = XMFLOAT3(0.0f, 0.0f, xmf3NormalOfVelocity.z);
-
-	xmf3Velocity = Vector3::Add(m_xmf3Velocity, m_xmf3Gravity);
-	float fLength = sqrtf(xmf3Velocity.x * xmf3Velocity.x + xmf3Velocity.z * xmf3Velocity.z);
-	float fMaxVelocityXZ = m_fMaxVelocityXZ;
-	if (fLength > m_fMaxVelocityXZ)
-	{
-		xmf3Velocity.x *= (fMaxVelocityXZ / fLength);
-		xmf3Velocity.z *= (fMaxVelocityXZ / fLength);
-	}
-	float fMaxVelocityY = m_fMaxVelocityY;
-	fLength = sqrtf(xmf3Velocity.y * xmf3Velocity.y);
-	if (fLength > m_fMaxVelocityY) xmf3Velocity.y *= (fMaxVelocityY / fLength);
-
-	XMFLOAT3 xmf3ResultVelocity = Vector3::ScalarProduct(xmf3Velocity, fElapsedTime, false);
-
-	for (int k = 0; k < 3; ++k)
-	{
-		m_xmf3Position = xmf3OldPosition;
-		CalculateSpace();
-
-		m_bCollision = false;
-		xmf3SubVelocity[k] = Vector3::ScalarProduct(xmf3SubVelocity[k], Vector3::Length(xmf3ResultVelocity), false);
-		Move(xmf3SubVelocity[k], false);
-		m_pCamera->Move(Vector3::ScalarProduct(xmf3SubVelocity[k], -1.0f, false));
-
-		OnUpdateToParent();
-		aabbPlayer.Center = m_voobbOrigin[0].Center;
-		aabbPlayer.Extents = m_voobbOrigin[0].Extents;
-		XMVECTOR xmvTranslation = XMVectorSet(m_xmf3Position.x, m_xmf3Position.y, m_xmf3Position.z, 1.0f);
-		aabbPlayer.Transform(aabbPlayer, 1.0f, XMQuaternionIdentity(), xmvTranslation);
-
-		for (int i = m_nWidth - 1; i <= m_nWidth + 1 && !m_bCollision; ++i)
-		{
-			for (int j = m_nDepth - 1; j <= m_nDepth + 1 && !m_bCollision; ++j)
-			{
-				if (i < 0 || i >= g_collisonManager.GetWidth() || j < 0 || j >= g_collisonManager.GetDepth())
-				{
-					continue;
-				}
-
-				for (const auto& object : g_collisonManager.GetSpaceGameObjects(m_nFloor, i, j))
-				{
-					shared_ptr<CGameObject> pGameObject = object.lock();
-					if (!pGameObject || pGameObject->GetCollisionType() == 2)	//임시로 2면 넘김
-					{
-						continue;
-					}
-
-					for (const auto& oobbOrigin : pGameObject->GetVectorOOBB())
-					{
-						BoundingOrientedBox oobb;
-						oobbOrigin.Transform(oobb, XMLoadFloat4x4(&pGameObject->m_xmf4x4World));
-						XMStoreFloat4(&oobb.Orientation, XMQuaternionNormalize(XMLoadFloat4(&oobb.Orientation)));
-
-						if (oobb.Intersects(aabbPlayer))
-						{ 
-							m_bCollision = true;
-							break;
-						}
-					}
-
-					if (m_bCollision)
-					{
-						break;
-					}
-				}
-			}
-		}
-		if (!m_bCollision)
-		{
-			if(!Vector3::IsZero(xmf3SubVelocity[k]))
-			{
-				m_xmf3OldVelocity = xmf3SubVelocity[k];
-			}
-			break;
-		}
-	}
-	
-	if (m_bCollision)
-	{
-		m_xmf3Position = m_xmf3OldPosition = xmf3OldPosition;
-		//m_xmf3Velocity = XMFLOAT3(0.0f, 0.0f, 0.0f);
-		CalculateSpace();
-	}
-
-	DWORD nCurrentCameraMode = m_pCamera->GetMode();
-	m_pCamera->Update(m_xmf3Position, fElapsedTime);
-	if (m_pCameraUpdatedContext) OnCameraUpdateCallback(fElapsedTime);
-	m_pCamera->RegenerateViewMatrix();
-	
-	OnUpdateToParent();
+	//DWORD nCurrentCameraMode = m_pCamera->GetMode();
+	//m_pCamera->Update(m_xmf3Position, fElapsedTime);
+	//if (m_pCameraUpdatedContext) OnCameraUpdateCallback(fElapsedTime);
+	//m_pCamera->RegenerateViewMatrix();
+	//
+	//OnUpdateToParent();
 }
 
 void CPlayer::Render(ID3D12GraphicsCommandList* pd3dCommandList)
 {
+	if (m_nClientId == -1)
+	{
+		return;
+	}
+
 	if (m_pCamera->GetMode() == THIRD_PERSON_CAMERA) 
 	{
 		CGameObject::Render(pd3dCommandList);
@@ -373,52 +359,52 @@ void CPlayer::Render(ID3D12GraphicsCommandList* pd3dCommandList)
 void CPlayer::SetPickedObject(int nx, int ny, CScene* pScene)
 {
 	//CGameObject* pPickedObject = nullptr;
-	m_pPickedObject.reset();
-	XMFLOAT3 pickPosition;
+	//m_pPickedObject.reset();
+	//XMFLOAT3 pickPosition;
 
-	if(m_pCamera->GetMode() == THIRD_PERSON_CAMERA)
-	{
-		pickPosition.x = ((2.0f * nx) / (float)m_pCamera->GetViewport().Width - 1) / m_pCamera->GetProjectionMatrix()._11;
-		pickPosition.y = -(((2.0f * ny) / (float)m_pCamera->GetViewport().Height - 1) / m_pCamera->GetProjectionMatrix()._22);
-	
-	}
-	else
-	{
-		pickPosition.x = 0.0f;
-		pickPosition.y = 0.0f;
-	}
-	pickPosition.z = 1.0f;
+	//if(m_pCamera->GetMode() == THIRD_PERSON_CAMERA)
+	//{
+	//	pickPosition.x = ((2.0f * nx) / (float)m_pCamera->GetViewport().Width - 1) / m_pCamera->GetProjectionMatrix()._11;
+	//	pickPosition.y = -(((2.0f * ny) / (float)m_pCamera->GetViewport().Height - 1) / m_pCamera->GetProjectionMatrix()._22);
 
-	float fNearestHitDistance = FLT_MAX;
+	//}
+	//else
+	//{
+	//	pickPosition.x = 0.0f;
+	//	pickPosition.y = 0.0f;
+	//}
+	//pickPosition.z = 1.0f;
 
-	for (int i = m_nWidth - 1; i <= m_nWidth + 1; ++i)
-	{
-		for (int j = m_nDepth - 1; j <= m_nDepth + 1; ++j)
-		{
-			if (i < 0 || i >= g_collisonManager.GetWidth() || j < 0 || j >= g_collisonManager.GetDepth())
-			{
-				continue;
-			}
+	//float fNearestHitDistance = FLT_MAX;
 
-			for (auto& pCollisionObject : g_collisonManager.GetSpaceGameObjects(m_nFloor, i, j))
-			{
-				if (!pCollisionObject.lock() || pCollisionObject.lock()->GetCollisionType() != 2) // 2아니면 넘김
-				{
-					continue;
-				}
+	//for (int i = m_nWidth - 1; i <= m_nWidth + 1; ++i)
+	//{
+	//	for (int j = m_nDepth - 1; j <= m_nDepth + 1; ++j)
+	//	{
+	//		if (i < 0 || i >= g_collisionManager.GetWidth() || j < 0 || j >= g_collisionManager.GetDepth())
+	//		{
+	//			continue;
+	//		}
 
-				float fHitDistance = FLT_MAX;
-				if (CGameObject::CheckPicking(pCollisionObject, pickPosition, m_pCamera->GetViewMatrix(), fHitDistance))
-				{
-					if (fHitDistance < fNearestHitDistance)
-					{
-						fNearestHitDistance = fHitDistance;
-						m_pPickedObject = pCollisionObject;
-					}
-				}
-			}
-		}
-	}
+	//		for (auto& pCollisionObject : g_collisonManager.GetSpaceGameObjects(m_nFloor, i, j))
+	//		{
+	//			if (!pCollisionObject.lock() || pCollisionObject.lock()->GetCollisionType() != 2) // 2아니면 넘김
+	//			{
+	//				continue;
+	//			}
+
+	//			float fHitDistance = FLT_MAX;
+	//			if (CGameObject::CheckPicking(pCollisionObject, pickPosition, m_pCamera->GetViewMatrix(), fHitDistance))
+	//			{
+	//				if (fHitDistance < fNearestHitDistance)
+	//				{
+	//					fNearestHitDistance = fHitDistance;
+	//					m_pPickedObject = pCollisionObject;
+	//				}
+	//			}
+	//		}
+	//	}
+	//}
 }
 
 
@@ -522,7 +508,6 @@ void CBlueSuitPlayer::Update(float fElapsedTime)
 		}
 	}
 
-
 	CPlayer::Update(fElapsedTime);
 
 	if (m_pSkinnedAnimationController)
@@ -600,6 +585,11 @@ void CBlueSuitPlayer::Update(float fElapsedTime)
 
 void CBlueSuitPlayer::Animate(float fElapsedTime)
 {
+	if (m_nClientId == -1)
+	{
+		return;
+	}
+
 	CPlayer::Animate(fElapsedTime);
 
 	//플래시라이트
@@ -632,7 +622,6 @@ void CBlueSuitPlayer::RightClickProcess()
 	default:
 		break;
 	}
-
 }
 
 int CBlueSuitPlayer::AddItem(const shared_ptr<CGameObject>& pGameObject)

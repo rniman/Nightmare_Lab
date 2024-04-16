@@ -1,41 +1,26 @@
 #include "stdafx.h"
-#include "Player.h"
-#include "EnviromentObject.h"
-
-CItemObject::CItemObject(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dCommandList, ID3D12RootSignature* pd3dGraphicsRootSignature)
-	: CGameObject(pd3dDevice, pd3dCommandList)
-{
-}
-
-void CItemObject::Render(ID3D12GraphicsCommandList* pd3dCommandList) 
-{
-	if (m_bObtained) // ±×¸®Áö ¾Ê´Â´Ù
-	{
-		return;
-	}
-
-	CGameObject::Render(pd3dCommandList);
-}
+#include "ServerEnvironmentObject.h"
+#include "ServerPlayer.h"
 
 /// <CGameObject - CItemObject>
 ////// /// /// /// /// /// /// /// /// /// /// /// /// /// /// /// /// /// /// /// /// /// /// /// /// /// /// /// ///  
-/// <CGameObject - CEnviromentObejct>
+/// <CGameObject - CEnvironmentObject>
 
-CEnviromentObejct::CEnviromentObejct(char* pstrFrameName, XMFLOAT4X4& xmf4x4World, CMesh* pMesh)
-	: CGameObject(pstrFrameName, xmf4x4World, pMesh)
+CEnvironmentObject::CEnvironmentObject(char* pstrFrameName, const XMFLOAT4X4& xmf4x4World, const vector<BoundingOrientedBox>& voobb)
+	: CGameObject(pstrFrameName, xmf4x4World, voobb)
 {
-	m_nCollisionType = 1;
+	m_nCollisionType = Standard;
 }
 
-/// <CGameObject - CEnviromentObejct>
+/// <CGameObject - CEnvironmentObject>
 ////// /// /// /// /// /// /// /// /// /// /// /// /// /// /// /// /// /// /// /// /// /// /// /// /// /// /// /// ///  
 /// <CGameObject - CDoorObject>
 
-CDrawerObject::CDrawerObject(char* pstrFrameName, XMFLOAT4X4& xmf4x4World, CMesh* pMesh)
-	: CGameObject(pstrFrameName, xmf4x4World, pMesh)
+CDrawerObject::CDrawerObject(char* pstrFrameName, const XMFLOAT4X4& xmf4x4World, const vector<BoundingOrientedBox>& voobb)
+	: CGameObject(pstrFrameName, xmf4x4World, voobb)
 {
-	m_nCollisionType = 2;
-
+	m_nCollisionType = Picking;
+	
 	m_xmf3OriginPosition = XMFLOAT3(xmf4x4World._41, xmf4x4World._42, xmf4x4World._43);
 	m_xmf3Forward = XMFLOAT3(1.0f, 0.0f, 0.0f);
 	XMMATRIX mtxWorld = XMLoadFloat4x4(&m_xmf4x4World);
@@ -46,7 +31,7 @@ CDrawerObject::~CDrawerObject()
 {
 }
 
-void CDrawerObject::Animate(float fElapsedTime)
+void CDrawerObject::Update(float fElapsedTime)
 {
 	XMFLOAT3 xmf3Position = XMFLOAT3(m_xmf4x4World._41, m_xmf4x4World._42, m_xmf4x4World._43);
 	float fDistance = Vector3::Distance(xmf3Position, m_xmf3OriginPosition);
@@ -83,7 +68,6 @@ void CDrawerObject::Animate(float fElapsedTime)
 			}
 		}
 	}
-
 }
 
 void CDrawerObject::UpdatePicking()
@@ -104,22 +88,19 @@ void CDrawerObject::UpdatePicking()
 ////// /// /// /// /// /// /// /// /// /// /// /// /// /// /// /// /// /// /// /// /// /// /// /// /// /// /// /// ///  
 /// <CGameObject - CDoorObject>
 
-CDoorObject::CDoorObject(char* pstrFrameName, XMFLOAT4X4& xmf4x4World, CMesh* pMesh)
-	: CGameObject(pstrFrameName, xmf4x4World, pMesh)
+CDoorObject::CDoorObject(char* pstrFrameName, const XMFLOAT4X4& xmf4x4World, const vector<BoundingOrientedBox>& voobb)
+	: CGameObject(pstrFrameName, xmf4x4World, voobb)
 {
-	m_nCollisionType = 2;
-	m_xmf4Quaternion = Vector4::Quaternion(m_xmf4x4World);
-	//Rotate(&m_xmf4Quaternion);
+	m_nCollisionType = Standard;
 }
 
 CDoorObject::~CDoorObject()
 {
-
 }
 
-void CDoorObject::Animate(float fElapsedTime)
+void CDoorObject::Update(float fElapsedTime)
 {
-	if( (m_bOpened && m_fRotationAngle < m_fDoorAngle) || (!m_bOpened && m_fRotationAngle > m_fDoorAngle) )
+	if ((m_bOpened && m_fRotationAngle < m_fDoorAngle) || (!m_bOpened && m_fRotationAngle > m_fDoorAngle))
 	{
 		m_fRotationAngle += m_bOpened ? fElapsedTime * 60.0f : -fElapsedTime * 60.0f;
 		float fRotationAngle = m_bOpened ? XMConvertToRadians(fElapsedTime * 60.0f) : -XMConvertToRadians(fElapsedTime * 60.0f);
@@ -132,23 +113,12 @@ void CDoorObject::Animate(float fElapsedTime)
 			//Z-up ¸ðµ¨ÀÓ
 			XMMATRIX mtxRotate = XMMatrixRotationRollPitchYaw(XMConvertToRadians(0.0f), XMConvertToRadians(0.0f), fRotationAngle);
 			m_xmf4x4World = Matrix4x4::Multiply(mtxRotate, m_xmf4x4World);
-	
+
 			// Instancing °´Ã¼´Â worldÇà·Ä¸¸ ¼öÁ¤ÇØÁÖ¸éµÊ
 			//UpdateTransform(NULL);
 		}
 	}
 
-	if (m_pSkinnedAnimationController) m_pSkinnedAnimationController->AdvanceTime(fElapsedTime, this);
-
-	AnimateOOBB();
-
-	if (m_pSibling) m_pSibling->Animate(fElapsedTime);
-	if (m_pChild) m_pChild->Animate(fElapsedTime);
-}
-
-void CDoorObject::AnimateOOBB() 
-{
-	CGameObject::AnimateOOBB();
 }
 
 void CDoorObject::UpdatePicking()
@@ -169,10 +139,10 @@ void CDoorObject::UpdatePicking()
 ////// /// /// /// /// /// /// /// /// /// /// /// /// /// /// /// /// /// /// /// /// /// /// /// /// /// /// /// ///  
 /// <CGameObject - CElevatorDoorObject>
 
-CElevatorDoorObject::CElevatorDoorObject(char* pstrFrameName, XMFLOAT4X4& xmf4x4World, CMesh* pMesh)
-	: CGameObject(pstrFrameName, xmf4x4World, pMesh)
+CElevatorDoorObject::CElevatorDoorObject(char* pstrFrameName, const XMFLOAT4X4& xmf4x4World, const vector<BoundingOrientedBox>& voobb)
+	: CGameObject(pstrFrameName, xmf4x4World, voobb)
 {
-	m_nCollisionType = 2;
+	m_nCollisionType = Standard;
 
 	m_xmf3OriginPosition = XMFLOAT3(xmf4x4World._41, xmf4x4World._42, xmf4x4World._43);
 	m_xmf3Right = XMFLOAT3(0.0f, 1.0f, 0.0f);
@@ -180,7 +150,7 @@ CElevatorDoorObject::CElevatorDoorObject(char* pstrFrameName, XMFLOAT4X4& xmf4x4
 	m_xmf3Right = Vector3::TransformNormal(m_xmf3Right, mtxWorld);
 }
 
-void CElevatorDoorObject::Animate(float fElapsedTime)
+void CElevatorDoorObject::Update(float fElapsedTime)
 {
 	XMFLOAT3 xmf3Position = XMFLOAT3(m_xmf4x4World._41, m_xmf4x4World._42, m_xmf4x4World._43);
 	float fDistance = Vector3::Distance(xmf3Position, m_xmf3OriginPosition);
@@ -218,7 +188,6 @@ void CElevatorDoorObject::Animate(float fElapsedTime)
 		}
 	}
 
-	AnimateOOBB();
 }
 
 void CElevatorDoorObject::UpdatePicking()
@@ -240,36 +209,14 @@ void CElevatorDoorObject::UpdatePicking()
 ////// /// /// /// /// /// /// /// /// /// /// /// /// /// /// /// /// /// /// /// /// /// /// /// /// /// /// /// ///  
 /// <CGameObject - CItemObject - CTeleportObject>
 
-CTeleportObject::CTeleportObject(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dCommandList, ID3D12RootSignature* pd3dGraphicsRootSignature)
-	: CItemObject(pd3dDevice, pd3dCommandList, pd3dGraphicsRootSignature)
-{
-	m_nCollisionType = 2;
-}
-
-CTeleportObject::~CTeleportObject() 
+CTeleportObject::~CTeleportObject()
 {
 }
 
-void CTeleportObject::LoadModelAndAnimation(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dCommandList, ID3D12RootSignature* pd3dGraphicsRootSignature, const shared_ptr<CLoadedModelInfo>& pLoadModelInfo)
-{
-	SetChild(pLoadModelInfo->m_pModelRootObject, true);
-	
-	LoadBoundingBox(m_voobbOrigin);
-}
-
-void CTeleportObject::SetOOBB()
-{
-}
-
-void CTeleportObject::Animate(float fElapsedTime)
-{
-	CGameObject::Animate(fElapsedTime);
-}
-
-void CTeleportObject::AnimateOOBB()
-{
-	CGameObject::AnimateOOBB();
-}
+//void CTeleportObject::Update(float fElapsedTime)
+//{
+//	CGameObject::Animate(fElapsedTime);
+//}
 
 void CTeleportObject::UpdatePicking()
 {
@@ -291,34 +238,8 @@ void CTeleportObject::UpdateUsing(const shared_ptr<CGameObject>& pGameObject)
 ////// /// /// /// /// /// /// /// /// /// /// /// /// /// /// /// /// /// /// /// /// /// /// /// /// /// /// /// ///  
 /// <CGameObject - CMineObject>
 
-CMineObject::CMineObject(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dCommandList, ID3D12RootSignature* pd3dGraphicsRootSignature)
-	: CItemObject(pd3dDevice, pd3dCommandList, pd3dGraphicsRootSignature)
-{
-	m_nCollisionType = 2;
-}
-
 CMineObject::~CMineObject()
 {
-}
-
-void CMineObject::LoadModelAndAnimation(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dCommandList, ID3D12RootSignature* pd3dGraphicsRootSignature, const shared_ptr<CLoadedModelInfo>& pLoadModelInfo)
-{
-	SetChild(pLoadModelInfo->m_pModelRootObject, true);
-
-	LoadBoundingBox(m_voobbOrigin);
-}
-
-void CMineObject::SetOOBB()
-{
-}
-
-void CMineObject::Animate(float fElapsedTime)
-{
-}
-
-void CMineObject::AnimateOOBB()
-{
-	CGameObject::AnimateOOBB();
 }
 
 void CMineObject::UpdatePicking()
@@ -333,41 +254,14 @@ void CMineObject::UpdateUsing(const shared_ptr<CGameObject>& pGameObject)
 ////// /// /// /// /// /// /// /// /// /// /// /// /// /// /// /// /// /// /// /// /// /// /// /// /// /// /// /// ///  
 /// <CGameObject - CFuseObject>
 
-CFuseObject::CFuseObject(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dCommandList, ID3D12RootSignature* pd3dGraphicsRootSignature)
-	: CItemObject(pd3dDevice, pd3dCommandList, pd3dGraphicsRootSignature)
-{
-	m_nCollisionType = 2;
-}
-
 CFuseObject::~CFuseObject()
 {
-}
-
-void CFuseObject::LoadModelAndAnimation(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dCommandList, ID3D12RootSignature* pd3dGraphicsRootSignature, const shared_ptr<CLoadedModelInfo>& pLoadModelInfo)
-{
-	SetChild(pLoadModelInfo->m_pModelRootObject, true);
-
-	LoadBoundingBox(m_voobbOrigin);
-}
-
-void CFuseObject::SetOOBB()
-{
-}
-
-void CFuseObject::Animate(float fElapsedTime)
-{
-	CGameObject::Animate(fElapsedTime);
-}
-
-void CFuseObject::AnimateOOBB()
-{
-	CGameObject::AnimateOOBB();
 }
 
 void CFuseObject::UpdatePicking()
 {
 	m_bObtained = true;
-	m_bCollsion = false;
+	m_bCollision = false;
 }
 
 void CFuseObject::UpdateUsing(const shared_ptr<CGameObject>& pGameObject)
@@ -378,41 +272,15 @@ void CFuseObject::UpdateUsing(const shared_ptr<CGameObject>& pGameObject)
 		return;
 	}
 	m_bObtained = false;
-	m_bCollsion = true;
+	m_bCollision = true;
 }
 
 /// <CGameObject - CFuseObject>
 ////// /// /// /// /// /// /// /// /// /// /// /// /// /// /// /// /// /// /// /// /// /// /// /// /// /// /// /// ///  
 /// <CGameObject - CRadarObject>
 
-CRadarObject::CRadarObject(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dCommandList, ID3D12RootSignature* pd3dGraphicsRootSignature)
-	: CItemObject(pd3dDevice, pd3dCommandList, pd3dGraphicsRootSignature)
-{
-	m_nCollisionType = 2;
-}
-
 CRadarObject::~CRadarObject()
 {
-}
-
-void CRadarObject::LoadModelAndAnimation(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dCommandList, ID3D12RootSignature* pd3dGraphicsRootSignature, const shared_ptr<CLoadedModelInfo>& pLoadModelInfo)
-{
-	SetChild(pLoadModelInfo->m_pModelRootObject, true);
-
-	LoadBoundingBox(m_voobbOrigin);
-}
-
-void CRadarObject::SetOOBB()
-{
-}
-
-void CRadarObject::Animate(float fElapsedTime)
-{
-}
-
-void CRadarObject::AnimateOOBB()
-{
-	CGameObject::AnimateOOBB();
 }
 
 void CRadarObject::UpdatePicking()
@@ -421,6 +289,68 @@ void CRadarObject::UpdatePicking()
 
 void CRadarObject::UpdateUsing(const shared_ptr<CGameObject>& pGameObject)
 {
-	
+
 }
 
+/// <CGameObject - CRadarObject>
+////// /// /// /// /// /// /// /// /// /// /// /// /// /// /// /// /// /// /// /// /// /// /// /// /// /// /// /// ///  
+/// <CGameObject - CStairTriggerObject>
+
+CStairTriggerObject::CStairTriggerObject(char* pstrFrameName, const XMFLOAT4X4& xmf4x4World, const vector<BoundingOrientedBox>& voobb)
+	: CGameObject(pstrFrameName, xmf4x4World, voobb)
+{
+	m_nCollisionType = COLLISION_TYPE::StairTrigger;
+	XMFLOAT3 xmf3Position = XMFLOAT3(m_xmf4x4World._41, m_xmf4x4World._42, m_xmf4x4World._43);
+	XMFLOAT3 xmf3Point1, xmf3Point2, xmf3Point3;
+
+	/*float fx, fy, fz, fOffsetY;*/
+	if (xmf3Position.y < 1.0f) // 1Ãþ
+	{
+		m_fy = 0.2f;
+	}
+	else if (xmf3Position.y < 5.5f) // 2Ãþ
+	{
+		m_fy = 4.7f;
+	}
+	else if (xmf3Position.y < 10.0f) // 3Ãþ
+	{
+		m_fy = 9.2f;
+	}
+	else if (xmf3Position.y < 14.5f) // 4Ãþ
+	{
+		m_fy = 13.7f;
+	}
+
+	if (xmf3Position.z > 0.0f) 
+	{
+		if (xmf3Position.x > 0.0f) // °è´Ü ¾Æ·¡
+		{
+			m_fOffsetY = 4.5f;
+			m_fx = 8.0f;
+		}
+		else
+		{
+			m_fOffsetY = -4.5f;
+			m_fx = -8.0f;
+		}
+		m_fz = 13.9;
+	}
+	else
+	{
+		if (xmf3Position.x > 0.0f) // °è´Ü À§
+		{
+			m_fOffsetY = -4.5f;
+			m_fx = 8.0f;
+		}
+		else
+		{
+			m_fOffsetY = 4.5f;
+			m_fx = -8.0f;
+		}
+		m_fz = -13.9;
+	}
+	xmf3Point1 = XMFLOAT3(m_fx, m_fy, m_fz + 3.5f / 2.f);
+	xmf3Point2 = XMFLOAT3(m_fx, m_fy, m_fz - 3.5f / 2.f);
+	xmf3Point3 = XMFLOAT3(-m_fx, m_fy + m_fOffsetY, m_fz + 3.5f / 2.f);
+	m_xmf4Plane = Plane::CreateFromPoints(xmf3Point1, xmf3Point2, xmf3Point3);
+}

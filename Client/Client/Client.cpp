@@ -45,14 +45,20 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
     // 기본 메시지 루프입니다:
     while (1)
     {
-        if (::PeekMessage(&msg, NULL, 0, 0, PM_REMOVE)) {
-            if (msg.message == WM_QUIT) break;
-            if (!::TranslateAccelerator(msg.hwnd, hAccelTable, &msg)) {
+        if (::PeekMessage(&msg, NULL, 0, 0, PM_REMOVE))
+        {
+            if (msg.message == WM_QUIT) 
+            {
+                break;
+            }
+            if (!::TranslateAccelerator(msg.hwnd, hAccelTable, &msg)) 
+            {
                 ::TranslateMessage(&msg);
                 ::DispatchMessage(&msg);
             }
         }
-        else {
+        else
+        {
             gGameFramework.FrameAdvance();
         }
     }
@@ -143,6 +149,9 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 {
     switch (message)
     {
+    case WM_SOCKET: // 소켓 관련 윈도우 메시지
+        gGameFramework.OnProcessingWindowMessage(hWnd, message, wParam, lParam);
+        break;
     case WM_SIZE:
     case WM_LBUTTONDOWN:
     case WM_LBUTTONUP:

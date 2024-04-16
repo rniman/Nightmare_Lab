@@ -72,7 +72,7 @@
     <ClInclude Include="PlayerController.h">
       <Filter>헤더 파일</Filter>
     </ClInclude>
-    <ClInclude Include="EnviromentObject.h">
+    <ClInclude Include="EnvironmentObject.h">
       <Filter>헤더 파일</Filter>
     </ClInclude>
     <ClInclude Include="Collision.h">
@@ -119,7 +119,7 @@
     <ClCompile Include="PlayerController.cpp">
       <Filter>소스 파일</Filter>
     </ClCompile>
-    <ClCompile Include="EnviromentObject.cpp">
+    <ClCompile Include="EnvironmentObject.cpp">
       <Filter>소스 파일</Filter>
     </ClCompile>
     <ClCompile Include="Collision.cpp">

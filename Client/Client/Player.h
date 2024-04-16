@@ -1,6 +1,6 @@
 #pragma once
 #include "Object.h"
-#include "EnviromentObject.h"
+#include "EnvironmentObject.h"
 
 class CScene;
 class CCamera;
@@ -40,8 +40,7 @@ public:
 	virtual void Animate(float fElapsedTime);
 	virtual void AnimateOOBB() override;
 	virtual void Collide(float fElapsedTime, const shared_ptr<CGameObject>& pCollidedObject) override;
-	virtual void Render(ID3D12GraphicsCommandList* pd3dCommandList);
-
+	virtual void Render(ID3D12GraphicsCommandList* pd3dCommandList) override;
 
 	shared_ptr<CCamera> OnChangeCamera(DWORD nNewCameraMode, DWORD nCurrentCameraMode);
 	virtual shared_ptr<CCamera> ChangeCamera(DWORD nNewCameraMode, float fElapsedTime);
@@ -86,8 +85,13 @@ public:
 	int GetWidth() const { return m_nWidth; }
 	int GetDepth() const { return m_nDepth; }
 
-	virtual void RightClickProcess() {};
+	void SetClientId(int nClientId) { m_nClientId = nClientId; }
+	int GetClientId()const { return m_nClientId; }
+	void SetLook(const XMFLOAT3& xmf3Look) { m_xmf3Look = xmf3Look; }
+	void SetRight(const XMFLOAT3& xmf3Right) { m_xmf3Right = xmf3Right; }
 protected:
+	int m_nClientId = -1;
+
 	bool m_bCollision = false;
 	int m_nFloor = 0;
 	int m_nWidth = 0;

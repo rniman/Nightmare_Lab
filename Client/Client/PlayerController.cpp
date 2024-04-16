@@ -266,7 +266,6 @@ void CBlueSuitAnimationController::AdvanceTime(float fElapsedTime, CGameObject* 
 			XMFLOAT4X4 xmf4x4TrackTransform = Matrix4x4::Interpolate(xmf4x4TrackTransform_0, xmf4x4TrackTransform_1, 0.65f);
 			xmf4x4Transform = xmf4x4TrackTransform;
 			m_pAnimationSets->m_vpBoneFrameCaches[j]->m_xmf4x4ToParent = xmf4x4Transform;
-
 		}
 
 		//[CJI 0407] 왼쪽 팔꿈치를 중심으로 축을 회전

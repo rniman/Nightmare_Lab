@@ -1,7 +1,8 @@
 #pragma once
 #include "Timer.h"
 #include "Shader.h"
-#include <stdexcept>
+#include "TCPClient.h"
+//#include <stdexcept>
 
 // m_vShader 쉐이더에 AddDefaultObject 시에 접근할 각 쉐이더 인덱스를 의미
 #define STANDARD_SHADER 0
@@ -45,6 +46,8 @@ struct LIGHTS
 };
 
 class CPlayer;
+class CLoadedModelInfo;
+class CTeleportObject;
 
 class CScene
 {
@@ -70,7 +73,6 @@ public:
 	//씬 업데이트 관련
 	bool ProcessInput(UCHAR* pKeysBuffer);
 	void AnimateObjects(float fElapsedTime);
-	void ProcessCollide(float fElapsedTime);
 
 	//렌더링 관련
 	void UpdateShaderVariables(ID3D12GraphicsCommandList* pd3dCommandList);
@@ -91,13 +93,15 @@ public:
 	vector<XMFLOAT3>& GetLightLooks() { return m_xmf3lightLooks; }
 	void BuildLights();
 
-	void SetPlayer(shared_ptr<CPlayer> pPlayer);
+	void SetPlayer(shared_ptr<CPlayer> pPlayer, int nIndex);
+	void SetMainPlayer(const shared_ptr<CPlayer>& pMainplayer);
 
 	//씬 내 오브젝트(쉐이더)
 	static vector<unique_ptr<CShader>> m_vShader;
 	vector<unique_ptr<CShader>> m_vForwardRenderShader;
-
-	shared_ptr<CPlayer> m_pPlayer;
+	
+	std::array<shared_ptr<CPlayer>, MAX_CLIENT> m_apPlayer;
+	std::shared_ptr<CPlayer> m_pMainPlayer;
 	//메쉬 저장
 	vector<shared_ptr<CMesh>>			m_vMesh;
 
