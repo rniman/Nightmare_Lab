@@ -100,6 +100,7 @@ private:
 	
 	static UCHAR						m_pKeysBuffer[256];
 	//TCPClient
+public:
 	shared_ptr<CTcpClient>				m_pTcpClient;
 public:
 	void PrepareDrawText();

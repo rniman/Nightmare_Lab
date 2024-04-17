@@ -50,7 +50,7 @@ bool CGameFramework::OnCreate(HINSTANCE hInstance, HWND hMainWnd)
 
 	CoInitialize(NULL);
 
-	m_pTcpClient = make_shared<CTcpClient>(hMainWnd);
+	//m_pTcpClient = make_shared<CTcpClient>(hMainWnd);
 
 	g_collisionManager.CreateCollision(4, 10, 10);
 
@@ -696,7 +696,7 @@ void CGameFramework::BuildObjects()
 	}
 
 	m_GameTimer.Reset();
-	//PreRenderTasks(); // 사전 렌더링 작업
+	PreRenderTasks(); // 사전 렌더링 작업
 }
 
 void CGameFramework::ReleaseObjects()
@@ -800,24 +800,15 @@ void CGameFramework::PreRenderTasks()
 {
 	//ProcessInput();
 
-	if (!m_pMainPlayer)
+	int nClientId = m_pTcpClient->GetClientId();
+	if (nClientId != -1)
 	{
-		int nClientId = m_pTcpClient->GetClientId();
-		if (nClientId != -1)
-		{
-			SetPlayerObjectOfClient(nClientId);
-			m_bPrevRender = true;
-		}
-
-		m_GameTimer.GetFrameRate(m_pszFrameRate + 15, 37);
-		size_t nLength = _tcslen(m_pszFrameRate);
-		_stprintf_s(m_pszFrameRate + nLength, 200 - nLength, _T("ID:%d, NumOfClient: %d"), m_pTcpClient->GetClientId(), m_pTcpClient->GetNumOfClient());
-		::SetWindowText(m_hWnd, m_pszFrameRate);
-
-		if(!m_bPrevRender)
-		{
-			return;
-		}
+		SetPlayerObjectOfClient(nClientId);
+		//m_bPrevRender = true;
+	}
+	else
+	{
+		exit(0);
 	}
 
 	m_pMainPlayer->Update(m_GameTimer.GetTimeElapsed());
@@ -873,11 +864,6 @@ void CGameFramework::PreRenderTasks()
 //#define _WITH_PLAYER_TOP
 void CGameFramework::FrameAdvance()
 {
-	if (!m_bPrevRender)
-	{
-		PreRenderTasks();
-		return;
-	}
 	m_GameTimer.Tick(0.0f);
 
 	ProcessInput();
