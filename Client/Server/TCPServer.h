@@ -4,9 +4,9 @@ constexpr size_t MAX_CLIENT{ 5 };
 constexpr size_t MAX_SEND_OBJECT_INFO{ 60 };
 
 // 소켓 정보 저장을 위한 구조체와 변수
-class CGameObject;
-class CPlayer;
-class CCollisionManager;
+class CServerGameObject;
+class CServerPlayer;
+class CServerCollisionManager;
 
 struct SC_UPDATE_INFO
 {
@@ -91,7 +91,7 @@ public:
 	void CreatSendObject();
 
 	// Interface
-	shared_ptr<CPlayer> GetPlayer(int nIndex) { return m_apPlayers[nIndex]; }
+	shared_ptr<CServerPlayer> GetPlayer(int nIndex) { return m_apPlayers[nIndex]; }
 private:
 	CTimer m_timer;
 	static size_t m_nClient;
@@ -101,10 +101,10 @@ private:
 	// 접속한 클라이언트들의 정보를 저장.
 	std::array<SOCKETINFO, MAX_CLIENT> m_vSocketInfoList;	// 소켓 인덱스는 순차적으로 배정받는다
 
-	std::array<std::shared_ptr<CPlayer>, MAX_CLIENT> m_apPlayers; 
+	std::array<std::shared_ptr<CServerPlayer>, MAX_CLIENT> m_apPlayers; 
 	std::array<SC_UPDATE_INFO, MAX_CLIENT> m_aUpdateInfo;		
-	std::vector<shared_ptr<CGameObject>> m_vpGameObject;
-	std::shared_ptr<CCollisionManager> m_pCollisionManager;
+	std::vector<shared_ptr<CServerGameObject>> m_vpGameObject;
+	std::shared_ptr<CServerCollisionManager> m_pCollisionManager;
 };
 
 extern void err_quit(const char* msg);

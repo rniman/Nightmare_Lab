@@ -3,8 +3,8 @@
 #include "ServerCollision.h"
 #include "ServerEnvironmentObject.h"
 
-CPlayer::CPlayer()
-	: CGameObject()
+CServerPlayer::CServerPlayer()
+	: CServerGameObject()
 {
 	m_xmf3Position = XMFLOAT3(9.f, 0.0f, 13.9);
 	m_xmf3OldPosition = m_xmf3Position;
@@ -27,7 +27,7 @@ CPlayer::CPlayer()
 	XMMATRIX mtxProjection = XMLoadFloat4x4(&m_xmf4x4Projection);
 }
 
-void CPlayer::Update(float fElapsedTime)
+void CServerPlayer::Update(float fElapsedTime)
 {
 	if (m_nPlayerId == -1)
 	{
@@ -78,7 +78,7 @@ void CPlayer::Update(float fElapsedTime)
 	//printf("%d %d %d\n\n", m_nFloor, m_nWidth, m_nDepth);
 }
 
-void CPlayer::Collide(const shared_ptr<CCollisionManager>& pCollisionManager, float fElapsedTime, shared_ptr<CGameObject> pCollided)
+void CServerPlayer::Collide(const shared_ptr<CServerCollisionManager>& pCollisionManager, float fElapsedTime, shared_ptr<CServerGameObject> pCollided)
 {
 	XMFLOAT3 xmf3Velocity;
 	XMFLOAT3 xmf3NormalOfVelocity = Vector3::Normalize(m_xmf3Velocity);
@@ -203,7 +203,7 @@ void CPlayer::Collide(const shared_ptr<CCollisionManager>& pCollisionManager, fl
 	OnUpdateToParent();
 }
 
-void CPlayer::Move(const XMFLOAT3& xmf3Shift, bool bUpdateVelocity)
+void CServerPlayer::Move(const XMFLOAT3& xmf3Shift, bool bUpdateVelocity)
 {
 	if (bUpdateVelocity)
 	{
@@ -220,14 +220,14 @@ void CPlayer::Move(const XMFLOAT3& xmf3Shift, bool bUpdateVelocity)
 	}
 }
 
-void CPlayer::CalculateSpace()
+void CServerPlayer::CalculateSpace()
 {
 	m_nWidth = static_cast<int>((m_xmf3Position.x - GRID_START_X) / SPACE_SIZE_XZ);
 	m_nFloor = static_cast<int>((m_xmf3Position.y - GRID_START_Y) / SPACE_SIZE_Y);
 	m_nDepth = static_cast<int>((m_xmf3Position.z - GRID_START_Z) / SPACE_SIZE_XZ);
 }
 
-void CPlayer::OnUpdateToParent()
+void CServerPlayer::OnUpdateToParent()
 {
 	m_xmf4x4ToParent._11 = m_xmf3Right.x; m_xmf4x4ToParent._12 = m_xmf3Right.y; m_xmf4x4ToParent._13 = m_xmf3Right.z;
 	m_xmf4x4ToParent._21 = m_xmf3Up.x; m_xmf4x4ToParent._22 = m_xmf3Up.y; m_xmf4x4ToParent._23 = m_xmf3Up.z;
@@ -238,7 +238,7 @@ void CPlayer::OnUpdateToParent()
 	m_xmf4x4ToParent = Matrix4x4::Multiply(xmtxScale, m_xmf4x4ToParent);
 }
 
-void CPlayer::SetPickedObject(const shared_ptr<CCollisionManager> pCollisionManager)
+void CServerPlayer::SetPickedObject(const shared_ptr<CServerCollisionManager> pCollisionManager)
 {
 	if (!IsRecvData())
 	{
@@ -274,7 +274,7 @@ void CPlayer::SetPickedObject(const shared_ptr<CCollisionManager> pCollisionMana
 				}
 
 				float fHitDistance = FLT_MAX;
-				if (CGameObject::CheckPicking(pCollisionObject, pickPosition, m_xmf4x4View, fHitDistance))
+				if (CServerGameObject::CheckPicking(pCollisionObject, pickPosition, m_xmf4x4View, fHitDistance))
 				{
 					if (fHitDistance < fNearestHitDistance)
 					{
@@ -291,12 +291,12 @@ void CPlayer::SetPickedObject(const shared_ptr<CCollisionManager> pCollisionMana
 ////
 ////
 
-CBlueSuitPlayer::CBlueSuitPlayer()
-	: CPlayer()
+CServerBlueSuitPlayer::CServerBlueSuitPlayer()
+	: CServerPlayer()
 {
 }
 
-void CBlueSuitPlayer::Update(float fElapsedTime)
+void CServerBlueSuitPlayer::Update(float fElapsedTime)
 {
 	if (m_bShiftRun)
 	{
@@ -316,12 +316,12 @@ void CBlueSuitPlayer::Update(float fElapsedTime)
 		}
 	}
 
-	CPlayer::Update(fElapsedTime);
+	CServerPlayer::Update(fElapsedTime);
 }
 
-void CBlueSuitPlayer::UpdatePicking()
+void CServerBlueSuitPlayer::UpdatePicking()
 {
-	shared_ptr<CGameObject> pPickiedObject = m_pPickedObject.lock();
+	shared_ptr<CServerGameObject> pPickiedObject = m_pPickedObject.lock();
 	if (!pPickiedObject)
 	{
 		return;
@@ -347,7 +347,7 @@ void CBlueSuitPlayer::UpdatePicking()
 	}
 }
 
-int CBlueSuitPlayer::AddItem(const shared_ptr<CGameObject>& pGameObject)
+int CServerBlueSuitPlayer::AddItem(const shared_ptr<CServerGameObject>& pGameObject)
 {
 	int nSlot = -2;
 	if (dynamic_pointer_cast<CTeleportObject>(pGameObject))
@@ -400,20 +400,20 @@ int CBlueSuitPlayer::AddItem(const shared_ptr<CGameObject>& pGameObject)
 	return nSlot;
 }
 
-void CBlueSuitPlayer::UseItem(int nSlot)
+void CServerBlueSuitPlayer::UseItem(int nSlot)
 {
 	if (nSlot == 3)
 	{
 		UseFuse();
 	}
-	else if (shared_ptr<CGameObject> pGameObject = m_apSlotItems[nSlot].lock())
+	else if (shared_ptr<CServerGameObject> pGameObject = m_apSlotItems[nSlot].lock())
 	{
 		pGameObject->UpdateUsing(shared_from_this());
 		m_apSlotItems[nSlot].reset();
 	}
 }
 
-void CBlueSuitPlayer::UseFuse()
+void CServerBlueSuitPlayer::UseFuse()
 {
 	for (auto& fuseItem : m_apFuseItems)
 	{
@@ -426,7 +426,7 @@ void CBlueSuitPlayer::UseFuse()
 	m_nFuseNum = 0;
 }
 
-void CBlueSuitPlayer::Teleport()
+void CServerBlueSuitPlayer::Teleport()
 {
 	//XMFLOAT3 randomPos = { 4.0f, 4.0f, 4.0f };
 	//SetPosition(randomPos);

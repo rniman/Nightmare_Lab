@@ -5,9 +5,9 @@
 #include "ServerPlayer.h"
 #include "ServerEnvironmentObject.h"
 
-int CCollisionManager::m_nCollisionObject = 0;
+int CServerCollisionManager::m_nCollisionObject = 0;
 
-void CCollisionManager::CreateCollision(int nHeight, int nWidth, int nDepth)
+void CServerCollisionManager::CreateCollision(int nHeight, int nWidth, int nDepth)
 {
 	m_nHeight = nHeight;
 	m_nWidth = nWidth;
@@ -26,7 +26,7 @@ void CCollisionManager::CreateCollision(int nHeight, int nWidth, int nDepth)
 
 }
 
-void CCollisionManager::AddCollisionObject(const shared_ptr<CGameObject>& pGameObject)
+void CServerCollisionManager::AddCollisionObject(const shared_ptr<CServerGameObject>& pGameObject)
 {
 	XMFLOAT4X4 xmf4x4World = pGameObject->GetWorldMatrix();
 	XMFLOAT3 xmf3Position = XMFLOAT3(xmf4x4World._41, xmf4x4World._42, xmf4x4World._43);
@@ -40,19 +40,19 @@ void CCollisionManager::AddCollisionObject(const shared_ptr<CGameObject>& pGameO
 	m_pCollisionObject.emplace_back(pGameObject);
 }
 
-void CCollisionManager::AddCollisionPlayer(const shared_ptr<CPlayer>& pPlayer, int nIndex)
+void CServerCollisionManager::AddCollisionPlayer(const shared_ptr<CServerPlayer>& pPlayer, int nIndex)
 {
 	m_apPlayer[nIndex] = pPlayer;
 }
 
 //size_t GetSizeGameObjects(CollisonLayer nLayer) { return m_v3dpCollisionGameObjects[static_cast<int>(nLayer)].size(); }
 
-vpObjects_t& CCollisionManager::GetSpaceGameObjects(int nHeight, int nWidth, int nDepth)
+vpObjects_t& CServerCollisionManager::GetSpaceGameObjects(int nHeight, int nWidth, int nDepth)
 {
 	return m_collisionGridGameObjects[nHeight][nWidth][nDepth];
 }
 
-void CCollisionManager::Update(float fElapsedTime)
+void CServerCollisionManager::Update(float fElapsedTime)
 {
 	for (auto& pGameObject : m_pCollisionObject)
 	{
@@ -63,7 +63,7 @@ void CCollisionManager::Update(float fElapsedTime)
 	}
 }
 
-void CCollisionManager::Collide(float fElapsedTime, const shared_ptr<CPlayer>& pPlayer)
+void CServerCollisionManager::Collide(float fElapsedTime, const shared_ptr<CServerPlayer>& pPlayer)
 {
 	if (!pPlayer || pPlayer->GetPlayerId() == -1)
 	{

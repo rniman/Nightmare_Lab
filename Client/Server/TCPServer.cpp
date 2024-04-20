@@ -80,7 +80,7 @@ void TCPServer::OnProcessingAcceptMessage(HWND hWnd, UINT nMessageID, WPARAM wPa
 	}
 
 	// 임시로 CBlueSuitPlayer만 생성
-	m_apPlayers[nClientIndex] = make_shared<CBlueSuitPlayer>();
+	m_apPlayers[nClientIndex] = make_shared<CServerBlueSuitPlayer>();
 	m_apPlayers[nClientIndex]->SetPlayerId(nClientIndex);
 	m_pCollisionManager->AddCollisionPlayer(m_apPlayers[nClientIndex], nClientIndex);
 
@@ -107,7 +107,7 @@ void TCPServer::OnProcessingReadMessage(HWND hWnd, UINT nMessageID, WPARAM wPara
 		//error
 		exit(-1);
 	}
-	std::shared_ptr<CPlayer> pPlayer = m_apPlayers[nSocketIndex];
+	std::shared_ptr<CServerPlayer> pPlayer = m_apPlayers[nSocketIndex];
 
 	if(!m_vSocketInfoList[nSocketIndex].m_bRecvHead)
 	{
@@ -198,7 +198,7 @@ void TCPServer::OnProcessingWriteMessage(HWND hWnd, UINT nMessageID, WPARAM wPar
 	{
 		//error
 	}
-	std::shared_ptr<CPlayer> pPlayer = m_apPlayers[nSocketIndex];
+	std::shared_ptr<CServerPlayer> pPlayer = m_apPlayers[nSocketIndex];
 
 	switch (m_vSocketInfoList[nSocketIndex].m_socketState)
 	{
@@ -287,7 +287,7 @@ bool TCPServer::Init(HWND hWnd)
 		err_quit("WSAAsyncSelect()");
 	}
 
-	m_pCollisionManager = make_shared<CCollisionManager>();
+	m_pCollisionManager = make_shared<CServerCollisionManager>();
 	m_pCollisionManager->CreateCollision(4, 10, 10);
 
 	LoadScene();
@@ -540,7 +540,7 @@ void TCPServer::LoadScene()
 
 void TCPServer::CreateSceneObject(char* pstrFrameName, const XMFLOAT4X4& xmf4x4World, const vector<BoundingOrientedBox>& voobb)
 {
-	shared_ptr<CGameObject> pGameObject;
+	shared_ptr<CServerGameObject> pGameObject;
 
 	if (!strcmp(pstrFrameName, "Door_1"))
 	{
@@ -590,7 +590,7 @@ void TCPServer::CreateSceneObject(char* pstrFrameName, const XMFLOAT4X4& xmf4x4W
 	}
 	else
 	{
-		pGameObject = make_shared<CGameObject>(pstrFrameName, xmf4x4World, voobb);
+		pGameObject = make_shared<CServerGameObject>(pstrFrameName, xmf4x4World, voobb);
 		m_pCollisionManager->AddCollisionObject(pGameObject);
 	}
 }

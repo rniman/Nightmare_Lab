@@ -7,7 +7,7 @@
 /// <CGameObject - CEnvironmentObject>
 
 CEnvironmentObject::CEnvironmentObject(char* pstrFrameName, const XMFLOAT4X4& xmf4x4World, const vector<BoundingOrientedBox>& voobb)
-	: CGameObject(pstrFrameName, xmf4x4World, voobb)
+	: CServerGameObject(pstrFrameName, xmf4x4World, voobb)
 {
 	m_nCollisionType = Standard;
 }
@@ -17,7 +17,7 @@ CEnvironmentObject::CEnvironmentObject(char* pstrFrameName, const XMFLOAT4X4& xm
 /// <CGameObject - CDoorObject>
 
 CDrawerObject::CDrawerObject(char* pstrFrameName, const XMFLOAT4X4& xmf4x4World, const vector<BoundingOrientedBox>& voobb)
-	: CGameObject(pstrFrameName, xmf4x4World, voobb)
+	: CServerGameObject(pstrFrameName, xmf4x4World, voobb)
 {
 	m_nCollisionType = Picking;
 	
@@ -89,7 +89,7 @@ void CDrawerObject::UpdatePicking()
 /// <CGameObject - CDoorObject>
 
 CDoorObject::CDoorObject(char* pstrFrameName, const XMFLOAT4X4& xmf4x4World, const vector<BoundingOrientedBox>& voobb)
-	: CGameObject(pstrFrameName, xmf4x4World, voobb)
+	: CServerGameObject(pstrFrameName, xmf4x4World, voobb)
 {
 	m_nCollisionType = Standard;
 }
@@ -140,7 +140,7 @@ void CDoorObject::UpdatePicking()
 /// <CGameObject - CElevatorDoorObject>
 
 CElevatorDoorObject::CElevatorDoorObject(char* pstrFrameName, const XMFLOAT4X4& xmf4x4World, const vector<BoundingOrientedBox>& voobb)
-	: CGameObject(pstrFrameName, xmf4x4World, voobb)
+	: CServerGameObject(pstrFrameName, xmf4x4World, voobb)
 {
 	m_nCollisionType = Standard;
 
@@ -223,9 +223,9 @@ void CTeleportObject::UpdatePicking()
 	m_bObtained = true;
 }
 
-void CTeleportObject::UpdateUsing(const shared_ptr<CGameObject>& pGameObject)
+void CTeleportObject::UpdateUsing(const shared_ptr<CServerGameObject>& pGameObject)
 {
-	shared_ptr<CBlueSuitPlayer> pBlueSuitPlayer = dynamic_pointer_cast<CBlueSuitPlayer>(pGameObject);
+	shared_ptr<CServerBlueSuitPlayer> pBlueSuitPlayer = dynamic_pointer_cast<CServerBlueSuitPlayer>(pGameObject);
 	if (!pBlueSuitPlayer)
 	{
 		return;
@@ -246,7 +246,7 @@ void CMineObject::UpdatePicking()
 {
 }
 
-void CMineObject::UpdateUsing(const shared_ptr<CGameObject>& pGameObject)
+void CMineObject::UpdateUsing(const shared_ptr<CServerGameObject>& pGameObject)
 {
 }
 
@@ -264,9 +264,9 @@ void CFuseObject::UpdatePicking()
 	m_bCollision = false;
 }
 
-void CFuseObject::UpdateUsing(const shared_ptr<CGameObject>& pGameObject)
+void CFuseObject::UpdateUsing(const shared_ptr<CServerGameObject>& pGameObject)
 {
-	shared_ptr<CBlueSuitPlayer> pBlueSuitPlayer = dynamic_pointer_cast<CBlueSuitPlayer>(pGameObject);
+	shared_ptr<CServerBlueSuitPlayer> pBlueSuitPlayer = dynamic_pointer_cast<CServerBlueSuitPlayer>(pGameObject);
 	if (!pBlueSuitPlayer)
 	{
 		return;
@@ -287,7 +287,7 @@ void CRadarObject::UpdatePicking()
 {
 }
 
-void CRadarObject::UpdateUsing(const shared_ptr<CGameObject>& pGameObject)
+void CRadarObject::UpdateUsing(const shared_ptr<CServerGameObject>& pGameObject)
 {
 
 }
@@ -297,7 +297,7 @@ void CRadarObject::UpdateUsing(const shared_ptr<CGameObject>& pGameObject)
 /// <CGameObject - CStairTriggerObject>
 
 CStairTriggerObject::CStairTriggerObject(char* pstrFrameName, const XMFLOAT4X4& xmf4x4World, const vector<BoundingOrientedBox>& voobb)
-	: CGameObject(pstrFrameName, xmf4x4World, voobb)
+	: CServerGameObject(pstrFrameName, xmf4x4World, voobb)
 {
 	m_nCollisionType = COLLISION_TYPE::StairTrigger;
 	XMFLOAT3 xmf3Position = XMFLOAT3(m_xmf4x4World._41, m_xmf4x4World._42, m_xmf4x4World._43);

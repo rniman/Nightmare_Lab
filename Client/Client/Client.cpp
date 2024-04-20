@@ -44,7 +44,8 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
 	HACCEL hAccelTable = LoadAccelerators(hInstance, MAKEINTRESOURCE(IDC_CLIENT));
 
 	MSG msg;
-	gGameFramework.m_pTcpClient = make_shared<CTcpClient>(hWnd);
+	gGameFramework.CreateTcpClient(hWnd);
+	//gGameFramework.m_pTcpClient = make_shared<CTcpClient>(hWnd);
 	while (1)
 	{
 		if (::PeekMessage(&msg, NULL, 0, 0, PM_REMOVE))
@@ -65,7 +66,8 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
 		}
 		else
 		{
-			int nClientId = gGameFramework.m_pTcpClient->GetClientId();
+			//int nClientId = gGameFramework.m_pTcpClient->GetClientId();
+			int nClientId = gGameFramework.GetClientId();
 			if (nClientId != -1)
 			{
 				break;

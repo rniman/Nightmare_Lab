@@ -7,25 +7,25 @@ enum COLLISION_TYPE
 	StairTrigger
 };
 
-class CCollisionManager;
+class CServerCollisionManager;
 
-class CGameObject : public std::enable_shared_from_this<CGameObject>
+class CServerGameObject : public std::enable_shared_from_this<CServerGameObject>
 {
 public:
-	CGameObject() {};
-	CGameObject(char* pstrFrameName, const XMFLOAT4X4& xmf4x4World, const vector<BoundingOrientedBox>& voobb);
-	virtual ~CGameObject() {};
+	CServerGameObject() {};
+	CServerGameObject(char* pstrFrameName, const XMFLOAT4X4& xmf4x4World, const vector<BoundingOrientedBox>& voobb);
+	virtual ~CServerGameObject() {};
 
 	virtual void Update(float fElapsedTime);
-	virtual void Collide(const shared_ptr<CCollisionManager>& pCollisionManager, float fElapsedTime, shared_ptr<CGameObject> pCollided) {};
+	virtual void Collide(const shared_ptr<CServerCollisionManager>& pCollisionManager, float fElapsedTime, shared_ptr<CServerGameObject> pCollided) {};
 
 	void Move(XMFLOAT3 xmf3Offset);
 	virtual void UpdatePicking() {};
-	virtual void UpdateUsing(const shared_ptr<CGameObject>& pGameObject) {};
+	virtual void UpdateUsing(const shared_ptr<CServerGameObject>& pGameObject) {};
 
 	void UpdateTransform(XMFLOAT4X4* pxmf4x4Parent = NULL);
 
-	static bool CheckPicking(const shared_ptr<CGameObject>& pCollisionGameObject, const XMFLOAT3& xmf3PickPosition, const XMFLOAT4X4& xmf4x4ViewMatrix, float& fDistance);
+	static bool CheckPicking(const shared_ptr<CServerGameObject>& pCollisionGameObject, const XMFLOAT3& xmf3PickPosition, const XMFLOAT4X4& xmf4x4ViewMatrix, float& fDistance);
 
 	// Interface
 	void SetCollisionNum(int nCollisionNum) { m_nCollisionNum = nCollisionNum; }
@@ -42,9 +42,9 @@ protected:
 	XMFLOAT4X4 m_xmf4x4ToParent;
 	XMFLOAT4X4 m_xmf4x4World;
 
-	std::weak_ptr<CGameObject> m_pParent;
-	std::shared_ptr<CGameObject> m_pChild;
-	std::shared_ptr<CGameObject> m_pSibling;
+	std::weak_ptr<CServerGameObject> m_pParent;
+	std::shared_ptr<CServerGameObject> m_pChild;
+	std::shared_ptr<CServerGameObject> m_pSibling;
 
 	vector<BoundingOrientedBox> m_voobbOrigin;
 	// 투명 오브젝트 분류

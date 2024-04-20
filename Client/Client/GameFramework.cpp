@@ -650,6 +650,11 @@ void CGameFramework::OnDestroy()
 #endif
 }
 
+void CGameFramework::CreateTcpClient(HWND hWnd)
+{
+	m_pTcpClient = make_unique<CTcpClient>(hWnd);
+}
+
 void CGameFramework::BuildObjects()
 {
 	m_d3dCommandList->Reset(m_d3dCommandAllocator[m_nSwapChainBufferIndex].Get(), NULL);
@@ -806,7 +811,7 @@ void CGameFramework::PreRenderTasks()
 		SetPlayerObjectOfClient(nClientId);
 		//m_bPrevRender = true;
 	}
-	else
+	else	// ø°∑Ø¿”
 	{
 		exit(0);
 	}

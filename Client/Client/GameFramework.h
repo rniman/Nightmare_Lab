@@ -15,6 +15,8 @@ public:
 	bool OnCreate(HINSTANCE hInstance, HWND hMainWnd);
 	void OnDestroy();
 
+	void CreateTcpClient(HWND hWnd);
+
 	void CreateSwapChain();
 	void CreateDirect3DDevice();
 	void CreateCommandQueueAndList();
@@ -42,6 +44,8 @@ public:
 	void OnProcessingKeyboardMessage(HWND hWnd, UINT nMessageID, WPARAM wParam, LPARAM lParam);
 	void OnProcessingSocketMessage(HWND hWnd, UINT nMessageID, WPARAM wParam, LPARAM lParam);
 	void OnProcessingWindowMessage(HWND hWnd, UINT nMessageID, WPARAM wParam, LPARAM lParam);
+
+	int GetClientId() const { return m_pTcpClient->GetClientId(); }
 
 	static UCHAR* GetKeysBuffer();
 
@@ -100,8 +104,7 @@ private:
 	
 	static UCHAR						m_pKeysBuffer[256];
 	//TCPClient
-public:
-	shared_ptr<CTcpClient>				m_pTcpClient;
+	unique_ptr<CTcpClient>				m_pTcpClient;
 public:
 	void PrepareDrawText();
 	void RenderUI();

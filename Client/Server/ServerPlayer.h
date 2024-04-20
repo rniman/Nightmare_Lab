@@ -11,14 +11,14 @@ constexpr WORD DIR_UP = 0x40;
 constexpr WORD DIR_DOWN = 0x80;
 constexpr FLOAT ASPECT_RATIO = 1600.0f / 1024.0f;
 
-class CPlayer : public CGameObject
+class CServerPlayer : public CServerGameObject
 {
 public:
-	CPlayer();
-	virtual ~CPlayer() {};
+	CServerPlayer();
+	virtual ~CServerPlayer() {};
 
 	virtual void Update(float fElapsedTime) override;
-	virtual void Collide(const shared_ptr<CCollisionManager>& pCollisionManager, float fElapsedTime, shared_ptr<CGameObject> pCollided) override;
+	virtual void Collide(const shared_ptr<CServerCollisionManager>& pCollisionManager, float fElapsedTime, shared_ptr<CServerGameObject> pCollided) override;
 	void Move(const XMFLOAT3& xmf3Shift, bool bUpdateVelocity);
 
 	virtual void UpdatePicking() override {};
@@ -46,7 +46,7 @@ public:
 	void SetMaxVelocityY(float fMaxVelocity) { m_fMaxVelocityY = fMaxVelocity; }
 	void SetVelocity(const XMFLOAT3& xmf3Velocity) { m_xmf3Velocity = xmf3Velocity; }
 
-	void SetPickedObject(const shared_ptr<CCollisionManager> pCollisionManager);
+	void SetPickedObject(const shared_ptr<CServerCollisionManager> pCollisionManager);
 	void SetViewMatrix(const XMFLOAT4X4& xmf4x4View) { m_xmf4x4View = xmf4x4View; }
 
 	bool IsRecvData() const { return m_bRecvData; }
@@ -67,7 +67,7 @@ public:
 	int GetDepth()const { return m_nDepth; }
 	int GetFloor()const { return m_nFloor; }
 
-	weak_ptr<CGameObject> GetPickedObject() { return m_pPickedObject; }
+	weak_ptr<CServerGameObject> GetPickedObject() { return m_pPickedObject; }
 protected:
 	// 첫 데이터를 받기 시작
 	bool m_bRecvData = false;
@@ -101,7 +101,7 @@ protected:
 	float           			m_fMaxVelocityY = 0.0f;
 	float           			m_fFriction = 0.0f;
 
-	weak_ptr<CGameObject>		m_pPickedObject;
+	weak_ptr<CServerGameObject>		m_pPickedObject;
 	bool						m_bPressed = false;
 
 	XMFLOAT4X4					m_xmf4x4View;
@@ -113,25 +113,25 @@ protected:
 ///
 /// 
 
-class CBlueSuitPlayer : public CPlayer
+class CServerBlueSuitPlayer : public CServerPlayer
 {
 public:
-	CBlueSuitPlayer();
-	virtual ~CBlueSuitPlayer() {};
+	CServerBlueSuitPlayer();
+	virtual ~CServerBlueSuitPlayer() {};
 
 	virtual void Update(float fElapsedTime) override;
 	virtual void UpdatePicking() override;
 
-	int AddItem(const shared_ptr<CGameObject>& pGameObject);
+	int AddItem(const shared_ptr<CServerGameObject>& pGameObject);
 	virtual void UseItem(int nSlot) override;
 	void UseFuse();
 	void Teleport();
 
 private:
-	std::array<weak_ptr<CGameObject>, 3> m_apSlotItems;
+	std::array<weak_ptr<CServerGameObject>, 3> m_apSlotItems;
 
 	int m_nFuseNum = 0;
-	std::array<weak_ptr<CGameObject>, 3> m_apFuseItems;
+	std::array<weak_ptr<CServerGameObject>, 3> m_apFuseItems;
 
 	bool m_bShiftRun = false;
 	bool m_bAbleRun = true;
@@ -143,7 +143,7 @@ private:
 /// 
 
 
-class CZombiePlayer : public CPlayer
+class CServerZombiePlayer : public CServerPlayer
 {
 
 };

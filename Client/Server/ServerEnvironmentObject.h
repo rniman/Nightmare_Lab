@@ -1,12 +1,12 @@
 #pragma once
 #include "ServerObject.h"
 
-class CItemObject : public CGameObject
+class CItemObject : public CServerGameObject
 {
 public:
 	virtual ~CItemObject() {};
 
-	virtual void UpdateUsing(const shared_ptr<CGameObject>& pGameObject) {};
+	virtual void UpdateUsing(const shared_ptr<CServerGameObject>& pGameObject) {};
 
 	bool GetObtained() const { return m_bObtained; }
 protected:
@@ -17,7 +17,7 @@ protected:
 ////// /// /// /// /// /// /// /// /// /// /// /// /// /// /// /// /// /// /// /// /// /// /// /// /// /// /// /// ///  
 /// <CGameObject - CEnvironmentObject>
 
-class CEnvironmentObject :public CGameObject
+class CEnvironmentObject :public CServerGameObject
 {
 public:
 	CEnvironmentObject(char* pstrFrameName, const XMFLOAT4X4& xmf4x4World, const vector<BoundingOrientedBox>& voobb);
@@ -31,7 +31,7 @@ private:
 ////// /// /// /// /// /// /// /// /// /// /// /// /// /// /// /// /// /// /// /// /// /// /// /// /// /// /// /// ///  
 /// <CGameObject - CDoorObject>
 
-class CDrawerObject : public CGameObject
+class CDrawerObject : public CServerGameObject
 {
 public:
 	CDrawerObject(char* pstrFrameName, const XMFLOAT4X4& xmf4x4World, const vector<BoundingOrientedBox>& voobb);
@@ -50,7 +50,7 @@ private:
 ////// /// /// /// /// /// /// /// /// /// /// /// /// /// /// /// /// /// /// /// /// /// /// /// /// /// /// /// ///  
 /// <CGameObject - CDoorObject>
 
-class CDoorObject : public CGameObject
+class CDoorObject : public CServerGameObject
 {
 public:
 	CDoorObject(char* pstrFrameName, const XMFLOAT4X4& xmf4x4World, const vector<BoundingOrientedBox>& voobb);
@@ -70,7 +70,7 @@ private:
 ////// /// /// /// /// /// /// /// /// /// /// /// /// /// /// /// /// /// /// /// /// /// /// /// /// /// /// /// ///  
 /// <CGameObject - CElevatorDoorObject>
 
-class CElevatorDoorObject : public CGameObject
+class CElevatorDoorObject : public CServerGameObject
 {
 public:
 	CElevatorDoorObject(char* pstrFrameName, const XMFLOAT4X4& xmf4x4World, const vector<BoundingOrientedBox>& voobb);
@@ -95,7 +95,7 @@ public:
 	virtual ~CTeleportObject();;
 
 	virtual void UpdatePicking() override;
-	virtual void UpdateUsing(const shared_ptr<CGameObject>& pGameObject) override;
+	virtual void UpdateUsing(const shared_ptr<CServerGameObject>& pGameObject) override;
 };
 
 /// <CGameObject - CTeleportObject>
@@ -108,7 +108,7 @@ public:
 	virtual ~CMineObject();
 
 	virtual void UpdatePicking() override;
-	virtual void UpdateUsing(const shared_ptr<CGameObject>& pGameObject) override;
+	virtual void UpdateUsing(const shared_ptr<CServerGameObject>& pGameObject) override;
 private:
 
 };
@@ -123,7 +123,7 @@ public:
 	virtual ~CFuseObject();
 
 	virtual void UpdatePicking() override;
-	virtual void UpdateUsing(const shared_ptr<CGameObject>& pGameObject) override;
+	virtual void UpdateUsing(const shared_ptr<CServerGameObject>& pGameObject) override;
 
 private:
 
@@ -139,14 +139,14 @@ public:
 	virtual ~CRadarObject();
 
 	virtual void UpdatePicking() override;
-	virtual void UpdateUsing(const shared_ptr<CGameObject>& pGameObject) override;
+	virtual void UpdateUsing(const shared_ptr<CServerGameObject>& pGameObject) override;
 };
 
 /// <CGameObject - CRadarObject>
 ////// /// /// /// /// /// /// /// /// /// /// /// /// /// /// /// /// /// /// /// /// /// /// /// /// /// /// /// ///  
 /// <CGameObject - CStairObject>
 
-class CStairTriggerObject : public CGameObject
+class CStairTriggerObject : public CServerGameObject
 {
 public:
 	CStairTriggerObject(char* pstrFrameName, const XMFLOAT4X4& xmf4x4World, const vector<BoundingOrientedBox>& voobb);
