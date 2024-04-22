@@ -3,6 +3,11 @@
 #include "Camera.h"
 #include "Collision.h"
 
+enum class MeshType {
+	Standard = 0,
+	Blend,
+};
+
 struct MATERIAL
 {
 	XMFLOAT4 Ambient;
@@ -403,6 +408,7 @@ public:
 	void Rotate(float fPitch = 10.0f, float fYaw = 10.0f, float fRoll = 10.0f);
 	void Rotate(XMFLOAT3* pxmf3Axis, float fAngle);
 	void Rotate(XMFLOAT4* pxmf4Quaternion);
+	void SetLookAt(XMFLOAT3& xmf3target);
 
 	weak_ptr<CGameObject> GetParent() { return(m_pParent); }
 	void UpdateTransform(XMFLOAT4X4* pxmf4x4Parent = NULL);
@@ -414,7 +420,7 @@ public:
 	UINT GetMeshType();
 
 	void LoadMaterialsFromFile(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dCommandList, shared_ptr<CGameObject> pParent, FILE* pInFile);
-	static shared_ptr<CGameObject> LoadFrameHierarchyFromFile(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dCommandList, ID3D12RootSignature* pd3dGraphicsRootSignature, shared_ptr<CGameObject> pParent, FILE* pInFile, int* pnSkinnedMeshes);
+	static shared_ptr<CGameObject> LoadFrameHierarchyFromFile(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dCommandList, ID3D12RootSignature* pd3dGraphicsRootSignature, shared_ptr<CGameObject> pParent, FILE* pInFile, int* pnSkinnedMeshes, MeshType meshtype);
 	static shared_ptr<CGameObject> LoadInstanceFrameHierarchyFromFile(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dCommandList, ID3D12RootSignature* pd3dGraphicsRootSignature, shared_ptr<CGameObject> pParent, FILE* pInFile, int* pnSkinnedMeshes);
 	static void PrintFrameInfo(const shared_ptr<CGameObject>& pGameObject, const shared_ptr<CGameObject>& pParent);
 	
@@ -427,7 +433,7 @@ public:
 	void SetRootMotion(bool bRootMotion) { if (m_pSkinnedAnimationController) m_pSkinnedAnimationController->SetRootMotion(bRootMotion); }
 	
 	static void LoadAnimationFromFile(FILE* pInFile, const shared_ptr<CLoadedModelInfo>& pLoadedModel);
-	static shared_ptr<CLoadedModelInfo> LoadGeometryAndAnimationFromFile(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dCommandList, ID3D12RootSignature* pd3dGraphicsRootSignature, const char* pstrFileName);
+	static shared_ptr<CLoadedModelInfo> LoadGeometryAndAnimationFromFile(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dCommandList, ID3D12RootSignature* pd3dGraphicsRootSignature, const char* pstrFileName, MeshType meshtype);
 
 	virtual void LoadModelAndAnimation(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dCommandList, ID3D12RootSignature* pd3dGraphicsRootSignature, const shared_ptr<CLoadedModelInfo>& pLoadModelInfo) {};
 

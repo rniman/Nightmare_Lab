@@ -23,6 +23,13 @@ cbuffer cbGameObjectInfo : register(b1)
     uint gnTexturesMask : packoffset(c8);
 };
 
+cbuffer cbFrameInfo : register(b5)
+{
+    float time : packoffset(c0.x);
+    float localTime : packoffset(c0.y);
+    float usePattern : packoffset(c0.z);
+}
+
 #define FRAME_BUFFER_WIDTH 1600
 #define FRAME_BUFFER_HEIGHT 1024
 
@@ -42,6 +49,8 @@ Texture2D DFNormalTexture : register(t6);
 Texture2D<float> DFzDepthTexture : register(t7);
 
 Texture2D DFPositionTexture : register(t8);
+
+Texture2D PatternTexture : register(t9);
 
 
 #define MATERIAL_ALBEDO_MAP			0x01
@@ -181,6 +190,20 @@ PS_MULTIPLE_RENDER_TARGETS_OUTPUT PSStandard(VS_STANDARD_OUTPUT input)
         cEmissionColor = EmissionTexture.Sample(gssWrap, input.uv);
     
     float4 cColor = (cAlbedoColor * 0.7f) + (cSpecularColor * 0.2f) + (cMetallicColor * 0.05f) + (cEmissionColor * 0.5f);
+    
+    if (usePattern > 0.0f)
+    {
+        float2 patternUV;
+        patternUV.x = input.uv.x;
+        patternUV.y = input.uv.y + frac(time);
+    
+        float4 patternColor = PatternTexture.Sample(gssWrap, patternUV);
+    
+        if (patternColor.x >= 0.1f && patternColor.y >= 0.1f && patternColor.z >= 0.1f)
+        {
+            cColor *= patternColor;
+        }
+    }
     
     float3 vCameraPosition = gvCameraPosition.xyz;
     float3 vPostionToCamera = vCameraPosition - input.positionW;

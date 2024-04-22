@@ -10,6 +10,9 @@
  extern UINT gnRtvDescriptorIncrementSize;
  extern UINT gnDsvDescriptorIncrementSize;
 
+ D3D12_GPU_DESCRIPTOR_HANDLE CGameFramework::m_d3dTimeCbvGPUDescriptorHandle;
+ FrameTimeInfo* CGameFramework::m_pcbMappedTime;
+
  CGameFramework::CGameFramework()
 {
 	m_nSwapChainBufferIndex = 0;
@@ -410,7 +413,14 @@ void CGameFramework::RenderUI()
 	D2D1_SIZE_F rtSize = m_d2dRenderTargets[m_nSwapChainBufferIndex]->GetSize();
 	D2D1_RECT_F textRect = D2D1::RectF(0, 0, rtSize.width, rtSize.height);
 
-	float escapelength = dynamic_pointer_cast<CBlueSuitPlayer>(m_pPlayer)->GetEscapeLength();
+	auto player = dynamic_pointer_cast<CBlueSuitPlayer>(m_pPlayer);
+	if (!player) { //좀비 플레이어라면 레이더 텍스트 렌더링 X
+		m_d3d11On12Device->AcquireWrappedResources(m_wrappedBackBuffers[m_nSwapChainBufferIndex].GetAddressOf(), 1);
+		m_d3d11On12Device->ReleaseWrappedResources(m_wrappedBackBuffers[m_nSwapChainBufferIndex].GetAddressOf(), 1);
+		m_d3d11DeviceContext->Flush();
+		return;
+	}
+	float escapelength = player->GetEscapeLength();
 
 	wchar_t text[20]; // 변환된 유니코드 문자열을 저장할 버퍼
 
@@ -420,7 +430,6 @@ void CGameFramework::RenderUI()
 	len += 1;
 	text[len+1] = '\0';
 	
-	//static const WCHAR text[] = buffer;
 	
 	// 현재 백 버퍼에 대한 래핑된 렌더 타겟 자원을 획득합니다.
 	m_d3d11On12Device->AcquireWrappedResources(m_wrappedBackBuffers[m_nSwapChainBufferIndex].GetAddressOf(), 1);
@@ -478,6 +487,18 @@ void CGameFramework::OnProcessingMouseMessage(HWND hWnd, UINT nMessageID, WPARAM
 	}
 }
 
+void locationWrite(XMFLOAT3 pos)
+{
+	ofstream os{ "TeleportLoc.txt", std::ios_base::app };
+
+	if (!os.is_open()) {
+		assert(0); // 파일이 안열림
+	}
+
+	os << "{" << pos.x << "," << pos.y << "," << pos.z << "},\n";
+	os.close();
+}
+
 void CGameFramework::OnProcessingKeyboardMessage(HWND hWnd, UINT nMessageID, WPARAM wParam, LPARAM lParam)
 {
 	if (m_pScene) m_pScene->OnProcessingKeyboardMessage(hWnd, nMessageID, wParam, lParam);
@@ -526,6 +547,7 @@ void CGameFramework::OnProcessingKeyboardMessage(HWND hWnd, UINT nMessageID, WPA
 			}
 			break;
 		case '1':
+			locationWrite(m_pPlayer->GetPosition());
 			//uiX += 10.f;
 			break;
 		case '2':
@@ -594,6 +616,12 @@ void CGameFramework::BuildObjects()
 
 	m_pScene = make_shared<CScene>();
 	if (m_pScene.get()) m_pScene->BuildObjects(m_d3d12Device.Get(), m_d3dCommandList.Get());
+	
+	UINT ncbElementBytes = ((sizeof(FrameTimeInfo) + 255) & ~255); //256의 배수
+
+	m_pd3dcbTime = ::CreateBufferResource(m_d3d12Device.Get(), m_d3dCommandList.Get(), NULL, ncbElementBytes, D3D12_HEAP_TYPE_UPLOAD, D3D12_RESOURCE_STATE_VERTEX_AND_CONSTANT_BUFFER, NULL);
+	m_pd3dcbTime->Map(0, NULL, (void**)&m_pcbMappedTime);
+	m_d3dTimeCbvGPUDescriptorHandle = CScene::CreateConstantBufferViews(m_d3d12Device.Get(), 1, m_pd3dcbTime.Get(), ncbElementBytes);
 
 	m_pPlayer = m_pScene->m_pPlayer;
 	m_pCamera = m_pPlayer->GetCamera();
@@ -704,6 +732,7 @@ void CGameFramework::ProcessInput()
 void CGameFramework::AnimateObjects()
 {
 	float fElapsedTime = m_GameTimer.GetTimeElapsed();
+	m_pcbMappedTime->time += fElapsedTime;
 
 	if (m_pScene) m_pScene->AnimateObjects(fElapsedTime);
 	
@@ -781,6 +810,7 @@ void CGameFramework::PreRenderTasks()
 			//1차 렌더링
 			if (m_pScene)
 			{
+				m_pScene->PrepareRender(m_d3dCommandList.Get(), vlightCamera[i]);
 				m_pScene->Render(m_d3dCommandList.Get(), vlightCamera[i], 1); // 카메라만 빛의 위치대로 설정해서 렌더링함.
 			}
 		}
@@ -830,18 +860,21 @@ void CGameFramework::FrameAdvance()
 
 		auto& vlightCamera = m_pPostProcessingShader->GetLightCamera();
 
-		XMFLOAT4X4* xmf4x4playerLight = dynamic_pointer_cast<CBlueSuitPlayer>(m_pScene->m_pPlayer)->GetFlashLigthWorldTransform();
-		vlightCamera[0]->SetPosition(XMFLOAT3(xmf4x4playerLight->_41, xmf4x4playerLight->_42, xmf4x4playerLight->_43));
-		vlightCamera[0]->SetLookVector(XMFLOAT3(xmf4x4playerLight->_21, xmf4x4playerLight->_22, xmf4x4playerLight->_23));
-		vlightCamera[0]->RegenerateViewMatrix();
-		vlightCamera[0]->MultiplyViewProjection();
+		auto client_player = dynamic_pointer_cast<CBlueSuitPlayer>(m_pScene->m_pPlayer);
+		if (client_player) {
+			XMFLOAT4X4* xmf4x4playerLight = client_player->GetFlashLigthWorldTransform();
+			vlightCamera[0]->SetPosition(XMFLOAT3(xmf4x4playerLight->_41, xmf4x4playerLight->_42, xmf4x4playerLight->_43));
+			vlightCamera[0]->SetLookVector(XMFLOAT3(xmf4x4playerLight->_21, xmf4x4playerLight->_22, xmf4x4playerLight->_23));
+			vlightCamera[0]->RegenerateViewMatrix();
+			vlightCamera[0]->MultiplyViewProjection();
+		}
 
-		XMFLOAT4X4 xmf4x4ToTexture = {
+		static XMFLOAT4X4 xmf4x4ToTexture = {
 		0.5f, 0.0f, 0.0f, 0.0f,
 		0.0f, -0.5f, 0.0f, 0.0f,
 		0.0f, 0.0f, 1.0f, 0.0f,
 		0.5f, 0.5f, 0.0f, 1.0f };
-		XMMATRIX xmProjectionToTexture = XMLoadFloat4x4(&xmf4x4ToTexture);
+		static XMMATRIX xmProjectionToTexture = XMLoadFloat4x4(&xmf4x4ToTexture);
 
 		XMFLOAT4X4 viewProjection = vlightCamera[0]->GetViewProjection();
 		XMMATRIX xmmtxViewProjection = XMLoadFloat4x4(&viewProjection);
@@ -857,6 +890,7 @@ void CGameFramework::FrameAdvance()
 				//1차 렌더링
 				if (m_pScene)
 				{
+					m_pScene->PrepareRender(m_d3dCommandList.Get(), vlightCamera[i]);
 					m_pScene->Render(m_d3dCommandList.Get(), vlightCamera[i], 1/*nPipelinestate*/); // 카메라만 빛의 위치대로 설정해서 렌더링함.
 				}
 			}
@@ -880,6 +914,8 @@ void CGameFramework::FrameAdvance()
 		//1차 렌더링
 		if (m_pScene)
 		{
+			//m_d3dCommandList->SetGraphicsRootDescriptorTable(12, m_d3dTimeCbvGPUDescriptorHandle);
+			m_pScene->PrepareRender(m_d3dCommandList.Get(), m_pCamera.lock());
 			m_pScene->Render(m_d3dCommandList.Get(), m_pCamera.lock(), 0);
 		}
 
@@ -901,10 +937,12 @@ void CGameFramework::FrameAdvance()
 		//불투명 객체 최종 렌더링
 		m_pPostProcessingShader->Render(m_d3dCommandList.Get(), m_pCamera.lock());
 
-		// 투명 객체 렌더링
+		// 포워드 렌더 객체
 		if (m_pScene)
 		{
-			m_pScene->m_vForwardRenderShader[0]->Render(m_d3dCommandList.Get(), m_pCamera.lock());
+			for (auto& s : m_pScene->m_vForwardRenderShader) {
+				s->Render(m_d3dCommandList.Get(), m_pCamera.lock());
+			}
 		}
 	}
 	//SynchronizeResourceTransition(m_d3dCommandList.Get(), m_d3dSwapChainBackBuffers[m_nSwapChainBufferIndex].Get(), D3D12_RESOURCE_STATE_RENDER_TARGET, D3D12_RESOURCE_STATE_PRESENT);

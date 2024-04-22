@@ -1,10 +1,12 @@
 #include "stdafx.h"
+#include "GameFramework.h"
 #include "Player.h"
 #include "Scene.h"
 #include "Shader.h"
 #include "PlayerController.h"
 #include "Collision.h"
 #include "EnviromentObject.h"
+#include "TeleportLocation.h"
 //#define _WITH_DEBUG_CALLBACK_DATA
 
 void CSoundCallbackHandler::HandleCallback(void* pCallbackData, float fTrackPosition)
@@ -433,6 +435,8 @@ CBlueSuitPlayer::CBlueSuitPlayer(ID3D12Device* pd3dDevice, ID3D12GraphicsCommand
 	m_xmf4x4Raider = Matrix4x4::Identity();
 	m_pRaider = make_unique<CRadarObject>(pd3dDevice, pd3dCommandList, pd3dGraphicsRootSignature);
 
+	m_pTeleport = make_unique<CTeleportObject>(pd3dDevice, pd3dCommandList, pd3dGraphicsRootSignature);
+
 	SetPlayerUpdatedContext(pContext);
 	SetCameraUpdatedContext(pContext);
 }
@@ -606,7 +610,9 @@ void CBlueSuitPlayer::Animate(float fElapsedTime)
 	m_pFlashlight->UpdateTransform(GetLeftHandItemFlashLightModelTransform());
 	//플레이어의 왼손: 레이더 // 내 눈에서만 레이더가 확대되는것처럼 보임. 즉, 자신의 오른손에 레이더는 사라지고 확대창으로.
 	// 다른 플레이어를 렌더링 할때는 손에 있는 형태로 보여야함.
-	m_pRaider->UpdateTransform(RaiderUpdate(fElapsedTime));
+	//m_pRaider->UpdateTransform(RaiderUpdate(fElapsedTime));
+	//텔레포트 아이템
+	m_pTeleport->UpdateTransform(GetRightHandItemTeleportItemModelTransform());
 }
 
 void CBlueSuitPlayer::UpdatePicking() 
@@ -623,11 +629,18 @@ void CBlueSuitPlayer::RightClickProcess()
 {
 	switch (m_selectItem)
 	{
-	case CBlueSuitPlayer::NONE:
+	case RightItem::NONE:
 		break;
-	case CBlueSuitPlayer::RAIDER:
+	case RightItem::RAIDER:
 		m_bRightClick = !m_bRightClick;
 		m_fOpenRaiderTime = 0.3f;
+		break;
+	case RightItem::TELEPORT:
+		Teleport();
+		break;
+	case RightItem::LANDMINE:
+		break;
+	case RightItem::FUSE:
 		break;
 	default:
 		break;
@@ -716,7 +729,8 @@ void CBlueSuitPlayer::UseFuse()
 
 void CBlueSuitPlayer::Teleport()
 {
-	XMFLOAT3 randomPos = { 4.0f, 4.0f, 4.0f };
+	XMFLOAT3 randomPos = TeleportLocations[rand() % (sizeof(TeleportLocations) / sizeof(XMFLOAT3))];
+
 	SetPosition(randomPos);
 }
 
@@ -735,6 +749,17 @@ XMFLOAT4X4 CBlueSuitPlayer::GetRightHandItemRaiderModelTransform() const
 
 	return controller->m_pAnimationSets->m_vpBoneFrameCaches[i]->m_xmf4x4World;
 }
+
+XMFLOAT4X4* CBlueSuitPlayer::GetRightHandItemTeleportItemModelTransform() const
+{
+	auto controller = m_pSkinnedAnimationController.get();
+	int i = dynamic_pointer_cast<CBlueSuitAnimationController>(m_pSkinnedAnimationController)->GetBoneFrameIndexToRightHandTeleportItem();
+
+	return &controller->m_pAnimationSets->m_vpBoneFrameCaches[i]->m_xmf4x4World;
+}
+
+
+
 
 XMFLOAT4X4* CBlueSuitPlayer::RaiderUpdate(float fElapsedTime)
 {
@@ -796,9 +821,30 @@ float CBlueSuitPlayer::GetEscapeLength()
 	return length;
 }
 
+void CBlueSuitPlayer::SetMineItem(shared_ptr<CGameObject> object)
+{
+	m_pMine->SetChild(object);
+}
+
 XMFLOAT4X4* CBlueSuitPlayer::GetFlashLigthWorldTransform()
 {
 	return &m_pFlashlight->m_xmf4x4World;
+}
+
+void CBlueSuitPlayer::SetFlashLight(shared_ptr<CGameObject> object)
+{ 
+	m_pFlashlight = object; 
+}
+
+void CBlueSuitPlayer::SetRaider(shared_ptr<CGameObject> object)
+{		
+	m_pRaider->SetChild(object); 
+	//m_pRaider = reinterpret_pointer_cast<CRadarObject>(object); //형식의 호환성을 확인하지 않기 때문에 잘못된 형식 변환을 허용하므로 사용자제.
+}
+
+void CBlueSuitPlayer::SetTeleportItem(shared_ptr<CGameObject> object)
+{
+	m_pTeleport->SetChild(object);
 }
 
 
@@ -809,6 +855,15 @@ CZombiePlayer::CZombiePlayer(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList
 	:CPlayer(pd3dDevice, pd3dCommandList, pd3dGraphicsRootSignature, pContext)
 {
 	m_xmf3Scale = XMFLOAT3(1.0f, 1.0f, 1.0f);
+
+	UINT ncbElementBytes = ((sizeof(FrameTimeInfo) + 255) & ~255); //256의 배수
+	m_pd3dcbTime = ::CreateBufferResource(pd3dDevice, pd3dCommandList, NULL, ncbElementBytes, D3D12_HEAP_TYPE_UPLOAD, D3D12_RESOURCE_STATE_VERTEX_AND_CONSTANT_BUFFER, NULL);
+	m_pd3dcbTime->Map(0, NULL, (void**)&m_pcbMappedTime);
+	m_d3dTimeCbvGPUDescriptorHandle = CScene::CreateConstantBufferViews(pd3dDevice, 1, m_pd3dcbTime.Get(), ncbElementBytes);
+
+	m_pd3dcbTimeEnd = ::CreateBufferResource(pd3dDevice, pd3dCommandList, NULL, ncbElementBytes, D3D12_HEAP_TYPE_UPLOAD, D3D12_RESOURCE_STATE_VERTEX_AND_CONSTANT_BUFFER, NULL);
+	m_pd3dcbTimeEnd->Map(0, NULL, (void**)&m_pcbMappedTimeEnd);
+	m_d3dTimeCbvGPUDescriptorHandleEnd = CScene::CreateConstantBufferViews(pd3dDevice, 1, m_pd3dcbTimeEnd.Get(), ncbElementBytes);
 
 	SetPlayerUpdatedContext(pContext);
 	SetCameraUpdatedContext(pContext);
@@ -844,6 +899,8 @@ void CZombiePlayer::Update(float fElapsedTime)
 {
 	CPlayer::Update(fElapsedTime);
 
+	m_pcbMappedTime->time += fElapsedTime;
+
 	if (m_pSkinnedAnimationController)
 	{
 		float fLength = sqrtf(m_xmf3Velocity.x * m_xmf3Velocity.x + m_xmf3Velocity.z * m_xmf3Velocity.z);
@@ -868,4 +925,23 @@ void CZombiePlayer::Update(float fElapsedTime)
 			}
 		}
 	}
+}
+
+void CZombiePlayer::Render(ID3D12GraphicsCommandList* pd3dCommandList)
+{
+	if (electricBlend) {
+		m_pcbMappedTime->usePattern = 1.0f;
+		pd3dCommandList->SetGraphicsRootDescriptorTable(12, m_d3dTimeCbvGPUDescriptorHandle);
+
+		CPlayer::Render(pd3dCommandList);
+
+		pd3dCommandList->SetGraphicsRootDescriptorTable(12, m_d3dTimeCbvGPUDescriptorHandleEnd);
+		return;
+	}
+	CPlayer::Render(pd3dCommandList);
+}
+
+void CZombiePlayer::CollisionByItem()
+{
+
 }

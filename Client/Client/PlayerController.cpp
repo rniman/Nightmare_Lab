@@ -48,8 +48,10 @@ CBlueSuitAnimationController::CBlueSuitAnimationController(ID3D12Device* pd3dDev
 		if (strncmp(frameName, "JawEnd_M", strlen(frameName)) == 0) m_nEndNeck = i;
 		if (strncmp(frameName, "Player_Flashlight", strlen(frameName)) == 0) m_nPlayerFlashLight = i;
 		if (strncmp(frameName, "Elbow_L", strlen(frameName)) == 0) m_nElbow_L = i;
+		if (strncmp(frameName, "Elbow_R", strlen(frameName)) == 0) m_nElbow_R = i;
 		if (strncmp(frameName, "Head_M", strlen(frameName)) == 0) m_nHead_M = i;
 		if (strncmp(frameName, "Item_Raider", strlen(frameName)) == 0) m_nRaiderItem = i;
+		if (strncmp(frameName, "Item_Teleport", strlen(frameName)) == 0) m_nTeleportItem = i;
 		
 	}
 }
@@ -274,7 +276,15 @@ void CBlueSuitAnimationController::AdvanceTime(float fElapsedTime, CGameObject* 
 		XMMATRIX xmmtxRotate = XMMatrixRotationAxis(XMLoadFloat3(&axis), XMConvertToRadians(m_fElbowPitch));
 		XMStoreFloat4x4(&m_pAnimationSets->m_vpBoneFrameCaches[m_nElbow_L]->m_xmf4x4ToParent,
 			XMMatrixMultiply(xmmtxRotate, XMLoadFloat4x4(&m_pAnimationSets->m_vpBoneFrameCaches[m_nElbow_L]->m_xmf4x4ToParent)));
-
+		//[CJI 0418] 오른쪽 팔꿈치를 중심으로 회전하여 아이템을 들고 있도록 표현
+		axis = { 1.f,0.f,0.f };
+		xmmtxRotate = XMMatrixRotationAxis(XMLoadFloat3(&axis), XMConvertToRadians(30.0f));
+		XMStoreFloat4x4(&m_pAnimationSets->m_vpBoneFrameCaches[m_nElbow_R]->m_xmf4x4ToParent,
+			XMMatrixMultiply(xmmtxRotate, XMLoadFloat4x4(&m_pAnimationSets->m_vpBoneFrameCaches[m_nElbow_R]->m_xmf4x4ToParent)));
+		axis = { 0.f,0.f,1.f };
+		xmmtxRotate = XMMatrixRotationAxis(XMLoadFloat3(&axis), XMConvertToRadians(-60.0f));
+		XMStoreFloat4x4(&m_pAnimationSets->m_vpBoneFrameCaches[m_nElbow_R]->m_xmf4x4ToParent,
+			XMMatrixMultiply(xmmtxRotate, XMLoadFloat4x4(&m_pAnimationSets->m_vpBoneFrameCaches[m_nElbow_R]->m_xmf4x4ToParent)));
 		pRootGameObject->UpdateTransform(NULL);
 
 		OnRootMotion(pRootGameObject);
@@ -319,6 +329,7 @@ void CBlueSuitAnimationController::SetElbowPitch(float value)
 int CBlueSuitAnimationController::GetBoneFrameIndex(char* frameName)
 {
 	int i = -1;
+
 	if (strncmp(frameName, "Scapula_L", strlen(frameName)) == 0) i = m_nStartLArm ;
 	if (strncmp(frameName, "ThumbFinger4_L", strlen(frameName)) == 0) i = m_nEndLArm ;
 	if (strncmp(frameName, "Scapula_R", strlen(frameName)) == 0) i = m_nStartRArm ;
@@ -328,8 +339,10 @@ int CBlueSuitAnimationController::GetBoneFrameIndex(char* frameName)
 	if (strncmp(frameName, "JawEnd_M", strlen(frameName)) == 0) i = m_nEndNeck ;
 	if (strncmp(frameName, "Player_Flashlight", strlen(frameName)) == 0) i = m_nPlayerFlashLight ;
 	if (strncmp(frameName, "Elbow_L", strlen(frameName)) == 0) i = m_nElbow_L ;
+	if (strncmp(frameName, "Elbow_R", strlen(frameName)) == 0) i = m_nElbow_R;
 	if (strncmp(frameName, "Head_M", strlen(frameName)) == 0) i = m_nHead_M ;
 	if (strncmp(frameName, "Item_Raider", strlen(frameName)) == 0) i = m_nRaiderItem;
+	if (strncmp(frameName, "Item_Teleport", strlen(frameName)) == 0) i = m_nTeleportItem;
 	
 	if (i == -1) {
 		assert(0);

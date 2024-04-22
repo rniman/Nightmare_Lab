@@ -126,6 +126,9 @@ private:
 	enum RightItem {
 		NONE = 0,
 		RAIDER,
+		TELEPORT,
+		LANDMINE,
+		FUSE,
 	};
 public:
 	CBlueSuitPlayer(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dCommandList, ID3D12RootSignature* pd3dGraphicsRootSignature, void* pContext = NULL);
@@ -148,7 +151,7 @@ public:
 	void Teleport();
 
 private:
-	RightItem m_selectItem = RAIDER;
+	RightItem m_selectItem = TELEPORT;
 
 	std::array<weak_ptr<CGameObject>, 3> m_apSlotItems;
 
@@ -162,16 +165,21 @@ private:
 private: 
 	shared_ptr<CGameObject> m_pFlashlight; // 플래시라이트
 	shared_ptr<CRadarObject> m_pRaider; // 레이더
+	shared_ptr<CTeleportObject> m_pTeleport; // 텔레포트아이템
+	shared_ptr<CMineObject> m_pMine; // 텔레포트아이템
+	
 public:
 	XMFLOAT4X4* GetLeftHandItemFlashLightModelTransform() const;
-	XMFLOAT4X4 GetRightHandItemRaiderModelTransform() const;
+	XMFLOAT4X4	GetRightHandItemRaiderModelTransform() const;
+	XMFLOAT4X4* GetRightHandItemTeleportItemModelTransform() const;
 
 	XMFLOAT4X4* GetFlashLigthWorldTransform();
-	void SetFlashLight(shared_ptr<CGameObject> object) { m_pFlashlight = object; }
-	void SetRaider(shared_ptr<CGameObject> object) { m_pRaider->SetChild(object); }
-
+	void SetFlashLight(shared_ptr<CGameObject> object);
+	void SetRaider(shared_ptr<CGameObject> object); 
+	void SetTeleportItem(shared_ptr<CGameObject> object);
+	void SetMineItem(shared_ptr<CGameObject> object);
+	
 	XMFLOAT4X4* RaiderUpdate(float fElapsedTime);
-
 	bool PlayRaiderUI() { return m_fOpenRaiderTime == 0.0f && m_bRightClick; }
 	float GetEscapeLength();
 private:
@@ -181,8 +189,18 @@ private:
 	bool m_bRightClick = false;
 };
 
+struct FrameTimeInfo;
+
 class CZombiePlayer : public CPlayer
 {
+private:
+	FrameTimeInfo*					m_pcbMappedTime;
+	D3D12_GPU_DESCRIPTOR_HANDLE		m_d3dTimeCbvGPUDescriptorHandle;
+	ComPtr<ID3D12Resource>			m_pd3dcbTime;
+
+	FrameTimeInfo*					m_pcbMappedTimeEnd;
+	D3D12_GPU_DESCRIPTOR_HANDLE		m_d3dTimeCbvGPUDescriptorHandleEnd;
+	ComPtr<ID3D12Resource>			m_pd3dcbTimeEnd;
 public:
 	CZombiePlayer(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dCommandList, ID3D12RootSignature* pd3dGraphicsRootSignature, void* pContext = NULL);
 	virtual ~CZombiePlayer();
@@ -190,6 +208,9 @@ public:
 	virtual void LoadModelAndAnimation(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dCommandList, ID3D12RootSignature* pd3dGraphicsRootSignature, const shared_ptr<CLoadedModelInfo>& pLoadModelInfo) override;
 
 	virtual void Update(float fElapsedTime) override;
-private:
+	virtual void Render(ID3D12GraphicsCommandList* pd3dCommandList);
 
+	virtual void CollisionByItem();
+private:
+	bool electricBlend = true;
 };
