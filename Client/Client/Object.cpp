@@ -2,6 +2,7 @@
 #include "Object.h"
 #include "Shader.h"
 #include "Scene.h"
+#include "TextureBlendMesh.h"
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 //
@@ -261,12 +262,14 @@ void CMaterial::ReleaseUploadBuffers()
 
 void CMaterial::UpdateShaderVariable(ID3D12GraphicsCommandList* pd3dCommandList, VS_CB_OBJECT_INFO* objectInfo)
 {
-	objectInfo->material.Albedo = m_xmf4AlbedoColor;
-	objectInfo->material.Ambient = m_xmf4AmbientColor;
-	objectInfo->material.Emissive = m_xmf4EmissiveColor;
-	objectInfo->material.Specular = m_xmf4SpecularColor;
+	if (objectInfo) {
+		objectInfo->material.Albedo = m_xmf4AlbedoColor;
+		objectInfo->material.Ambient = m_xmf4AmbientColor;
+		objectInfo->material.Emissive = m_xmf4EmissiveColor;
+		objectInfo->material.Specular = m_xmf4SpecularColor;
 
-	objectInfo->gnTexturesMask = m_nType;
+		objectInfo->gnTexturesMask = m_nType;
+	}
 
 	for (int i = 0; i < m_nTextures; i++)
 	{
@@ -1296,6 +1299,20 @@ UINT CGameObject::GetMeshType()
 	return 0x00;
 }
 
+void CGameObject::SetLookAt(XMFLOAT3& xmf3target)
+{
+	XMFLOAT3 up(0.0f, 1.0f, 0.0f);
+	XMFLOAT3 position(m_xmf4x4World._41, m_xmf4x4World._42, m_xmf4x4World._43);
+	XMFLOAT3 look = Vector3::Subtract(xmf3target, position);
+	XMFLOAT3 right = Vector3::CrossProduct(up, look);
+	m_xmf4x4World._11 = right.x;m_xmf4x4World._12 = right.y;m_xmf4x4World._13 = right.z;
+	m_xmf4x4World._21 = up.x;m_xmf4x4World._22 = up.y;m_xmf4x4World._23 = up.z;
+	m_xmf4x4World._31 = look.x;m_xmf4x4World._32 = look.y;m_xmf4x4World._33 = look.z;
+
+	m_xmf4x4ToParent._41 = 0.0f;m_xmf4x4ToParent._42 = 0.0f;m_xmf4x4ToParent._43 = 0.0f;
+	m_xmf4x4World = Matrix4x4::Multiply(m_xmf4x4ToParent, m_xmf4x4World);
+}
+
 
 void CGameObject::LoadMaterialsFromFile(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dCommandList, shared_ptr<CGameObject> pParent, FILE* pInFile)
 {
@@ -1411,7 +1428,7 @@ void CGameObject::LoadMaterialsFromFile(ID3D12Device* pd3dDevice, ID3D12Graphics
 
 vector<shared_ptr<CMesh>> CGameObject::m_vMeshContainer;
 
-shared_ptr<CGameObject> CGameObject::LoadFrameHierarchyFromFile(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dCommandList, ID3D12RootSignature* pd3dGraphicsRootSignature, shared_ptr<CGameObject> pParent, FILE* pInFile, int* pnSkinnedMeshes)
+shared_ptr<CGameObject> CGameObject::LoadFrameHierarchyFromFile(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dCommandList, ID3D12RootSignature* pd3dGraphicsRootSignature, shared_ptr<CGameObject> pParent, FILE* pInFile, int* pnSkinnedMeshes, MeshType meshtype)
 {
 	char pstrToken[64] = { '\0' };
 	UINT nReads = 0;
@@ -1447,7 +1464,20 @@ shared_ptr<CGameObject> CGameObject::LoadFrameHierarchyFromFile(ID3D12Device* pd
 		}
 		else if (!strcmp(pstrToken, "<Mesh>:"))
 		{
-			shared_ptr<CStandardMesh> pMesh = make_shared<CStandardMesh>(pd3dDevice, pd3dCommandList);
+			shared_ptr<CStandardMesh> pMesh;
+
+			switch (meshtype)
+			{
+			case MeshType::Standard:
+				pMesh = make_shared<CStandardMesh>(pd3dDevice, pd3dCommandList);
+				break;
+			case MeshType::Blend:
+				pMesh = make_shared<TextureBlendMesh>(pd3dDevice, pd3dCommandList);
+				break;
+			default:
+				break;
+			}
+
 			if (!pMesh->LoadMeshFromFile(pd3dDevice, pd3dCommandList, pInFile)) 
 			{
 				for (auto pStoredMesh : m_vMeshContainer) 
@@ -1497,7 +1527,7 @@ shared_ptr<CGameObject> CGameObject::LoadFrameHierarchyFromFile(ID3D12Device* pd
 			{
 				for (int i = 0; i < nChilds; i++)
 				{
-					shared_ptr<CGameObject> pChild = CGameObject::LoadFrameHierarchyFromFile(pd3dDevice, pd3dCommandList, pd3dGraphicsRootSignature, pGameObject, pInFile, pnSkinnedMeshes);
+					shared_ptr<CGameObject> pChild = CGameObject::LoadFrameHierarchyFromFile(pd3dDevice, pd3dCommandList, pd3dGraphicsRootSignature, pGameObject, pInFile, pnSkinnedMeshes, meshtype);
 					if (pChild) pGameObject->SetChild(pChild);
 #ifdef _WITH_DEBUG_FRAME_HIERARCHY
 					TCHAR pstrDebug[256] = { 0 };
@@ -1746,7 +1776,7 @@ void CGameObject::LoadAnimationFromFile(FILE* pInFile, const shared_ptr<CLoadedM
 	}
 }
  
-shared_ptr<CLoadedModelInfo> CGameObject::LoadGeometryAndAnimationFromFile(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dCommandList, ID3D12RootSignature* pd3dGraphicsRootSignature, const char* pstrFileName)
+shared_ptr<CLoadedModelInfo> CGameObject::LoadGeometryAndAnimationFromFile(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dCommandList, ID3D12RootSignature* pd3dGraphicsRootSignature, const char* pstrFileName, MeshType meshtype)
 {
 	FILE* pInFile = NULL;
 	::fopen_s(&pInFile, pstrFileName, "rb");
@@ -1762,7 +1792,7 @@ shared_ptr<CLoadedModelInfo> CGameObject::LoadGeometryAndAnimationFromFile(ID3D1
 		{
 			if (!strcmp(pstrToken, "<Hierarchy>:"))
 			{
-				pLoadedModel->m_pModelRootObject = CGameObject::LoadFrameHierarchyFromFile(pd3dDevice, pd3dCommandList, pd3dGraphicsRootSignature, NULL, pInFile, &pLoadedModel->m_nSkinnedMeshes);
+				pLoadedModel->m_pModelRootObject = CGameObject::LoadFrameHierarchyFromFile(pd3dDevice, pd3dCommandList, pd3dGraphicsRootSignature, NULL, pInFile, &pLoadedModel->m_nSkinnedMeshes, meshtype);
 				::ReadStringFromFile(pInFile, pstrToken); //"</Hierarchy>"
 			}
 			else if (!strcmp(pstrToken, "<Animation>:"))

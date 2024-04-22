@@ -50,7 +50,8 @@ CBlueSuitAnimationController::CBlueSuitAnimationController(ID3D12Device* pd3dDev
 		if (strncmp(frameName, "Elbow_L", strlen(frameName)) == 0) m_nElbow_L = i;
 		if (strncmp(frameName, "Head_M", strlen(frameName)) == 0) m_nHead_M = i;
 		if (strncmp(frameName, "Item_Raider", strlen(frameName)) == 0) m_nRaiderItem = i;
-		
+		if (strncmp(frameName, "Item_Teleport", strlen(frameName)) == 0) m_nTeleportItem = i;
+
 	}
 }
 
@@ -329,7 +330,8 @@ int CBlueSuitAnimationController::GetBoneFrameIndex(char* frameName)
 	if (strncmp(frameName, "Elbow_L", strlen(frameName)) == 0) i = m_nElbow_L ;
 	if (strncmp(frameName, "Head_M", strlen(frameName)) == 0) i = m_nHead_M ;
 	if (strncmp(frameName, "Item_Raider", strlen(frameName)) == 0) i = m_nRaiderItem;
-	
+	if (strncmp(frameName, "Item_Teleport", strlen(frameName)) == 0) i = m_nTeleportItem;
+
 	if (i == -1) {
 		assert(0);
 	}

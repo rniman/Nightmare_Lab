@@ -19,6 +19,12 @@
       <UniqueIdentifier>{67DA6AB6-F800-4c08-8B7A-83BB121AAD01}</UniqueIdentifier>
       <Extensions>rc;ico;cur;bmp;dlg;rc2;rct;bin;rgs;gif;jpg;jpeg;jpe;resx;tiff;tif;png;wav;mfcribbon-ms</Extensions>
     </Filter>
+    <Filter Include="TextureBlendShader">
+      <UniqueIdentifier>{b460d140-9be7-4706-b33a-96e7421f4a9c}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Data">
+      <UniqueIdentifier>{67e44d8b-5ad6-4e04-a960-57d859c4b84f}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="targetver.h">
@@ -78,6 +84,18 @@
     <ClInclude Include="Collision.h">
       <Filter>헤더 파일</Filter>
     </ClInclude>
+    <ClInclude Include="TextureBlendAnimationShader.h">
+      <Filter>TextureBlendShader</Filter>
+    </ClInclude>
+    <ClInclude Include="TextureBlendMesh.h">
+      <Filter>TextureBlendShader</Filter>
+    </ClInclude>
+    <ClInclude Include="TextureBlendObject.h">
+      <Filter>TextureBlendShader</Filter>
+    </ClInclude>
+    <ClInclude Include="TeleportLocation.h">
+      <Filter>Data</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="Client.cpp">
@@ -125,6 +143,15 @@
     <ClCompile Include="Collision.cpp">
       <Filter>소스 파일</Filter>
     </ClCompile>
+    <ClCompile Include="TextureBlendAnimationShader.cpp">
+      <Filter>TextureBlendShader</Filter>
+    </ClCompile>
+    <ClCompile Include="TextureBlendMesh.cpp">
+      <Filter>TextureBlendShader</Filter>
+    </ClCompile>
+    <ClCompile Include="TextureBlendObject.cpp">
+      <Filter>TextureBlendShader</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ResourceCompile Include="Client.rc">
@@ -142,6 +169,9 @@
   <ItemGroup>
     <FxCompile Include="Shaders.hlsl" />
     <FxCompile Include="Light.hlsl" />
+    <FxCompile Include="BlendAnimation.hlsl">
+      <Filter>TextureBlendShader</Filter>
+    </FxCompile>
   </ItemGroup>
   <ItemGroup>
     <None Include="Shadow.hlsl" />

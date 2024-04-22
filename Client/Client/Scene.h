@@ -2,13 +2,18 @@
 #include "Timer.h"
 #include "Shader.h"
 #include "TCPClient.h"
+#include "TextureBlendObject.h"
 //#include <stdexcept>
 
 // m_vShader 쉐이더에 AddDefaultObject 시에 접근할 각 쉐이더 인덱스를 의미
 #define STANDARD_SHADER 0
 #define INSTANCE_STANDARD_SHADER 1
 #define SKINNEDANIMATION_STANDARD_SHADER 2
+
+// m_vForwardRenderShader
 #define TRANSPARENT_SHADER 0 // 투명객체에 대한 쉐이더는 항상 후순위로 배치
+#define TEXTUREBLEND_SHADER 1
+
 //#define NOTRENDERING_SHADER 3
 
 // m_vMesh 메쉬에 접근할 각 인덱스를 의미
@@ -62,7 +67,7 @@ public:
 	ComPtr<ID3D12RootSignature> GetGraphicsRootSignature();
 
 	void CreateShaderVariables(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dCommandList);
-	void BuildObjects(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dCommandList);
+	void BuildObjects(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dCommandList, int mainPlayerId);
 	void LoadScene(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dCommandList);
 
 	//오브젝트 소멸 관련
@@ -100,6 +105,9 @@ public:
 	static vector<unique_ptr<CShader>> m_vShader;
 	vector<unique_ptr<CShader>> m_vForwardRenderShader;
 	
+	vector<shared_ptr<TextureBlendObject>> m_vTextureBlendObjects;
+	shared_ptr<CMaterial> mt_Electirc;
+
 	std::array<shared_ptr<CPlayer>, MAX_CLIENT> m_apPlayer;
 	std::shared_ptr<CPlayer> m_pMainPlayer;
 	//메쉬 저장

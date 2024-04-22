@@ -1,10 +1,12 @@
 #include "stdafx.h"
+#include "GameFramework.h"
 #include "Player.h"
 #include "Scene.h"
 #include "Shader.h"
 #include "PlayerController.h"
 #include "Collision.h"
 #include "EnvironmentObject.h"
+#include "TeleportLocation.h"
 //#define _WITH_DEBUG_CALLBACK_DATA
 
 void CSoundCallbackHandler::HandleCallback(void* pCallbackData, float fTrackPosition)
@@ -626,11 +628,18 @@ void CBlueSuitPlayer::RightClickProcess()
 {
 	switch (m_selectItem)
 	{
-	case CBlueSuitPlayer::NONE:
+	case RightItem::NONE:
 		break;
-	case CBlueSuitPlayer::RAIDER:
+	case RightItem::RAIDER:
 		m_bRightClick = !m_bRightClick;
 		m_fOpenRaiderTime = 0.3f;
+		break;
+	case RightItem::TELEPORT:
+		Teleport();
+		break;
+	case RightItem::LANDMINE:
+		break;
+	case RightItem::FUSE:
 		break;
 	default:
 		break;
@@ -734,7 +743,8 @@ void CBlueSuitPlayer::UseFuse()
 
 void CBlueSuitPlayer::Teleport()
 {
-	XMFLOAT3 randomPos = { 4.0f, 4.0f, 4.0f };
+	XMFLOAT3 randomPos = TeleportLocations[rand() % (sizeof(TeleportLocations) / sizeof(XMFLOAT3))];
+
 	SetPosition(randomPos);
 }
 
@@ -753,6 +763,15 @@ XMFLOAT4X4 CBlueSuitPlayer::GetRightHandItemRaiderModelTransform() const
 
 	return controller->m_pAnimationSets->m_vpBoneFrameCaches[i]->m_xmf4x4World;
 }
+
+XMFLOAT4X4* CBlueSuitPlayer::GetRightHandItemTeleportItemModelTransform() const
+{
+	auto controller = m_pSkinnedAnimationController.get();
+	int i = dynamic_pointer_cast<CBlueSuitAnimationController>(m_pSkinnedAnimationController)->GetBoneFrameIndexToRightHandTeleportItem();
+
+	return &controller->m_pAnimationSets->m_vpBoneFrameCaches[i]->m_xmf4x4World;
+}
+
 
 XMFLOAT4X4* CBlueSuitPlayer::RaiderUpdate(float fElapsedTime)
 {
@@ -814,6 +833,7 @@ float CBlueSuitPlayer::GetEscapeLength()
 	return length;
 }
 
+
 XMFLOAT4X4* CBlueSuitPlayer::GetFlashLigthWorldTransform()
 {
 	return &m_pFlashlight->m_xmf4x4World;
@@ -827,6 +847,15 @@ CZombiePlayer::CZombiePlayer(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList
 	:CPlayer(pd3dDevice, pd3dCommandList, pd3dGraphicsRootSignature, pContext)
 {
 	m_xmf3Scale = XMFLOAT3(1.0f, 1.0f, 1.0f);
+	
+	UINT ncbElementBytes = ((sizeof(FrameTimeInfo) + 255) & ~255); //256ÀÇ ¹è¼ö
+	m_pd3dcbTime = ::CreateBufferResource(pd3dDevice, pd3dCommandList, NULL, ncbElementBytes, D3D12_HEAP_TYPE_UPLOAD, D3D12_RESOURCE_STATE_VERTEX_AND_CONSTANT_BUFFER, NULL);
+	m_pd3dcbTime->Map(0, NULL, (void**)&m_pcbMappedTime);
+	m_d3dTimeCbvGPUDescriptorHandle = CScene::CreateConstantBufferViews(pd3dDevice, 1, m_pd3dcbTime.Get(), ncbElementBytes);
+
+	m_pd3dcbTimeEnd = ::CreateBufferResource(pd3dDevice, pd3dCommandList, NULL, ncbElementBytes, D3D12_HEAP_TYPE_UPLOAD, D3D12_RESOURCE_STATE_VERTEX_AND_CONSTANT_BUFFER, NULL);
+	m_pd3dcbTimeEnd->Map(0, NULL, (void**)&m_pcbMappedTimeEnd);
+	m_d3dTimeCbvGPUDescriptorHandleEnd = CScene::CreateConstantBufferViews(pd3dDevice, 1, m_pd3dcbTimeEnd.Get(), ncbElementBytes);
 
 	SetPlayerUpdatedContext(pContext);
 	SetCameraUpdatedContext(pContext);
@@ -862,6 +891,8 @@ void CZombiePlayer::Update(float fElapsedTime)
 {
 	CPlayer::Update(fElapsedTime);
 
+	m_pcbMappedTime->time += fElapsedTime;
+
 	if (m_pSkinnedAnimationController)
 	{
 		float fLength = sqrtf(m_xmf3Velocity.x * m_xmf3Velocity.x + m_xmf3Velocity.z * m_xmf3Velocity.z);
@@ -886,4 +917,18 @@ void CZombiePlayer::Update(float fElapsedTime)
 			}
 		}
 	}
+}
+
+void CZombiePlayer::Render(ID3D12GraphicsCommandList* pd3dCommandList)
+{
+	if (electricBlend) {
+		m_pcbMappedTime->usePattern = 1.0f;
+		pd3dCommandList->SetGraphicsRootDescriptorTable(12, m_d3dTimeCbvGPUDescriptorHandle);
+
+		CPlayer::Render(pd3dCommandList);
+
+		pd3dCommandList->SetGraphicsRootDescriptorTable(12, m_d3dTimeCbvGPUDescriptorHandleEnd);
+		return;
+	}
+	CPlayer::Render(pd3dCommandList);
 }

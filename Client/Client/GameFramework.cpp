@@ -409,7 +409,14 @@ void CGameFramework::RenderUI()
 	D2D1_SIZE_F rtSize = m_d2dRenderTargets[m_nSwapChainBufferIndex]->GetSize();
 	D2D1_RECT_F textRect = D2D1::RectF(0, 0, rtSize.width, rtSize.height);
 
-	float escapelength = dynamic_pointer_cast<CBlueSuitPlayer>(m_pMainPlayer)->GetEscapeLength();
+	auto player = dynamic_pointer_cast<CBlueSuitPlayer>(m_pMainPlayer);
+	if (!player) { //좀비 플레이어라면 레이더 텍스트 렌더링 X
+		m_d3d11On12Device->AcquireWrappedResources(m_wrappedBackBuffers[m_nSwapChainBufferIndex].GetAddressOf(), 1);
+		m_d3d11On12Device->ReleaseWrappedResources(m_wrappedBackBuffers[m_nSwapChainBufferIndex].GetAddressOf(), 1);
+		m_d3d11DeviceContext->Flush();
+		return;
+	}
+	float escapelength = player->GetEscapeLength();
 
 	wchar_t text[20]; // 변환된 유니코드 문자열을 저장할 버퍼
 
@@ -662,8 +669,15 @@ void CGameFramework::BuildObjects()
 	m_pScene = make_shared<CScene>();
 	if (m_pScene.get())
 	{
-		m_pScene->BuildObjects(m_d3d12Device.Get(), m_d3dCommandList.Get());
+		int nClientId = m_pTcpClient->GetClientId();
+		m_pScene->BuildObjects(m_d3d12Device.Get(), m_d3dCommandList.Get(), nClientId);
 	}
+
+	INT ncbElementBytes = ((sizeof(FrameTimeInfo) + 255) & ~255); //256의 배수
+
+	m_pd3dcbTime = ::CreateBufferResource(m_d3d12Device.Get(), m_d3dCommandList.Get(), NULL, ncbElementBytes, D3D12_HEAP_TYPE_UPLOAD, D3D12_RESOURCE_STATE_VERTEX_AND_CONSTANT_BUFFER, NULL);
+	m_pd3dcbTime->Map(0, NULL, (void**)&m_pcbMappedTime);
+	m_d3dTimeCbvGPUDescriptorHandle = CScene::CreateConstantBufferViews(m_d3d12Device.Get(), 1, m_pd3dcbTime.Get(), ncbElementBytes);
 
 	//m_pPlayer = make_shared<CZombiePlayer>(pd3dDevice, pd3dCommandList, m_pd3dGraphicsRootSignature.Get(), nullptr);
 	//shared_ptr<CLoadedModelInfo> pZombiePlayerModel = CGameObject::LoadGeometryAndAnimationFromFile(pd3dDevice, pd3dCommandList, m_pd3dGraphicsRootSignature.Get(), "Asset/Model/Zom_1.bin");
@@ -761,6 +775,8 @@ void CGameFramework::ProcessInput()
 void CGameFramework::AnimateObjects()
 {
 	float fElapsedTime = m_GameTimer.GetTimeElapsed();
+
+	m_pcbMappedTime->time += fElapsedTime;
 
 	if (m_pScene) m_pScene->AnimateObjects(fElapsedTime);
 	
@@ -896,18 +912,21 @@ void CGameFramework::FrameAdvance()
 
 		auto& vlightCamera = m_pPostProcessingShader->GetLightCamera();
 
-		XMFLOAT4X4* xmf4x4playerLight = dynamic_pointer_cast<CBlueSuitPlayer>(m_pScene->m_pMainPlayer)->GetFlashLigthWorldTransform();
-		vlightCamera[0]->SetPosition(XMFLOAT3(xmf4x4playerLight->_41, xmf4x4playerLight->_42, xmf4x4playerLight->_43));
-		vlightCamera[0]->SetLookVector(XMFLOAT3(xmf4x4playerLight->_21, xmf4x4playerLight->_22, xmf4x4playerLight->_23));
-		vlightCamera[0]->RegenerateViewMatrix();
-		vlightCamera[0]->MultiplyViewProjection();
+		auto client_player = dynamic_pointer_cast<CBlueSuitPlayer>(m_pScene->m_pMainPlayer);
+		if (client_player) {
+			XMFLOAT4X4* xmf4x4playerLight = client_player->GetFlashLigthWorldTransform();
+			vlightCamera[0]->SetPosition(XMFLOAT3(xmf4x4playerLight->_41, xmf4x4playerLight->_42, xmf4x4playerLight->_43));
+			vlightCamera[0]->SetLookVector(XMFLOAT3(xmf4x4playerLight->_21, xmf4x4playerLight->_22, xmf4x4playerLight->_23));
+			vlightCamera[0]->RegenerateViewMatrix();
+			vlightCamera[0]->MultiplyViewProjection();
+		}
 
-		XMFLOAT4X4 xmf4x4ToTexture = {
+		static XMFLOAT4X4 xmf4x4ToTexture = {
 		0.5f, 0.0f, 0.0f, 0.0f,
 		0.0f, -0.5f, 0.0f, 0.0f,
 		0.0f, 0.0f, 1.0f, 0.0f,
 		0.5f, 0.5f, 0.0f, 1.0f };
-		XMMATRIX xmProjectionToTexture = XMLoadFloat4x4(&xmf4x4ToTexture);
+		static XMMATRIX xmProjectionToTexture = XMLoadFloat4x4(&xmf4x4ToTexture);
 
 		XMFLOAT4X4 viewProjection = vlightCamera[0]->GetViewProjection();
 		XMMATRIX xmmtxViewProjection = XMLoadFloat4x4(&viewProjection);
@@ -946,6 +965,7 @@ void CGameFramework::FrameAdvance()
 		//1차 렌더링
 		if (m_pScene)
 		{
+			m_d3dCommandList->SetGraphicsRootDescriptorTable(12, m_d3dTimeCbvGPUDescriptorHandle);
 			m_pScene->Render(m_d3dCommandList.Get(), m_pCamera.lock(), 0);
 		}
 
@@ -970,7 +990,9 @@ void CGameFramework::FrameAdvance()
 		// 투명 객체 렌더링
 		if (m_pScene)
 		{
-			m_pScene->m_vForwardRenderShader[0]->Render(m_d3dCommandList.Get(), m_pCamera.lock());
+			for (auto& s : m_pScene->m_vForwardRenderShader) {
+				s->Render(m_d3dCommandList.Get(), m_pCamera.lock());
+			}
 		}
 	}
 	//SynchronizeResourceTransition(m_d3dCommandList.Get(), m_d3dSwapChainBackBuffers[m_nSwapChainBufferIndex].Get(), D3D12_RESOURCE_STATE_RENDER_TARGET, D3D12_RESOURCE_STATE_PRESENT);

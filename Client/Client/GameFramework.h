@@ -6,6 +6,12 @@
 //constexpr size_t SWAPCHAIN_BUFFER_NUM = 2;
 //class TextObject;
 
+struct FrameTimeInfo {
+	float time = 0.0f;
+	float localTime = 0.0f;
+	float usePattern = -1.0f; // shaders에서 패턴텍스처를 사용하는가? 최적화 필요. 쉐이더를 나누면 분기문 줄일수있음.
+};
+
 class CGameFramework
 {
 public:
@@ -125,5 +131,10 @@ private:
 
 	//unique_ptr<TextObject> m_pTextobject;
 	bool m_bPrevRender = false;
+public:
+	// Time 
+	D3D12_GPU_DESCRIPTOR_HANDLE m_d3dTimeCbvGPUDescriptorHandle;
+	ComPtr<ID3D12Resource>		m_pd3dcbTime;
+	FrameTimeInfo* m_pcbMappedTime;
 };
 

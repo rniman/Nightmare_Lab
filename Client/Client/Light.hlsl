@@ -189,7 +189,7 @@ float4 Lighting(float3 vPosition, float3 vNormal)
 	float3 vCameraPosition = float3(gvCameraPosition.x, gvCameraPosition.y, gvCameraPosition.z);
 	float3 vToCamera = normalize(vCameraPosition - vPosition);
     
-	float4 cColor = float4(0.0f, 0.0f, 0.0f, 0.0f);
+    float4 cColor = float4(0.05f, 0.05f, 0.05f, 0.0f);
 	[unroll(MAX_LIGHTS)] for (int i = 0; i < gnLights; i++)
 	{
 		if (gLights[i].m_bEnable)
