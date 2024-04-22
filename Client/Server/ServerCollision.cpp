@@ -22,8 +22,7 @@ void CServerCollisionManager::CreateCollision(int nHeight, int nWidth, int nDept
 			m_collisionGridGameObjects[i][j].resize(m_nDepth);
 		}
 	}
-	m_pCollisionObject.reserve(1000);
-
+	m_vpCollisionObject.reserve(1000);
 }
 
 void CServerCollisionManager::AddCollisionObject(const shared_ptr<CServerGameObject>& pGameObject)
@@ -36,16 +35,37 @@ void CServerCollisionManager::AddCollisionObject(const shared_ptr<CServerGameObj
 	int nDepth = static_cast<int>((xmf3Position.z - GRID_START_Z) / SPACE_SIZE_XZ);
 
 	m_collisionGridGameObjects[nHeight][nWidth][nDepth].push_back(pGameObject);
+	pGameObject->SetSpaceObject(nHeight, nWidth, nDepth);
+	/*pGameObject->m_nFloor = nHeight;
+	pGameObject->m_nWidth = nWidth;
+	pGameObject->m_nDepth = nDepth;*/
+
 	pGameObject->SetCollisionNum(m_nCollisionObject++);
-	m_pCollisionObject.emplace_back(pGameObject);
+	m_vpCollisionObject.emplace_back(pGameObject);
+}
+
+void CServerCollisionManager::ReplaceCollisionObject(const shared_ptr<CServerGameObject>& pGameObject)
+{
+	printf("%d %d %d\t", pGameObject->GetFloor(), pGameObject->GetWidth(), pGameObject->GetDepth());
+	XMFLOAT4X4 xmf4x4World = pGameObject->GetWorldMatrix();
+	XMFLOAT3 xmf3Position = XMFLOAT3(xmf4x4World._41, xmf4x4World._42, xmf4x4World._43);
+
+	int nWidth = static_cast<int>((xmf3Position.x - GRID_START_X) / SPACE_SIZE_XZ);
+	int nHeight = static_cast<int>((xmf3Position.y - GRID_START_Y) / SPACE_SIZE_Y);
+	int nDepth = static_cast<int>((xmf3Position.z - GRID_START_Z) / SPACE_SIZE_XZ);
+
+	m_collisionGridGameObjects[nHeight][nWidth][nDepth].push_back(pGameObject);
+	pGameObject->SetSpaceObject(nHeight, nWidth, nDepth);
+
+	printf("%d %d %d\n", pGameObject->GetFloor(), pGameObject->GetWidth(), pGameObject->GetDepth());
+
+	m_vpOutSpaceObject.push_back(pGameObject);
 }
 
 void CServerCollisionManager::AddCollisionPlayer(const shared_ptr<CServerPlayer>& pPlayer, int nIndex)
 {
 	m_apPlayer[nIndex] = pPlayer;
 }
-
-//size_t GetSizeGameObjects(CollisonLayer nLayer) { return m_v3dpCollisionGameObjects[static_cast<int>(nLayer)].size(); }
 
 vpObjects_t& CServerCollisionManager::GetSpaceGameObjects(int nHeight, int nWidth, int nDepth)
 {
@@ -54,11 +74,11 @@ vpObjects_t& CServerCollisionManager::GetSpaceGameObjects(int nHeight, int nWidt
 
 void CServerCollisionManager::Update(float fElapsedTime)
 {
-	for (auto& pGameObject : m_pCollisionObject)
+	for (auto& pGameObject : m_vpCollisionObject)
 	{
-		if (pGameObject.lock())
+		if (pGameObject)
 		{
-			pGameObject.lock()->Update(fElapsedTime);
+			pGameObject->Update(fElapsedTime);
 		}
 	}
 }
@@ -89,7 +109,7 @@ void CServerCollisionManager::Collide(float fElapsedTime, const shared_ptr<CServ
 
 			for (const auto& pGameObject : GetSpaceGameObjects(pPlayer->GetFloor(), i, j))	// 플레이어의 그리드를 나타내야함
 			{
-				if (!pGameObject)
+				if (!pGameObject || !pGameObject->IsCollision())
 				{
 					continue;
 				}
@@ -103,7 +123,7 @@ void CServerCollisionManager::Collide(float fElapsedTime, const shared_ptr<CServ
 					if (oobb.Intersects(aabbPlayer))
 					{
 						pPlayer->SetStair(true);
-						shared_ptr<CStairTriggerObject> pStairObject = dynamic_pointer_cast<CStairTriggerObject>(pGameObject);
+						shared_ptr<CServerStairTriggerObject> pStairObject = dynamic_pointer_cast<CServerStairTriggerObject>(pGameObject);
 						if (pStairObject)
 						{
 							if (pStairObject->GetOffsetY() < 0.0f)
@@ -156,7 +176,7 @@ void CServerCollisionManager::Collide(float fElapsedTime, const shared_ptr<CServ
 			xmf3StairPosition.y = pPlayer->GetStairMax();
 			pPlayer->SetStair(false);
 		}
-		pPlayer->SetPosition(xmf3StairPosition);
+		pPlayer->SetWorldMatrix(xmf3StairPosition);
 	}
 }
 

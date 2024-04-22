@@ -32,7 +32,7 @@ void CServerGameObject::UpdateTransform(XMFLOAT4X4* pxmf4x4Parent)
 
 bool CServerGameObject::CheckPicking(const shared_ptr<CServerGameObject>& pCollisionGameObject, const XMFLOAT3& xmf3PickPosition, const XMFLOAT4X4& xmf4x4ViewMatrix, float& fDistance)
 {
-	if (!pCollisionGameObject)
+	if (!pCollisionGameObject || !pCollisionGameObject->IsCollision())
 	{
 		return false;
 	}

@@ -419,6 +419,19 @@ CBlueSuitPlayer::CBlueSuitPlayer(ID3D12Device* pd3dDevice, ID3D12GraphicsCommand
 	m_xmf4x4Raider = Matrix4x4::Identity();
 	m_pRaider = make_unique<CRadarObject>(pd3dDevice, pd3dCommandList, pd3dGraphicsRootSignature);
 
+	m_apSlotItems[0] = make_shared<CTeleportObject>(pd3dDevice, pd3dCommandList, pd3dGraphicsRootSignature);
+	m_apSlotItems[0]->SetCollision(false);
+	m_apSlotItems[1] = make_shared<CRadarObject>(pd3dDevice, pd3dCommandList, pd3dGraphicsRootSignature);
+	m_apSlotItems[1]->SetCollision(false);
+	m_apSlotItems[2] = make_shared<CMineObject>(pd3dDevice, pd3dCommandList, pd3dGraphicsRootSignature);
+	m_apSlotItems[2]->SetCollision(false);
+
+	for (int i = 0; i < 3; ++i)
+	{
+		m_apFuseItems[i] = make_shared<CFuseObject>(pd3dDevice, pd3dCommandList, pd3dGraphicsRootSignature);
+		m_apFuseItems[i]->SetCollision(false);
+	}
+
 	SetPlayerUpdatedContext(pContext);
 	SetCameraUpdatedContext(pContext);
 }
@@ -601,11 +614,11 @@ void CBlueSuitPlayer::Animate(float fElapsedTime)
 
 void CBlueSuitPlayer::UpdatePicking() 
 {
-	shared_ptr<CGameObject> pPickiedObject = m_pPickedObject.lock();
+	shared_ptr<CGameObject> pPickedObject = m_pPickedObject.lock();
 
-	if(AddItem(pPickiedObject) != -2)
+	if(AddItem(pPickedObject) != -2)
 	{
-		pPickiedObject->UpdatePicking();
+		pPickedObject->UpdatePicking();
 	}
 }
 
@@ -641,7 +654,8 @@ int CBlueSuitPlayer::AddItem(const shared_ptr<CGameObject>& pGameObject)
 	}
 	else if (dynamic_pointer_cast<CFuseObject>(pGameObject))
 	{
-		if (dynamic_pointer_cast<CFuseObject>(pGameObject)->GetObtained())
+		shared_ptr<CFuseObject> pFuseObject = dynamic_pointer_cast<CFuseObject>(pGameObject);
+		if (pFuseObject->IsObtained())
 		{
 			return nSlot;
 		}
@@ -649,7 +663,7 @@ int CBlueSuitPlayer::AddItem(const shared_ptr<CGameObject>& pGameObject)
 		if (m_nFuseNum < 3)
 		{
 			m_apFuseItems[m_nFuseNum].reset();
-			m_apFuseItems[m_nFuseNum] = pGameObject;
+			m_apFuseItems[m_nFuseNum] = pFuseObject;
 			m_nFuseNum++;
 			nSlot = -1;
 		}
@@ -664,14 +678,29 @@ int CBlueSuitPlayer::AddItem(const shared_ptr<CGameObject>& pGameObject)
 		return nSlot;
 	}
 
-	if (m_apSlotItems[nSlot].lock())
+	if (m_apSlotItems[nSlot])
 	{
 
 	}
 	else
 	{
 		m_apSlotItems[nSlot].reset();
-		m_apSlotItems[nSlot] = pGameObject;
+
+		// юс╫ц╥н
+		switch (nSlot)
+		{
+		case 0:
+			m_apSlotItems[nSlot] = dynamic_pointer_cast<CTeleportObject>(pGameObject);
+			break;
+		case 1:
+			m_apSlotItems[nSlot] = dynamic_pointer_cast<CRadarObject>(pGameObject);
+			break;
+		case 2:
+			m_apSlotItems[nSlot] = dynamic_pointer_cast<CFuseObject>(pGameObject);
+			break;
+		default:
+			break;
+		}
 	}
 
 	return nSlot;
@@ -683,9 +712,9 @@ void CBlueSuitPlayer::UseItem(int nSlot)
 	{
 		UseFuse();
 	}
-	else if (shared_ptr<CGameObject> pGameObject = m_apSlotItems[nSlot].lock())
+	else if (m_apSlotItems[nSlot])
 	{
-		pGameObject->UpdateUsing(shared_from_this());
+		m_apSlotItems[nSlot]->UpdateUsing(shared_from_this());
 		m_apSlotItems[nSlot].reset();
 	}
 }
@@ -694,9 +723,9 @@ void CBlueSuitPlayer::UseFuse()
 {
 	for (auto& fuseItem : m_apFuseItems)
 	{
-		if(fuseItem.lock())
+		if(fuseItem)
 		{
-			fuseItem.lock()->UpdateUsing(shared_from_this());
+			fuseItem->UpdateUsing(shared_from_this());
 			fuseItem.reset();
 		}
 	}

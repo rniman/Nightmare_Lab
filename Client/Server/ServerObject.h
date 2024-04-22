@@ -21,22 +21,30 @@ public:
 
 	void Move(XMFLOAT3 xmf3Offset);
 	virtual void UpdatePicking() {};
-	virtual void UpdateUsing(const shared_ptr<CServerGameObject>& pGameObject) {};
+	virtual void UpdateUsing(const shared_ptr<CServerGameObject>& pGameObject, shared_ptr<CServerCollisionManager>& pCollisionManager) {};
 
 	void UpdateTransform(XMFLOAT4X4* pxmf4x4Parent = NULL);
 
 	static bool CheckPicking(const shared_ptr<CServerGameObject>& pCollisionGameObject, const XMFLOAT3& xmf3PickPosition, const XMFLOAT4X4& xmf4x4ViewMatrix, float& fDistance);
 
 	// Interface
+	void SetCollision(bool bCollision) { m_bCollision = bCollision; }
 	void SetCollisionNum(int nCollisionNum) { m_nCollisionNum = nCollisionNum; }
+
+	void SetSpaceObject(int nFloor, int nWidth, int nDepth) { m_nFloor = nFloor; m_nWidth = nWidth; m_nDepth = nDepth; }
 
 	XMFLOAT4X4 GetWorldMatrix()const { return m_xmf4x4World; }
 	vector<BoundingOrientedBox> GetVectorOOBB() const { return m_voobbOrigin; };
 	BoundingOrientedBox GetOOBB(int nIndex) { return m_voobbOrigin[nIndex]; }
+	bool IsCollision() const { return m_bCollision; }
 	int GetCollisionType() const { return m_nCollisionType; }
 	int GetCollisionNum() const { return m_nCollisionNum; }
 
 	char* GetFrameName() { return m_pstrFrameName; }
+
+	int GetWidth()const { return m_nWidth; }
+	int GetDepth()const { return m_nDepth; }
+	int GetFloor()const { return m_nFloor; }
 protected:
 	char m_pstrFrameName[64];
 	XMFLOAT4X4 m_xmf4x4ToParent;
@@ -47,9 +55,14 @@ protected:
 	std::shared_ptr<CServerGameObject> m_pSibling;
 
 	vector<BoundingOrientedBox> m_voobbOrigin;
-	// 투명 오브젝트 분류
+
+	bool m_bAlive = true;
 	bool m_bCollision = true;
 	int m_nCollisionType = None; // 0:None, 1:Standard, 2:Picking
 	int m_nCollisionNum = -1;
+
+	int m_nFloor = 0;
+	int m_nWidth = 0;
+	int m_nDepth = 0;
 };
 

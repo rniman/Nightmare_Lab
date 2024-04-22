@@ -543,20 +543,20 @@ void CGameFramework::OnProcessingKeyboardMessage(HWND hWnd, UINT nMessageID, WPA
 		//		m_pMainPlayer->UpdatePicking();
 		//	}
 		//	break;
-		case '1':
-			//uiX += 10.f;
-			break;
-		case '2':
-			//uiY += 10.f;
-			break;
-		case '3':
-		case '4':
-			if (!m_pMainPlayer)
-			{
-				break;
-			}
-			m_pMainPlayer->UseItem(wParam - '1');
-			break;
+		//case '1':
+		//	//uiX += 10.f;
+		//	break;
+		//case '2':
+		//	//uiY += 10.f;
+		//	break;
+		//case '3':
+		//case '4':
+		//	if (!m_pMainPlayer)
+		//	{
+		//		break;
+		//	}
+		//	m_pMainPlayer->UseItem(wParam - '1');
+		//	break;
 		default:
 			break;
 		}
@@ -764,14 +764,14 @@ void CGameFramework::AnimateObjects()
 
 	if (m_pScene) m_pScene->AnimateObjects(fElapsedTime);
 	
-	if (m_pMainPlayer)
-	{
-		shared_ptr<CGameObject> pPickedObject = m_pMainPlayer->GetPickedObject().lock();
-	}
+	//if (m_pMainPlayer)
 	//{
-	//	//pPickedObject->UpdatePicking();
+	//	shared_ptr<CGameObject> pPickedObject = m_pMainPlayer->GetPickedObject().lock();
 	//}
-	////m_pPlayer->Animate(fElapsedTime);
+	////{
+	////	//pPickedObject->UpdatePicking();
+	////}
+	//////m_pPlayer->Animate(fElapsedTime);
 }
 
 
@@ -821,6 +821,7 @@ void CGameFramework::PreRenderTasks()
 	AnimateObjects();
 	// 이곳에서 렌더링 하기전에 준비작업을 시행하도록한다. ex) 쉐도우맵 베이킹
 	// buildobject함수 호출 이후 처리되어야할 작업이다. -> 모든 객체들이 렌더링되어야 그림자맵을 생성함.
+	
 	//HRESULT hResult = m_d3dCommandAllocator->Reset();
 	HRESULT hResult = m_d3dCommandAllocator[m_nSwapChainBufferIndex]->Reset();
 	hResult = m_d3dCommandList->Reset(m_d3dCommandAllocator[m_nSwapChainBufferIndex].Get(), NULL);

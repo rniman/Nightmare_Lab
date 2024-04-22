@@ -151,13 +151,39 @@ public:
 	void UseFuse();;
 	void Teleport();
 
+	void SetSlotItem(int nIndex, int nReferenceObjectNum)
+	{
+		m_apSlotItems[nIndex]->SetObtain(true);
+		m_apSlotItems[nIndex]->SetReferenceNumber(nReferenceObjectNum);
+	}
+
+	void SetSlotItemEmpty(int nIndex) 
+	{
+		m_apSlotItems[nIndex]->SetObtain(false); 
+		m_apSlotItems[nIndex]->SetReferenceNumber(-1);
+	}
+
+	void SetFuseItem(int nIndex, int nReferenceObjectNum)
+	{
+		m_apFuseItems[nIndex]->SetObtain(true);
+		m_apFuseItems[nIndex]->SetReferenceNumber(nReferenceObjectNum);
+	}
+
+	void SetFuseItemEmpty(int nIndex)
+	{
+		m_apFuseItems[nIndex]->SetObtain(false);
+		m_apFuseItems[nIndex]->SetReferenceNumber(-1);
+	}
+
+	int GetReferenceSlotItemNum(int nIndex) { return m_apSlotItems[nIndex]->GetReferenceNumber(); }
+	int GetReferenceFuseItemNum(int nIndex) { return m_apFuseItems[nIndex]->GetReferenceNumber(); }
 private:
 	RightItem m_selectItem = RAIDER;
 
-	std::array<weak_ptr<CGameObject>, 3> m_apSlotItems;
+	std::array<shared_ptr<CItemObject>, 3> m_apSlotItems;
 
 	int m_nFuseNum = 0;
-	std::array<weak_ptr<CGameObject>, 3> m_apFuseItems;
+	std::array<shared_ptr<CItemObject>, 3> m_apFuseItems;
 
 	bool m_bShiftRun = false;
 	bool m_bAbleRun = true;

@@ -8,6 +8,7 @@ class CServerGameObject;
 class CServerPlayer;
 class CServerCollisionManager;
 
+
 struct SC_UPDATE_INFO
 {
 	int m_nClientId = -1;
@@ -16,8 +17,11 @@ struct SC_UPDATE_INFO
 	XMFLOAT3 m_xmf3Look;
 	XMFLOAT3 m_xmf3Right;
 
+	int m_nSlotObjectNum[3] = { -1, -1, -1 };	// 각 슬롯에 포함된 오브젝트 번호(없으면 -1)
+	int m_nFuseObjectNum[3] = { -1, -1, -1 };	// 퓨즈 오브젝트 번호(없으면 -1)
+
 	int m_nNumOfObject = -1;
-	std::array<int, MAX_SEND_OBJECT_INFO> m_anObjectNum;
+	std::array<int, MAX_SEND_OBJECT_INFO> m_anObjectNum = { -1, -1, -1, -1, -1 };
 	std::array<XMFLOAT4X4, MAX_SEND_OBJECT_INFO> m_axmf4x4World;
 };
 
@@ -88,10 +92,13 @@ public:
 
 	void LoadScene();
 	void CreateSceneObject(char* pstrFrameName, const XMFLOAT4X4& xmf4x4World, const vector<BoundingOrientedBox>& voobb);
+	void CreateItemObject();
 	void CreatSendObject();
 
 	// Interface
 	shared_ptr<CServerPlayer> GetPlayer(int nIndex) { return m_apPlayers[nIndex]; }
+
+	static default_random_engine m_mt19937Gen;
 private:
 	CTimer m_timer;
 	static size_t m_nClient;
@@ -105,6 +112,13 @@ private:
 	std::array<SC_UPDATE_INFO, MAX_CLIENT> m_aUpdateInfo;		
 	std::vector<shared_ptr<CServerGameObject>> m_vpGameObject;
 	std::shared_ptr<CServerCollisionManager> m_pCollisionManager;
+
+	//Test
+	int m_nStartItemNumber = -1;	// 아이템 오브젝트의 시작 인덱스
+	int m_nStartDrawer1 = -1;
+	int m_nEndDrawer1 = -1;
+	int m_nStartDrawer2 = -1;
+	int m_nEndDrawer2 = -1;
 };
 
 extern void err_quit(const char* msg);

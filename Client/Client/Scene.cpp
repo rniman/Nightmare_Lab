@@ -256,7 +256,7 @@ void CScene::BuildObjects(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* p
 	// CBV(RootObject) : //육면체(1), 오브젝트(1), DeskObject(1), DoorObject(1), flashLight(1), 서버인원예상(20), fuse(3)
 	// CBV(Model) : Zom(72),  Zom_Controller(2 * N),// BlueSuit(85), BlueSuit_Controller(2 * N), Desk(3), Door(5), flashLight(1), Fuse(6), 레이더(5)
 	int nCntCbv = 1 + 1 + 2 + 66 +
-		(72 + 2) + (85 + 2) * MAX_CLIENT + 2 + 7 + 10 + 5 * MAX_CLIENT + 1 * MAX_CLIENT;
+		(72 + 2) + (85 + 2) * MAX_CLIENT + 2 + 7 + 10 + 5 * MAX_CLIENT + 1 * MAX_CLIENT + 120;
 	// SRV(Default) : 디퍼드렌더링텍스처(ADD_RENDERTARGET_COUNT로 정의된 개수임)
 	// SRV(Scene Load) : 79
 	// SRV: Zombie(3), // BlueSuit(6), 육면체(1), 엘런(8(오클루젼맵제거), Desk(3), Door(9), flashLight(3) , m_nLights
@@ -277,6 +277,8 @@ void CScene::BuildObjects(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* p
 	
 	m_vForwardRenderShader.push_back(make_unique<TransparentShader>());
 	m_vForwardRenderShader[TRANSPARENT_SHADER]->CreateShader(pd3dDevice, pd3dCommandList, m_pd3dGraphicsRootSignature.Get(), 1, nullptr, DXGI_FORMAT_D24_UNORM_S8_UINT);
+
+	LoadScene(pd3dDevice, pd3dCommandList);
 
 	//Player 생성 + 아이템
 	for (int i = 0; i < MAX_CLIENT; ++i)
@@ -301,34 +303,28 @@ void CScene::BuildObjects(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* p
 	///////////////////////////// 아이템
 	//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-	
-	//g_collisionManager.AddCollisionObject(pRaiderModel->m_pModelRootObject);
-	
+	// 아이템 개수를 고정할지는 상의해봐야할듯? 일단 고정으로 간다치고 만듬
+	for (int i = 0; i < 10; ++i)
+	{
+		shared_ptr<CFuseObject> pFuseObject = make_shared<CFuseObject>(pd3dDevice, pd3dCommandList, m_pd3dGraphicsRootSignature.Get());
+		shared_ptr<CLoadedModelInfo> pFuseModel = CGameObject::LoadGeometryAndAnimationFromFile(pd3dDevice, pd3dCommandList, m_pd3dGraphicsRootSignature.Get(), (char*)"Asset/Model/fuse_hi-obj.bin");
+		pFuseObject->LoadModelAndAnimation(pd3dDevice, pd3dCommandList, m_pd3dGraphicsRootSignature.Get(), pFuseModel);
 
-	/*shared_ptr<CLoadedModelInfo> pFusetModel = CGameObject::LoadGeometryAndAnimationFromFile(pd3dDevice, pd3dCommandList, m_pd3dGraphicsRootSignature.Get(), (char*)"Asset/Model/fuse_hi-obj.bin");
-	vector<shared_ptr<CFuseObject>> vpFuse;
-	for (int i = 0; i < 3; ++i)
+		g_collisionManager.AddCollisionObject(pFuseObject);
+		m_vShader[STANDARD_SHADER]->AddGameObject(pFuseObject);
+	}
+	for (int i = 0; i < 10; ++i)
 	{
-		vpFuse.push_back(make_shared<CFuseObject>(pd3dDevice, pd3dCommandList, m_pd3dGraphicsRootSignature.Get()));
-		vpFuse[i]->LoadModelAndAnimation(pd3dDevice, pd3dCommandList, m_pd3dGraphicsRootSignature.Get(), pFusetModel);
-		vpFuse[i]->SetPosition(1.0f, 1.0f + i, 1.0f);
-		g_collisonManager.AddCollisionObject(0, vpFuse[i]);
-		m_vShader[STANDARD_SHADER]->AddGameObject(vpFuse[i]);
-	}*/
-	
-	vector<shared_ptr<CFuseObject>> vpFuse;
-	for (int i = 0; i < 4; ++i)
-	{
-		shared_ptr<CLoadedModelInfo> pFusetModel = CGameObject::LoadGeometryAndAnimationFromFile(pd3dDevice, pd3dCommandList, m_pd3dGraphicsRootSignature.Get(), (char*)"Asset/Model/fuse_hi-obj.bin");
-		vpFuse.push_back(make_shared<CFuseObject>(pd3dDevice, pd3dCommandList, m_pd3dGraphicsRootSignature.Get()));
-		vpFuse[i]->LoadModelAndAnimation(pd3dDevice, pd3dCommandList, m_pd3dGraphicsRootSignature.Get(), pFusetModel); // 모델을 계속 재사용
-		vpFuse[i]->SetPosition(1.0f, 1.0f + i, 1.0f);
-		//g_collisonManager.AddCollisionObject(vpFuse[i]);
-		m_vShader[STANDARD_SHADER]->AddGameObject(vpFuse[i]);
+		shared_ptr<CTeleportObject> pTeleportObject = make_shared<CTeleportObject>(pd3dDevice, pd3dCommandList, m_pd3dGraphicsRootSignature.Get());
+		shared_ptr<CLoadedModelInfo> pTeleportModel = CGameObject::LoadGeometryAndAnimationFromFile(pd3dDevice, pd3dCommandList, m_pd3dGraphicsRootSignature.Get(), (char*)"Asset/Model/TP.bin");
+		pTeleportObject->LoadModelAndAnimation(pd3dDevice, pd3dCommandList, m_pd3dGraphicsRootSignature.Get(), pTeleportModel);
+
+		g_collisionManager.AddCollisionObject(pTeleportObject);
+		m_vShader[STANDARD_SHADER]->AddGameObject(pTeleportObject);
+
 	}
 
-	LoadScene(pd3dDevice, pd3dCommandList);
-
+	
 	CreateShaderVariables(pd3dDevice, pd3dCommandList);
 }
 

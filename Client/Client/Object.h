@@ -442,6 +442,7 @@ public:
 	void LoadBoundingBox(vector<BoundingOrientedBox>& voobbOrigin);
 
 	// Picking
+	void SetCollision(bool bCollision) { m_bCollsion = bCollision; }
 	bool GetCollision()const { return m_bCollsion; }
 
 	bool CheckPicking(const weak_ptr<CGameObject>& pGameObject, const XMFLOAT3& xmf3PickPosition, const XMFLOAT4X4& mxf4x4ViewMatrix, float& fDistance);

@@ -6,6 +6,8 @@
 CServerPlayer::CServerPlayer()
 	: CServerGameObject()
 {
+	ZeroMemory(m_pKeysBuffer, 256);
+
 	m_xmf3Position = XMFLOAT3(9.f, 0.0f, 13.9);
 	m_xmf3OldPosition = m_xmf3Position;
 
@@ -75,7 +77,6 @@ void CServerPlayer::Update(float fElapsedTime)
 	if (fDeceleration > fLength) fDeceleration = fLength;
 	m_xmf3Velocity = Vector3::Add(m_xmf3Velocity, Vector3::ScalarProduct(m_xmf3Velocity, -fDeceleration, true));
 
-	//printf("%d %d %d\n\n", m_nFloor, m_nWidth, m_nDepth);
 }
 
 void CServerPlayer::Collide(const shared_ptr<CServerCollisionManager>& pCollisionManager, float fElapsedTime, shared_ptr<CServerGameObject> pCollided)
@@ -133,6 +134,11 @@ void CServerPlayer::Collide(const shared_ptr<CServerCollisionManager>& pCollisio
 
 				for (const auto& pGameObject : pCollisionManager->GetSpaceGameObjects(m_nFloor, i, j))
 				{
+					if (!pGameObject || !pGameObject->IsCollision())
+					{
+						continue;
+					}
+
 					if (pGameObject->GetCollisionType() == StairTrigger)
 					{
 						BoundingOrientedBox oobb;
@@ -142,7 +148,7 @@ void CServerPlayer::Collide(const shared_ptr<CServerCollisionManager>& pCollisio
 						if (oobb.Intersects(aabbPlayer))
 						{
 							m_bStair = true;
-							shared_ptr<CStairTriggerObject> pStairObject = dynamic_pointer_cast<CStairTriggerObject>(pGameObject);
+							shared_ptr<CServerStairTriggerObject> pStairObject = dynamic_pointer_cast<CServerStairTriggerObject>(pGameObject);
 							if (pStairObject)
 							{
 								if (pStairObject->GetOffsetY() < 0.0f)
@@ -159,7 +165,7 @@ void CServerPlayer::Collide(const shared_ptr<CServerCollisionManager>& pCollisio
 						continue;
 					}
 
-					if (!pGameObject || pGameObject->GetCollisionType() != Standard) //임시로 2면 넘김
+					if (pGameObject->GetCollisionType() != Standard) //임시로 2면 넘김
 					{
 						continue;
 					}
@@ -245,8 +251,8 @@ void CServerPlayer::SetPickedObject(const shared_ptr<CServerCollisionManager> pC
 		return;
 	}
 
-	if (!(m_pKeysBuffer[VK_RBUTTON] & 0xF0))
-		return;
+	//if (!(m_pKeysBuffer[VK_RBUTTON] & 0xF0))
+	//	return;
 
 	m_pPickedObject.reset();
 
@@ -276,7 +282,38 @@ void CServerPlayer::SetPickedObject(const shared_ptr<CServerCollisionManager> pC
 				float fHitDistance = FLT_MAX;
 				if (CServerGameObject::CheckPicking(pCollisionObject, pickPosition, m_xmf4x4View, fHitDistance))
 				{
-					if (fHitDistance < fNearestHitDistance)
+					shared_ptr<CServerDrawerObject> pDrawer = dynamic_pointer_cast<CServerDrawerObject>(pCollisionObject);
+					if (pDrawer)	// 서랍의 경우 내부에 아이템을 고려해야함
+					{
+						if (!pDrawer->IsOpen() || !pDrawer->m_pStoredItem)	// 닫혀있거나 내부에 아이템이 없으면 
+						{
+							if (fHitDistance < fNearestHitDistance)
+							{
+								fNearestHitDistance = fHitDistance;
+								m_pPickedObject = pCollisionObject;
+							}
+							continue;
+						}
+
+						float fItemHitDistance = FLT_MAX;
+						if (CServerGameObject::CheckPicking(pDrawer->m_pStoredItem, pickPosition, m_xmf4x4View, fItemHitDistance))
+						{
+							if (fItemHitDistance < fNearestHitDistance)
+							{
+								fNearestHitDistance = fHitDistance = fItemHitDistance;
+								m_pPickedObject = pDrawer->m_pStoredItem;
+							}
+						}
+						else
+						{
+							if (fHitDistance < fNearestHitDistance)
+							{
+								fNearestHitDistance = fHitDistance;
+								m_pPickedObject = pCollisionObject;
+							}
+						}
+					}
+					else if (fHitDistance < fNearestHitDistance)
 					{
 						fNearestHitDistance = fHitDistance;
 						m_pPickedObject = pCollisionObject;
@@ -294,10 +331,64 @@ void CServerPlayer::SetPickedObject(const shared_ptr<CServerCollisionManager> pC
 CServerBlueSuitPlayer::CServerBlueSuitPlayer()
 	: CServerPlayer()
 {
+	m_apSlotItems[Teleport] = make_shared<CServerTeleportObject>();
+	m_apSlotItems[Teleport]->SetCollision(false);
+	m_apSlotItems[Radar] = make_shared<CServerRadarObject>();
+	m_apSlotItems[Radar]->SetCollision(false);
+	m_apSlotItems[Mine] = make_shared<CServerMineObject>();
+	m_apSlotItems[Mine]->SetCollision(false);
+
+	for(int i=0;i<3;++i)
+	{
+		m_apFuseItems[i] = make_shared<CServerFuseObject>();
+		m_apFuseItems[i]->SetCollision(false);
+	}
+}
+
+void CServerBlueSuitPlayer::UseItem(shared_ptr<CServerCollisionManager>& pCollisionManager)
+{
+	array<shared_ptr<CServerGameObject>,3> apObjects;
+	if (m_pKeysBuffer['1'] & 0xF0)
+	{
+		if (m_apSlotItems[Teleport]->IsObtained())
+		{
+			apObjects[Teleport] = pCollisionManager->GetCollisionObjectWithNumber(m_apSlotItems[Teleport]->GetReferenceNumber());
+		}
+	}
+	if (m_pKeysBuffer['2'] & 0xF0)
+	{
+		if (m_apSlotItems[Radar]->IsObtained())
+		{
+			apObjects[Radar] = pCollisionManager->GetCollisionObjectWithNumber(m_apSlotItems[Radar]->GetReferenceNumber());
+		}
+	}
+	if (m_pKeysBuffer['3'] & 0xF0)
+	{
+		if (m_apSlotItems[Mine]->IsObtained())
+		{
+			apObjects[Mine] = pCollisionManager->GetCollisionObjectWithNumber(m_apSlotItems[Mine]->GetReferenceNumber());
+		}
+	}
+	if (m_pKeysBuffer['4'] & 0xF0)
+	{
+		UseFuse(pCollisionManager);
+	}
+
+	for (int i = 0; i < 3; ++i)
+	{
+		if (apObjects[i])
+		{
+			apObjects[i]->UpdateUsing(shared_from_this(), pCollisionManager);
+			m_apSlotItems[i]->SetObtain(false);
+			m_apSlotItems[i]->SetReferenceNumber(-1);
+		}
+	}
 }
 
 void CServerBlueSuitPlayer::Update(float fElapsedTime)
 {
+	//if (m_pKeysBuffer[VK_LSHIFT] & 0xF0) m_bShiftRun = true;
+
 	if (m_bShiftRun)
 	{
 		m_fStamina -= fElapsedTime;
@@ -321,8 +412,8 @@ void CServerBlueSuitPlayer::Update(float fElapsedTime)
 
 void CServerBlueSuitPlayer::UpdatePicking()
 {
-	shared_ptr<CServerGameObject> pPickiedObject = m_pPickedObject.lock();
-	if (!pPickiedObject)
+	shared_ptr<CServerGameObject> pPickedObject = m_pPickedObject.lock();
+	if (!pPickedObject)
 	{
 		return;
 	}
@@ -341,93 +432,126 @@ void CServerBlueSuitPlayer::UpdatePicking()
 		return;
 	}
 
-	if (AddItem(pPickiedObject) != -2)
+	if (AddItem(pPickedObject) != -1)	// 이미 있던 걸 피킹한거 -> 나중에 아예 피킹 안잡히게 수정해야함
 	{
-		pPickiedObject->UpdatePicking();
+		pPickedObject->UpdatePicking();
 	}
 }
 
 int CServerBlueSuitPlayer::AddItem(const shared_ptr<CServerGameObject>& pGameObject)
 {
-	int nSlot = -2;
-	if (dynamic_pointer_cast<CTeleportObject>(pGameObject))
+	if (!dynamic_pointer_cast<CServerItemObject>(pGameObject))	// 아이템이 아님
 	{
-		nSlot = 0;
+		return 0;
 	}
-	else if (dynamic_pointer_cast<CRadarObject>(pGameObject))
-	{
-		nSlot = 1;
-	}
-	else if (dynamic_pointer_cast<CMineObject>(pGameObject))
-	{
-		nSlot = 2;
-	}
-	else if (dynamic_pointer_cast<CFuseObject>(pGameObject))
-	{
-		if (dynamic_pointer_cast<CFuseObject>(pGameObject)->GetObtained())
-		{
-			return nSlot;
-		}
 
+	int nSlot = -1;
+	if (dynamic_pointer_cast<CServerTeleportObject>(pGameObject))
+	{
+		nSlot = Teleport;
+	}
+	else if (dynamic_pointer_cast<CServerRadarObject>(pGameObject))
+	{
+		nSlot = Radar;
+	}
+	else if (dynamic_pointer_cast<CServerMineObject>(pGameObject))
+	{
+		nSlot = Mine;
+	}
+	else if (dynamic_pointer_cast<CServerFuseObject>(pGameObject))
+	{
 		if (m_nFuseNum < 3)
 		{
-			m_apFuseItems[m_nFuseNum].reset();
-			m_apFuseItems[m_nFuseNum] = pGameObject;
+			m_apFuseItems[m_nFuseNum]->SetObtain(true);
+			m_apFuseItems[m_nFuseNum]->SetReferenceNumber(pGameObject->GetCollisionNum());
 			m_nFuseNum++;
-			nSlot = -1;
+			nSlot = 4;
 		}
-	}
-	else
-	{
-		nSlot = -1;
-	}
-
-	if (nSlot <= -1)
-	{
 		return nSlot;
 	}
 
-	if (m_apSlotItems[nSlot].lock())
+	if (m_apSlotItems[nSlot]->IsObtained())	// 획득된 상태라면 획득 할 수없음
 	{
-
+		nSlot = -1;
 	}
 	else
 	{
-		m_apSlotItems[nSlot].reset();
-		m_apSlotItems[nSlot] = pGameObject;
+		switch (nSlot)
+		{
+		case Teleport:
+			// 플레이어의 ITME은 ON 시키고 해당 아이템은 OFF 시켜야함
+			//m_apSlotItems[nSlot] = dynamic_pointer_cast<CServerTeleportObject>(pGameObject);
+			break;
+		case Radar:
+			//m_apSlotItems[nSlot] = dynamic_pointer_cast<CServerRadarObject>(pGameObject);
+			break;
+		case Mine:
+			//m_apSlotItems[nSlot] = dynamic_pointer_cast<CServerMineObject>(pGameObject);
+			break;
+		default:
+			break;
+		}
+		m_apSlotItems[nSlot]->SetObtain(true);
+		m_apSlotItems[nSlot]->SetReferenceNumber(pGameObject->GetCollisionNum());
 	}
 
 	return nSlot;
 }
 
-void CServerBlueSuitPlayer::UseItem(int nSlot)
+void CServerBlueSuitPlayer::UseFuse(shared_ptr<CServerCollisionManager>& pCollisionManager)
 {
-	if (nSlot == 3)
-	{
-		UseFuse();
-	}
-	else if (shared_ptr<CServerGameObject> pGameObject = m_apSlotItems[nSlot].lock())
-	{
-		pGameObject->UpdateUsing(shared_from_this());
-		m_apSlotItems[nSlot].reset();
-	}
-}
+	// 나중에 퓨즈 박스앞에서 썼다는거 확인하기 위한값 
+	bool bFuseBox = false;
 
-void CServerBlueSuitPlayer::UseFuse()
-{
-	for (auto& fuseItem : m_apFuseItems)
+	shared_ptr<CServerGameObject> pObject;
+	for (auto& pFuseItem : m_apFuseItems)
 	{
-		if (fuseItem.lock())
+		if (pFuseItem && pFuseItem->IsObtained())
 		{
-			fuseItem.lock()->UpdateUsing(shared_from_this());
-			fuseItem.reset();
+			pObject = pCollisionManager->GetCollisionObjectWithNumber(pFuseItem->GetReferenceNumber());
+			
+			pObject->UpdateUsing(shared_from_this(), pCollisionManager);
+			pFuseItem->SetReferenceNumber(-1);
+			pFuseItem->SetObtain(false);
 		}
 	}
 	m_nFuseNum = 0;
 }
 
-void CServerBlueSuitPlayer::Teleport()
+void CServerBlueSuitPlayer::TeleportRandomPosition()
 {
-	//XMFLOAT3 randomPos = { 4.0f, 4.0f, 4.0f };
-	//SetPosition(randomPos);
+	// 후보지를 두고 int 값에 따라 그곳에 가도록 해야할듯
+	uniform_int_distribution<int> disFloatPosition(0, 15);
+
+	array<XMFLOAT3, 16> axmf3Positions = {
+		XMFLOAT3(9.f, 0.0f, 13.5),
+		XMFLOAT3(9.f, 0.0f, -13.5),
+		XMFLOAT3(-9.f, 0.0f, 13.9),
+		XMFLOAT3(-9.f, 0.0f, -13.9),
+		XMFLOAT3(9.f, 4.5f, 13.9),
+		XMFLOAT3(9.f, 4.5f, -13.9),
+		XMFLOAT3(-9.f, 4.5f, 13.9),
+		XMFLOAT3(-9.f, 4.5f, -13.9),
+		XMFLOAT3(-9.f, 9.0f, -13.9),
+		XMFLOAT3(9.f, 9.0f, -13.9),
+		XMFLOAT3(-9.f, 9.0f, 13.9),
+		XMFLOAT3(-9.f, 9.0f, -13.9),
+		XMFLOAT3(-9.f, 13.5f, -13.9),
+		XMFLOAT3(9.f, 13.5f, -13.9),
+		XMFLOAT3(-9.f, 13.5f, 13.9),
+		XMFLOAT3(-9.f, 13.5f, -13.9)
+	};
+
+	m_xmf3Position = axmf3Positions[disFloatPosition(TCPServer::m_mt19937Gen)];
+	m_xmf3OldPosition = m_xmf3Position;
+}
+
+int CServerBlueSuitPlayer::GetReferenceSlotItemNum(int nIndex)
+{ 
+	return m_apSlotItems[nIndex]->GetReferenceNumber();
+}
+
+int CServerBlueSuitPlayer::GetReferenceFuseItemNum(int nIndex) 
+{ 
+	return m_apFuseItems[nIndex]->GetReferenceNumber();
 }

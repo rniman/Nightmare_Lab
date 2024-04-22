@@ -5,6 +5,7 @@
 #include <memory>
 #include <Bit>
 #include <chrono>
+#include <random>
 
 #include <DirectXMath.h>
 #include <DirectXCollision.h>

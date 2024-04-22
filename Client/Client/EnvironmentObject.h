@@ -8,15 +8,22 @@ public:
 	virtual ~CItemObject() {};
 
 	virtual void Render(ID3D12GraphicsCommandList* pd3dCommandList) override;;
+	virtual void Animate(float fElapsedTime) override;
 
-	bool GetObtained() const { return m_bObtained; }
+	void SetObtain(bool bObtained) { m_bObtained = bObtained; }
+	void SetReferenceNumber(int nObjectNumber) { m_nReferenceNumber = nObjectNumber; }
+
+	bool IsObtained() const { return m_bObtained; }
+	int GetReferenceNumber() const { return m_nReferenceNumber; }
 protected:
 	bool m_bObtained = false;
+
+	int m_nReferenceNumber = -1;
 };
 
 /// <CGameObject - CItemObject>
 ////// /// /// /// /// /// /// /// /// /// /// /// /// /// /// /// /// /// /// /// /// /// /// /// /// /// /// /// ///  
-/// <CGameObject - CEnviromentObejct>
+/// <CGameObject - CEnvironmentObject>
 
 class CEnvironmentObject :public CGameObject
 {
@@ -28,7 +35,7 @@ private:
 
 };
 
-/// <CGameObject - CEnviromentObejct>
+/// <CGameObject - CEnvironmentObject>
 ////// /// /// /// /// /// /// /// /// /// /// /// /// /// /// /// /// /// /// /// /// /// /// /// /// /// /// /// ///  
 /// <CGameObject - CDoorObject>
 
@@ -38,9 +45,7 @@ public:
 	CDrawerObject(char* pstrFrameName, XMFLOAT4X4& xmf4x4World, CMesh* pMesh);
 	virtual ~CDrawerObject();
 
-	virtual void SetOOBB() override {};
 	virtual void Animate(float fElapsedTime) override;
-	virtual void AnimateOOBB() override {};
 	virtual void UpdatePicking() override;
 private:
 	bool m_bOpened = false;
@@ -59,9 +64,7 @@ public:
 	CDoorObject(char* pstrFrameName, XMFLOAT4X4& xmf4x4World, CMesh* pMesh);
 	virtual ~CDoorObject();
 
-	virtual void SetOOBB() override {};
 	virtual void Animate(float fElapsedTime) override;
-	virtual void AnimateOOBB() override;;
 	virtual void UpdatePicking() override;
 
 private:
@@ -83,7 +86,6 @@ public:
 	virtual ~CElevatorDoorObject() {};
 
 	virtual void Animate(float fElapsedTime) override;
-	virtual void AnimateOOBB() override {};
 	virtual void UpdatePicking() override;
 private:
 	bool m_bOpened = false;
@@ -104,9 +106,7 @@ public:
 
 	virtual void LoadModelAndAnimation(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dCommandList, ID3D12RootSignature* pd3dGraphicsRootSignature, const shared_ptr<CLoadedModelInfo>& pLoadModelInfo) override;
 
-	virtual void SetOOBB() override;
 	virtual void Animate(float fElapsedTime) override;
-	virtual void AnimateOOBB() override;
 	virtual void UpdatePicking() override;
 	virtual void UpdateUsing(const shared_ptr<CGameObject>& pGameObject) override;
 };
@@ -123,12 +123,9 @@ public:
 
 	virtual void LoadModelAndAnimation(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dCommandList, ID3D12RootSignature* pd3dGraphicsRootSignature, const shared_ptr<CLoadedModelInfo>& pLoadModelInfo) override;
 
-	virtual void SetOOBB() override;
 	virtual void Animate(float fElapsedTime) override;
-	virtual void AnimateOOBB() override;
 	virtual void UpdatePicking() override;
 	virtual void UpdateUsing(const shared_ptr<CGameObject>& pGameObject) override;
-
 private:
 
 };
@@ -145,12 +142,9 @@ public:
 
 	virtual void LoadModelAndAnimation(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dCommandList, ID3D12RootSignature* pd3dGraphicsRootSignature, const shared_ptr<CLoadedModelInfo>& pLoadModelInfo) override;
 
-	virtual void SetOOBB() override;
 	virtual void Animate(float fElapsedTime) override;
-	virtual void AnimateOOBB() override;
 	virtual void UpdatePicking() override;
 	virtual void UpdateUsing(const shared_ptr<CGameObject>& pGameObject) override;
-
 private:
 
 };
@@ -167,10 +161,7 @@ public:
 
 	virtual void LoadModelAndAnimation(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dCommandList, ID3D12RootSignature* pd3dGraphicsRootSignature, const shared_ptr<CLoadedModelInfo>& pLoadModelInfo) override;
 
-	virtual void SetOOBB() override;
 	virtual void Animate(float fElapsedTime) override;
-	virtual void AnimateOOBB() override;
 	virtual void UpdatePicking() override;
 	virtual void UpdateUsing(const shared_ptr<CGameObject>& pGameObject) override;
-
 };

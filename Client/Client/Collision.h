@@ -34,6 +34,8 @@ public:
 		return m_pCollisionObject[nCollisionNum];
 	}
 
+	int GetNumOfCollisionObject()const { return m_pCollisionObject.size(); }
+
 	int GetHeight() const { return m_nHeight; }
 	int GetWidth() const { return m_nWidth; }
 	int GetDepth() const { return m_nDepth; }

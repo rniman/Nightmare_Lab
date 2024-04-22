@@ -1,27 +1,65 @@
 #pragma once
 #include "ServerObject.h"
 
-class CItemObject : public CServerGameObject
+class CServerDrawerObject;
+class CServerCollisionManager;
+
+class CServerItemObject : public CServerGameObject
 {
 public:
-	virtual ~CItemObject() {};
+	CServerItemObject();
+	virtual ~CServerItemObject() {};
 
-	virtual void UpdateUsing(const shared_ptr<CServerGameObject>& pGameObject) {};
+	virtual void Update(float fElapsedTime);
+	virtual void UpdateUsing(const shared_ptr<CServerGameObject>& pGameObject, shared_ptr<CServerCollisionManager>& pCollisionManager) {};
 
-	bool GetObtained() const { return m_bObtained; }
+	static void SetDrawerStartEnd(int nDrawer1Start, int nDrawer1End, int nDrawer2Start, int nDrawer2End);
+
+	void SetObtain(bool bObtained) { m_bObtained = bObtained; }
+	void SetDrawerNumber(int nDrawerNumber) { m_nDrawerNumber = nDrawerNumber; }
+	void SetDrawer(const shared_ptr<CServerDrawerObject>& pDrawerObject) { m_pDrawerObject = pDrawerObject; }
+	//void SetReferencePlayerId(int nPlayerId) { m_nReferencePlayerId = nPlayerId; }
+	void SetReferenceNumber(int nObjectNumber) { m_nReferenceNumber = nObjectNumber; }
+
+	void SetRandomRotation(const XMFLOAT3& xmf3Rotation) { m_xmf3Rotation = xmf3Rotation; }
+	virtual void SetRandomPosition(shared_ptr<CServerCollisionManager>& pCollisionManager) {};	// DrawerNumber를 다시 할당
+	virtual void SetWorldMatrix(const XMFLOAT4X4& xmf4x4World);
+
+	void SetRandomOffset(const XMFLOAT3& xmf3Offset);
+
+	bool IsObtained() const { return m_bObtained; }
+	int GetDrawerNumber() const { return m_nReferenceNumber; }
+	int GetReferenceNumber() const { return m_nReferenceNumber; }
 protected:
+	static int m_nStartDrawer1;
+	static int m_nEndDrawer1;
+	static int m_nStartDrawer2;
+	static int m_nEndDrawer2;
+
+	// Drawer1 2에 따라 다르게 offset을 준다
+	static float m_fDrawer1OffsetY;
+	static float m_fDrawer2OffsetY;
+
+	XMFLOAT3 m_xmf3Rotation;
+	XMFLOAT3 m_xmf3PositionOffset; // Drawer의 world 위치와의 차이
+
 	bool m_bObtained = false;
+	int m_nDrawerNumber = -1;		// CollisionManager에 있는 Drawer중 자기가 속한 인덱스 값
+	shared_ptr<CServerDrawerObject> m_pDrawerObject;
+
+	int m_nReferenceNumber = -1;	// 플레이어가 가진 아이템 오브젝트가 현재 어떤 오브젝트를 가졌는지(플레이어 내부 오브젝트 전용)
+									// 사용시 다시 -1이 되야함
 };
 
 /// <CGameObject - CItemObject>
 ////// /// /// /// /// /// /// /// /// /// /// /// /// /// /// /// /// /// /// /// /// /// /// /// /// /// /// /// ///  
 /// <CGameObject - CEnvironmentObject>
 
-class CEnvironmentObject :public CServerGameObject
+class CServerEnvironmentObject :public CServerGameObject
 {
 public:
-	CEnvironmentObject(char* pstrFrameName, const XMFLOAT4X4& xmf4x4World, const vector<BoundingOrientedBox>& voobb);
-	virtual ~CEnvironmentObject() {};
+	CServerEnvironmentObject(char* pstrFrameName, const XMFLOAT4X4& xmf4x4World, const vector<BoundingOrientedBox>& voobb);
+	virtual ~CServerEnvironmentObject() {};
 
 private:
 
@@ -31,14 +69,18 @@ private:
 ////// /// /// /// /// /// /// /// /// /// /// /// /// /// /// /// /// /// /// /// /// /// /// /// /// /// /// /// ///  
 /// <CGameObject - CDoorObject>
 
-class CDrawerObject : public CServerGameObject
+class CServerDrawerObject : public CServerGameObject
 {
 public:
-	CDrawerObject(char* pstrFrameName, const XMFLOAT4X4& xmf4x4World, const vector<BoundingOrientedBox>& voobb);
-	virtual ~CDrawerObject();
+	CServerDrawerObject(char* pstrFrameName, const XMFLOAT4X4& xmf4x4World, const vector<BoundingOrientedBox>& voobb);
+	virtual ~CServerDrawerObject();
 
 	virtual void Update(float fElapsedTime) override;
 	virtual void UpdatePicking() override;
+
+	bool IsOpen() const { return m_bOpened; }
+
+	shared_ptr<CServerItemObject> m_pStoredItem;
 private:
 	bool m_bOpened = false;
 	bool m_bAnimate = false;
@@ -50,11 +92,11 @@ private:
 ////// /// /// /// /// /// /// /// /// /// /// /// /// /// /// /// /// /// /// /// /// /// /// /// /// /// /// /// ///  
 /// <CGameObject - CDoorObject>
 
-class CDoorObject : public CServerGameObject
+class CServerDoorObject : public CServerGameObject
 {
 public:
-	CDoorObject(char* pstrFrameName, const XMFLOAT4X4& xmf4x4World, const vector<BoundingOrientedBox>& voobb);
-	virtual ~CDoorObject();
+	CServerDoorObject(char* pstrFrameName, const XMFLOAT4X4& xmf4x4World, const vector<BoundingOrientedBox>& voobb);
+	virtual ~CServerDoorObject();
 
 	virtual void Update(float fElapsedTime) override;
 	virtual void UpdatePicking() override;
@@ -70,11 +112,11 @@ private:
 ////// /// /// /// /// /// /// /// /// /// /// /// /// /// /// /// /// /// /// /// /// /// /// /// /// /// /// /// ///  
 /// <CGameObject - CElevatorDoorObject>
 
-class CElevatorDoorObject : public CServerGameObject
+class CServerElevatorDoorObject : public CServerGameObject
 {
 public:
-	CElevatorDoorObject(char* pstrFrameName, const XMFLOAT4X4& xmf4x4World, const vector<BoundingOrientedBox>& voobb);
-	virtual ~CElevatorDoorObject() {};
+	CServerElevatorDoorObject(char* pstrFrameName, const XMFLOAT4X4& xmf4x4World, const vector<BoundingOrientedBox>& voobb);
+	virtual ~CServerElevatorDoorObject() {};
 
 	virtual void Update(float fElapsedTime) override;
 	virtual void UpdatePicking() override;
@@ -89,67 +131,84 @@ private:
 ////// /// /// /// /// /// /// /// /// /// /// /// /// /// /// /// /// /// /// /// /// /// /// /// /// /// /// /// ///  
 /// <CGameObject - CItemObject - CTeleportObject>
 
-class CTeleportObject : public CItemObject
+class CServerTeleportObject : public CServerItemObject
 {
 public:
-	virtual ~CTeleportObject();;
+	CServerTeleportObject();
+	virtual ~CServerTeleportObject();
 
+	virtual void Update(float fElapsedTime) override;
 	virtual void UpdatePicking() override;
-	virtual void UpdateUsing(const shared_ptr<CServerGameObject>& pGameObject) override;
+	virtual void UpdateUsing(const shared_ptr<CServerGameObject>& pGameObject, shared_ptr<CServerCollisionManager>& pCollisionManager) override;
+	
+	virtual void SetRandomPosition(shared_ptr<CServerCollisionManager>& pCollisionManager) override;
+
+	virtual void SetWorldMatrix(const XMFLOAT4X4& xmf4x4World) override;
 };
 
 /// <CGameObject - CTeleportObject>
 ////// /// /// /// /// /// /// /// /// /// /// /// /// /// /// /// /// /// /// /// /// /// /// /// /// /// /// /// ///  
 /// <CGameObject - CItemObject - CMineObject>
 
-class CMineObject : public CItemObject
+class CServerMineObject : public CServerItemObject
 {
 public:
-	virtual ~CMineObject();
+	virtual ~CServerMineObject() {};
 
-	virtual void UpdatePicking() override;
-	virtual void UpdateUsing(const shared_ptr<CServerGameObject>& pGameObject) override;
-private:
+	virtual void Update(float fElapsedTime) override {};
+	virtual void UpdatePicking() override {};
+	virtual void UpdateUsing(const shared_ptr<CServerGameObject>& pGameObject, shared_ptr<CServerCollisionManager>& pCollisionManager) override {};
 
+	virtual void SetRandomPosition(shared_ptr<CServerCollisionManager>& pCollisionManager) override {};
+
+	virtual void SetWorldMatrix(const XMFLOAT4X4& xmf4x4World) override {};
 };
 
 /// <CGameObject - CMineObject>
 ////// /// /// /// /// /// /// /// /// /// /// /// /// /// /// /// /// /// /// /// /// /// /// /// /// /// /// /// ///  
 /// <CGameObject - CItemObject - CFuseObject>
 
-class CFuseObject : public CItemObject
+class CServerFuseObject : public CServerItemObject
 {
 public:
-	virtual ~CFuseObject();
+	CServerFuseObject();
+	virtual ~CServerFuseObject();
 
+	virtual void Update(float fElapsedTime) override;
 	virtual void UpdatePicking() override;
-	virtual void UpdateUsing(const shared_ptr<CServerGameObject>& pGameObject) override;
+	virtual void UpdateUsing(const shared_ptr<CServerGameObject>& pGameObject, shared_ptr<CServerCollisionManager>& pCollisionManager) override;
 
-private:
+	virtual void SetRandomPosition(shared_ptr<CServerCollisionManager>& pCollisionManager) override;
 
+	virtual void SetWorldMatrix(const XMFLOAT4X4& xmf4x4World) override;
 };
 
 /// <CGameObject - CFuseObject>
 ////// /// /// /// /// /// /// /// /// /// /// /// /// /// /// /// /// /// /// /// /// /// /// /// /// /// /// /// ///  
 /// <CGameObject - CItemObject - CRadarObject>
 
-class CRadarObject : public CItemObject
+class CServerRadarObject : public CServerItemObject
 {
 public:
-	virtual ~CRadarObject();
+	virtual ~CServerRadarObject();
 
+	virtual void Update(float fElapsedTime) override {};
 	virtual void UpdatePicking() override;
-	virtual void UpdateUsing(const shared_ptr<CServerGameObject>& pGameObject) override;
+	virtual void UpdateUsing(const shared_ptr<CServerGameObject>& pGameObject, shared_ptr<CServerCollisionManager>& pCollisionManager) override;
+
+	virtual void SetRandomPosition(shared_ptr<CServerCollisionManager>& pCollisionManager) override {};
+
+	virtual void SetWorldMatrix(const XMFLOAT4X4& xmf4x4World) override {};
 };
 
 /// <CGameObject - CRadarObject>
 ////// /// /// /// /// /// /// /// /// /// /// /// /// /// /// /// /// /// /// /// /// /// /// /// /// /// /// /// ///  
 /// <CGameObject - CStairObject>
 
-class CStairTriggerObject : public CServerGameObject
+class CServerStairTriggerObject : public CServerGameObject
 {
 public:
-	CStairTriggerObject(char* pstrFrameName, const XMFLOAT4X4& xmf4x4World, const vector<BoundingOrientedBox>& voobb);
+	CServerStairTriggerObject(char* pstrFrameName, const XMFLOAT4X4& xmf4x4World, const vector<BoundingOrientedBox>& voobb);
 
 	float GetOffsetY() const { return m_fOffsetY; }
 	float GetY() const { return m_fy; }

@@ -21,6 +21,7 @@ public:
 
 	void CreateCollision(int nHeight, int nWidth, int nDepth);
 	void AddCollisionObject(const shared_ptr<CServerGameObject>& pGameObject);
+	void ReplaceCollisionObject(const shared_ptr<CServerGameObject>& pGameObject);
 	void AddCollisionPlayer(const shared_ptr<CServerPlayer>& pPlayer, int nIndex);
 
 	vpObjects_t& GetSpaceGameObjects(int nHeight, int nWidth, int nDepth);
@@ -32,7 +33,8 @@ public:
 	std::array<weak_ptr<CServerPlayer>, MAX_CLIENT> m_apPlayer;
 
 	static int GetNumberOfCollisionObject() { return CServerCollisionManager::m_nCollisionObject; }
-	weak_ptr<CServerGameObject> GetCollisionObjectWithNumber(int nCollisionNum) { return m_pCollisionObject[nCollisionNum]; }
+	shared_ptr<CServerGameObject> GetCollisionObjectWithNumber(int nCollisionNum) { return m_vpCollisionObject[nCollisionNum]; }
+	vector<shared_ptr<CServerGameObject>> GetOutSpaceObject() { return m_vpOutSpaceObject; }
 
 	int GetHeight() const { return m_nHeight; }
 	int GetWidth() const { return m_nWidth; }
@@ -41,7 +43,8 @@ public:
 private:
 	static int m_nCollisionObject;
 
-	vector<weak_ptr<CServerGameObject>> m_pCollisionObject;	// 번호를 이용해서 충돌 객체를 빠르게 가져오기위함
+	vector<shared_ptr<CServerGameObject>> m_vpCollisionObject;	// 번호를 이용해서 충돌 객체를 빠르게 가져오기위함
+	vector<shared_ptr<CServerGameObject>> m_vpOutSpaceObject;	// 공간 분할의 업데이트가 일어나면 어떤 오브젝트는 한번 공간외에서의 업데이트가 필요하다
 
 	int m_nHeight; // == Floor
 	int m_nWidth;

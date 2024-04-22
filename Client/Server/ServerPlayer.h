@@ -17,12 +17,13 @@ public:
 	CServerPlayer();
 	virtual ~CServerPlayer() {};
 
+	virtual void UseItem(shared_ptr<CServerCollisionManager>& pCollisionManager) {};
 	virtual void Update(float fElapsedTime) override;
 	virtual void Collide(const shared_ptr<CServerCollisionManager>& pCollisionManager, float fElapsedTime, shared_ptr<CServerGameObject> pCollided) override;
 	void Move(const XMFLOAT3& xmf3Shift, bool bUpdateVelocity);
 
 	virtual void UpdatePicking() override {};
-	virtual void UseItem(int nSlot) {};
+	//virtual void UseItem(int nSlot) {};
 
 	void CalculateSpace();
 	void OnUpdateToParent();
@@ -35,7 +36,7 @@ public:
 	void SetStairY(float fMax, float fMin) { m_fStairMax = fMax; m_fStairMin = fMin; }
 	void SetStairPlane(const XMFLOAT4& xmf4StairPlane) { m_xmf4StairPlane = xmf4StairPlane; }
 
-	void SetPosition(const XMFLOAT3& xmf3Position) { m_xmf3Position = xmf3Position; }
+	void SetWorldMatrix(const XMFLOAT3& xmf3Position) { m_xmf3Position = xmf3Position; }
 
 	void SetLook(const XMFLOAT3& xmf3Look) { m_xmf3Look = xmf3Look; }
 	void SetRight(const XMFLOAT3& xmf3Right) { m_xmf3Right = xmf3Right; }
@@ -63,10 +64,6 @@ public:
 	XMFLOAT3 GetLook() const { return m_xmf3Look; }
 	XMFLOAT3 GetRight() const { return m_xmf3Right; }
 
-	int GetWidth()const { return m_nWidth; }
-	int GetDepth()const { return m_nDepth; }
-	int GetFloor()const { return m_nFloor; }
-
 	weak_ptr<CServerGameObject> GetPickedObject() { return m_pPickedObject; }
 protected:
 	// 첫 데이터를 받기 시작
@@ -82,11 +79,6 @@ protected:
 	float m_fStairMax;
 	float m_fStairMin;
 	XMFLOAT4 m_xmf4StairPlane;
-
-
-	int m_nFloor = 0;
-	int m_nWidth = 0;
-	int m_nDepth = 0;
 
 	XMFLOAT3					m_xmf3OldPosition;
 	XMFLOAT3					m_xmf3Position;
@@ -113,25 +105,39 @@ protected:
 ///
 /// 
 
+enum ITEM_SLOT
+{
+	Teleport,
+	Radar,
+	Mine,
+	Fuse
+};
+
+class CServerItemObject;
+class CServerFuseObject;
+
 class CServerBlueSuitPlayer : public CServerPlayer
 {
 public:
 	CServerBlueSuitPlayer();
 	virtual ~CServerBlueSuitPlayer() {};
 
+	virtual void UseItem(shared_ptr<CServerCollisionManager>& pCollisionManager);
 	virtual void Update(float fElapsedTime) override;
 	virtual void UpdatePicking() override;
 
 	int AddItem(const shared_ptr<CServerGameObject>& pGameObject);
-	virtual void UseItem(int nSlot) override;
-	void UseFuse();
-	void Teleport();
+	//virtual void UseItem(int nSlot) override;
+	void UseFuse(shared_ptr<CServerCollisionManager>& pCollisionManager);
+	void TeleportRandomPosition();
 
+	int GetReferenceSlotItemNum(int nIndex);
+	int GetReferenceFuseItemNum(int nIndex);
 private:
-	std::array<weak_ptr<CServerGameObject>, 3> m_apSlotItems;
+	std::array<shared_ptr<CServerItemObject>, 3> m_apSlotItems;
 
 	int m_nFuseNum = 0;
-	std::array<weak_ptr<CServerGameObject>, 3> m_apFuseItems;
+	std::array<shared_ptr<CServerFuseObject>, 3> m_apFuseItems;
 
 	bool m_bShiftRun = false;
 	bool m_bAbleRun = true;

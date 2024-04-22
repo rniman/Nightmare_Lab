@@ -2,7 +2,7 @@
 constexpr UINT WM_SOCKET{ WM_USER + 1 };
 constexpr char SERVERIP[16]{ "127.0.0.1" };
 constexpr UINT SERVERPORT{ 9000 };
-constexpr UINT BUFSIZE{ 500 };
+constexpr UINT BUFSIZE{ 10000 };
 
 constexpr size_t MAX_CLIENT{ 5 };
 constexpr size_t MAX_RECV_OBJECT_INFO{ 60 };
@@ -28,6 +28,9 @@ struct CS_CLIENTS_INFO
 	XMFLOAT3 m_xmf3Velocity;
 	XMFLOAT3 m_xmf3Look;
 	XMFLOAT3 m_xmf3Right;
+
+	int m_nSlotObjectNum[3];	// 각 슬롯에 포함된 오브젝트 번호(없으면 -1)
+	int m_nFuseObjectNum[3];	// 퓨즈 오브젝트 번호(없으면 -1)
 
 	int m_nNumOfObject = -1;
 	std::array<int, MAX_RECV_OBJECT_INFO> m_anObjectNum;

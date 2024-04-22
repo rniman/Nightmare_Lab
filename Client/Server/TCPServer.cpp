@@ -5,6 +5,7 @@
 #include "ServerPlayer.h"
 #include "ServerCollision.h"
 
+default_random_engine TCPServer::m_mt19937Gen;
 size_t TCPServer::m_nClient = 0;
 
 TCPServer::TCPServer()
@@ -252,6 +253,8 @@ void TCPServer::OnProcessingCloseMessage(HWND hWnd, UINT nMessageID, WPARAM wPar
 
 bool TCPServer::Init(HWND hWnd)
 {
+	m_mt19937Gen = default_random_engine(random_device()());
+
 	m_hWnd = hWnd;
 	// 윈속 초기화
 	WSADATA wsa;
@@ -290,7 +293,12 @@ bool TCPServer::Init(HWND hWnd)
 	m_pCollisionManager = make_shared<CServerCollisionManager>();
 	m_pCollisionManager->CreateCollision(4, 10, 10);
 
+	// 씬 생성
 	LoadScene();
+
+	// 아이템 생성
+	CreateItemObject();
+
 	return true;
 }
 
@@ -308,12 +316,19 @@ void TCPServer::SimulationLoop()
 		}
 
 		pPlayer->SetPickedObject(m_pCollisionManager);	
+		if (pPlayer->GetPickedObject().lock())
+		{
+			//char buf[256];
+			//pPlayer->GetPickedObject().lock()->GetFrameName();
+			//memcpy(buf, pPlayer->GetPickedObject().lock()->GetFrameName(), 256);
+			//printf("%s\t", buf);
+		}
 
+		pPlayer->UseItem(m_pCollisionManager);
 		pPlayer->Update(fElapsedTime);
 		pPlayer->UpdatePicking();
 		//UpdateInformation(pPlayer);
 		m_pCollisionManager->Collide(fElapsedTime, pPlayer);
-
 	}
 
 	m_pCollisionManager->Update(fElapsedTime);
@@ -439,6 +454,17 @@ void TCPServer::UpdateInformation()
 		m_aUpdateInfo[nPlayerId].m_xmf3Look = pPlayer->GetLook();
 		m_aUpdateInfo[nPlayerId].m_xmf3Right = pPlayer->GetRight();
 
+		// 지금은 일단 이렇게 해뒀지만 나중에는 0번이 Enemy고정일듯
+		shared_ptr<CServerBlueSuitPlayer> pBlueSuitPlayer = dynamic_pointer_cast<CServerBlueSuitPlayer>(pPlayer);
+		for (int i = 0; i < 3; ++i)
+		{
+			if (pBlueSuitPlayer)
+			{
+				m_aUpdateInfo[nPlayerId].m_nSlotObjectNum[i] = pBlueSuitPlayer->GetReferenceSlotItemNum(i);
+				m_aUpdateInfo[nPlayerId].m_nFuseObjectNum[i] = pBlueSuitPlayer->GetReferenceFuseItemNum(i);
+			}
+		}
+			
 		// 업데이트 오브젝트는 리셋
 		m_aUpdateInfo[nPlayerId].m_nNumOfObject = 0;
 		for (int i = 0; i < 20; ++i)
@@ -540,58 +566,131 @@ void TCPServer::LoadScene()
 
 void TCPServer::CreateSceneObject(char* pstrFrameName, const XMFLOAT4X4& xmf4x4World, const vector<BoundingOrientedBox>& voobb)
 {
+	static int nServerObjectNum = 0;
 	shared_ptr<CServerGameObject> pGameObject;
 
 	if (!strcmp(pstrFrameName, "Door_1"))
 	{
-		pGameObject = make_shared<CDoorObject>(pstrFrameName, xmf4x4World, voobb);
-		m_pCollisionManager->AddCollisionObject(pGameObject);
+		pGameObject = make_shared<CServerDoorObject>(pstrFrameName, xmf4x4World, voobb);
 	}
-	else if (!strcmp(pstrFrameName, "Drawer_1") || !strcmp(pstrFrameName, "Drawer_2"))
+	else if (!strcmp(pstrFrameName, "Drawer_1"))
 	{
-		pGameObject = make_shared<CDrawerObject>(pstrFrameName, xmf4x4World, voobb);
-		m_pCollisionManager->AddCollisionObject(pGameObject);
+		if (m_nStartDrawer1 == -1)
+		{
+			m_nStartDrawer1 = nServerObjectNum;
+			m_nEndDrawer1 = nServerObjectNum - 1;
+		}
+		m_nEndDrawer1++;
+		pGameObject = make_shared<CServerDrawerObject>(pstrFrameName, xmf4x4World, voobb);
+	}
+	else if (!strcmp(pstrFrameName, "Drawer_2"))
+	{
+		if (m_nStartDrawer2 == -1)
+		{
+			m_nStartDrawer2 = nServerObjectNum;
+			m_nEndDrawer2 = nServerObjectNum - 1;
+		}
+		m_nEndDrawer2++;
+		pGameObject = make_shared<CServerDrawerObject>(pstrFrameName, xmf4x4World, voobb);
 	}
 	else if (!strcmp(pstrFrameName, "Door1"))
 	{
-		pGameObject = make_shared<CElevatorDoorObject>(pstrFrameName, xmf4x4World, voobb);
-		m_pCollisionManager->AddCollisionObject(pGameObject);
+		pGameObject = make_shared<CServerElevatorDoorObject>(pstrFrameName, xmf4x4World, voobb);
 	}
 	else if (!strcmp(pstrFrameName, "Emergency_Handle"))
 	{
-		pGameObject = make_shared<CElevatorDoorObject>(pstrFrameName, xmf4x4World, voobb);
-		m_pCollisionManager->AddCollisionObject(pGameObject);
+		pGameObject = make_shared<CServerElevatorDoorObject>(pstrFrameName, xmf4x4World, voobb);
 	}
 	else if (!strcmp(pstrFrameName, "Laboratory_Wall_1_Corner_1") || !strcmp(pstrFrameName, "Laboratory_Wall_1_Corner_2"))
 	{
-		pGameObject = make_shared<CEnvironmentObject>(pstrFrameName, xmf4x4World, voobb);
-		m_pCollisionManager->AddCollisionObject(pGameObject);
+		pGameObject = make_shared<CServerEnvironmentObject>(pstrFrameName, xmf4x4World, voobb);
 	}
 	else if (!strcmp(pstrFrameName, "Laboratory_Wall_1_Corner") || !strcmp(pstrFrameName, "Laboratory_Wall_1_Corner2") || !strcmp(pstrFrameName, "Laboratory_Wall_1"))
 	{
-		pGameObject = make_shared<CEnvironmentObject>(pstrFrameName, xmf4x4World, voobb);
-		m_pCollisionManager->AddCollisionObject(pGameObject);
+		pGameObject = make_shared<CServerEnvironmentObject>(pstrFrameName, xmf4x4World, voobb);
 	}
 	else if (!strcmp(pstrFrameName, "Laboratory_Wall_Door_1") || !strcmp(pstrFrameName, "Laboratory_Wall_Door_1_2") 
 			|| !strcmp(pstrFrameName, "Laboratory_Tunnel_1") || !strcmp(pstrFrameName, "Laboratory_Table_1"))
 	{
-		pGameObject = make_shared<CEnvironmentObject>(pstrFrameName, xmf4x4World, voobb);
-		m_pCollisionManager->AddCollisionObject(pGameObject);
+		pGameObject = make_shared<CServerEnvironmentObject>(pstrFrameName, xmf4x4World, voobb);
 	}
 	else if (!strcmp(pstrFrameName, "Laboratory_Tunnel_1_Stairs"))
 	{
-		pGameObject = make_shared<CEnvironmentObject>(pstrFrameName, xmf4x4World, voobb);
-		m_pCollisionManager->AddCollisionObject(pGameObject);
+		pGameObject = make_shared<CServerEnvironmentObject>(pstrFrameName, xmf4x4World, voobb);
 	}
 	else if (!strcmp(pstrFrameName, "BoxCollider_Stair_Start"))
 	{
-		pGameObject = make_shared<CStairTriggerObject>(pstrFrameName, xmf4x4World, voobb);
-		m_pCollisionManager->AddCollisionObject(pGameObject);
+		pGameObject = make_shared<CServerStairTriggerObject>(pstrFrameName, xmf4x4World, voobb);
 	}
 	else
 	{
 		pGameObject = make_shared<CServerGameObject>(pstrFrameName, xmf4x4World, voobb);
-		m_pCollisionManager->AddCollisionObject(pGameObject);
+	}
+
+	nServerObjectNum++;
+	m_pCollisionManager->AddCollisionObject(pGameObject);
+}
+
+void TCPServer::CreateItemObject()
+{
+	CServerItemObject::SetDrawerStartEnd(m_nStartDrawer1, m_nEndDrawer1, m_nStartDrawer2, m_nEndDrawer2);
+	// 확률: fus 30, mine 30, tp 30, radar 10
+	uniform_int_distribution<int> dis(m_nStartDrawer1, m_nEndDrawer2);
+	uniform_int_distribution<int> item_dis(0, 99);
+	uniform_int_distribution<int> rotation_dis(1, 360);
+	uniform_real_distribution<float> pos_dis(-0.2f, 0.2f);
+	for(int i = 0; i < 20;++i)
+	{
+		int nDrawerNum = dis(m_mt19937Gen);
+		shared_ptr<CServerDrawerObject> pDrawerObject = dynamic_pointer_cast<CServerDrawerObject>(m_pCollisionManager->GetCollisionObjectWithNumber(nDrawerNum));
+		if (!pDrawerObject) //error
+			exit(1);
+
+		if (pDrawerObject->m_pStoredItem)	// 이미 다른 아이템이 들어왔음
+		{
+			--i;
+			continue;
+		}
+		XMFLOAT4X4 xmf4x4World = m_pCollisionManager->GetCollisionObjectWithNumber(nDrawerNum)->GetWorldMatrix();
+
+		int nCreateItem = item_dis(m_mt19937Gen);
+		shared_ptr<CServerItemObject> pItemObject;
+
+		XMFLOAT3 xmf3RandOffset = XMFLOAT3(pos_dis(m_mt19937Gen), 0.0f, pos_dis(m_mt19937Gen));
+		XMFLOAT3 xmf3RandRotation = XMFLOAT3(0.0f, 0.0f, (float)rotation_dis(m_mt19937Gen));
+		if(i < 10)		// Fuse
+		{
+			pItemObject = make_shared<CServerFuseObject>();
+			pItemObject->SetDrawerNumber(nDrawerNum);
+			pItemObject->SetDrawer(pDrawerObject);
+			pDrawerObject->m_pStoredItem = pItemObject;
+
+			pItemObject->SetRandomRotation(xmf3RandRotation);
+			pItemObject->SetRandomOffset(xmf3RandOffset);
+
+			pItemObject->SetWorldMatrix(xmf4x4World);
+			m_pCollisionManager->AddCollisionObject(pItemObject);
+		}
+		else if(i < 20)	// tp
+		{
+			pItemObject = make_shared<CServerTeleportObject>();
+			pItemObject->SetDrawerNumber(nDrawerNum);
+			pItemObject->SetDrawer(pDrawerObject);
+			pDrawerObject->m_pStoredItem = pItemObject;
+
+			pItemObject->SetRandomRotation(xmf3RandRotation);
+			pItemObject->SetRandomOffset(xmf3RandOffset);
+			pItemObject->SetWorldMatrix(xmf4x4World);
+			m_pCollisionManager->AddCollisionObject(pItemObject);
+		}
+		//else if (nCreateItem < 30)	// mine
+		//{
+		//	shared_ptr<CServerMineObject> pFuseObject = make_shared<CServerMineObject>();
+		//}
+		//else	// radar
+		//{
+		//	shared_ptr<CServerRadarObject> pFuseObject = make_shared<CServerRadarObject>();
+		//}
 	}
 }
 
@@ -606,6 +705,21 @@ void TCPServer::CreatSendObject()
 		}
 
 		int nId = pPlayer->GetPlayerId();
+
+		// 공간 외에 업데이트가 필요한 경우의 오브젝트
+		// EX) 아이템 사용 후 다시 맵에 리젠 되어야하는 아이템 오브젝트
+		for (auto& pGameObject : m_pCollisionManager->GetOutSpaceObject())
+		{
+			if (!pGameObject)
+			{
+				continue;
+			}
+			m_aUpdateInfo[nId].m_anObjectNum[nIndex] = pGameObject->GetCollisionNum();
+			m_aUpdateInfo[nId].m_axmf4x4World[nIndex] = pGameObject->GetWorldMatrix();
+			nIndex++;
+		}
+		m_pCollisionManager->GetOutSpaceObject().clear();
+
 
 		// 층은 나중에 계단쪽에서만 추가할수있도록해야할듯
 		// if(계단 쪽이면 위층 or 아래층범위 검사)
