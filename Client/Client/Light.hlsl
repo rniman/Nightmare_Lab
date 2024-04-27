@@ -178,8 +178,8 @@ float4 SpotLight(int nIndex, float3 vPosition, float3 vNormal, float3 vToCamera)
         float fAttenuationFactor = (1.0f / dot(gLights[nIndex].m_vAttenuation, float3(1.0f, fDistance, fDistance * fDistance)));
 		
         float distanceAttenuation = 1 - (fDistance / gLights[nIndex].m_fRange);
-        
-        return (((gLights[nIndex].m_cAmbient * gMaterial.m_cAmbient + 0.0f) + (gLights[nIndex].m_cAlbedo * fDiffuseFactor * gMaterial.m_cAlbedo) + (gLights[nIndex].m_cSpecular * fSpecularFactor *gMaterial.m_cSpecular)) * fAttenuationFactor * distanceAttenuation * fSpotFactor);
+		
+        return (((gLights[nIndex].m_cAmbient * gMaterial.m_cAmbient + 0.0f) + (gLights[nIndex].m_cAlbedo * fDiffuseFactor * gMaterial.m_cAlbedo) + (gLights[nIndex].m_cSpecular * fSpecularFactor * gMaterial.m_cSpecular)) * fAttenuationFactor * distanceAttenuation * fSpotFactor);
     }
     return (float4(0.0f, 0.0f, 0.0f, 0.0f));
 }
@@ -189,7 +189,7 @@ float4 Lighting(float3 vPosition, float3 vNormal)
 	float3 vCameraPosition = float3(gvCameraPosition.x, gvCameraPosition.y, gvCameraPosition.z);
 	float3 vToCamera = normalize(vCameraPosition - vPosition);
     
-	float4 cColor = float4(0.05f, 0.05f, 0.05f, 0.0f);
+    float4 cColor = float4(0.05f, 0.05f, 0.05f, 0.0f);
 	[unroll(MAX_LIGHTS)] for (int i = 0; i < gnLights; i++)
 	{
 		if (gLights[i].m_bEnable)

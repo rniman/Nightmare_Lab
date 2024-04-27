@@ -25,6 +25,7 @@ public:
 	int GetBoneFrameIndexToFlashLight() { return m_nPlayerFlashLight; }
 	int GetBoneFrameIndexToRightHandRaiderItem() { return m_nRaiderItem; }
 	int GetBoneFrameIndexToRightHandTeleportItem() { return m_nTeleportItem; }
+
 	void SetElbowPitch(float value);
 	int GetBoneFrameIndex(char* s);
 private:
@@ -43,8 +44,6 @@ private:
 	int m_nTeleportItem = -1;
 
 	int m_nElbow_L = -1;
-	int m_nElbow_R = -1;
-
 	int m_nHead_M = -1;
 
 	// ∆»¿« ∞¢µµ

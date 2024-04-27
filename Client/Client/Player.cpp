@@ -5,7 +5,7 @@
 #include "Shader.h"
 #include "PlayerController.h"
 #include "Collision.h"
-#include "EnviromentObject.h"
+#include "EnvironmentObject.h"
 #include "TeleportLocation.h"
 //#define _WITH_DEBUG_CALLBACK_DATA
 
@@ -128,30 +128,10 @@ void CPlayer::Rotate(float x, float y, float z)
 
 void CPlayer::Update(float fElapsedTime)
 {
-	m_xmf3Velocity = Vector3::Add(m_xmf3Velocity, m_xmf3Gravity);
-	float fLength = sqrtf(m_xmf3Velocity.x * m_xmf3Velocity.x + m_xmf3Velocity.z * m_xmf3Velocity.z);
-	float fMaxVelocityXZ = m_fMaxVelocityXZ;
-	if (fLength > m_fMaxVelocityXZ)
-	{
-		m_xmf3Velocity.x *= (fMaxVelocityXZ / fLength);
-		m_xmf3Velocity.z *= (fMaxVelocityXZ / fLength);
-	}
-	float fMaxVelocityY = m_fMaxVelocityY;
-	fLength = sqrtf(m_xmf3Velocity.y * m_xmf3Velocity.y);
-	if (fLength > m_fMaxVelocityY) m_xmf3Velocity.y *= (fMaxVelocityY / fLength);
-
-	XMFLOAT3 xmf3Velocity = Vector3::ScalarProduct(m_xmf3Velocity, fElapsedTime, false);
-	if(!Vector3::IsZero(xmf3Velocity)) m_xmf3OldVelocity = xmf3Velocity;
-	Move(xmf3Velocity, false);
 	DWORD nCurrentCameraMode = m_pCamera->GetMode();
-	/*if (nCurrentCameraMode == THIRD_PERSON_CAMERA) */m_pCamera->Update(m_xmf3Position, fElapsedTime);
+	m_pCamera->Update(m_xmf3Position, fElapsedTime);
 	if (m_pCameraUpdatedContext) OnCameraUpdateCallback(fElapsedTime);
 	m_pCamera->RegenerateViewMatrix();
-
-	fLength = Vector3::Length(m_xmf3Velocity);
-	float fDeceleration = (m_fFriction * fElapsedTime);
-	if (fDeceleration > fLength) fDeceleration = fLength;
-	m_xmf3Velocity = Vector3::Add(m_xmf3Velocity, Vector3::ScalarProduct(m_xmf3Velocity, -fDeceleration, true));
 }
 
 void CPlayer::CalculateSpace()
@@ -233,6 +213,11 @@ void CPlayer::OnUpdateToParent()
 
 void CPlayer::Animate(float fElapsedTime)
 {
+	if (m_nClientId == -1)
+	{
+		return;
+	}
+
 	OnUpdateToParent();
 
 	if (m_pSkinnedAnimationController) m_pSkinnedAnimationController->AdvanceTime(fElapsedTime, this);
@@ -255,117 +240,118 @@ void CPlayer::AnimateOOBB()
 
 void CPlayer::Collide(float fElapsedTime, const shared_ptr<CGameObject>& pCollidedObject)
 {
-	XMFLOAT3 xmf3Velocity;
-	XMFLOAT3 xmf3NormalOfVelocity = Vector3::Normalize(m_xmf3Velocity);
-	//if (Vector3::IsZero(m_xmf3Velocity))
+	//XMFLOAT3 xmf3Velocity;
+	//XMFLOAT3 xmf3NormalOfVelocity = Vector3::Normalize(m_xmf3Velocity);
+
+	//XMFLOAT3 xmf3OldPosition = m_xmf3OldPosition;
+	//m_bCollision = false;
+
+	//BoundingBox aabbPlayer;
+
+	//XMFLOAT3 xmf3SubVelocity[3];
+	//xmf3SubVelocity[0] = XMFLOAT3(xmf3NormalOfVelocity.x, 0.0f, xmf3NormalOfVelocity.z);
+	//xmf3SubVelocity[1] = XMFLOAT3(xmf3NormalOfVelocity.x, 0.0f, 0.0f);
+	//xmf3SubVelocity[2] = XMFLOAT3(0.0f, 0.0f, xmf3NormalOfVelocity.z);
+
+	//xmf3Velocity = Vector3::Add(m_xmf3Velocity, m_xmf3Gravity);
+	//float fLength = sqrtf(xmf3Velocity.x * xmf3Velocity.x + xmf3Velocity.z * xmf3Velocity.z);
+	//float fMaxVelocityXZ = m_fMaxVelocityXZ;
+	//if (fLength > m_fMaxVelocityXZ)
 	//{
-	//	xmf3NormalOfVelocity = Vector3::Normalize(m_xmf3OldVelocity);
+	//	xmf3Velocity.x *= (fMaxVelocityXZ / fLength);
+	//	xmf3Velocity.z *= (fMaxVelocityXZ / fLength);
+	//}
+	//float fMaxVelocityY = m_fMaxVelocityY;
+	//fLength = sqrtf(xmf3Velocity.y * xmf3Velocity.y);
+	//if (fLength > m_fMaxVelocityY) xmf3Velocity.y *= (fMaxVelocityY / fLength);
+
+	//XMFLOAT3 xmf3ResultVelocity = Vector3::ScalarProduct(xmf3Velocity, fElapsedTime, false);
+
+	//for (int k = 0; k < 3; ++k)
+	//{
+	//	m_xmf3Position = xmf3OldPosition;
+	//	CalculateSpace();
+
+	//	m_bCollision = false;
+	//	xmf3SubVelocity[k] = Vector3::ScalarProduct(xmf3SubVelocity[k], Vector3::Length(xmf3ResultVelocity), false);
+	//	Move(xmf3SubVelocity[k], false);
+	//	m_pCamera->Move(Vector3::ScalarProduct(xmf3SubVelocity[k], -1.0f, false));
+
+	//	OnUpdateToParent();
+	//	aabbPlayer.Center = m_voobbOrigin[0].Center;
+	//	aabbPlayer.Extents = m_voobbOrigin[0].Extents;
+	//	XMVECTOR xmvTranslation = XMVectorSet(m_xmf3Position.x, m_xmf3Position.y, m_xmf3Position.z, 1.0f);
+	//	aabbPlayer.Transform(aabbPlayer, 1.0f, XMQuaternionIdentity(), xmvTranslation);
+
+	//	for (int i = m_nWidth - 1; i <= m_nWidth + 1 && !m_bCollision; ++i)
+	//	{
+	//		for (int j = m_nDepth - 1; j <= m_nDepth + 1 && !m_bCollision; ++j)
+	//		{
+	//			if (i < 0 || i >= g_collisionManager.GetWidth() || j < 0 || j >= g_collisionManager.GetDepth())
+	//			{
+	//				continue;
+	//			}
+
+	//			for (const auto& object : g_collisonManager.GetSpaceGameObjects(m_nFloor, i, j))
+	//			{
+	//				shared_ptr<CGameObject> pGameObject = object.lock();
+	//				if (!pGameObject || pGameObject->GetCollisionType() == 2)	//임시로 2면 넘김
+	//				{
+	//					continue;
+	//				}
+
+	//				for (const auto& oobbOrigin : pGameObject->GetVectorOOBB())
+	//				{
+	//					BoundingOrientedBox oobb;
+	//					oobbOrigin.Transform(oobb, XMLoadFloat4x4(&pGameObject->m_xmf4x4World));
+	//					XMStoreFloat4(&oobb.Orientation, XMQuaternionNormalize(XMLoadFloat4(&oobb.Orientation)));
+
+	//					if (oobb.Intersects(aabbPlayer))
+	//					{ 
+	//						m_bCollision = true;
+	//						break;
+	//					}
+	//				}
+
+	//				if (m_bCollision)
+	//				{
+	//					break;
+	//				}
+	//			}
+	//		}
+	//	}
+	//	if (!m_bCollision)
+	//	{
+	//		if(!Vector3::IsZero(xmf3SubVelocity[k]))
+	//		{
+	//			m_xmf3OldVelocity = xmf3SubVelocity[k];
+	//		}
+	//		break;
+	//	}
+	//}
+	//
+	//if (m_bCollision)
+	//{
+	//	m_xmf3Position = m_xmf3OldPosition = xmf3OldPosition;
+	//	//m_xmf3Velocity = XMFLOAT3(0.0f, 0.0f, 0.0f);
+	//	CalculateSpace();
 	//}
 
-	XMFLOAT3 xmf3OldPosition = m_xmf3OldPosition;
-	m_bCollision = false;
-
-	BoundingBox aabbPlayer;
-
-	XMFLOAT3 xmf3SubVelocity[3];
-	xmf3SubVelocity[0] = XMFLOAT3(xmf3NormalOfVelocity.x, 0.0f, xmf3NormalOfVelocity.z);
-	xmf3SubVelocity[1] = XMFLOAT3(xmf3NormalOfVelocity.x, 0.0f, 0.0f);
-	xmf3SubVelocity[2] = XMFLOAT3(0.0f, 0.0f, xmf3NormalOfVelocity.z);
-
-	xmf3Velocity = Vector3::Add(m_xmf3Velocity, m_xmf3Gravity);
-	float fLength = sqrtf(xmf3Velocity.x * xmf3Velocity.x + xmf3Velocity.z * xmf3Velocity.z);
-	float fMaxVelocityXZ = m_fMaxVelocityXZ;
-	if (fLength > m_fMaxVelocityXZ)
-	{
-		xmf3Velocity.x *= (fMaxVelocityXZ / fLength);
-		xmf3Velocity.z *= (fMaxVelocityXZ / fLength);
-	}
-	float fMaxVelocityY = m_fMaxVelocityY;
-	fLength = sqrtf(xmf3Velocity.y * xmf3Velocity.y);
-	if (fLength > m_fMaxVelocityY) xmf3Velocity.y *= (fMaxVelocityY / fLength);
-
-	XMFLOAT3 xmf3ResultVelocity = Vector3::ScalarProduct(xmf3Velocity, fElapsedTime, false);
-
-	for (int k = 0; k < 3; ++k)
-	{
-		m_xmf3Position = xmf3OldPosition;
-		CalculateSpace();
-
-		m_bCollision = false;
-		xmf3SubVelocity[k] = Vector3::ScalarProduct(xmf3SubVelocity[k], Vector3::Length(xmf3ResultVelocity), false);
-		Move(xmf3SubVelocity[k], false);
-		m_pCamera->Move(Vector3::ScalarProduct(xmf3SubVelocity[k], -1.0f, false));
-
-		OnUpdateToParent();
-		aabbPlayer.Center = m_voobbOrigin[0].Center;
-		aabbPlayer.Extents = m_voobbOrigin[0].Extents;
-		XMVECTOR xmvTranslation = XMVectorSet(m_xmf3Position.x, m_xmf3Position.y, m_xmf3Position.z, 1.0f);
-		aabbPlayer.Transform(aabbPlayer, 1.0f, XMQuaternionIdentity(), xmvTranslation);
-
-		for (int i = m_nWidth - 1; i <= m_nWidth + 1 && !m_bCollision; ++i)
-		{
-			for (int j = m_nDepth - 1; j <= m_nDepth + 1 && !m_bCollision; ++j)
-			{
-				if (i < 0 || i >= g_collisonManager.GetWidth() || j < 0 || j >= g_collisonManager.GetDepth())
-				{
-					continue;
-				}
-
-				for (const auto& object : g_collisonManager.GetSpaceGameObjects(m_nFloor, i, j))
-				{
-					shared_ptr<CGameObject> pGameObject = object.lock();
-					if (!pGameObject || pGameObject->GetCollisionType() == 2)	//임시로 2면 넘김
-					{
-						continue;
-					}
-
-					for (const auto& oobbOrigin : pGameObject->GetVectorOOBB())
-					{
-						BoundingOrientedBox oobb;
-						oobbOrigin.Transform(oobb, XMLoadFloat4x4(&pGameObject->m_xmf4x4World));
-						XMStoreFloat4(&oobb.Orientation, XMQuaternionNormalize(XMLoadFloat4(&oobb.Orientation)));
-
-						if (oobb.Intersects(aabbPlayer))
-						{ 
-							m_bCollision = true;
-							break;
-						}
-					}
-
-					if (m_bCollision)
-					{
-						break;
-					}
-				}
-			}
-		}
-		if (!m_bCollision)
-		{
-			if(!Vector3::IsZero(xmf3SubVelocity[k]))
-			{
-				m_xmf3OldVelocity = xmf3SubVelocity[k];
-			}
-			break;
-		}
-	}
-	
-	if (m_bCollision)
-	{
-		m_xmf3Position = m_xmf3OldPosition = xmf3OldPosition;
-		//m_xmf3Velocity = XMFLOAT3(0.0f, 0.0f, 0.0f);
-		CalculateSpace();
-	}
-
-	DWORD nCurrentCameraMode = m_pCamera->GetMode();
-	m_pCamera->Update(m_xmf3Position, fElapsedTime);
-	if (m_pCameraUpdatedContext) OnCameraUpdateCallback(fElapsedTime);
-	m_pCamera->RegenerateViewMatrix();
-	
-	OnUpdateToParent();
+	//DWORD nCurrentCameraMode = m_pCamera->GetMode();
+	//m_pCamera->Update(m_xmf3Position, fElapsedTime);
+	//if (m_pCameraUpdatedContext) OnCameraUpdateCallback(fElapsedTime);
+	//m_pCamera->RegenerateViewMatrix();
+	//
+	//OnUpdateToParent();
 }
 
 void CPlayer::Render(ID3D12GraphicsCommandList* pd3dCommandList)
 {
+	if (m_nClientId == -1)
+	{
+		return;
+	}
+
 	if (m_pCamera->GetMode() == THIRD_PERSON_CAMERA) 
 	{
 		CGameObject::Render(pd3dCommandList);
@@ -375,52 +361,52 @@ void CPlayer::Render(ID3D12GraphicsCommandList* pd3dCommandList)
 void CPlayer::SetPickedObject(int nx, int ny, CScene* pScene)
 {
 	//CGameObject* pPickedObject = nullptr;
-	m_pPickedObject.reset();
-	XMFLOAT3 pickPosition;
+	//m_pPickedObject.reset();
+	//XMFLOAT3 pickPosition;
 
-	if(m_pCamera->GetMode() == THIRD_PERSON_CAMERA)
-	{
-		pickPosition.x = ((2.0f * nx) / (float)m_pCamera->GetViewport().Width - 1) / m_pCamera->GetProjectionMatrix()._11;
-		pickPosition.y = -(((2.0f * ny) / (float)m_pCamera->GetViewport().Height - 1) / m_pCamera->GetProjectionMatrix()._22);
-	
-	}
-	else
-	{
-		pickPosition.x = 0.0f;
-		pickPosition.y = 0.0f;
-	}
-	pickPosition.z = 1.0f;
+	//if(m_pCamera->GetMode() == THIRD_PERSON_CAMERA)
+	//{
+	//	pickPosition.x = ((2.0f * nx) / (float)m_pCamera->GetViewport().Width - 1) / m_pCamera->GetProjectionMatrix()._11;
+	//	pickPosition.y = -(((2.0f * ny) / (float)m_pCamera->GetViewport().Height - 1) / m_pCamera->GetProjectionMatrix()._22);
 
-	float fNearestHitDistance = FLT_MAX;
+	//}
+	//else
+	//{
+	//	pickPosition.x = 0.0f;
+	//	pickPosition.y = 0.0f;
+	//}
+	//pickPosition.z = 1.0f;
 
-	for (int i = m_nWidth - 1; i <= m_nWidth + 1; ++i)
-	{
-		for (int j = m_nDepth - 1; j <= m_nDepth + 1; ++j)
-		{
-			if (i < 0 || i >= g_collisonManager.GetWidth() || j < 0 || j >= g_collisonManager.GetDepth())
-			{
-				continue;
-			}
+	//float fNearestHitDistance = FLT_MAX;
 
-			for (auto& pCollisionObject : g_collisonManager.GetSpaceGameObjects(m_nFloor, i, j))
-			{
-				if (!pCollisionObject.lock() || pCollisionObject.lock()->GetCollisionType() != 2) // 2아니면 넘김
-				{
-					continue;
-				}
+	//for (int i = m_nWidth - 1; i <= m_nWidth + 1; ++i)
+	//{
+	//	for (int j = m_nDepth - 1; j <= m_nDepth + 1; ++j)
+	//	{
+	//		if (i < 0 || i >= g_collisionManager.GetWidth() || j < 0 || j >= g_collisionManager.GetDepth())
+	//		{
+	//			continue;
+	//		}
 
-				float fHitDistance = FLT_MAX;
-				if (CGameObject::CheckPicking(pCollisionObject, pickPosition, m_pCamera->GetViewMatrix(), fHitDistance))
-				{
-					if (fHitDistance < fNearestHitDistance)
-					{
-						fNearestHitDistance = fHitDistance;
-						m_pPickedObject = pCollisionObject;
-					}
-				}
-			}
-		}
-	}
+	//		for (auto& pCollisionObject : g_collisonManager.GetSpaceGameObjects(m_nFloor, i, j))
+	//		{
+	//			if (!pCollisionObject.lock() || pCollisionObject.lock()->GetCollisionType() != 2) // 2아니면 넘김
+	//			{
+	//				continue;
+	//			}
+
+	//			float fHitDistance = FLT_MAX;
+	//			if (CGameObject::CheckPicking(pCollisionObject, pickPosition, m_pCamera->GetViewMatrix(), fHitDistance))
+	//			{
+	//				if (fHitDistance < fNearestHitDistance)
+	//				{
+	//					fNearestHitDistance = fHitDistance;
+	//					m_pPickedObject = pCollisionObject;
+	//				}
+	//			}
+	//		}
+	//	}
+	//}
 }
 
 
@@ -435,7 +421,18 @@ CBlueSuitPlayer::CBlueSuitPlayer(ID3D12Device* pd3dDevice, ID3D12GraphicsCommand
 	m_xmf4x4Raider = Matrix4x4::Identity();
 	m_pRaider = make_unique<CRadarObject>(pd3dDevice, pd3dCommandList, pd3dGraphicsRootSignature);
 
-	m_pTeleport = make_unique<CTeleportObject>(pd3dDevice, pd3dCommandList, pd3dGraphicsRootSignature);
+	m_apSlotItems[0] = make_shared<CTeleportObject>(pd3dDevice, pd3dCommandList, pd3dGraphicsRootSignature);
+	m_apSlotItems[0]->SetCollision(false);
+	m_apSlotItems[1] = make_shared<CRadarObject>(pd3dDevice, pd3dCommandList, pd3dGraphicsRootSignature);
+	m_apSlotItems[1]->SetCollision(false);
+	m_apSlotItems[2] = make_shared<CMineObject>(pd3dDevice, pd3dCommandList, pd3dGraphicsRootSignature);
+	m_apSlotItems[2]->SetCollision(false);
+
+	for (int i = 0; i < 3; ++i)
+	{
+		m_apFuseItems[i] = make_shared<CFuseObject>(pd3dDevice, pd3dCommandList, pd3dGraphicsRootSignature);
+		m_apFuseItems[i]->SetCollision(false);
+	}
 
 	SetPlayerUpdatedContext(pContext);
 	SetCameraUpdatedContext(pContext);
@@ -526,7 +523,6 @@ void CBlueSuitPlayer::Update(float fElapsedTime)
 		}
 	}
 
-
 	CPlayer::Update(fElapsedTime);
 
 	if (m_pSkinnedAnimationController)
@@ -604,24 +600,27 @@ void CBlueSuitPlayer::Update(float fElapsedTime)
 
 void CBlueSuitPlayer::Animate(float fElapsedTime)
 {
+	if (m_nClientId == -1)
+	{
+		return;
+	}
+
 	CPlayer::Animate(fElapsedTime);
 
 	//플래시라이트
 	m_pFlashlight->UpdateTransform(GetLeftHandItemFlashLightModelTransform());
 	//플레이어의 왼손: 레이더 // 내 눈에서만 레이더가 확대되는것처럼 보임. 즉, 자신의 오른손에 레이더는 사라지고 확대창으로.
 	// 다른 플레이어를 렌더링 할때는 손에 있는 형태로 보여야함.
-	//m_pRaider->UpdateTransform(RaiderUpdate(fElapsedTime));
-	//텔레포트 아이템
-	m_pTeleport->UpdateTransform(GetRightHandItemTeleportItemModelTransform());
+	m_pRaider->UpdateTransform(RaiderUpdate(fElapsedTime));
 }
 
 void CBlueSuitPlayer::UpdatePicking() 
 {
-	shared_ptr<CGameObject> pPickiedObject = m_pPickedObject.lock();
+	shared_ptr<CGameObject> pPickedObject = m_pPickedObject.lock();
 
-	if(AddItem(pPickiedObject) != -2)
+	if(AddItem(pPickedObject) != -2)
 	{
-		pPickiedObject->UpdatePicking();
+		pPickedObject->UpdatePicking();
 	}
 }
 
@@ -645,7 +644,6 @@ void CBlueSuitPlayer::RightClickProcess()
 	default:
 		break;
 	}
-
 }
 
 int CBlueSuitPlayer::AddItem(const shared_ptr<CGameObject>& pGameObject)
@@ -665,7 +663,8 @@ int CBlueSuitPlayer::AddItem(const shared_ptr<CGameObject>& pGameObject)
 	}
 	else if (dynamic_pointer_cast<CFuseObject>(pGameObject))
 	{
-		if (dynamic_pointer_cast<CFuseObject>(pGameObject)->GetObtained())
+		shared_ptr<CFuseObject> pFuseObject = dynamic_pointer_cast<CFuseObject>(pGameObject);
+		if (pFuseObject->IsObtained())
 		{
 			return nSlot;
 		}
@@ -673,7 +672,7 @@ int CBlueSuitPlayer::AddItem(const shared_ptr<CGameObject>& pGameObject)
 		if (m_nFuseNum < 3)
 		{
 			m_apFuseItems[m_nFuseNum].reset();
-			m_apFuseItems[m_nFuseNum] = pGameObject;
+			m_apFuseItems[m_nFuseNum] = pFuseObject;
 			m_nFuseNum++;
 			nSlot = -1;
 		}
@@ -688,14 +687,29 @@ int CBlueSuitPlayer::AddItem(const shared_ptr<CGameObject>& pGameObject)
 		return nSlot;
 	}
 
-	if (m_apSlotItems[nSlot].lock())
+	if (m_apSlotItems[nSlot])
 	{
 
 	}
 	else
 	{
 		m_apSlotItems[nSlot].reset();
-		m_apSlotItems[nSlot] = pGameObject;
+
+		// 임시로
+		switch (nSlot)
+		{
+		case 0:
+			m_apSlotItems[nSlot] = dynamic_pointer_cast<CTeleportObject>(pGameObject);
+			break;
+		case 1:
+			m_apSlotItems[nSlot] = dynamic_pointer_cast<CRadarObject>(pGameObject);
+			break;
+		case 2:
+			m_apSlotItems[nSlot] = dynamic_pointer_cast<CFuseObject>(pGameObject);
+			break;
+		default:
+			break;
+		}
 	}
 
 	return nSlot;
@@ -707,9 +721,9 @@ void CBlueSuitPlayer::UseItem(int nSlot)
 	{
 		UseFuse();
 	}
-	else if (shared_ptr<CGameObject> pGameObject = m_apSlotItems[nSlot].lock())
+	else if (m_apSlotItems[nSlot])
 	{
-		pGameObject->UpdateUsing(shared_from_this());
+		m_apSlotItems[nSlot]->UpdateUsing(shared_from_this());
 		m_apSlotItems[nSlot].reset();
 	}
 }
@@ -718,9 +732,9 @@ void CBlueSuitPlayer::UseFuse()
 {
 	for (auto& fuseItem : m_apFuseItems)
 	{
-		if(fuseItem.lock())
+		if(fuseItem)
 		{
-			fuseItem.lock()->UpdateUsing(shared_from_this());
+			fuseItem->UpdateUsing(shared_from_this());
 			fuseItem.reset();
 		}
 	}
@@ -757,8 +771,6 @@ XMFLOAT4X4* CBlueSuitPlayer::GetRightHandItemTeleportItemModelTransform() const
 
 	return &controller->m_pAnimationSets->m_vpBoneFrameCaches[i]->m_xmf4x4World;
 }
-
-
 
 
 XMFLOAT4X4* CBlueSuitPlayer::RaiderUpdate(float fElapsedTime)
@@ -821,30 +833,10 @@ float CBlueSuitPlayer::GetEscapeLength()
 	return length;
 }
 
-void CBlueSuitPlayer::SetMineItem(shared_ptr<CGameObject> object)
-{
-	m_pMine->SetChild(object);
-}
 
 XMFLOAT4X4* CBlueSuitPlayer::GetFlashLigthWorldTransform()
 {
 	return &m_pFlashlight->m_xmf4x4World;
-}
-
-void CBlueSuitPlayer::SetFlashLight(shared_ptr<CGameObject> object)
-{ 
-	m_pFlashlight = object; 
-}
-
-void CBlueSuitPlayer::SetRaider(shared_ptr<CGameObject> object)
-{		
-	m_pRaider->SetChild(object); 
-	//m_pRaider = reinterpret_pointer_cast<CRadarObject>(object); //형식의 호환성을 확인하지 않기 때문에 잘못된 형식 변환을 허용하므로 사용자제.
-}
-
-void CBlueSuitPlayer::SetTeleportItem(shared_ptr<CGameObject> object)
-{
-	m_pTeleport->SetChild(object);
 }
 
 
@@ -855,7 +847,7 @@ CZombiePlayer::CZombiePlayer(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList
 	:CPlayer(pd3dDevice, pd3dCommandList, pd3dGraphicsRootSignature, pContext)
 {
 	m_xmf3Scale = XMFLOAT3(1.0f, 1.0f, 1.0f);
-
+	
 	UINT ncbElementBytes = ((sizeof(FrameTimeInfo) + 255) & ~255); //256의 배수
 	m_pd3dcbTime = ::CreateBufferResource(pd3dDevice, pd3dCommandList, NULL, ncbElementBytes, D3D12_HEAP_TYPE_UPLOAD, D3D12_RESOURCE_STATE_VERTEX_AND_CONSTANT_BUFFER, NULL);
 	m_pd3dcbTime->Map(0, NULL, (void**)&m_pcbMappedTime);
@@ -939,9 +931,4 @@ void CZombiePlayer::Render(ID3D12GraphicsCommandList* pd3dCommandList)
 		return;
 	}
 	CPlayer::Render(pd3dCommandList);
-}
-
-void CZombiePlayer::CollisionByItem()
-{
-
 }

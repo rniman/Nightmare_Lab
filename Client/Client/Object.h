@@ -417,6 +417,8 @@ public:
 
 	shared_ptr<CTexture> FindReplicatedTexture(_TCHAR* pstrTextureName);
 
+	void SetLookAt(XMFLOAT3& xmf3target);
+
 	UINT GetMeshType();
 
 	void LoadMaterialsFromFile(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dCommandList, shared_ptr<CGameObject> pParent, FILE* pInFile);
@@ -448,6 +450,7 @@ public:
 	void LoadBoundingBox(vector<BoundingOrientedBox>& voobbOrigin);
 
 	// Picking
+	void SetCollision(bool bCollision) { m_bCollsion = bCollision; }
 	bool GetCollision()const { return m_bCollsion; }
 
 	bool CheckPicking(const weak_ptr<CGameObject>& pGameObject, const XMFLOAT3& xmf3PickPosition, const XMFLOAT4X4& mxf4x4ViewMatrix, float& fDistance);
@@ -455,6 +458,8 @@ public:
 	virtual void UpdateUsing(const shared_ptr<CGameObject>& pGameObject) {};
 
 	int GetCollisionType() const { return m_nCollisionType; }
+	int GetCollisionNum() const { return m_nCollisionNum; }
+
 	void SetTransparentObjectInfo(vector<int> vNumbers);
 public:
 	//중복된 메쉬를 없애기 위해 최초 메쉬들을 이곳에 저장한다.
@@ -481,12 +486,13 @@ public:
 	shared_ptr<CAnimationController> m_pSkinnedAnimationController;
 
 	vector<BoundingOrientedBox> m_voobbOrigin;
-
-	// 투명 오브젝트를 포함하는가?
-	bool m_bThisContainTransparent = false;
-	vector<int> m_vTransparentMaterialNumbers;
 	bool m_bCollsion = true;
 	int m_nCollisionType = 0; // 0:None, 1:Standard, 2:Picking
+	int m_nCollisionNum = -1;
+
+	// 투명 오브젝트 분류
+	bool m_bThisContainTransparent = false;
+	vector<int> m_vTransparentMaterialNumbers;
 };
 
 

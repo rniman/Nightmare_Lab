@@ -15,7 +15,7 @@ typedef vector<vector<vector<vpObjects_t>>> collisionGrid_t;
 class CCollisionManager
 {
 public:
-	CCollisionManager() {/* m_vvpCollisionGameObjects.resize(MaxCollisionLayer);*/};
+	CCollisionManager() {};
 	~CCollisionManager() {}
 
 	void CreateCollision(int nHeight, int nWidth, int nDepth);
@@ -24,28 +24,29 @@ public:
 	
 	vpObjects_t& GetSpaceGameObjects(int nHeight, int nWidth, int nDepth);
 
-	void Collide(float fElapsedTime);
+	//void Collide(float fElapsedTime);
 
 	collisionGrid_t m_collisionGridGameObjects;
 	weak_ptr<CPlayer> m_pPlayer;
+
+	weak_ptr<CGameObject> GetCollisionObjectWithNumber(int nCollisionNum)
+	{
+		return m_pCollisionObject[nCollisionNum];
+	}
+
+	int GetNumOfCollisionObject()const { return m_pCollisionObject.size(); }
 
 	int GetHeight() const { return m_nHeight; }
 	int GetWidth() const { return m_nWidth; }
 	int GetDepth() const { return m_nDepth; }
 private:
-	int m_nHeight; // == Floor
-	int m_nWidth; 
-	int m_nDepth;
+	static int m_nCollisionObject;
+
+	vector<weak_ptr<CGameObject>> m_pCollisionObject;	// 번호를 이용해서 충돌 객체를 빠르게 가져오기위함
+
+	int m_nHeight = -1; // == Floor
+	int m_nWidth = -1; 
+	int m_nDepth = -1;
 };
 
-extern CCollisionManager g_collisonManager;
-
-class CCollision
-{
-public:
-
-
-private:
-
-};
-
+extern CCollisionManager g_collisionManager;

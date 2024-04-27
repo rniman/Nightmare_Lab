@@ -30,6 +30,7 @@ cbuffer cbFrameInfo : register(b5)
     float usePattern : packoffset(c0.z);
 }
 
+
 #define FRAME_BUFFER_WIDTH 1600
 #define FRAME_BUFFER_HEIGHT 1024
 
@@ -47,7 +48,6 @@ Texture2D EmissionTexture : register(t4);
 Texture2D DFTextureTexture : register(t5);
 Texture2D DFNormalTexture : register(t6);
 Texture2D<float> DFzDepthTexture : register(t7);
-
 Texture2D DFPositionTexture : register(t8);
 
 Texture2D PatternTexture : register(t9);
@@ -337,7 +337,7 @@ float4 PSPostProcessing(PS_POSTPROCESSING_OUT input) : SV_Target
     
     float4 light = Lighting(position, normal);
     
-    return (cColor /** light*/);
+    return (cColor * light);
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////

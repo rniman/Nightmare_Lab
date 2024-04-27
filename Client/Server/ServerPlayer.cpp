@@ -1,0 +1,557 @@
+#include "stdafx.h"
+#include "ServerPlayer.h"
+#include "ServerCollision.h"
+#include "ServerEnvironmentObject.h"
+
+CServerPlayer::CServerPlayer()
+	: CServerGameObject()
+{
+	ZeroMemory(m_pKeysBuffer, 256);
+
+	m_xmf3Position = XMFLOAT3(9.f, 0.0f, 13.9);
+	m_xmf3OldPosition = m_xmf3Position;
+
+	XMFLOAT3 xmf3Center = XMFLOAT3(0.0f, 0.8f, 0.0f);
+	XMFLOAT3 xmf3Extents = XMFLOAT3(0.4f, 0.8f, 0.4f);
+	XMFLOAT4 xmf4Orientation;
+	XMStoreFloat4(&xmf4Orientation, XMQuaternionIdentity());
+
+	m_voobbOrigin.emplace_back(xmf3Center, xmf3Extents, xmf4Orientation);
+
+	SetFriction(250.0f);
+	SetGravity(XMFLOAT3(0.0f, 0.0f, 0.0f));
+	SetMaxVelocityXZ(8.0f);
+	SetMaxVelocityY(40.0f);
+
+	m_xmf4x4Projection = Matrix4x4::PerspectiveFovLH(XMConvertToRadians(60.0f), ASPECT_RATIO, 0.01f, 100.0f); // 1인칭
+	//m_xmf4x4Projection = Matrix4x4::PerspectiveFovLH(XMConvertToRadians(60.0f), ASPECT_RATIO, 1.01f, 100.0f);
+
+	XMMATRIX mtxProjection = XMLoadFloat4x4(&m_xmf4x4Projection);
+}
+
+void CServerPlayer::Update(float fElapsedTime)
+{
+	if (m_nPlayerId == -1)
+	{
+		return;
+	}
+
+	DWORD dwDirection = 0;
+	if (m_pKeysBuffer[VK_LBUTTON] & 0xF0) dwDirection |= PRESS_LBUTTON;
+	if (m_pKeysBuffer[VK_RBUTTON] & 0xF0) dwDirection |= PRESS_RBUTTON;
+
+	if (m_pKeysBuffer['W'] & 0xF0) dwDirection |= DIR_FORWARD;
+	if (m_pKeysBuffer['S'] & 0xF0) dwDirection |= DIR_BACKWARD;
+	if (m_pKeysBuffer['A'] & 0xF0) dwDirection |= DIR_LEFT;
+	if (m_pKeysBuffer['D'] & 0xF0) dwDirection |= DIR_RIGHT;
+
+	if (dwDirection)
+	{
+		XMFLOAT3 xmf3Shift = XMFLOAT3(0, 0, 0);
+		if (dwDirection & DIR_FORWARD) xmf3Shift = Vector3::Add(xmf3Shift, m_xmf3Look, 12.5f);
+		if (dwDirection & DIR_BACKWARD) xmf3Shift = Vector3::Add(xmf3Shift, m_xmf3Look, -12.5f);
+		if (dwDirection & DIR_RIGHT) xmf3Shift = Vector3::Add(xmf3Shift, m_xmf3Right, 12.5f);
+		if (dwDirection & DIR_LEFT) xmf3Shift = Vector3::Add(xmf3Shift, m_xmf3Right, -12.5f);
+
+		Move(xmf3Shift, true);
+	}
+
+	m_xmf3Velocity = Vector3::Add(m_xmf3Velocity, m_xmf3Gravity);
+	float fLength = sqrtf(m_xmf3Velocity.x * m_xmf3Velocity.x + m_xmf3Velocity.z * m_xmf3Velocity.z);
+	float fMaxVelocityXZ = m_fMaxVelocityXZ;
+	if (fLength > m_fMaxVelocityXZ)
+	{
+		m_xmf3Velocity.x *= (fMaxVelocityXZ / fLength);
+		m_xmf3Velocity.z *= (fMaxVelocityXZ / fLength);
+	}
+	float fMaxVelocityY = m_fMaxVelocityY;
+	fLength = sqrtf(m_xmf3Velocity.y * m_xmf3Velocity.y);
+	if (fLength > m_fMaxVelocityY) m_xmf3Velocity.y *= (fMaxVelocityY / fLength);
+
+	XMFLOAT3 xmf3Velocity = Vector3::ScalarProduct(m_xmf3Velocity, fElapsedTime, false);
+	if (!Vector3::IsZero(xmf3Velocity)) m_xmf3OldVelocity = xmf3Velocity;
+	Move(xmf3Velocity, false);
+
+	fLength = Vector3::Length(m_xmf3Velocity);
+	float fDeceleration = (m_fFriction * fElapsedTime);
+	if (fDeceleration > fLength) fDeceleration = fLength;
+	m_xmf3Velocity = Vector3::Add(m_xmf3Velocity, Vector3::ScalarProduct(m_xmf3Velocity, -fDeceleration, true));
+
+}
+
+void CServerPlayer::Collide(const shared_ptr<CServerCollisionManager>& pCollisionManager, float fElapsedTime, shared_ptr<CServerGameObject> pCollided)
+{
+	XMFLOAT3 xmf3Velocity;
+	XMFLOAT3 xmf3NormalOfVelocity = Vector3::Normalize(m_xmf3Velocity);
+
+	XMFLOAT3 xmf3OldPosition = m_xmf3OldPosition;
+	m_bCollision = false;
+
+	BoundingBox aabbPlayer;
+
+	XMFLOAT3 xmf3SubVelocity[3];
+	xmf3SubVelocity[0] = XMFLOAT3(xmf3NormalOfVelocity.x, 0.0f, xmf3NormalOfVelocity.z);
+	xmf3SubVelocity[1] = XMFLOAT3(xmf3NormalOfVelocity.x, 0.0f, 0.0f);
+	xmf3SubVelocity[2] = XMFLOAT3(0.0f, 0.0f, xmf3NormalOfVelocity.z);
+
+	xmf3Velocity = Vector3::Add(m_xmf3Velocity, m_xmf3Gravity);
+	float fLength = sqrtf(xmf3Velocity.x * xmf3Velocity.x + xmf3Velocity.z * xmf3Velocity.z);
+	float fMaxVelocityXZ = m_fMaxVelocityXZ;
+	if (fLength > m_fMaxVelocityXZ)
+	{
+		xmf3Velocity.x *= (fMaxVelocityXZ / fLength);
+		xmf3Velocity.z *= (fMaxVelocityXZ / fLength);
+	}
+	float fMaxVelocityY = m_fMaxVelocityY;
+	fLength = sqrtf(xmf3Velocity.y * xmf3Velocity.y);
+	if (fLength > m_fMaxVelocityY) xmf3Velocity.y *= (fMaxVelocityY / fLength);
+
+	XMFLOAT3 xmf3ResultVelocity = Vector3::ScalarProduct(xmf3Velocity, fElapsedTime, false);
+
+	for (int k = 0; k < 3; ++k)
+	{
+		m_xmf3Position = xmf3OldPosition;
+		CalculateSpace();
+
+		m_bCollision = false;
+		xmf3SubVelocity[k] = Vector3::ScalarProduct(xmf3SubVelocity[k], Vector3::Length(xmf3ResultVelocity), false);
+		Move(xmf3SubVelocity[k], false);
+
+		OnUpdateToParent();
+		aabbPlayer.Center = m_voobbOrigin[0].Center;
+		aabbPlayer.Extents = m_voobbOrigin[0].Extents;
+		XMVECTOR xmvTranslation = XMVectorSet(m_xmf3Position.x, m_xmf3Position.y, m_xmf3Position.z, 1.0f);
+		aabbPlayer.Transform(aabbPlayer, 1.0f, XMQuaternionIdentity(), xmvTranslation);
+
+		for (int i = m_nWidth - 2; i <= m_nWidth +  2 && !m_bCollision; ++i)
+		{
+			for (int j = m_nDepth - 2; j <= m_nDepth + 2 && !m_bCollision; ++j)
+			{
+				if (i < 0 || i >= pCollisionManager->GetWidth() || j < 0 || j >= pCollisionManager->GetDepth())
+				{
+					continue;
+				}
+
+				for (const auto& pGameObject : pCollisionManager->GetSpaceGameObjects(m_nFloor, i, j))
+				{
+					if (!pGameObject || !pGameObject->IsCollision())
+					{
+						continue;
+					}
+
+					if (pGameObject->GetCollisionType() == StairTrigger)
+					{
+						BoundingOrientedBox oobb;
+						XMFLOAT4X4 xmf4x4World = pGameObject->GetWorldMatrix();
+						pGameObject->GetOOBB(0).Transform(oobb, XMLoadFloat4x4(&xmf4x4World));
+						XMStoreFloat4(&oobb.Orientation, XMQuaternionNormalize(XMLoadFloat4(&oobb.Orientation)));
+						if (oobb.Intersects(aabbPlayer))
+						{
+							m_bStair = true;
+							shared_ptr<CServerStairTriggerObject> pStairObject = dynamic_pointer_cast<CServerStairTriggerObject>(pGameObject);
+							if (pStairObject)
+							{
+								if (pStairObject->GetOffsetY() < 0.0f)
+								{
+									SetStairY(pStairObject->GetY() - 0.2f, pStairObject->GetY() - 0.2f - 4.5f);
+								}
+								else
+								{
+									SetStairY(pStairObject->GetY() - 0.2f + 4.5f, pStairObject->GetY() - 0.2f);
+								}
+								m_xmf4StairPlane = pStairObject->GetStairPlane();
+							}
+						}
+						continue;
+					}
+
+					if (pGameObject->GetCollisionType() != Standard) //임시로 2면 넘김
+					{
+						continue;
+					}
+
+					for (const auto& oobbOrigin : pGameObject->GetVectorOOBB())
+					{
+						BoundingOrientedBox oobb;
+						XMFLOAT4X4 xmf4x4World = pGameObject->GetWorldMatrix();
+						oobbOrigin.Transform(oobb, XMLoadFloat4x4(&xmf4x4World));
+						XMStoreFloat4(&oobb.Orientation, XMQuaternionNormalize(XMLoadFloat4(&oobb.Orientation)));
+
+						if (oobb.Intersects(aabbPlayer))
+						{
+							m_bCollision = true;
+							break;
+						}
+					}
+
+					if (m_bCollision)
+					{
+						break;
+					}
+				}
+			}
+		}
+		if (!m_bCollision)
+		{
+			if (!Vector3::IsZero(xmf3SubVelocity[k]))
+			{
+				m_xmf3OldVelocity = xmf3SubVelocity[k];
+			}
+			break;
+		}
+	}
+
+	if (m_bCollision)
+	{
+		m_xmf3Position = m_xmf3OldPosition = xmf3OldPosition;
+		CalculateSpace();
+	}
+	OnUpdateToParent();
+}
+
+void CServerPlayer::Move(const XMFLOAT3& xmf3Shift, bool bUpdateVelocity)
+{
+	if (bUpdateVelocity)
+	{
+		m_xmf3Velocity = Vector3::Add(m_xmf3Velocity, xmf3Shift);
+	}
+	else //속력이 확정되면 이것이 작동함 or 강제로 위치를 옮길때
+	{
+		if (!Vector3::IsZero(xmf3Shift))
+		{
+			m_xmf3OldPosition = m_xmf3Position;
+		}
+		m_xmf3Position = Vector3::Add(m_xmf3Position, xmf3Shift);
+		CalculateSpace();
+	}
+}
+
+void CServerPlayer::CalculateSpace()
+{
+	m_nWidth = static_cast<int>((m_xmf3Position.x - GRID_START_X) / SPACE_SIZE_XZ);
+	m_nFloor = static_cast<int>((m_xmf3Position.y - GRID_START_Y) / SPACE_SIZE_Y);
+	m_nDepth = static_cast<int>((m_xmf3Position.z - GRID_START_Z) / SPACE_SIZE_XZ);
+}
+
+void CServerPlayer::OnUpdateToParent()
+{
+	m_xmf4x4ToParent._11 = m_xmf3Right.x; m_xmf4x4ToParent._12 = m_xmf3Right.y; m_xmf4x4ToParent._13 = m_xmf3Right.z;
+	m_xmf4x4ToParent._21 = m_xmf3Up.x; m_xmf4x4ToParent._22 = m_xmf3Up.y; m_xmf4x4ToParent._23 = m_xmf3Up.z;
+	m_xmf4x4ToParent._31 = m_xmf3Look.x; m_xmf4x4ToParent._32 = m_xmf3Look.y; m_xmf4x4ToParent._33 = m_xmf3Look.z;
+	m_xmf4x4ToParent._41 = m_xmf3Position.x; m_xmf4x4ToParent._42 = m_xmf3Position.y; m_xmf4x4ToParent._43 = m_xmf3Position.z;
+
+	XMMATRIX xmtxScale = XMMatrixScaling(1.0f, 1.0f, 1.0f);
+	m_xmf4x4ToParent = Matrix4x4::Multiply(xmtxScale, m_xmf4x4ToParent);
+}
+
+void CServerPlayer::SetPickedObject(const shared_ptr<CServerCollisionManager> pCollisionManager)
+{
+	if (!IsRecvData())
+	{
+		return;
+	}
+
+	//if (!(m_pKeysBuffer[VK_RBUTTON] & 0xF0))
+	//	return;
+
+	m_pPickedObject.reset();
+
+	// 1인칭
+	XMFLOAT3 pickPosition;
+	pickPosition.x = 0.0f;
+	pickPosition.y = 0.0f;
+	pickPosition.z = 1.0f;
+
+	float fNearestHitDistance = FLT_MAX;
+	for (int i = m_nWidth - 1; i <= m_nWidth + 1; ++i)
+	{
+		for (int j = m_nDepth - 1; j <= m_nDepth + 1; ++j)
+		{
+			if (i < 0 || i >= pCollisionManager->GetWidth() || j < 0 || j >= pCollisionManager->GetDepth())
+			{
+				continue;
+			}
+
+			for (auto& pCollisionObject : pCollisionManager->GetSpaceGameObjects(m_nFloor, i, j))
+			{
+				if (!pCollisionObject || pCollisionObject->GetCollisionType() == COLLISION_TYPE::None) //
+				{
+					continue;
+				}
+
+				float fHitDistance = FLT_MAX;
+				if (CServerGameObject::CheckPicking(pCollisionObject, pickPosition, m_xmf4x4View, fHitDistance))
+				{
+					shared_ptr<CServerDrawerObject> pDrawer = dynamic_pointer_cast<CServerDrawerObject>(pCollisionObject);
+					if (pDrawer)	// 서랍의 경우 내부에 아이템을 고려해야함
+					{
+						if (!pDrawer->IsOpen() || !pDrawer->m_pStoredItem)	// 닫혀있거나 내부에 아이템이 없으면 
+						{
+							if (fHitDistance < fNearestHitDistance)
+							{
+								fNearestHitDistance = fHitDistance;
+								m_pPickedObject = pCollisionObject;
+							}
+							continue;
+						}
+
+						float fItemHitDistance = FLT_MAX;
+						if (CServerGameObject::CheckPicking(pDrawer->m_pStoredItem, pickPosition, m_xmf4x4View, fItemHitDistance))
+						{
+							if (fItemHitDistance < fNearestHitDistance)
+							{
+								fNearestHitDistance = fHitDistance = fItemHitDistance;
+								m_pPickedObject = pDrawer->m_pStoredItem;
+							}
+						}
+						else
+						{
+							if (fHitDistance < fNearestHitDistance)
+							{
+								fNearestHitDistance = fHitDistance;
+								m_pPickedObject = pCollisionObject;
+							}
+						}
+					}
+					else if (fHitDistance < fNearestHitDistance)
+					{
+						fNearestHitDistance = fHitDistance;
+						m_pPickedObject = pCollisionObject;
+					}
+				}
+			}
+		}
+	}
+}
+
+////
+////
+////
+
+CServerBlueSuitPlayer::CServerBlueSuitPlayer()
+	: CServerPlayer()
+{
+	m_apSlotItems[Teleport] = make_shared<CServerTeleportObject>();
+	m_apSlotItems[Teleport]->SetCollision(false);
+	m_apSlotItems[Radar] = make_shared<CServerRadarObject>();
+	m_apSlotItems[Radar]->SetCollision(false);
+	m_apSlotItems[Mine] = make_shared<CServerMineObject>();
+	m_apSlotItems[Mine]->SetCollision(false);
+
+	for(int i=0;i<3;++i)
+	{
+		m_apFuseItems[i] = make_shared<CServerFuseObject>();
+		m_apFuseItems[i]->SetCollision(false);
+	}
+}
+
+void CServerBlueSuitPlayer::UseItem(shared_ptr<CServerCollisionManager>& pCollisionManager)
+{
+	array<shared_ptr<CServerGameObject>,3> apObjects;
+	if (m_pKeysBuffer['1'] & 0xF0)
+	{
+		if (m_apSlotItems[Teleport]->IsObtained())
+		{
+			apObjects[Teleport] = pCollisionManager->GetCollisionObjectWithNumber(m_apSlotItems[Teleport]->GetReferenceNumber());
+		}
+	}
+	if (m_pKeysBuffer['2'] & 0xF0)
+	{
+		if (m_apSlotItems[Radar]->IsObtained())
+		{
+			apObjects[Radar] = pCollisionManager->GetCollisionObjectWithNumber(m_apSlotItems[Radar]->GetReferenceNumber());
+		}
+	}
+	if (m_pKeysBuffer['3'] & 0xF0)
+	{
+		if (m_apSlotItems[Mine]->IsObtained())
+		{
+			apObjects[Mine] = pCollisionManager->GetCollisionObjectWithNumber(m_apSlotItems[Mine]->GetReferenceNumber());
+		}
+	}
+	if (m_pKeysBuffer['4'] & 0xF0)
+	{
+		UseFuse(pCollisionManager);
+	}
+
+	for (int i = 0; i < 3; ++i)
+	{
+		if (apObjects[i])
+		{
+			apObjects[i]->UpdateUsing(shared_from_this(), pCollisionManager);
+			m_apSlotItems[i]->SetObtain(false);
+			m_apSlotItems[i]->SetReferenceNumber(-1);
+		}
+	}
+}
+
+void CServerBlueSuitPlayer::Update(float fElapsedTime)
+{
+	//if (m_pKeysBuffer[VK_LSHIFT] & 0xF0) m_bShiftRun = true;
+
+	if (m_bShiftRun)
+	{
+		m_fStamina -= fElapsedTime;
+		if (m_fStamina < 0.0f)
+		{
+			m_bAbleRun = false;
+			m_bShiftRun = false;
+		}
+	}
+	else if (m_fStamina < 5.0f)
+	{
+		m_fStamina += fElapsedTime;
+		if (!m_bAbleRun && m_fStamina > 3.0f)
+		{
+			m_bAbleRun = true;
+		}
+	}
+
+	CServerPlayer::Update(fElapsedTime);
+}
+
+void CServerBlueSuitPlayer::UpdatePicking()
+{
+	shared_ptr<CServerGameObject> pPickedObject = m_pPickedObject.lock();
+	if (!pPickedObject)
+	{
+		return;
+	}
+
+	if (!(m_pKeysBuffer['E'] & 0xF0))
+	{
+		m_bPressed = false;
+		return;
+	}
+	else if (!m_bPressed)	// Press가 지속됨
+	{
+		m_bPressed = true;
+	}
+	else
+	{
+		return;
+	}
+
+	if (AddItem(pPickedObject) != -1)	// 이미 있던 걸 피킹한거 -> 나중에 아예 피킹 안잡히게 수정해야함
+	{
+		pPickedObject->UpdatePicking();
+	}
+}
+
+int CServerBlueSuitPlayer::AddItem(const shared_ptr<CServerGameObject>& pGameObject)
+{
+	if (!dynamic_pointer_cast<CServerItemObject>(pGameObject))	// 아이템이 아님
+	{
+		return 0;
+	}
+
+	int nSlot = -1;
+	if (dynamic_pointer_cast<CServerTeleportObject>(pGameObject))
+	{
+		nSlot = Teleport;
+	}
+	else if (dynamic_pointer_cast<CServerRadarObject>(pGameObject))
+	{
+		nSlot = Radar;
+	}
+	else if (dynamic_pointer_cast<CServerMineObject>(pGameObject))
+	{
+		nSlot = Mine;
+	}
+	else if (dynamic_pointer_cast<CServerFuseObject>(pGameObject))
+	{
+		if (m_nFuseNum < 3)
+		{
+			m_apFuseItems[m_nFuseNum]->SetObtain(true);
+			m_apFuseItems[m_nFuseNum]->SetReferenceNumber(pGameObject->GetCollisionNum());
+			m_nFuseNum++;
+			nSlot = 4;
+		}
+		return nSlot;
+	}
+
+	if (m_apSlotItems[nSlot]->IsObtained())	// 획득된 상태라면 획득 할 수없음
+	{
+		nSlot = -1;
+	}
+	else
+	{
+		switch (nSlot)
+		{
+		case Teleport:
+			// 플레이어의 ITME은 ON 시키고 해당 아이템은 OFF 시켜야함
+			//m_apSlotItems[nSlot] = dynamic_pointer_cast<CServerTeleportObject>(pGameObject);
+			break;
+		case Radar:
+			//m_apSlotItems[nSlot] = dynamic_pointer_cast<CServerRadarObject>(pGameObject);
+			break;
+		case Mine:
+			//m_apSlotItems[nSlot] = dynamic_pointer_cast<CServerMineObject>(pGameObject);
+			break;
+		default:
+			break;
+		}
+		m_apSlotItems[nSlot]->SetObtain(true);
+		m_apSlotItems[nSlot]->SetReferenceNumber(pGameObject->GetCollisionNum());
+	}
+
+	return nSlot;
+}
+
+void CServerBlueSuitPlayer::UseFuse(shared_ptr<CServerCollisionManager>& pCollisionManager)
+{
+	// 나중에 퓨즈 박스앞에서 썼다는거 확인하기 위한값 
+	bool bFuseBox = false;
+
+	shared_ptr<CServerGameObject> pObject;
+	for (auto& pFuseItem : m_apFuseItems)
+	{
+		if (pFuseItem && pFuseItem->IsObtained())
+		{
+			pObject = pCollisionManager->GetCollisionObjectWithNumber(pFuseItem->GetReferenceNumber());
+			
+			pObject->UpdateUsing(shared_from_this(), pCollisionManager);
+			pFuseItem->SetReferenceNumber(-1);
+			pFuseItem->SetObtain(false);
+		}
+	}
+	m_nFuseNum = 0;
+}
+
+void CServerBlueSuitPlayer::TeleportRandomPosition()
+{
+	// 후보지를 두고 int 값에 따라 그곳에 가도록 해야할듯
+	uniform_int_distribution<int> disFloatPosition(0, 15);
+
+	array<XMFLOAT3, 16> axmf3Positions = {
+		XMFLOAT3(9.f, 0.0f, 13.5),
+		XMFLOAT3(9.f, 0.0f, -13.5),
+		XMFLOAT3(-9.f, 0.0f, 13.9),
+		XMFLOAT3(-9.f, 0.0f, -13.9),
+		XMFLOAT3(9.f, 4.5f, 13.9),
+		XMFLOAT3(9.f, 4.5f, -13.9),
+		XMFLOAT3(-9.f, 4.5f, 13.9),
+		XMFLOAT3(-9.f, 4.5f, -13.9),
+		XMFLOAT3(-9.f, 9.0f, -13.9),
+		XMFLOAT3(9.f, 9.0f, -13.9),
+		XMFLOAT3(-9.f, 9.0f, 13.9),
+		XMFLOAT3(-9.f, 9.0f, -13.9),
+		XMFLOAT3(-9.f, 13.5f, -13.9),
+		XMFLOAT3(9.f, 13.5f, -13.9),
+		XMFLOAT3(-9.f, 13.5f, 13.9),
+		XMFLOAT3(-9.f, 13.5f, -13.9)
+	};
+
+	m_xmf3Position = axmf3Positions[disFloatPosition(TCPServer::m_mt19937Gen)];
+	m_xmf3OldPosition = m_xmf3Position;
+}
+
+int CServerBlueSuitPlayer::GetReferenceSlotItemNum(int nIndex)
+{ 
+	return m_apSlotItems[nIndex]->GetReferenceNumber();
+}
+
+int CServerBlueSuitPlayer::GetReferenceFuseItemNum(int nIndex) 
+{ 
+	return m_apFuseItems[nIndex]->GetReferenceNumber();
+}

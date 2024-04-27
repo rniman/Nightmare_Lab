@@ -1,7 +1,7 @@
 #include "stdafx.h"
 #include "Mesh.h"
 #include "Object.h"
-#include "EnviromentObject.h"
+#include "EnvironmentObject.h"
 #include "Scene.h"
 #include "Collision.h"
 
@@ -710,56 +710,65 @@ void CInstanceStandardMesh::CreateInstanceObjectInfo(char* pstrMeshName, XMFLOAT
 		pInstanceObjectInfo = make_shared<CDoorObject>(m_pstrMeshName, xmf4x4WorldMatrix, this);
 		pOriginInstance->m_vInstanceObjectInfo.push_back(pInstanceObjectInfo);
 		size_t nLastIndex = pOriginInstance->m_vInstanceObjectInfo.size() - 1;
-		g_collisonManager.AddCollisionObject(pOriginInstance->m_vInstanceObjectInfo[nLastIndex]);
+		g_collisionManager.AddCollisionObject(pOriginInstance->m_vInstanceObjectInfo[nLastIndex]);
 	}
 	else if (!strcmp(pstrMeshName, "Drawer_1") || !strcmp(pstrMeshName, "Drawer_2"))
 	{
 		pInstanceObjectInfo = make_shared<CDrawerObject>(m_pstrMeshName, xmf4x4WorldMatrix, this);
 		pOriginInstance->m_vInstanceObjectInfo.push_back(pInstanceObjectInfo);
 		size_t nLastIndex = pOriginInstance->m_vInstanceObjectInfo.size() - 1;
-		g_collisonManager.AddCollisionObject(pOriginInstance->m_vInstanceObjectInfo[nLastIndex]);
+		g_collisionManager.AddCollisionObject(pOriginInstance->m_vInstanceObjectInfo[nLastIndex]);
 	}
 	else if (!strcmp(pstrMeshName, "Door1"))
 	{
 		pInstanceObjectInfo = make_shared<CElevatorDoorObject>(m_pstrMeshName, xmf4x4WorldMatrix, this);
 		pOriginInstance->m_vInstanceObjectInfo.push_back(pInstanceObjectInfo);
 		size_t nLastIndex = pOriginInstance->m_vInstanceObjectInfo.size() - 1;
-		g_collisonManager.AddCollisionObject(pOriginInstance->m_vInstanceObjectInfo[nLastIndex]);
+		g_collisionManager.AddCollisionObject(pOriginInstance->m_vInstanceObjectInfo[nLastIndex]);
 	}
 	else if (!strcmp(pstrMeshName, "Emergency_Handle"))
 	{
 		pInstanceObjectInfo = make_shared<CElevatorDoorObject>(m_pstrMeshName, xmf4x4WorldMatrix, this);
 		pOriginInstance->m_vInstanceObjectInfo.push_back(pInstanceObjectInfo);
 		size_t nLastIndex = pOriginInstance->m_vInstanceObjectInfo.size() - 1;
-		g_collisonManager.AddCollisionObject(pOriginInstance->m_vInstanceObjectInfo[nLastIndex]);
+		g_collisionManager.AddCollisionObject(pOriginInstance->m_vInstanceObjectInfo[nLastIndex]);
 	}
 	else if (!strcmp(pstrMeshName, "Laboratory_Wall_1_Corner_1") || !strcmp(pstrMeshName, "Laboratory_Wall_1_Corner_2"))
 	{
-		pInstanceObjectInfo = make_shared<CEnviromentObejct>(m_pstrMeshName, xmf4x4WorldMatrix, this);
+		pInstanceObjectInfo = make_shared<CEnvironmentObject>(m_pstrMeshName, xmf4x4WorldMatrix, this);
 		pOriginInstance->m_vInstanceObjectInfo.push_back(pInstanceObjectInfo);
 		size_t nLastIndex = pOriginInstance->m_vInstanceObjectInfo.size() - 1;
-		g_collisonManager.AddCollisionObject(pOriginInstance->m_vInstanceObjectInfo[nLastIndex]);		
+		g_collisionManager.AddCollisionObject(pOriginInstance->m_vInstanceObjectInfo[nLastIndex]);
 	}
-	else if (!strcmp(pstrMeshName, "Laboratory_Wall_1_Corner") || !strcmp(pstrMeshName, "Laboratory_Wall_1_Corner2")|| !strcmp(pstrMeshName, "Laboratory_Wall_1"))
+	else if (!strcmp(pstrMeshName, "Laboratory_Wall_1_Corner") || !strcmp(pstrMeshName, "Laboratory_Wall_1_Corner2")
+		|| !strcmp(pstrMeshName, "Laboratory_Wall_1") || !strcmp(pstrMeshName, "Cube"))
 	{
-		pInstanceObjectInfo = make_shared<CEnviromentObejct>(m_pstrMeshName, xmf4x4WorldMatrix, this);
+		pInstanceObjectInfo = make_shared<CEnvironmentObject>(m_pstrMeshName, xmf4x4WorldMatrix, this);
 		pOriginInstance->m_vInstanceObjectInfo.push_back(pInstanceObjectInfo);
 		size_t nLastIndex = pOriginInstance->m_vInstanceObjectInfo.size() - 1;	
-		g_collisonManager.AddCollisionObject(pOriginInstance->m_vInstanceObjectInfo[nLastIndex]);
+		g_collisionManager.AddCollisionObject(pOriginInstance->m_vInstanceObjectInfo[nLastIndex]);
 	}
-	else if (!strcmp(pstrMeshName, "Laboratory_Wall_Door_1") || !strcmp(pstrMeshName, "Laboratory_Wall_Door_1_2") || !strcmp(pstrMeshName, "Laboratory_Tunnel_1") || !strcmp(pstrMeshName, "Laboratory_Table_1"))
+	else if (!strcmp(pstrMeshName, "Laboratory_Wall_Door_1") || !strcmp(pstrMeshName, "Laboratory_Wall_Door_1_2") 
+			|| !strcmp(pstrMeshName, "Laboratory_Tunnel_1") || !strcmp(pstrMeshName, "Laboratory_Table_1"))
 	{
-		pInstanceObjectInfo = make_shared<CEnviromentObejct>(m_pstrMeshName, xmf4x4WorldMatrix, this);
+		pInstanceObjectInfo = make_shared<CEnvironmentObject>(m_pstrMeshName, xmf4x4WorldMatrix, this);
 		pOriginInstance->m_vInstanceObjectInfo.push_back(pInstanceObjectInfo);
 		size_t nLastIndex = pOriginInstance->m_vInstanceObjectInfo.size() - 1;
-		g_collisonManager.AddCollisionObject(pOriginInstance->m_vInstanceObjectInfo[nLastIndex]);
+		g_collisionManager.AddCollisionObject(pOriginInstance->m_vInstanceObjectInfo[nLastIndex]);
+	}
+	else if (!strcmp(pstrMeshName, "Biological_Capsule_1") || !strcmp(pstrMeshName, "Laboratory_Stool_1"))
+	{
+		pInstanceObjectInfo = make_shared<CEnvironmentObject>(m_pstrMeshName, xmf4x4WorldMatrix, this);
+		pOriginInstance->m_vInstanceObjectInfo.push_back(pInstanceObjectInfo);
+		size_t nLastIndex = pOriginInstance->m_vInstanceObjectInfo.size() - 1;
+		g_collisionManager.AddCollisionObject(pOriginInstance->m_vInstanceObjectInfo[nLastIndex]);
 	}
 	else if (!strcmp(pstrMeshName, "Laboratory_Tunnel_1_Stairs"))
 	{
-		pInstanceObjectInfo = make_shared<CEnviromentObejct>(m_pstrMeshName, xmf4x4WorldMatrix, this);
+		pInstanceObjectInfo = make_shared<CEnvironmentObject>(m_pstrMeshName, xmf4x4WorldMatrix, this);
 		pOriginInstance->m_vInstanceObjectInfo.push_back(pInstanceObjectInfo);
 		size_t nLastIndex = pOriginInstance->m_vInstanceObjectInfo.size() - 1;
-		g_collisonManager.AddCollisionObject(pOriginInstance->m_vInstanceObjectInfo[nLastIndex]);
+		g_collisionManager.AddCollisionObject(pOriginInstance->m_vInstanceObjectInfo[nLastIndex]);
 	}
 	else
 	{

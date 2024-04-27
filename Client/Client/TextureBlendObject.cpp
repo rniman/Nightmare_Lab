@@ -21,7 +21,7 @@ TextureBlendObject::TextureBlendObject(ID3D12Device* pd3dDevice, ID3D12GraphicsC
 	m_pd3dcbTime->Map(0, NULL, (void**)&m_pcbMappedTime);
 	m_pcbMappedTime->time = 0.0f;
 	m_pcbMappedTime->localTime = 0.0f;
-	m_pcbMappedTime->usePattern = 1.0f;
+	m_pcbMappedTime->usePattern = -1.0f;
 	m_d3dTimeCbvGPUDescriptorHandle = CScene::CreateConstantBufferViews(pd3dDevice, 1, m_pd3dcbTime.Get(), ncbElementBytes);
 }
 

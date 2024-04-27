@@ -21,6 +21,8 @@ public:
 	bool OnCreate(HINSTANCE hInstance, HWND hMainWnd);
 	void OnDestroy();
 
+	void CreateTcpClient(HWND hWnd);
+
 	void CreateSwapChain();
 	void CreateDirect3DDevice();
 	void CreateCommandQueueAndList();
@@ -37,7 +39,7 @@ public:
 
 	void ProcessInput();
 	void AnimateObjects();
-	void ProcessCollide();
+	//void ProcessCollide();
 	void PreRenderTasks();
 	void FrameAdvance();
 
@@ -46,8 +48,14 @@ public:
 
 	void OnProcessingMouseMessage(HWND hWnd, UINT nMessageID, WPARAM wParam, LPARAM lParam);
 	void OnProcessingKeyboardMessage(HWND hWnd, UINT nMessageID, WPARAM wParam, LPARAM lParam);
-	LRESULT CALLBACK OnProcessingWindowMessage(HWND hWnd, UINT nMessageID, WPARAM wParam, LPARAM lParam);
-	
+	void OnProcessingSocketMessage(HWND hWnd, UINT nMessageID, WPARAM wParam, LPARAM lParam);
+	void OnProcessingWindowMessage(HWND hWnd, UINT nMessageID, WPARAM wParam, LPARAM lParam);
+
+	int GetClientId() const { return m_pTcpClient->GetClientId(); }
+
+	static UCHAR* GetKeysBuffer();
+
+	void SetPlayerObjectOfClient(int nClientId);
 private:
 	D3D12_VIEWPORT m_d3dViewport;
 	D3D12_RECT m_d3dScissorRect;
@@ -88,18 +96,21 @@ private:
 #endif
 
 	CGameTimer							m_GameTimer;
-
+	
 	shared_ptr<CScene>					m_pScene;
-	shared_ptr<CPlayer>					m_pPlayer;
-	weak_ptr<CCamera>					m_pCamera;
+
+	std::shared_ptr<CPlayer>					m_pMainPlayer;	// 클라이언트ID에 해당하는 인덱스가 해당 클라이언트의 Main플레이어로 설정된다
+	std::array<shared_ptr<CPlayer>, MAX_CLIENT>	m_apPlayer;		// 클라이언트ID와 인덱스는 동일하다.
+	weak_ptr<CCamera>							m_pCamera;
 
 	CPostProcessingShader*				m_pPostProcessingShader = NULL;
 
 	POINT								m_ptOldCursorPos;
-	_TCHAR								m_pszFrameRate[70];
+	_TCHAR								m_pszFrameRate[200];
+	
+	static UCHAR						m_pKeysBuffer[256];
 	//TCPClient
-	TCPClient* m_pClientNetwork = NULL;
-
+	unique_ptr<CTcpClient>				m_pTcpClient;
 public:
 	void PrepareDrawText();
 	void RenderUI();
@@ -119,10 +130,11 @@ private:
 	ComPtr<IDWriteTextFormat> m_textFormat;
 
 	//unique_ptr<TextObject> m_pTextobject;
+	bool m_bPrevRender = false;
 public:
 	// Time 
-	static D3D12_GPU_DESCRIPTOR_HANDLE m_d3dTimeCbvGPUDescriptorHandle;
-	ComPtr<ID3D12Resource>				m_pd3dcbTime;
-	static FrameTimeInfo* m_pcbMappedTime;
+	D3D12_GPU_DESCRIPTOR_HANDLE m_d3dTimeCbvGPUDescriptorHandle;
+	ComPtr<ID3D12Resource>		m_pd3dcbTime;
+	FrameTimeInfo* m_pcbMappedTime;
 };
 

@@ -215,14 +215,21 @@ void CShader::Render(ID3D12GraphicsCommandList* pd3dCommandList, const shared_pt
 {
 	UpdatePipeLineState(pd3dCommandList, nPipelineState);
 
+	int i = 0;
 	for (auto& object : m_vGameObjects) 
 	{
+		if (i == 10)
+		{
+			int x = 0;
+		}
+
 		if (!object->m_bThisContainTransparent) {
 			object->Render(pd3dCommandList);
 		}
 		else {
 			object->RenderOpaque(pd3dCommandList);
 		}
+		++i;
 	}
 }
 

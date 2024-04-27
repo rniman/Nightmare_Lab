@@ -1290,6 +1290,15 @@ shared_ptr<CTexture> CGameObject::FindReplicatedTexture(_TCHAR* pstrTextureName)
 	return(NULL);
 }
 
+UINT CGameObject::GetMeshType()
+{
+	if (m_pMesh)
+	{
+		return m_pMesh->GetType();
+	}
+	return 0x00;
+}
+
 void CGameObject::SetLookAt(XMFLOAT3& xmf3target)
 {
 	XMFLOAT3 up(0.0f, 1.0f, 0.0f);
@@ -1302,15 +1311,6 @@ void CGameObject::SetLookAt(XMFLOAT3& xmf3target)
 
 	m_xmf4x4ToParent._41 = 0.0f;m_xmf4x4ToParent._42 = 0.0f;m_xmf4x4ToParent._43 = 0.0f;
 	m_xmf4x4World = Matrix4x4::Multiply(m_xmf4x4ToParent, m_xmf4x4World);
-}
-
-UINT CGameObject::GetMeshType()
-{
-	if (m_pMesh)
-	{
-		return m_pMesh->GetType();
-	}
-	return 0x00;
 }
 
 
@@ -1527,7 +1527,7 @@ shared_ptr<CGameObject> CGameObject::LoadFrameHierarchyFromFile(ID3D12Device* pd
 			{
 				for (int i = 0; i < nChilds; i++)
 				{
-					shared_ptr<CGameObject> pChild = CGameObject::LoadFrameHierarchyFromFile(pd3dDevice, pd3dCommandList, pd3dGraphicsRootSignature, pGameObject, pInFile, pnSkinnedMeshes,meshtype);
+					shared_ptr<CGameObject> pChild = CGameObject::LoadFrameHierarchyFromFile(pd3dDevice, pd3dCommandList, pd3dGraphicsRootSignature, pGameObject, pInFile, pnSkinnedMeshes, meshtype);
 					if (pChild) pGameObject->SetChild(pChild);
 #ifdef _WITH_DEBUG_FRAME_HIERARCHY
 					TCHAR pstrDebug[256] = { 0 };
@@ -1632,7 +1632,7 @@ shared_ptr<CGameObject> CGameObject::LoadInstanceFrameHierarchyFromFile(ID3D12De
 				shared_ptr<CGameObject> pBoundinBoxObject = make_shared<CGameObject>(pFrameName, xmf4x4TranposeMatrix, nullptr);
 				pBoundinBoxObject->AddOOBB(vxmf3AABBCenter, vxmf3AABBExtents);
 				pGameObject->m_vInstanceObjectInfo.push_back(pBoundinBoxObject);
-				g_collisonManager.AddCollisionObject(pBoundinBoxObject);
+				g_collisionManager.AddCollisionObject(pBoundinBoxObject);
 			}
 			delete[] pxmf4x4InstanceTransformMatrix;
 		}
@@ -1792,7 +1792,7 @@ shared_ptr<CLoadedModelInfo> CGameObject::LoadGeometryAndAnimationFromFile(ID3D1
 		{
 			if (!strcmp(pstrToken, "<Hierarchy>:"))
 			{
-				pLoadedModel->m_pModelRootObject = CGameObject::LoadFrameHierarchyFromFile(pd3dDevice, pd3dCommandList, pd3dGraphicsRootSignature, NULL, pInFile, &pLoadedModel->m_nSkinnedMeshes,meshtype);
+				pLoadedModel->m_pModelRootObject = CGameObject::LoadFrameHierarchyFromFile(pd3dDevice, pd3dCommandList, pd3dGraphicsRootSignature, NULL, pInFile, &pLoadedModel->m_nSkinnedMeshes, meshtype);
 				::ReadStringFromFile(pInFile, pstrToken); //"</Hierarchy>"
 			}
 			else if (!strcmp(pstrToken, "<Animation>:"))

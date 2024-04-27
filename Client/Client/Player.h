@@ -1,6 +1,6 @@
 #pragma once
 #include "Object.h"
-#include "EnviromentObject.h"
+#include "EnvironmentObject.h"
 
 class CScene;
 class CCamera;
@@ -40,8 +40,7 @@ public:
 	virtual void Animate(float fElapsedTime);
 	virtual void AnimateOOBB() override;
 	virtual void Collide(float fElapsedTime, const shared_ptr<CGameObject>& pCollidedObject) override;
-	virtual void Render(ID3D12GraphicsCommandList* pd3dCommandList);
-
+	virtual void Render(ID3D12GraphicsCommandList* pd3dCommandList) override;
 
 	shared_ptr<CCamera> OnChangeCamera(DWORD nNewCameraMode, DWORD nCurrentCameraMode);
 	virtual shared_ptr<CCamera> ChangeCamera(DWORD nNewCameraMode, float fElapsedTime);
@@ -86,8 +85,13 @@ public:
 	int GetWidth() const { return m_nWidth; }
 	int GetDepth() const { return m_nDepth; }
 
-	virtual void RightClickProcess() {};
+	void SetClientId(int nClientId) { m_nClientId = nClientId; }
+	int GetClientId()const { return m_nClientId; }
+	void SetLook(const XMFLOAT3& xmf3Look) { m_xmf3Look = xmf3Look; }
+	void SetRight(const XMFLOAT3& xmf3Right) { m_xmf3Right = xmf3Right; }
 protected:
+	int m_nClientId = -1;
+
 	bool m_bCollision = false;
 	int m_nFloor = 0;
 	int m_nWidth = 0;
@@ -150,13 +154,39 @@ public:
 	void UseFuse();;
 	void Teleport();
 
+	void SetSlotItem(int nIndex, int nReferenceObjectNum)
+	{
+		m_apSlotItems[nIndex]->SetObtain(true);
+		m_apSlotItems[nIndex]->SetReferenceNumber(nReferenceObjectNum);
+	}
+
+	void SetSlotItemEmpty(int nIndex) 
+	{
+		m_apSlotItems[nIndex]->SetObtain(false); 
+		m_apSlotItems[nIndex]->SetReferenceNumber(-1);
+	}
+
+	void SetFuseItem(int nIndex, int nReferenceObjectNum)
+	{
+		m_apFuseItems[nIndex]->SetObtain(true);
+		m_apFuseItems[nIndex]->SetReferenceNumber(nReferenceObjectNum);
+	}
+
+	void SetFuseItemEmpty(int nIndex)
+	{
+		m_apFuseItems[nIndex]->SetObtain(false);
+		m_apFuseItems[nIndex]->SetReferenceNumber(-1);
+	}
+
+	int GetReferenceSlotItemNum(int nIndex) { return m_apSlotItems[nIndex]->GetReferenceNumber(); }
+	int GetReferenceFuseItemNum(int nIndex) { return m_apFuseItems[nIndex]->GetReferenceNumber(); }
 private:
 	RightItem m_selectItem = TELEPORT;
 
-	std::array<weak_ptr<CGameObject>, 3> m_apSlotItems;
+	std::array<shared_ptr<CItemObject>, 3> m_apSlotItems;
 
 	int m_nFuseNum = 0;
-	std::array<weak_ptr<CGameObject>, 3> m_apFuseItems;
+	std::array<shared_ptr<CItemObject>, 3> m_apFuseItems;
 
 	bool m_bShiftRun = false;
 	bool m_bAbleRun = true;
@@ -167,18 +197,18 @@ private:
 	shared_ptr<CRadarObject> m_pRaider; // 레이더
 	shared_ptr<CTeleportObject> m_pTeleport; // 텔레포트아이템
 	shared_ptr<CMineObject> m_pMine; // 텔레포트아이템
-	
+
 public:
 	XMFLOAT4X4* GetLeftHandItemFlashLightModelTransform() const;
-	XMFLOAT4X4	GetRightHandItemRaiderModelTransform() const;
+	XMFLOAT4X4 GetRightHandItemRaiderModelTransform() const;
 	XMFLOAT4X4* GetRightHandItemTeleportItemModelTransform() const;
 
 	XMFLOAT4X4* GetFlashLigthWorldTransform();
-	void SetFlashLight(shared_ptr<CGameObject> object);
-	void SetRaider(shared_ptr<CGameObject> object); 
-	void SetTeleportItem(shared_ptr<CGameObject> object);
-	void SetMineItem(shared_ptr<CGameObject> object);
-	
+	void SetFlashLight(shared_ptr<CGameObject> object) { m_pFlashlight = object; }
+	void SetRaider(shared_ptr<CGameObject> object) { m_pRaider->SetChild(object); }
+	void SetTeleportItem(shared_ptr<CGameObject> object) { m_pTeleport->SetChild(object); }
+	void SetMineItem(shared_ptr<CGameObject> object) { m_pMine->SetChild(object); }
+
 	XMFLOAT4X4* RaiderUpdate(float fElapsedTime);
 	bool PlayRaiderUI() { return m_fOpenRaiderTime == 0.0f && m_bRightClick; }
 	float GetEscapeLength();
@@ -194,11 +224,11 @@ struct FrameTimeInfo;
 class CZombiePlayer : public CPlayer
 {
 private:
-	FrameTimeInfo*					m_pcbMappedTime;
+	FrameTimeInfo* m_pcbMappedTime;
 	D3D12_GPU_DESCRIPTOR_HANDLE		m_d3dTimeCbvGPUDescriptorHandle;
 	ComPtr<ID3D12Resource>			m_pd3dcbTime;
 
-	FrameTimeInfo*					m_pcbMappedTimeEnd;
+	FrameTimeInfo* m_pcbMappedTimeEnd;
 	D3D12_GPU_DESCRIPTOR_HANDLE		m_d3dTimeCbvGPUDescriptorHandleEnd;
 	ComPtr<ID3D12Resource>			m_pd3dcbTimeEnd;
 public:
@@ -206,11 +236,11 @@ public:
 	virtual ~CZombiePlayer();
 
 	virtual void LoadModelAndAnimation(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dCommandList, ID3D12RootSignature* pd3dGraphicsRootSignature, const shared_ptr<CLoadedModelInfo>& pLoadModelInfo) override;
-
+	
 	virtual void Update(float fElapsedTime) override;
 	virtual void Render(ID3D12GraphicsCommandList* pd3dCommandList);
 
-	virtual void CollisionByItem();
 private:
 	bool electricBlend = true;
+
 };

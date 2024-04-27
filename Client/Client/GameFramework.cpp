@@ -10,8 +10,7 @@
  extern UINT gnRtvDescriptorIncrementSize;
  extern UINT gnDsvDescriptorIncrementSize;
 
- D3D12_GPU_DESCRIPTOR_HANDLE CGameFramework::m_d3dTimeCbvGPUDescriptorHandle;
- FrameTimeInfo* CGameFramework::m_pcbMappedTime;
+ UCHAR CGameFramework::m_pKeysBuffer[256] = {};
 
  CGameFramework::CGameFramework()
 {
@@ -51,11 +50,9 @@ bool CGameFramework::OnCreate(HINSTANCE hInstance, HWND hMainWnd)
 
 	CoInitialize(NULL);
 
-#ifndef SINGLE_PLAY
-	m_pClientNetwork = new TCPClient;
-#endif // SINGLE_PLAY
+	//m_pTcpClient = make_shared<CTcpClient>(hMainWnd);
 
-	g_collisonManager.CreateCollision(4, 10, 10);
+	g_collisionManager.CreateCollision(4, 10, 10);
 
 	BuildObjects();
 
@@ -409,11 +406,10 @@ void CGameFramework::PrepareDrawText()
 
 void CGameFramework::RenderUI()
 {
-	
 	D2D1_SIZE_F rtSize = m_d2dRenderTargets[m_nSwapChainBufferIndex]->GetSize();
 	D2D1_RECT_F textRect = D2D1::RectF(0, 0, rtSize.width, rtSize.height);
 
-	auto player = dynamic_pointer_cast<CBlueSuitPlayer>(m_pPlayer);
+	auto player = dynamic_pointer_cast<CBlueSuitPlayer>(m_pMainPlayer);
 	if (!player) { //좀비 플레이어라면 레이더 텍스트 렌더링 X
 		m_d3d11On12Device->AcquireWrappedResources(m_wrappedBackBuffers[m_nSwapChainBufferIndex].GetAddressOf(), 1);
 		m_d3d11On12Device->ReleaseWrappedResources(m_wrappedBackBuffers[m_nSwapChainBufferIndex].GetAddressOf(), 1);
@@ -430,12 +426,13 @@ void CGameFramework::RenderUI()
 	len += 1;
 	text[len+1] = '\0';
 	
+	//static const WCHAR text[] = buffer;
 	
 	// 현재 백 버퍼에 대한 래핑된 렌더 타겟 자원을 획득합니다.
 	m_d3d11On12Device->AcquireWrappedResources(m_wrappedBackBuffers[m_nSwapChainBufferIndex].GetAddressOf(), 1);
 	m_d2dDeviceContext->SetTarget(m_d2dRenderTargets[m_nSwapChainBufferIndex].Get());
 	m_d2dDeviceContext->BeginDraw();
-	if (dynamic_pointer_cast<CBlueSuitPlayer>(m_pPlayer)->PlayRaiderUI()) {
+	if (dynamic_pointer_cast<CBlueSuitPlayer>(m_pMainPlayer)->PlayRaiderUI()) {
 
 		D2D1::Matrix3x2F mat = D2D1::Matrix3x2F::Identity();
 		static D2D1_POINT_2F point = { 455.f,180.f };
@@ -467,14 +464,17 @@ void CGameFramework::OnProcessingMouseMessage(HWND hWnd, UINT nMessageID, WPARAM
 	case WM_LBUTTONDOWN:
 		::SetCapture(hWnd);
 		::GetCursorPos(&m_ptOldCursorPos);
-		if(dynamic_cast<CZombiePlayer*>(m_pPlayer.get()))
+		if (!m_pMainPlayer)
 		{
-			m_pPlayer->m_pSkinnedAnimationController->SetTrackEnable(2, true);
+			break;
+		}
+		if(dynamic_cast<CZombiePlayer*>(m_pMainPlayer.get()))
+		{
+			m_pMainPlayer->m_pSkinnedAnimationController->SetTrackEnable(2, true);
 		}
 		break;
 	case WM_RBUTTONDOWN:
-		m_pPlayer->SetPickedObject(LOWORD(lParam), HIWORD(lParam), m_pScene.get());
-		m_pPlayer->RightClickProcess();
+		m_pMainPlayer->SetPickedObject(LOWORD(lParam), HIWORD(lParam), m_pScene.get());
 		break;
 	case WM_LBUTTONUP:
 	case WM_RBUTTONUP:
@@ -485,18 +485,6 @@ void CGameFramework::OnProcessingMouseMessage(HWND hWnd, UINT nMessageID, WPARAM
 	default:
 		break;
 	}
-}
-
-void locationWrite(XMFLOAT3 pos)
-{
-	ofstream os{ "TeleportLoc.txt", std::ios_base::app };
-
-	if (!os.is_open()) {
-		assert(0); // 파일이 안열림
-	}
-
-	os << "{" << pos.x << "," << pos.y << "," << pos.z << "},\n";
-	os.close();
 }
 
 void CGameFramework::OnProcessingKeyboardMessage(HWND hWnd, UINT nMessageID, WPARAM wParam, LPARAM lParam)
@@ -514,8 +502,12 @@ void CGameFramework::OnProcessingKeyboardMessage(HWND hWnd, UINT nMessageID, WPA
 			break;
 		case VK_F1:
 		case VK_F2:
-			m_pPlayer->ChangeCamera((DWORD)(wParam - VK_F1 + 1), m_GameTimer.GetTimeElapsed());
-			m_pCamera = m_pPlayer->GetCamera();
+			if (!m_pMainPlayer)
+			{
+				break;
+			}
+			m_pMainPlayer->ChangeCamera((DWORD)(wParam - VK_F1 + 1), m_GameTimer.GetTimeElapsed());
+			m_pCamera = m_pMainPlayer->GetCamera();
 			break;
 		case VK_F3:
 			break;
@@ -524,38 +516,54 @@ void CGameFramework::OnProcessingKeyboardMessage(HWND hWnd, UINT nMessageID, WPA
 			break;
 		case VK_PRIOR:
 		{
+			if (!m_pMainPlayer)
+			{
+				break;
+			}
 			XMFLOAT3 xmf3Shift = XMFLOAT3(0, 0, 0);
-			XMFLOAT3 xmf3Up = m_pPlayer->GetUpVector();
-			if (m_pPlayer->GetPosition().y < 13.5f + FLT_EPSILON) xmf3Shift = Vector3::Add(xmf3Shift, xmf3Up, 4.5f);
+			XMFLOAT3 xmf3Up = m_pMainPlayer->GetUpVector();
+			if (m_pMainPlayer->GetPosition().y < 13.5f + FLT_EPSILON) xmf3Shift = Vector3::Add(xmf3Shift, xmf3Up, 4.5f);
 
-			m_pPlayer->SetPosition(Vector3::Add(m_pPlayer->GetPosition(), xmf3Shift));
+			m_pMainPlayer->SetPosition(Vector3::Add(m_pMainPlayer->GetPosition(), xmf3Shift));
 		}
 			break;
 		case VK_NEXT:
 		{
+			if (!m_pMainPlayer)
+			{
+				break;
+			}
 			XMFLOAT3 xmf3Shift = XMFLOAT3(0, 0, 0);
-			XMFLOAT3 xmf3Up = m_pPlayer->GetUpVector();
-			if (m_pPlayer->GetPosition().y > 0.0f + FLT_EPSILON) xmf3Shift = Vector3::Add(xmf3Shift, xmf3Up, -4.5f);
+			XMFLOAT3 xmf3Up = m_pMainPlayer->GetUpVector();
+			if (m_pMainPlayer->GetPosition().y > 0.0f + FLT_EPSILON) xmf3Shift = Vector3::Add(xmf3Shift, xmf3Up, -4.5f);
 
-			m_pPlayer->SetPosition(Vector3::Add(m_pPlayer->GetPosition(), xmf3Shift));
+			m_pMainPlayer->SetPosition(Vector3::Add(m_pMainPlayer->GetPosition(), xmf3Shift));
 		}
 			break;
-		case 'E': //상호작용
-			if (shared_ptr<CGameObject> pPickedObject = m_pPlayer->GetPickedObject().lock())
-			{
-				m_pPlayer->UpdatePicking();
-			}
-			break;
-		case '1':
-			locationWrite(m_pPlayer->GetPosition());
-			//uiX += 10.f;
-			break;
-		case '2':
-			//uiY += 10.f;
-			break;
-		case '3':
-		case '4':
-			m_pPlayer->UseItem(wParam - '1');
+		//case 'E': //상호작용
+		//	if (!m_pMainPlayer)
+		//	{
+		//		break;
+		//	}
+		//	if (shared_ptr<CGameObject> pPickedObject = m_pMainPlayer->GetPickedObject().lock())
+		//	{
+		//		m_pMainPlayer->UpdatePicking();
+		//	}
+		//	break;
+		//case '1':
+		//	//uiX += 10.f;
+		//	break;
+		//case '2':
+		//	//uiY += 10.f;
+		//	break;
+		//case '3':
+		//case '4':
+		//	if (!m_pMainPlayer)
+		//	{
+		//		break;
+		//	}
+		//	m_pMainPlayer->UseItem(wParam - '1');
+		//	break;
 		default:
 			break;
 		}
@@ -565,10 +573,35 @@ void CGameFramework::OnProcessingKeyboardMessage(HWND hWnd, UINT nMessageID, WPA
 	}
 }
 
-LRESULT CALLBACK CGameFramework::OnProcessingWindowMessage(HWND hWnd, UINT nMessageID, WPARAM wParam, LPARAM lParam)
+void CGameFramework::OnProcessingSocketMessage(HWND hWnd, UINT nMessageID, WPARAM wParam, LPARAM lParam)
+{
+
+	// 오류 발생 여부 확인
+	if (WSAGETSELECTERROR(lParam))
+	{
+		err_display(WSAGETSELECTERROR(lParam));
+		return;
+	}
+
+	switch (WSAGETSELECTEVENT(lParam))
+	{
+	case FD_WRITE:	// 소켓이 데이터를 전송할 준비가 되었다.
+	case FD_READ:	// 소켓이 데이터를 읽을 준비가 되었다.
+	case FD_CLOSE:
+		m_pTcpClient->OnProcessingSocketMessage(hWnd, nMessageID, wParam, lParam);
+		break;
+	default:
+		break;
+	}
+}
+
+void CGameFramework::OnProcessingWindowMessage(HWND hWnd, UINT nMessageID, WPARAM wParam, LPARAM lParam)
 {
 	switch (nMessageID)
 	{
+	case WM_SOCKET:
+		OnProcessingSocketMessage(hWnd, nMessageID, wParam, lParam);
+		break;
 	case WM_ACTIVATE:
 	{
 		if (LOWORD(wParam) == WA_INACTIVE)
@@ -591,7 +624,21 @@ LRESULT CALLBACK CGameFramework::OnProcessingWindowMessage(HWND hWnd, UINT nMess
 		OnProcessingKeyboardMessage(hWnd, nMessageID, wParam, lParam);
 		break;
 	}
-	return(0);
+}
+
+UCHAR* CGameFramework::GetKeysBuffer()
+{
+	return m_pKeysBuffer; 
+}
+
+void CGameFramework::SetPlayerObjectOfClient(int nClientId)
+{
+	m_pMainPlayer = m_apPlayer[nClientId];
+	m_pMainPlayer->GetCamera()->SetPlayer(m_pMainPlayer);
+	m_pCamera = m_pMainPlayer->GetCamera();
+	g_collisionManager.m_pPlayer = m_pMainPlayer;
+
+	m_pScene->SetMainPlayer(m_pMainPlayer);
 }
 
 void CGameFramework::OnDestroy()
@@ -610,34 +657,36 @@ void CGameFramework::OnDestroy()
 #endif
 }
 
+void CGameFramework::CreateTcpClient(HWND hWnd)
+{
+	m_pTcpClient = make_unique<CTcpClient>(hWnd);
+}
+
 void CGameFramework::BuildObjects()
 {
 	m_d3dCommandList->Reset(m_d3dCommandAllocator[m_nSwapChainBufferIndex].Get(), NULL);
 
 	m_pScene = make_shared<CScene>();
-	if (m_pScene.get()) m_pScene->BuildObjects(m_d3d12Device.Get(), m_d3dCommandList.Get());
-	
-	UINT ncbElementBytes = ((sizeof(FrameTimeInfo) + 255) & ~255); //256의 배수
+	if (m_pScene.get())
+	{
+		int nClientId = m_pTcpClient->GetClientId();
+		m_pScene->BuildObjects(m_d3d12Device.Get(), m_d3dCommandList.Get(), nClientId);
+	}
+
+	INT ncbElementBytes = ((sizeof(FrameTimeInfo) + 255) & ~255); //256의 배수
 
 	m_pd3dcbTime = ::CreateBufferResource(m_d3d12Device.Get(), m_d3dCommandList.Get(), NULL, ncbElementBytes, D3D12_HEAP_TYPE_UPLOAD, D3D12_RESOURCE_STATE_VERTEX_AND_CONSTANT_BUFFER, NULL);
 	m_pd3dcbTime->Map(0, NULL, (void**)&m_pcbMappedTime);
 	m_d3dTimeCbvGPUDescriptorHandle = CScene::CreateConstantBufferViews(m_d3d12Device.Get(), 1, m_pd3dcbTime.Get(), ncbElementBytes);
 
-	m_pPlayer = m_pScene->m_pPlayer;
-	m_pCamera = m_pPlayer->GetCamera();
-	g_collisonManager.m_pPlayer = m_pPlayer;
-
-#ifndef SINGLE_PLAY
-	for (const auto& [id,info] : m_pClientNetwork->GetClientInfos()) {
-		m_pScene->AddDefaultObject(m_d3d12Device.Get(), m_d3dCommandList.Get(),
-			ObjectType::HEXAHERON,XMFLOAT3(m_pClientNetwork->GetPostion(id)),
-			STANDARD_SHADER, HEXAHEDRONMESH);
+	//m_pPlayer = make_shared<CZombiePlayer>(pd3dDevice, pd3dCommandList, m_pd3dGraphicsRootSignature.Get(), nullptr);
+	//shared_ptr<CLoadedModelInfo> pZombiePlayerModel = CGameObject::LoadGeometryAndAnimationFromFile(pd3dDevice, pd3dCommandList, m_pd3dGraphicsRootSignature.Get(), "Asset/Model/Zom_1.bin");
+	//m_pPlayer->LoadModelAndAnimation(pd3dDevice, pd3dCommandList, m_pd3dGraphicsRootSignature.Get(), pZombiePlayerModel);
+	for(int i = 0; i< MAX_CLIENT;++i)
+	{
+		m_apPlayer[i] = m_pScene->m_apPlayer[i];
+		m_pTcpClient->SetPlayer(m_pScene->m_apPlayer[i], i);
 	}
-#else
-	/*m_pScene->AddDefaultObject(m_d3d12Device.Get(), m_d3dCommandList.Get(),
-		ObjectType::HEXAHERON,XMFLOAT3(m_pClientNetwork->GetPostion(0)),
-		STANDARD_SHADER, HEXAHEDRONMESH);*/
-#endif // NOT DEFINE SINGLE_PLAY
 
 	m_pPostProcessingShader = new CPostProcessingShader();
 	m_pPostProcessingShader->CreateShader(m_d3d12Device.Get(), m_d3dCommandList.Get(), m_pScene->GetGraphicsRootSignature().Get(), 1, NULL, DXGI_FORMAT_D24_UNORM_S8_UINT);
@@ -667,7 +716,6 @@ void CGameFramework::BuildObjects()
 
 	m_GameTimer.Reset();
 	PreRenderTasks(); // 사전 렌더링 작업
-
 }
 
 void CGameFramework::ReleaseObjects()
@@ -678,10 +726,15 @@ void CGameFramework::ReleaseObjects()
 
 void CGameFramework::ProcessInput()
 {
-	static UCHAR pKeysBuffer[256];
 	bool bProcessedByScene = false;
 
-	if (GetKeyboardState(pKeysBuffer) && m_pScene) bProcessedByScene = m_pScene->ProcessInput(pKeysBuffer);
+	if (GetKeyboardState(m_pKeysBuffer) && m_pScene) bProcessedByScene = m_pScene->ProcessInput(m_pKeysBuffer);
+	PostMessage(m_hWnd, WM_SOCKET, (WPARAM)m_pTcpClient->m_sock, MAKELPARAM(FD_WRITE, 0));
+
+	if (!m_pMainPlayer)
+	{
+		return;
+	}
 
 	if (!bProcessedByScene)
 	{
@@ -696,58 +749,45 @@ void CGameFramework::ProcessInput()
 			SetCursorPos(m_ptOldCursorPos.x, m_ptOldCursorPos.y);
 		}
 
-		DWORD dwDirection = 0;
-		if (pKeysBuffer[VK_PRIOR] & 0xF0) dwDirection |= DIR_UP;
-		if (pKeysBuffer[VK_NEXT] & 0xF0) dwDirection |= DIR_DOWN;
-
-		if (pKeysBuffer['W'] & 0xF0) dwDirection |= DIR_FORWARD;
-		if (pKeysBuffer['S'] & 0xF0) dwDirection |= DIR_BACKWARD;
-		if (pKeysBuffer['A'] & 0xF0) dwDirection |= DIR_LEFT;
-		if (pKeysBuffer['D'] & 0xF0) dwDirection |= DIR_RIGHT;
-		//if (pKeysBuffer[VK_LSHIFT] & 0xF0) dwDirection |= LSHIFT;
-
-		if ((dwDirection != 0) || (cxDelta != 0.0f) || (cyDelta != 0.0f))
+		if ((cxDelta != 0.0f) || (cyDelta != 0.0f))
 		{
 			if (cxDelta || cyDelta)
 			{
-				if (pKeysBuffer[VK_LBUTTON] & 0xF0)
+				if (m_pKeysBuffer[VK_LBUTTON] & 0xF0)
 				{
-					m_pPlayer->Rotate(cyDelta, cxDelta, 0.0f);
-				}
-				else if(pKeysBuffer[VK_RBUTTON] & 0xF0)
-				{
-					//m_pPlayer->Rotate(cyDelta, 0.0f, -cxDelta);
+					m_pMainPlayer->Rotate(cyDelta, cxDelta, 0.0f);
 				}
 			}
 
-			if (dwDirection)
-			{
-				m_pPlayer->Move(dwDirection, 12.5f, true);
-			}
 		}
 	}
-	m_pPlayer->Update(m_GameTimer.GetTimeElapsed());
+
+	for(auto& pPlayer: m_apPlayer)
+	{
+		if (pPlayer->GetClientId() == -1)
+		{
+			continue;
+		}
+		pPlayer->Update(m_GameTimer.GetTimeElapsed());
+	}
 }
 
 void CGameFramework::AnimateObjects()
 {
 	float fElapsedTime = m_GameTimer.GetTimeElapsed();
+
 	m_pcbMappedTime->time += fElapsedTime;
 
 	if (m_pScene) m_pScene->AnimateObjects(fElapsedTime);
 	
-	if(shared_ptr<CGameObject> pPickedObject = m_pPlayer->GetPickedObject().lock()) 
-	{
-		//pPickedObject->UpdatePicking();
-	}
-	//m_pPlayer->Animate(fElapsedTime);
-}
-
-void CGameFramework::ProcessCollide()
-{
-	float fElapsedTime = m_GameTimer.GetTimeElapsed();
-
-	if (m_pScene) m_pScene->ProcessCollide(fElapsedTime);
+	//if (m_pMainPlayer)
+	//{
+	//	shared_ptr<CGameObject> pPickedObject = m_pMainPlayer->GetPickedObject().lock();
+	//}
+	////{
+	////	//pPickedObject->UpdatePicking();
+	////}
+	//////m_pPlayer->Animate(fElapsedTime);
 }
 
 
@@ -780,11 +820,24 @@ void CGameFramework::MoveToNextFrame()
 void CGameFramework::PreRenderTasks()
 {
 	//ProcessInput();
-	m_pPlayer->Update(m_GameTimer.GetTimeElapsed());
+
+	int nClientId = m_pTcpClient->GetClientId();
+	if (nClientId != -1)
+	{
+		SetPlayerObjectOfClient(nClientId);
+		//m_bPrevRender = true;
+	}
+	else	// 에러임
+	{
+		exit(0);
+	}
+
+	m_pMainPlayer->Update(m_GameTimer.GetTimeElapsed());
 
 	AnimateObjects();
 	// 이곳에서 렌더링 하기전에 준비작업을 시행하도록한다. ex) 쉐도우맵 베이킹
 	// buildobject함수 호출 이후 처리되어야할 작업이다. -> 모든 객체들이 렌더링되어야 그림자맵을 생성함.
+	
 	//HRESULT hResult = m_d3dCommandAllocator->Reset();
 	HRESULT hResult = m_d3dCommandAllocator[m_nSwapChainBufferIndex]->Reset();
 	hResult = m_d3dCommandList->Reset(m_d3dCommandAllocator[m_nSwapChainBufferIndex].Get(), NULL);
@@ -810,7 +863,6 @@ void CGameFramework::PreRenderTasks()
 			//1차 렌더링
 			if (m_pScene)
 			{
-				m_pScene->PrepareRender(m_d3dCommandList.Get(), vlightCamera[i]);
 				m_pScene->Render(m_d3dCommandList.Get(), vlightCamera[i], 1); // 카메라만 빛의 위치대로 설정해서 렌더링함.
 			}
 		}
@@ -846,7 +898,7 @@ void CGameFramework::FrameAdvance()
 
 	AnimateObjects();
 
-	ProcessCollide();
+	//ProcessCollide();
 
 	HRESULT hResult = m_d3dCommandAllocator[m_nSwapChainBufferIndex]->Reset();
 	hResult = m_d3dCommandList->Reset(m_d3dCommandAllocator[m_nSwapChainBufferIndex].Get(), NULL);
@@ -860,7 +912,7 @@ void CGameFramework::FrameAdvance()
 
 		auto& vlightCamera = m_pPostProcessingShader->GetLightCamera();
 
-		auto client_player = dynamic_pointer_cast<CBlueSuitPlayer>(m_pScene->m_pPlayer);
+		auto client_player = dynamic_pointer_cast<CBlueSuitPlayer>(m_pScene->m_pMainPlayer);
 		if (client_player) {
 			XMFLOAT4X4* xmf4x4playerLight = client_player->GetFlashLigthWorldTransform();
 			vlightCamera[0]->SetPosition(XMFLOAT3(xmf4x4playerLight->_41, xmf4x4playerLight->_42, xmf4x4playerLight->_43));
@@ -890,7 +942,6 @@ void CGameFramework::FrameAdvance()
 				//1차 렌더링
 				if (m_pScene)
 				{
-					m_pScene->PrepareRender(m_d3dCommandList.Get(), vlightCamera[i]);
 					m_pScene->Render(m_d3dCommandList.Get(), vlightCamera[i], 1/*nPipelinestate*/); // 카메라만 빛의 위치대로 설정해서 렌더링함.
 				}
 			}
@@ -914,8 +965,7 @@ void CGameFramework::FrameAdvance()
 		//1차 렌더링
 		if (m_pScene)
 		{
-			//m_d3dCommandList->SetGraphicsRootDescriptorTable(12, m_d3dTimeCbvGPUDescriptorHandle);
-			m_pScene->PrepareRender(m_d3dCommandList.Get(), m_pCamera.lock());
+			m_d3dCommandList->SetGraphicsRootDescriptorTable(12, m_d3dTimeCbvGPUDescriptorHandle);
 			m_pScene->Render(m_d3dCommandList.Get(), m_pCamera.lock(), 0);
 		}
 
@@ -937,7 +987,7 @@ void CGameFramework::FrameAdvance()
 		//불투명 객체 최종 렌더링
 		m_pPostProcessingShader->Render(m_d3dCommandList.Get(), m_pCamera.lock());
 
-		// 포워드 렌더 객체
+		// 투명 객체 렌더링
 		if (m_pScene)
 		{
 			for (auto& s : m_pScene->m_vForwardRenderShader) {
@@ -976,8 +1026,8 @@ void CGameFramework::FrameAdvance()
 
 	m_GameTimer.GetFrameRate(m_pszFrameRate + 15, 37);
 	size_t nLength = _tcslen(m_pszFrameRate);
-	XMFLOAT3 xmf3Position = m_pPlayer->GetPosition();
-	_stprintf_s(m_pszFrameRate + nLength, 70 - nLength, _T("(%4f, %4f, %4f), (%d, %d, %d)"), xmf3Position.x, xmf3Position.y, xmf3Position.z, m_pPlayer->GetFloor(), m_pPlayer->GetWidth(), m_pPlayer->GetDepth());
+	XMFLOAT3 xmf3Position = xmf3Position = m_pMainPlayer->GetPosition();
+	_stprintf_s(m_pszFrameRate + nLength, 200 - nLength, _T("ID:%d, NumOfClinet: %d, (%4f, %4f, %4f)"), m_pTcpClient->GetClientId(), m_pTcpClient->GetNumOfClient(), xmf3Position.x, xmf3Position.y, xmf3Position.z);
 	::SetWindowText(m_hWnd, m_pszFrameRate);
 
 	//char buf[256];
