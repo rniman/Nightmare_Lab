@@ -48,11 +48,15 @@ CBlueSuitAnimationController::CBlueSuitAnimationController(ID3D12Device* pd3dDev
 		if (strncmp(frameName, "JawEnd_M", strlen(frameName)) == 0) m_nEndNeck = i;
 		if (strncmp(frameName, "Player_Flashlight", strlen(frameName)) == 0) m_nPlayerFlashLight = i;
 		if (strncmp(frameName, "Elbow_L", strlen(frameName)) == 0) m_nElbow_L = i;
+		if (strncmp(frameName, "Elbow_R", strlen(frameName)) == 0) m_nElbow_R = i;
 		if (strncmp(frameName, "Head_M", strlen(frameName)) == 0) m_nHead_M = i;
-		if (strncmp(frameName, "Item_Raider", strlen(frameName)) == 0) m_nRaiderItem = i;
+		if (strncmp(frameName, "Item_Raider", strlen(frameName)) == 0) m_nRaderItem = i;
 		if (strncmp(frameName, "Item_Teleport", strlen(frameName)) == 0) m_nTeleportItem = i;
-
 	}
+
+	m_xmf4x4RightHandRotate = Matrix4x4::Identity();
+
+	CalculateRightHandMatrix();
 }
 
 void CBlueSuitAnimationController::AdvanceTime(float fElapsedTime, CGameObject* pRootGameObject)
@@ -274,12 +278,28 @@ void CBlueSuitAnimationController::AdvanceTime(float fElapsedTime, CGameObject* 
 		XMMATRIX xmmtxRotate = XMMatrixRotationAxis(XMLoadFloat3(&axis), XMConvertToRadians(m_fElbowPitch));
 		XMStoreFloat4x4(&m_pAnimationSets->m_vpBoneFrameCaches[m_nElbow_L]->m_xmf4x4ToParent,
 			XMMatrixMultiply(xmmtxRotate, XMLoadFloat4x4(&m_pAnimationSets->m_vpBoneFrameCaches[m_nElbow_L]->m_xmf4x4ToParent)));
+		if (m_bSelectItem) {//[CJI 0428] 선택한 아이템이 있으면 아이템을 들고 있도록 회전
+			XMStoreFloat4x4(&m_pAnimationSets->m_vpBoneFrameCaches[m_nElbow_R]->m_xmf4x4ToParent,
+				XMMatrixMultiply(XMLoadFloat4x4(&m_xmf4x4RightHandRotate), XMLoadFloat4x4(&m_pAnimationSets->m_vpBoneFrameCaches[m_nElbow_R]->m_xmf4x4ToParent)));
+		}
 
 		pRootGameObject->UpdateTransform(NULL);
 
 		OnRootMotion(pRootGameObject);
 		OnAnimationIK(pRootGameObject);
 	}
+}
+
+void CBlueSuitAnimationController::CalculateRightHandMatrix()
+{
+	XMFLOAT3 axis = { 0.f,0.f,1.f };
+	XMMATRIX xmmtxRotate = XMMatrixRotationAxis(XMLoadFloat3(&axis), XMConvertToRadians(-90.0f));
+	axis = { 0.f,1.f,0.f };
+	XMMATRIX xmmtxRotate2 = XMMatrixRotationAxis(XMLoadFloat3(&axis), XMConvertToRadians(18.0f));
+	axis = { 1.f,0.f,0.f };
+	XMMATRIX xmmtxRotate3 = XMMatrixRotationAxis(XMLoadFloat3(&axis), XMConvertToRadians(45.0f));
+
+	XMStoreFloat4x4(&m_xmf4x4RightHandRotate, XMMatrixMultiply(XMMatrixMultiply(xmmtxRotate, xmmtxRotate2), xmmtxRotate3));
 }
 
 void CBlueSuitAnimationController::BlendAnimation(int nTrack1, int nTrack2, float fElapsedTime, float fBlentWeight)
@@ -311,7 +331,7 @@ void CBlueSuitAnimationController::SetElbowPitch(float value)
 	float fOld_pitch = m_fElbowPitch;
 	m_fElbowPitch = value;
 
-	if (m_fElbowPitch > 19.0f || m_fElbowPitch < -45.0f) {
+	if (m_fElbowPitch > 30.0f || m_fElbowPitch < -45.0f) {
 		m_fElbowPitch = fOld_pitch;
 	}
 }
@@ -328,8 +348,9 @@ int CBlueSuitAnimationController::GetBoneFrameIndex(char* frameName)
 	if (strncmp(frameName, "JawEnd_M", strlen(frameName)) == 0) i = m_nEndNeck ;
 	if (strncmp(frameName, "Player_Flashlight", strlen(frameName)) == 0) i = m_nPlayerFlashLight ;
 	if (strncmp(frameName, "Elbow_L", strlen(frameName)) == 0) i = m_nElbow_L ;
+	if (strncmp(frameName, "Elbow_R", strlen(frameName)) == 0) i = m_nElbow_R;
 	if (strncmp(frameName, "Head_M", strlen(frameName)) == 0) i = m_nHead_M ;
-	if (strncmp(frameName, "Item_Raider", strlen(frameName)) == 0) i = m_nRaiderItem;
+	if (strncmp(frameName, "Item_Raider", strlen(frameName)) == 0) i = m_nRaderItem;
 	if (strncmp(frameName, "Item_Teleport", strlen(frameName)) == 0) i = m_nTeleportItem;
 
 	if (i == -1) {

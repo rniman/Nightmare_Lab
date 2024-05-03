@@ -143,7 +143,7 @@ void TCPServer::OnProcessingReadMessage(HWND hWnd, UINT nMessageID, WPARAM wPara
 		std::chrono::time_point<std::chrono::steady_clock> client;
 
 		// Time, KeysBuffer, viewMatrix, vecLook, vecRight
-		nBufferSize = sizeof(__int64) + sizeof(UCHAR[256]) + sizeof(XMFLOAT4X4) + sizeof(XMFLOAT3) * 2;
+		nBufferSize = sizeof(__int64) + sizeof(UCHAR[256]) + sizeof(XMFLOAT4X4) + sizeof(XMFLOAT3) * 2 + sizeof(SC_ANIMATION_INFO) + sizeof(SC_PLAYER_INFO);
 		m_vSocketInfoList[nSocketIndex].RecvNum++;
 		nRetval = RecvData(nSocketIndex, nBufferSize);
 		if (nRetval == SOCKET_ERROR)
@@ -151,22 +151,36 @@ void TCPServer::OnProcessingReadMessage(HWND hWnd, UINT nMessageID, WPARAM wPara
 			break;
 		}
 
-		memcpy(&client, m_vSocketInfoList[nSocketIndex].m_pCurrentBuffer, sizeof(std::chrono::time_point<std::chrono::steady_clock>));
+		int sizeOffset = 0;
+		memcpy(&client, m_vSocketInfoList[nSocketIndex].m_pCurrentBuffer + sizeOffset, sizeof(std::chrono::time_point<std::chrono::steady_clock>));
 		std::chrono::duration<double> deltaTime = now - client;
 		//printf("dif: %lf ms\n", deltaTime.count() * 1000.0f);
+		sizeOffset += sizeof(__int64);
 
-		memcpy(pPlayer->GetKeysBuffer(), m_vSocketInfoList[nSocketIndex].m_pCurrentBuffer + sizeof(__int64), sizeof(UCHAR[256]));
+		memcpy(pPlayer->GetKeysBuffer(), m_vSocketInfoList[nSocketIndex].m_pCurrentBuffer + sizeOffset, sizeof(UCHAR[256]));
+		sizeOffset += sizeof(UCHAR[256]);
 
 		XMFLOAT4X4 xmf4x4View;
-		memcpy(&xmf4x4View, m_vSocketInfoList[nSocketIndex].m_pCurrentBuffer + sizeof(__int64) + sizeof(UCHAR[256]), sizeof(XMFLOAT4X4));
+		memcpy(&xmf4x4View, m_vSocketInfoList[nSocketIndex].m_pCurrentBuffer + sizeOffset, sizeof(XMFLOAT4X4));
 		pPlayer->SetViewMatrix(xmf4x4View);
+		sizeOffset += sizeof(XMFLOAT4X4);
 
 		XMFLOAT3 xmf3Look, xmf3Right;
-		memcpy(&xmf3Look, m_vSocketInfoList[nSocketIndex].m_pCurrentBuffer + sizeof(__int64) + sizeof(UCHAR[256]) + sizeof(XMFLOAT4X4), sizeof(XMFLOAT3));
-		memcpy(&xmf3Right, m_vSocketInfoList[nSocketIndex].m_pCurrentBuffer + sizeof(__int64) + sizeof(UCHAR[256]) + sizeof(XMFLOAT4X4) + sizeof(XMFLOAT3), sizeof(XMFLOAT3));
+		memcpy(&xmf3Look, m_vSocketInfoList[nSocketIndex].m_pCurrentBuffer + sizeOffset, sizeof(XMFLOAT3));
+		sizeOffset += sizeof(XMFLOAT3);
+		memcpy(&xmf3Right, m_vSocketInfoList[nSocketIndex].m_pCurrentBuffer + sizeOffset, sizeof(XMFLOAT3));
+		sizeOffset += sizeof(XMFLOAT3);
 		pPlayer->SetLook(xmf3Look);
 		pPlayer->SetRight(xmf3Right);
 
+		SC_ANIMATION_INFO animationInfo;
+		memcpy(&animationInfo, m_vSocketInfoList[nSocketIndex].m_pCurrentBuffer + sizeOffset, sizeof(SC_ANIMATION_INFO)); 
+		m_aUpdateInfo[nSocketIndex].m_animationInfo = animationInfo;
+		sizeOffset += sizeof(SC_ANIMATION_INFO);
+		
+		SC_PLAYER_INFO playerInfo;
+		memcpy(&playerInfo, m_vSocketInfoList[nSocketIndex].m_pCurrentBuffer + sizeOffset, sizeof(SC_PLAYER_INFO));
+		pPlayer->SetRightClick(playerInfo.m_bRightClick);
 	}
 		break;
 	default:
@@ -323,7 +337,7 @@ void TCPServer::SimulationLoop()
 			//memcpy(buf, pPlayer->GetPickedObject().lock()->GetFrameName(), 256);
 			//printf("%s\t", buf);
 		}
-
+		pPlayer->RightClickProcess(m_pCollisionManager);
 		pPlayer->UseItem(m_pCollisionManager);
 		pPlayer->Update(fElapsedTime);
 		pPlayer->UpdatePicking();
@@ -456,13 +470,14 @@ void TCPServer::UpdateInformation()
 
 		// 지금은 일단 이렇게 해뒀지만 나중에는 0번이 Enemy고정일듯
 		shared_ptr<CServerBlueSuitPlayer> pBlueSuitPlayer = dynamic_pointer_cast<CServerBlueSuitPlayer>(pPlayer);
-		for (int i = 0; i < 3; ++i)
+		if (pBlueSuitPlayer)
 		{
-			if (pBlueSuitPlayer)
+			for (int i = 0; i < 3; ++i)
 			{
 				m_aUpdateInfo[nPlayerId].m_nSlotObjectNum[i] = pBlueSuitPlayer->GetReferenceSlotItemNum(i);
 				m_aUpdateInfo[nPlayerId].m_nFuseObjectNum[i] = pBlueSuitPlayer->GetReferenceFuseItemNum(i);
 			}
+			m_aUpdateInfo[nPlayerId].m_playerInfo.m_selectItem = pBlueSuitPlayer->GetRightItem();
 		}
 			
 		// 업데이트 오브젝트는 리셋
@@ -470,7 +485,9 @@ void TCPServer::UpdateInformation()
 		for (int i = 0; i < 20; ++i)
 		{
 			m_aUpdateInfo[nPlayerId].m_anObjectNum[i] = -1;
-		}		
+		}
+
+
 	}
 }
 
@@ -639,7 +656,7 @@ void TCPServer::CreateItemObject()
 	uniform_int_distribution<int> item_dis(0, 99);
 	uniform_int_distribution<int> rotation_dis(1, 360);
 	uniform_real_distribution<float> pos_dis(-0.2f, 0.2f);
-	for(int i = 0; i < 20;++i)
+	for(int i = 0; i < 30;++i)
 	{
 		int nDrawerNum = dis(m_mt19937Gen);
 		shared_ptr<CServerDrawerObject> pDrawerObject = dynamic_pointer_cast<CServerDrawerObject>(m_pCollisionManager->GetCollisionObjectWithNumber(nDrawerNum));
@@ -657,7 +674,7 @@ void TCPServer::CreateItemObject()
 		shared_ptr<CServerItemObject> pItemObject;
 
 		XMFLOAT3 xmf3RandOffset = XMFLOAT3(pos_dis(m_mt19937Gen), 0.0f, pos_dis(m_mt19937Gen));
-		XMFLOAT3 xmf3RandRotation = XMFLOAT3(0.0f, 0.0f, (float)rotation_dis(m_mt19937Gen));
+		XMFLOAT3 xmf3RandRotation = XMFLOAT3(90.0f, 0.0f, 0.0f/*(float)rotation_dis(m_mt19937Gen)*/);
 		if(i < 10)		// Fuse
 		{
 			pItemObject = make_shared<CServerFuseObject>();
@@ -671,9 +688,21 @@ void TCPServer::CreateItemObject()
 			pItemObject->SetWorldMatrix(xmf4x4World);
 			m_pCollisionManager->AddCollisionObject(pItemObject);
 		}
-		else if(i < 20)	// tp
+		else if (i < 20)	// tp
 		{
 			pItemObject = make_shared<CServerTeleportObject>();
+			pItemObject->SetDrawerNumber(nDrawerNum);
+			pItemObject->SetDrawer(pDrawerObject);
+			pDrawerObject->m_pStoredItem = pItemObject;
+
+			pItemObject->SetRandomRotation(xmf3RandRotation);
+			pItemObject->SetRandomOffset(xmf3RandOffset);
+			pItemObject->SetWorldMatrix(xmf4x4World);
+			m_pCollisionManager->AddCollisionObject(pItemObject);
+		}
+		else if (i < 30)	// Mine
+		{
+			pItemObject = make_shared<CServerMineObject>();
 			pItemObject->SetDrawerNumber(nDrawerNum);
 			pItemObject->SetDrawer(pDrawerObject);
 			pDrawerObject->m_pStoredItem = pItemObject;

@@ -351,6 +351,7 @@ public:
 	weak_ptr<CGameObject> m_pRootMotionObject;	//지금 사용안하는 중
 	XMFLOAT3 m_xmf3FirstRootMotionPosition = XMFLOAT3(0.0f, 0.0f, 0.0f);
 
+
 };
 
 
@@ -417,8 +418,6 @@ public:
 
 	shared_ptr<CTexture> FindReplicatedTexture(_TCHAR* pstrTextureName);
 
-	void SetLookAt(XMFLOAT3& xmf3target);
-
 	UINT GetMeshType();
 
 	void LoadMaterialsFromFile(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dCommandList, shared_ptr<CGameObject> pParent, FILE* pInFile);
@@ -461,6 +460,7 @@ public:
 	int GetCollisionNum() const { return m_nCollisionNum; }
 
 	void SetTransparentObjectInfo(vector<int> vNumbers);
+	void ObjectCopy(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dCommandList,shared_ptr<CGameObject> dobject, shared_ptr<CGameObject> sobject);
 public:
 	//중복된 메쉬를 없애기 위해 최초 메쉬들을 이곳에 저장한다.
 	static vector<shared_ptr<CMesh>> m_vMeshContainer;
@@ -481,7 +481,6 @@ public:
 	ComPtr<ID3D12Resource> m_d3dcbvObject;
 	VS_CB_OBJECT_INFO* m_cbMappedObject = NULL;// m_d3dcbvObject가 제거되는 시점에 같이 제거되므로 별도 해제 X
 	D3D12_GPU_DESCRIPTOR_HANDLE	m_d3dCbvGPUDescriptorHandle;
-
 	// 애니메이션 관련
 	shared_ptr<CAnimationController> m_pSkinnedAnimationController;
 

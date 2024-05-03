@@ -178,5 +178,11 @@ void CServerCollisionManager::Collide(float fElapsedTime, const shared_ptr<CServ
 		}
 		pPlayer->SetWorldMatrix(xmf3StairPosition);
 	}
+
+	//Áö·Ú Ãæµ¹ aabbPlayer
+	auto zombiePlayer = dynamic_pointer_cast<CServerZombiePlayer>(pPlayer);
+	if (zombiePlayer) {
+
+	}
 }
 

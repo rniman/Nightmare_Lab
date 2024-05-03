@@ -23,11 +23,16 @@ public:
 
 	//플레이어가 들고 있는 플레시라이트의 월드변환정보를 반환
 	int GetBoneFrameIndexToFlashLight() { return m_nPlayerFlashLight; }
-	int GetBoneFrameIndexToRightHandRaiderItem() { return m_nRaiderItem; }
+	int GetBoneFrameIndexToRightHandRaderItem() { return m_nRaderItem; }
 	int GetBoneFrameIndexToRightHandTeleportItem() { return m_nTeleportItem; }
 
 	void SetElbowPitch(float value);
 	int GetBoneFrameIndex(char* s);
+	void SetSelectItem(bool b) { m_bSelectItem = b; }
+
+	void CalculateRightHandMatrix();
+
+	XMFLOAT4X4 m_xmf4x4RightHandRotate;
 private:
 	int m_nStartLArm = -1;
 	int m_nEndLArm = -1;
@@ -40,14 +45,17 @@ private:
 	int m_nEndNeck = -1;
 
 	int m_nPlayerFlashLight = -1;
-	int m_nRaiderItem = -1;
+	int m_nRaderItem = -1;
 	int m_nTeleportItem = -1;
 
 	int m_nElbow_L = -1;
+	int m_nElbow_R = -1;
 	int m_nHead_M = -1;
 
 	// 팔의 각도
 	float m_fElbowPitch = 0.0f;
+	
+	bool m_bSelectItem = false;
 };
 
 class CZombieAnimationController : public CAnimationController

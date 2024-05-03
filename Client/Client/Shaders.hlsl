@@ -198,8 +198,8 @@ PS_MULTIPLE_RENDER_TARGETS_OUTPUT PSStandard(VS_STANDARD_OUTPUT input)
         patternUV.y = input.uv.y + frac(time);
     
         float4 patternColor = PatternTexture.Sample(gssWrap, patternUV);
-    
-        if (patternColor.x >= 0.1f && patternColor.y >= 0.1f && patternColor.z >= 0.1f)
+        
+        //if (patternColor.x >= 0.1f && patternColor.y >= 0.1f && patternColor.z >= 0.1f)
         {
             cColor *= patternColor;
         }
@@ -337,7 +337,7 @@ float4 PSPostProcessing(PS_POSTPROCESSING_OUT input) : SV_Target
     
     float4 light = Lighting(position, normal);
     
-    return (cColor * light);
+    return (cColor /** light*/);
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////

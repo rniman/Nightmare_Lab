@@ -5,7 +5,7 @@ struct FrameTimeInfo;
 class TextureBlendObject :   public CGameObject
 {
 public:
-	float m_fLocalTime = 0.0f;
+	float m_fLocalTime;
 	FrameTimeInfo*					m_pcbMappedTime;
 private:
 	shared_ptr<CPlayer> m_pPlayer;
