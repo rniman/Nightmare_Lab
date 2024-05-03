@@ -497,35 +497,22 @@ void TCPServer::UpdateInformation()
 		else
 		{
 			shared_ptr<CServerBlueSuitPlayer> pBlueSuitPlayer = dynamic_pointer_cast<CServerBlueSuitPlayer>(pPlayer);
-			for (int i = 0; i < 3; ++i)
+			if (pBlueSuitPlayer)
 			{
-				if (pBlueSuitPlayer)
+				for (int i = 0; i < 3; ++i)
 				{
 					m_aUpdateInfo[nPlayerId].m_nSlotObjectNum[i] = pBlueSuitPlayer->GetReferenceSlotItemNum(i);
 					m_aUpdateInfo[nPlayerId].m_nFuseObjectNum[i] = pBlueSuitPlayer->GetReferenceFuseItemNum(i);
 				}
 			}
-		}
-
-		shared_ptr<CServerBlueSuitPlayer> pBlueSuitPlayer = dynamic_pointer_cast<CServerBlueSuitPlayer>(pPlayer);
-		if (pBlueSuitPlayer)
-		{
-			for (int i = 0; i < 3; ++i)
-			{
-				m_aUpdateInfo[nPlayerId].m_nSlotObjectNum[i] = pBlueSuitPlayer->GetReferenceSlotItemNum(i);
-				m_aUpdateInfo[nPlayerId].m_nFuseObjectNum[i] = pBlueSuitPlayer->GetReferenceFuseItemNum(i);
-			}
 			m_aUpdateInfo[nPlayerId].m_playerInfo.m_selectItem = pBlueSuitPlayer->GetRightItem();
 		}
-			
 		// 업데이트 오브젝트는 리셋
 		m_aUpdateInfo[nPlayerId].m_nNumOfObject = 0;
 		for (int i = 0; i < 20; ++i)
 		{
 			m_aUpdateInfo[nPlayerId].m_anObjectNum[i] = -1;
 		}
-
-
 	}
 }
 

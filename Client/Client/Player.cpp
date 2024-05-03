@@ -417,7 +417,7 @@ CBlueSuitPlayer::CBlueSuitPlayer(ID3D12Device* pd3dDevice, ID3D12GraphicsCommand
 	:CPlayer(pd3dDevice, pd3dCommandList, pd3dGraphicsRootSignature, pContext)
 {
 	m_pCamera->SetFogColor(XMFLOAT4(0.1f, 0.1f, 0.1f, 0.1f));
-	m_pCamera->SetFogInfo(XMFLOAT4(0.0f, 10.0f, 0.10f, 1.0f));
+	m_pCamera->SetFogInfo(XMFLOAT4(0.0f, 10.0f, 0.10f, 1.0f));//START, RANGE, Density, MOD
 
 	m_xmf3Scale = XMFLOAT3(1.0f,1.0f,1.0f);
 
@@ -541,7 +541,7 @@ void CBlueSuitPlayer::Update(float fElapsedTime)
 			m_fInterruption = 0.0f;
 		}
 	}
-	m_pCamera->SetFogInfo(XMFLOAT4(0.0f, 10.0f, 0.10f + m_fInterruption / 8, 1.0f));
+	m_pCamera->SetFogInfo(XMFLOAT4(0.0f, 10.0f, 0.02f + m_fInterruption / 8, 1.0f));
 
 	if (m_bShiftRun)
 	{

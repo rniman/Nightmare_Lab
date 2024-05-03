@@ -311,17 +311,6 @@ void CScene::BuildObjects(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* p
 	//Player 생성 + 아이템
 	for (int i = 0; i < MAX_CLIENT; ++i)
 	{
-		//생존자
-		m_apPlayer[i] = std::make_shared<CBlueSuitPlayer>(pd3dDevice, pd3dCommandList, m_pd3dGraphicsRootSignature.Get(), nullptr);
-		shared_ptr<CLoadedModelInfo> pBlueSuitPlayerModel = CGameObject::LoadGeometryAndAnimationFromFile(pd3dDevice, pd3dCommandList, m_pd3dGraphicsRootSignature.Get(), "Asset/Model/BlueSuitFree01.bin",MeshType::Standard);
-		//m_apPlayer[i]->ObjectCopy(pd3dDevice, pd3dCommandList, m_apPlayer[i], pBlueSuitPlayerModel->m_pModelRootObject);
-		// 플레이어는 복사구조가 복잡해서 일단 보류
-		m_apPlayer[i]->LoadModelAndAnimation(pd3dDevice, pd3dCommandList, m_pd3dGraphicsRootSignature.Get(), pBlueSuitPlayerModel);
-		//좀비
-		/*m_apPlayer[i] = std::make_shared<CZombiePlayer>(pd3dDevice, pd3dCommandList, m_pd3dGraphicsRootSignature.Get(), nullptr);
-		shared_ptr<CLoadedModelInfo> pZombiePlayerModel = CGameObject::LoadGeometryAndAnimationFromFile(pd3dDevice, pd3dCommandList, m_pd3dGraphicsRootSignature.Get(), "Asset/Model/Zom_1.bin", MeshType::Standard);
-		m_apPlayer[i]->LoadModelAndAnimation(pd3dDevice, pd3dCommandList, m_pd3dGraphicsRootSignature.Get(), pZombiePlayerModel);
-		*/m_vShader[SKINNEDANIMATION_STANDARD_SHADER]->AddGameObject(m_apPlayer[i]);
 		if (i == 0)
 		{
 			m_apPlayer[i] = std::make_shared<CZombiePlayer>(pd3dDevice, pd3dCommandList, m_pd3dGraphicsRootSignature.Get(), nullptr);

@@ -1313,6 +1313,29 @@ void CGameObject::SetLookAt(XMFLOAT3& xmf3target)
 	m_xmf4x4World = Matrix4x4::Multiply(m_xmf4x4ToParent, m_xmf4x4World);
 }
 
+void CGameObject::ObjectCopy(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dCommandList, shared_ptr<CGameObject> dstObject, shared_ptr<CGameObject> srcobject)
+{
+	SetMesh(srcobject->m_pMesh);
+
+	dstObject->m_nMaterials = srcobject->m_nMaterials;
+	for (int i = 0; i < srcobject->m_nMaterials;++i) {
+		dstObject->m_vpMaterials.push_back(srcobject->m_vpMaterials[i]);
+	}
+
+	memcpy(&m_xmf4x4ToParent, &srcobject->m_xmf4x4ToParent, sizeof(XMFLOAT4X4));
+	strcpy(m_pstrFrameName, srcobject->m_pstrFrameName);
+
+	if (srcobject->m_pChild) {
+		// child 복사
+		dstObject->m_pChild = make_shared<CGameObject>(pd3dDevice, pd3dCommandList);
+		srcobject->m_pChild->ObjectCopy(pd3dDevice, pd3dCommandList, dstObject->m_pChild, srcobject->m_pChild);
+	}
+	if (srcobject->m_pSibling) {
+		// sibling 복사
+		dstObject->m_pSibling = make_shared<CGameObject>(pd3dDevice, pd3dCommandList);
+		srcobject->m_pSibling->ObjectCopy(pd3dDevice, pd3dCommandList, dstObject->m_pSibling, srcobject->m_pSibling);
+	}
+}
 
 void CGameObject::LoadMaterialsFromFile(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dCommandList, shared_ptr<CGameObject> pParent, FILE* pInFile)
 {

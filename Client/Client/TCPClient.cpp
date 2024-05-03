@@ -149,7 +149,7 @@ void CTcpClient::OnProcessingReadMessage(HWND hWnd, UINT nMessageID, WPARAM wPar
 				m_apPlayers[i]->SetPosition(m_aClientInfo[i].m_xmf3Position);
 				m_apPlayers[i]->SetVelocity(m_aClientInfo[i].m_xmf3Velocity);
 				m_apPlayers[i]->SetPitch(m_aClientInfo[i].m_animationInfo.pitch);
-				if(i != m_nMainClientID)
+				if(i != m_nMainClientId)
 				{
 					m_apPlayers[i]->SetLook(m_aClientInfo[i].m_xmf3Look);
 					m_apPlayers[i]->SetRight(m_aClientInfo[i].m_xmf3Right);
@@ -186,7 +186,7 @@ void CTcpClient::OnProcessingReadMessage(HWND hWnd, UINT nMessageID, WPARAM wPar
 			}
 		}
 	}
-		break;
+	break;
 	case HEAD_NUM_OF_CLIENT:
 		nBufferSize = sizeof(int) + sizeof(m_aClientInfo);
 		RecvNum++;
@@ -198,7 +198,7 @@ void CTcpClient::OnProcessingReadMessage(HWND hWnd, UINT nMessageID, WPARAM wPar
 
 		memcpy(&m_nClient, m_pCurrentBuffer, sizeof(int));
 		memcpy(&m_aClientInfo, m_pCurrentBuffer + sizeof(int), sizeof(m_aClientInfo));
-		for(int i=0;i<MAX_CLIENT;++i)
+		for (int i = 0;i < MAX_CLIENT;++i)
 		{
 			if (m_apPlayers[i])
 			{
@@ -232,15 +232,15 @@ void CTcpClient::OnProcessingWriteMessage(HWND hWnd, UINT nMessageID, WPARAM wPa
 	size_t nBufferSize = sizeof(int);
 	int nHead;
 	int nRetval;
-	if (m_nMainClientId == -1  || m_bRecvDelayed == true)	// 아직 ID를 넘겨 받지 못했거나 딜레이 되었다.
+	if (m_nMainClientId == -1 || m_bRecvDelayed == true)	// 아직 ID를 넘겨 받지 못했거나 딜레이 되었다.
 	{
 		return;
 	}
 
 	//데이터 갱신 후 전송
-	m_aClientInfo[m_nMainClientID].m_animationInfo.pitch = m_apPlayers[m_nMainClientID]->GetPitch();
-	m_aClientInfo[m_nMainClientID].m_playerInfo.m_bRightClick = m_apPlayers[m_nMainClientID]->IsRightClick();
-	m_apPlayers[m_nMainClientID]->SetRightClick(false);
+	m_aClientInfo[m_nMainClientId].m_animationInfo.pitch = m_apPlayers[m_nMainClientId]->GetPitch();
+	m_aClientInfo[m_nMainClientId].m_playerInfo.m_bRightClick = m_apPlayers[m_nMainClientId]->IsRightClick();
+	m_apPlayers[m_nMainClientId]->SetRightClick(false);
 
 	switch (m_socketState)
 	{
@@ -248,7 +248,7 @@ void CTcpClient::OnProcessingWriteMessage(HWND hWnd, UINT nMessageID, WPARAM wPa
 	{
 		nHead = 0;
 		UCHAR keysBuffer[256];
-	
+
 		std::chrono::time_point<std::chrono::steady_clock> now = std::chrono::steady_clock::now();
 
 		nBufferSize += sizeof(keysBuffer);
@@ -259,21 +259,21 @@ void CTcpClient::OnProcessingWriteMessage(HWND hWnd, UINT nMessageID, WPARAM wPa
 		}
 		nBufferSize += sizeof(std::chrono::time_point<std::chrono::steady_clock>);
 		nBufferSize += sizeof(XMFLOAT4X4);
-		nBufferSize += sizeof(XMFLOAT3) * 2;		
+		nBufferSize += sizeof(XMFLOAT3) * 2;
 		nBufferSize += sizeof(CS_ANIMATION_INFO);
 		nBufferSize += sizeof(CS_PLAYER_INFO);
 
 		SendNum++;
 		// 키버퍼, 카메라Matrix, LOOK,RIGHT 같이 보내주기
-		nRetval = SendData(wParam, nBufferSize, 
-							nHead,
-							now,
-							keysBuffer,
-							m_apPlayers[m_nMainClientID]->GetCamera()->GetViewMatrix(),
-							m_apPlayers[m_nMainClientID]->GetLook(), 
-							m_apPlayers[m_nMainClientID]->GetRight(),
-							m_aClientInfo[m_nMainClientID].m_animationInfo,
-							m_aClientInfo[m_nMainClientID].m_playerInfo
+		nRetval = SendData(wParam, nBufferSize,
+			nHead,
+			now,
+			keysBuffer,
+			m_apPlayers[m_nMainClientId]->GetCamera()->GetViewMatrix(),
+			m_apPlayers[m_nMainClientId]->GetLook(),
+			m_apPlayers[m_nMainClientId]->GetRight(),
+			m_aClientInfo[m_nMainClientId].m_animationInfo,
+			m_aClientInfo[m_nMainClientId].m_playerInfo
 		);
 
 		if (nRetval == -1 && WSAGetLastError() == WSAEWOULDBLOCK)
@@ -383,10 +383,10 @@ void CTcpClient::UpdateZombiePlayer()
 
 void CTcpClient::UpdatePlayerItem(int nIndex)
 {
-	pBlueSuitPlayer->SelectItem(m_aClientInfo[i].m_playerInfo.m_selectItem);
 	shared_ptr<CBlueSuitPlayer> pBlueSuitPlayer = dynamic_pointer_cast<CBlueSuitPlayer>(m_apPlayers[nIndex]);
 	if (pBlueSuitPlayer)
 	{
+		pBlueSuitPlayer->SelectItem(m_aClientInfo[nIndex].m_playerInfo.m_selectItem);
 		for (int j = 0; j < 3; ++j)
 		{
 			if (m_aClientInfo[nIndex].m_nSlotObjectNum[j] != -1)
