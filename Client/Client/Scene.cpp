@@ -280,11 +280,12 @@ void CScene::BuildObjects(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* p
 	// CBV(RootObject) : //육면체(1), 오브젝트(1), DeskObject(1), DoorObject(1), flashLight(1), 서버인원예상(20), fuse(3)
 	// CBV(Model) : Zom(72),  Zom_Controller(2 * N),// BlueSuit(85), BlueSuit_Controller(2 * N), Desk(3), Door(5), flashLight(1), Fuse(6), 레이더(5),텔레포트아이템(1),지뢰(1)
 	int nCntCbv = 1 + 1 + 2 + 66 +
-		(72 + 2) + (85 + 2) * MAX_CLIENT + 2 + 7 + 10 + 5 * MAX_CLIENT + 1 * MAX_CLIENT + 120 + 1 + 1;
+		(72 + 2) + (85 + 2) * MAX_CLIENT + 2 + 7 + 10 + 5 * MAX_CLIENT + 1 * MAX_CLIENT + 120 + 1 + 1+200;
 	// SRV(Default) : 디퍼드렌더링텍스처(ADD_RENDERTARGET_COUNT로 정의된 개수임)
 	// SRV(Scene Load) : 79
-	// SRV: Zombie(3), // BlueSuit(6), 육면체(1), 엘런(8(오클루젼맵제거), Desk(3), Door(9), flashLight(3) , m_nLights,지뢰(4)
-	int nCntSrv = ADD_RENDERTARGET_COUNT + 6 * MAX_CLIENT + 79 + 3 + 3 + 3 * MAX_CLIENT + m_nLights + 4;
+	// SRV: Zombie(3), // BlueSuit(6), 육면체(1), 엘런(8(오클루젼맵제거), Desk(3), Door(9), flashLight(3) , m_nLights,지뢰(4),Electiric
+	int nCntSrv = ADD_RENDERTARGET_COUNT + 6 * MAX_CLIENT + 79 + 3 + 3 + 3 * MAX_CLIENT + m_nLights + 4 * MAX_CLIENT + 1 + 10*4+10;
+	
 	CreateCbvSrvDescriptorHeaps(pd3dDevice, nCntCbv, nCntSrv);
 
 	// 쉐이더 vector에 삽입한 순서대로 인덱스 define한 값으로 접근
@@ -310,6 +311,17 @@ void CScene::BuildObjects(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* p
 	//Player 생성 + 아이템
 	for (int i = 0; i < MAX_CLIENT; ++i)
 	{
+		//생존자
+		m_apPlayer[i] = std::make_shared<CBlueSuitPlayer>(pd3dDevice, pd3dCommandList, m_pd3dGraphicsRootSignature.Get(), nullptr);
+		shared_ptr<CLoadedModelInfo> pBlueSuitPlayerModel = CGameObject::LoadGeometryAndAnimationFromFile(pd3dDevice, pd3dCommandList, m_pd3dGraphicsRootSignature.Get(), "Asset/Model/BlueSuitFree01.bin",MeshType::Standard);
+		//m_apPlayer[i]->ObjectCopy(pd3dDevice, pd3dCommandList, m_apPlayer[i], pBlueSuitPlayerModel->m_pModelRootObject);
+		// 플레이어는 복사구조가 복잡해서 일단 보류
+		m_apPlayer[i]->LoadModelAndAnimation(pd3dDevice, pd3dCommandList, m_pd3dGraphicsRootSignature.Get(), pBlueSuitPlayerModel);
+		//좀비
+		/*m_apPlayer[i] = std::make_shared<CZombiePlayer>(pd3dDevice, pd3dCommandList, m_pd3dGraphicsRootSignature.Get(), nullptr);
+		shared_ptr<CLoadedModelInfo> pZombiePlayerModel = CGameObject::LoadGeometryAndAnimationFromFile(pd3dDevice, pd3dCommandList, m_pd3dGraphicsRootSignature.Get(), "Asset/Model/Zom_1.bin", MeshType::Standard);
+		m_apPlayer[i]->LoadModelAndAnimation(pd3dDevice, pd3dCommandList, m_pd3dGraphicsRootSignature.Get(), pZombiePlayerModel);
+		*/m_vShader[SKINNEDANIMATION_STANDARD_SHADER]->AddGameObject(m_apPlayer[i]);
 		if (i == 0)
 		{
 			m_apPlayer[i] = std::make_shared<CZombiePlayer>(pd3dDevice, pd3dCommandList, m_pd3dGraphicsRootSignature.Get(), nullptr);
@@ -328,25 +340,45 @@ void CScene::BuildObjects(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* p
 		}
 
 		//플래시라이트모델 로드
-		shared_ptr<CTeleportObject> pFlashLight = make_shared<CTeleportObject>(pd3dDevice, pd3dCommandList, m_pd3dGraphicsRootSignature.Get());
-		shared_ptr<CLoadedModelInfo> pFlashLightModel = CGameObject::LoadGeometryAndAnimationFromFile(pd3dDevice, pd3dCommandList, m_pd3dGraphicsRootSignature.Get(), (char*)"Asset/Model/Flashlight.bin", MeshType::Standard);
-		pFlashLight->LoadModelAndAnimation(pd3dDevice, pd3dCommandList, m_pd3dGraphicsRootSignature.Get(), pFlashLightModel);
-		m_vShader[STANDARD_SHADER]->AddGameObject(pFlashLight);
+		shared_ptr<CTeleportObject> flashLight = make_shared<CTeleportObject>(pd3dDevice, pd3dCommandList, m_pd3dGraphicsRootSignature.Get());
+		static shared_ptr<CLoadedModelInfo> pflashLightModel = CGameObject::LoadGeometryAndAnimationFromFile(pd3dDevice, pd3dCommandList, m_pd3dGraphicsRootSignature.Get(), (char*)"Asset/Model/Flashlight.bin", MeshType::Standard);
+		flashLight->ObjectCopy(pd3dDevice, pd3dCommandList, flashLight, pflashLightModel->m_pModelRootObject);
+		//flashLight->LoadModelAndAnimation(pd3dDevice, pd3dCommandList, m_pd3dGraphicsRootSignature.Get(), pflashLightModel);
+		m_vShader[STANDARD_SHADER]->AddGameObject(flashLight);
 
 		//레이더모델 로드
-		shared_ptr<CLoadedModelInfo> pRaiderModel = CGameObject::LoadGeometryAndAnimationFromFile(pd3dDevice, pd3dCommandList, m_pd3dGraphicsRootSignature.Get(), (char*)"Asset/Model/레이더.bin", MeshType::Standard);
-		m_vShader[STANDARD_SHADER]->AddGameObject(pRaiderModel->m_pModelRootObject);
+		shared_ptr<CRadarObject> pRaderObject = make_shared<CRadarObject>(pd3dDevice, pd3dCommandList, m_pd3dGraphicsRootSignature.Get());
+		static shared_ptr<CLoadedModelInfo> pRaderModel = CGameObject::LoadGeometryAndAnimationFromFile(pd3dDevice, pd3dCommandList, m_pd3dGraphicsRootSignature.Get(), (char*)"Asset/Model/레이더.bin", MeshType::Standard);
+		pRaderObject->ObjectCopy(pd3dDevice, pd3dCommandList, pRaderObject, pRaderModel->m_pModelRootObject);
+		m_vShader[STANDARD_SHADER]->AddGameObject(pRaderObject);
 
-		shared_ptr<CBlueSuitPlayer> pBlueSuitPlayer = dynamic_pointer_cast<CBlueSuitPlayer>(m_apPlayer[i]);
-		if (pBlueSuitPlayer)
-		{
-			pBlueSuitPlayer->SetFlashLight(pFlashLight);
-			pBlueSuitPlayer->SetRaider(pRaiderModel->m_pModelRootObject);
-			/*dynamic_pointer_cast<CBlueSuitPlayer>(m_apPlayer[i])->SetFlashLight(flashLight);
-			dynamic_pointer_cast<CBlueSuitPlayer>(m_apPlayer[i])->SetRaider(pRaiderModel->m_pModelRootObject);*/
+		shared_ptr<CTeleportObject> pTeleportObject = make_shared<CTeleportObject>(pd3dDevice, pd3dCommandList, m_pd3dGraphicsRootSignature.Get());
+		static shared_ptr<CLoadedModelInfo> pTeleportItemModel = CGameObject::LoadGeometryAndAnimationFromFile(pd3dDevice, pd3dCommandList, m_pd3dGraphicsRootSignature.Get(), (char*)"Asset/Model/TeleportItem.bin", MeshType::Standard);
+		pTeleportObject->ObjectCopy(pd3dDevice, pd3dCommandList, pTeleportObject, pTeleportItemModel->m_pModelRootObject);
+		m_vShader[STANDARD_SHADER]->AddGameObject(pTeleportObject);
+
+		shared_ptr<CMineObject> pMineObject = make_shared<CMineObject>(pd3dDevice, pd3dCommandList, m_pd3dGraphicsRootSignature.Get());
+		static shared_ptr<CLoadedModelInfo> pMineItemModel = CGameObject::LoadGeometryAndAnimationFromFile(pd3dDevice, pd3dCommandList, m_pd3dGraphicsRootSignature.Get(), (char*)"Asset/Model/Item_Mine.bin", MeshType::Standard);
+		pMineObject->ObjectCopy(pd3dDevice, pd3dCommandList, pMineObject, pMineItemModel->m_pModelRootObject);
+		m_vShader[STANDARD_SHADER]->AddGameObject(pMineObject);
+
+		shared_ptr<CFuseObject> pFuseObject = make_shared<CFuseObject>(pd3dDevice, pd3dCommandList, m_pd3dGraphicsRootSignature.Get());
+		static shared_ptr<CLoadedModelInfo> pFuseModel = CGameObject::LoadGeometryAndAnimationFromFile(pd3dDevice, pd3dCommandList, m_pd3dGraphicsRootSignature.Get(), (char*)"Asset/Model/fuse_hi-obj.bin", MeshType::Standard);
+		pFuseObject->ObjectCopy(pd3dDevice, pd3dCommandList, pFuseObject, pFuseModel->m_pModelRootObject);
+		m_vShader[STANDARD_SHADER]->AddGameObject(pFuseObject);
+
+		auto player = dynamic_pointer_cast<CBlueSuitPlayer>(m_apPlayer[i]);
+		if (player) {
+			player->SetFlashLight(flashLight);
+			player->SetRader(pRaderObject);
+			player->SetTeleportItem(pTeleportObject);
+			player->SetMineItem(pMineObject);
+			player->SetFuseItem(pFuseObject);
 		}
 	}
 	
+	auto surviveMainPlayer = dynamic_pointer_cast<CBlueSuitPlayer>(m_apPlayer[mainPlayerId]);
+	auto zombieMainPlayer = dynamic_pointer_cast<CZombiePlayer>(m_apPlayer[mainPlayerId]);
 	//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 	///////////////////////////// 아이템
 	//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -355,65 +387,43 @@ void CScene::BuildObjects(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* p
 	for (int i = 0; i < 10; ++i)
 	{
 		shared_ptr<CFuseObject> pFuseObject = make_shared<CFuseObject>(pd3dDevice, pd3dCommandList, m_pd3dGraphicsRootSignature.Get());
-		shared_ptr<CLoadedModelInfo> pFuseModel = CGameObject::LoadGeometryAndAnimationFromFile(pd3dDevice, pd3dCommandList, m_pd3dGraphicsRootSignature.Get(), (char*)"Asset/Model/fuse_hi-obj.bin", MeshType::Standard);
-		pFuseObject->LoadModelAndAnimation(pd3dDevice, pd3dCommandList, m_pd3dGraphicsRootSignature.Get(), pFuseModel);
-
+		static shared_ptr<CLoadedModelInfo> pFuseModel = CGameObject::LoadGeometryAndAnimationFromFile(pd3dDevice, pd3dCommandList, m_pd3dGraphicsRootSignature.Get(), (char*)"Asset/Model/fuse_hi-obj.bin", MeshType::Standard);
+		pFuseObject->ObjectCopy(pd3dDevice, pd3dCommandList, pFuseObject, pFuseModel->m_pModelRootObject);
+		
 		g_collisionManager.AddCollisionObject(pFuseObject);
 		m_vShader[STANDARD_SHADER]->AddGameObject(pFuseObject);
 	}
 	for (int i = 0; i < 10; ++i)
 	{
 		shared_ptr<CTeleportObject> pTeleportObject = make_shared<CTeleportObject>(pd3dDevice, pd3dCommandList, m_pd3dGraphicsRootSignature.Get());
-		shared_ptr<CLoadedModelInfo> pTeleportModel = CGameObject::LoadGeometryAndAnimationFromFile(pd3dDevice, pd3dCommandList, m_pd3dGraphicsRootSignature.Get(), (char*)"Asset/Model/TeleportItem.bin", MeshType::Standard);
-		pTeleportObject->LoadModelAndAnimation(pd3dDevice, pd3dCommandList, m_pd3dGraphicsRootSignature.Get(), pTeleportModel);
-
+		static shared_ptr<CLoadedModelInfo> pTeleportModel = CGameObject::LoadGeometryAndAnimationFromFile(pd3dDevice, pd3dCommandList, m_pd3dGraphicsRootSignature.Get(), (char*)"Asset/Model/TeleportItem.bin", MeshType::Standard);
+		pTeleportObject->ObjectCopy(pd3dDevice, pd3dCommandList, pTeleportObject, pTeleportModel->m_pModelRootObject);
+		
 		g_collisionManager.AddCollisionObject(pTeleportObject);
 		m_vShader[STANDARD_SHADER]->AddGameObject(pTeleportObject);
-
 	}
 
-	shared_ptr<CLoadedModelInfo> pModel = CGameObject::LoadGeometryAndAnimationFromFile(pd3dDevice, pd3dCommandList, m_pd3dGraphicsRootSignature.Get(), "Asset/Model/electricBlend.bin", MeshType::Blend);
-	for (int i = 0; i < 2;++i) { //CJI [0422] : 지뢰아이템 이펙트는 동적할당을 줄이기위해서 미리 만들어둔 블렌드 객체를 이용해 렌더링한다.
-		m_vTextureBlendObjects.push_back(make_shared<TextureBlendObject>(pd3dDevice, pd3dCommandList, pModel->m_pModelRootObject, m_apPlayer[mainPlayerId]));
+	shared_ptr<CLoadedModelInfo> pElectricBlendModel = CGameObject::LoadGeometryAndAnimationFromFile(pd3dDevice, pd3dCommandList, m_pd3dGraphicsRootSignature.Get(), "Asset/Model/electricBlend.bin", MeshType::Blend);
+	shared_ptr<CLoadedModelInfo> pMineModel = CGameObject::LoadGeometryAndAnimationFromFile(pd3dDevice, pd3dCommandList, m_pd3dGraphicsRootSignature.Get(), (char*)"Asset/Model/Item_Mine.bin", MeshType::Standard);
+	for (int i = 0; i < 10; ++i)
+	{	//CJI [0422] : 지뢰아이템 이펙트는 동적할당을 줄이기위해서 미리 만들어둔 블렌드 객체를 이용해 렌더링한다.
+		shared_ptr<TextureBlendObject> mineExplosionObject = make_shared<TextureBlendObject>(pd3dDevice, pd3dCommandList, pElectricBlendModel->m_pModelRootObject, m_apPlayer[mainPlayerId]);
+		m_vTextureBlendObjects.push_back(mineExplosionObject);
 		m_vForwardRenderShader[TEXTUREBLEND_SHADER]->AddGameObject(m_vTextureBlendObjects[i]);
-		m_vTextureBlendObjects[i]->SetPosition(i + 1.0f, 2.0f, 0.0f);
+
+		shared_ptr<CMineObject> pMineObject = make_shared<CMineObject>(pd3dDevice, pd3dCommandList, m_pd3dGraphicsRootSignature.Get());
+		pMineObject->SetExplosionObject(mineExplosionObject);
+		pMineObject->ObjectCopy(pd3dDevice, pd3dCommandList, pMineObject, pMineModel->m_pModelRootObject);
+
+		g_collisionManager.AddCollisionObject(pMineObject);
+		m_vShader[STANDARD_SHADER]->AddGameObject(pMineObject);
+		for (int j = 0;j < MAX_CLIENT;++j) {
+			auto player = dynamic_pointer_cast<CBlueSuitPlayer>(m_apPlayer[j]);
+			if (player) {
+				player->AddEnvironmentMineItems(pMineObject);
+			}
+		}
 	}
-
-	//감전텍스쳐를 위한 마티리얼(재질)
-	shared_ptr<CTexture> pTexture = make_shared<CTexture>(1, RESOURCE_TEXTURE2D, 0, 1);
-	pTexture->LoadTextureFromDDSFile(pd3dDevice, pd3dCommandList, (wchar_t*)L"Asset/Textures/elecpatern.dds", RESOURCE_TEXTURE2D, 0);
-
-	mt_Electirc = make_shared<CMaterial>(1); // 텍스처가 1개
-	mt_Electirc->SetMaterialType(MATERIAL_ALBEDO_MAP);
-	mt_Electirc->SetTexture(pTexture, 0);
-	CScene::CreateShaderResourceViews(pd3dDevice, pTexture, 0, 13);
-
-	//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-	///////////////////////////// 생존자 플레이어 아이템
-	//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-	/*shared_ptr<CTeleportObject> flashLight = make_shared<CTeleportObject>(pd3dDevice, pd3dCommandList, m_pd3dGraphicsRootSignature.Get());
-	shared_ptr<CLoadedModelInfo> pTeleportModel = CGameObject::LoadGeometryAndAnimationFromFile(pd3dDevice, pd3dCommandList, m_pd3dGraphicsRootSignature.Get(), (char*)"Asset/Model/Flashlight.bin");
-
-	flashLight->LoadModelAndAnimation(pd3dDevice, pd3dCommandList, m_pd3dGraphicsRootSignature.Get(), pTeleportModel);
-	g_collisonManager.AddCollisionObject(flashLight);
-	m_vShader[STANDARD_SHADER]->AddGameObject(flashLight);
-	dynamic_pointer_cast<CBlueSuitPlayer>(m_pPlayer)->SetFlashLight(flashLight);
-
-	shared_ptr<CLoadedModelInfo> pRaiderModel = CGameObject::LoadGeometryAndAnimationFromFile(pd3dDevice, pd3dCommandList, m_pd3dGraphicsRootSignature.Get(), (char*)"Asset/Model/레이더.bin");
-	g_collisonManager.AddCollisionObject(pRaiderModel->m_pModelRootObject);
-	m_vShader[STANDARD_SHADER]->AddGameObject(pRaiderModel->m_pModelRootObject);
-	dynamic_pointer_cast<CBlueSuitPlayer>(m_pPlayer)->SetRaider(pRaiderModel->m_pModelRootObject);
-
-	shared_ptr<CLoadedModelInfo> pTeleportItemModel = CGameObject::LoadGeometryAndAnimationFromFile(pd3dDevice, pd3dCommandList, m_pd3dGraphicsRootSignature.Get(), (char*)"Asset/Model/TeleportItem.bin");
-	g_collisonManager.AddCollisionObject(pTeleportItemModel->m_pModelRootObject);
-	m_vShader[STANDARD_SHADER]->AddGameObject(pTeleportItemModel->m_pModelRootObject);
-	dynamic_pointer_cast<CBlueSuitPlayer>(m_pPlayer)->SetTeleportItem(pTeleportItemModel->m_pModelRootObject);
-
-	shared_ptr<CLoadedModelInfo> pMineItemModel = CGameObject::LoadGeometryAndAnimationFromFile(pd3dDevice, pd3dCommandList, m_pd3dGraphicsRootSignature.Get(), (char*)"Asset/Model/Item_Mine.bin");
-	g_collisonManager.AddCollisionObject(pMineItemModel->m_pModelRootObject);
-	m_vShader[STANDARD_SHADER]->AddGameObject(pMineItemModel->m_pModelRootObject);
-	pMineItemModel->m_pModelRootObject->SetPosition(XMFLOAT3(1.0f, 2.0f, 0.0f));*/
-
 
 	CreateShaderVariables(pd3dDevice, pd3dCommandList);
 }
@@ -821,8 +831,6 @@ void CScene::PrepareRender(ID3D12GraphicsCommandList* pd3dCommandList, const sha
 
 	pCamera->SetViewportsAndScissorRects(pd3dCommandList);
 	pCamera->UpdateShaderVariables(pd3dCommandList);
-
-	mt_Electirc->UpdateShaderVariable(pd3dCommandList, nullptr);
 
 	UpdateShaderVariables(pd3dCommandList);
 }

@@ -150,18 +150,13 @@ public:
 ////// /// /// /// /// /// /// /// /// /// /// /// /// /// /// /// /// /// /// /// /// /// /// /// /// /// /// /// ///  
 /// <CGameObject - CItemObject - CMineObject>
 
-class CServerMineObject : public CServerItemObject
+class CServerMineObject : public CServerTeleportObject
 {
 public:
-	virtual ~CServerMineObject() {};
+	CServerMineObject();
+	virtual ~CServerMineObject();
 
-	virtual void Update(float fElapsedTime) override {};
-	virtual void UpdatePicking() override {};
-	virtual void UpdateUsing(const shared_ptr<CServerGameObject>& pGameObject, shared_ptr<CServerCollisionManager>& pCollisionManager) override {};
-
-	virtual void SetRandomPosition(shared_ptr<CServerCollisionManager>& pCollisionManager) override {};
-
-	virtual void SetWorldMatrix(const XMFLOAT4X4& xmf4x4World) override {};
+	virtual void UpdateUsing(const shared_ptr<CServerGameObject>& pGameObject, shared_ptr<CServerCollisionManager>& pCollisionManager) override;
 };
 
 /// <CGameObject - CMineObject>

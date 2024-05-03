@@ -1,6 +1,7 @@
 #pragma once
 #include "Object.h"
 #include "EnvironmentObject.h"
+#include "GlobalDefine.h"
 
 class CScene;
 class CCamera;
@@ -54,6 +55,7 @@ public:
 
 	float GetYaw() const { return(m_fYaw); }
 	float GetPitch() const { return(m_fPitch); }
+	void SetPitch(float pitch) { m_fPitch = pitch; }
 	float GetRoll() const { return(m_fRoll); }
 
 	const XMFLOAT3& GetVelocity() const { return(m_xmf3Velocity); }
@@ -89,6 +91,11 @@ public:
 	int GetClientId()const { return m_nClientId; }
 	void SetLook(const XMFLOAT3& xmf3Look) { m_xmf3Look = xmf3Look; }
 	void SetRight(const XMFLOAT3& xmf3Right) { m_xmf3Right = xmf3Right; }
+
+	virtual void RightClickProcess() {}
+	bool IsRightClick() { return m_bRightClick; }
+	void SetRightClick(bool val) { m_bRightClick = val; }
+
 protected:
 	int m_nClientId = -1;
 
@@ -122,18 +129,12 @@ protected:
 	// 카메라 실체는 플레이어가 다룬다
 	shared_ptr<CCamera> m_pCamera;
 	weak_ptr<CGameObject> m_pPickedObject;
+
+	bool m_bRightClick = false;
 };
 
 class CBlueSuitPlayer : public CPlayer
 {
-private:
-	enum RightItem {
-		NONE = 0,
-		RAIDER,
-		TELEPORT,
-		LANDMINE,
-		FUSE,
-	};
 public:
 	CBlueSuitPlayer(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dCommandList, ID3D12RootSignature* pd3dGraphicsRootSignature, void* pContext = NULL);
 	virtual ~CBlueSuitPlayer();
@@ -145,6 +146,7 @@ public:
 	//virtual void Move(DWORD dwDirection, float fDistance, bool bVelocity = false);
 	virtual void Update(float fElapsedTime) override;
 	virtual void Animate(float fElapsedTime);
+	virtual void Render(ID3D12GraphicsCommandList* pd3dCommandList);
 
 	virtual void UpdatePicking() override;;
 	virtual void RightClickProcess();
@@ -182,8 +184,12 @@ public:
 
 	int GetReferenceSlotItemNum(int nIndex) { return m_apSlotItems[nIndex]->GetReferenceNumber(); }
 	int GetReferenceFuseItemNum(int nIndex) { return m_apFuseItems[nIndex]->GetReferenceNumber(); }
+
+	void SelectItem(RightItem item) { m_selectItem = item; }
+	void AddEnvironmentMineItems(shared_ptr<CMineObject> object);
+	void UseMine(int item_id);
 private:
-	RightItem m_selectItem = TELEPORT;
+	RightItem m_selectItem = NONE;
 
 	std::array<shared_ptr<CItemObject>, 3> m_apSlotItems;
 
@@ -199,29 +205,46 @@ private:
 
 private: 
 	shared_ptr<CGameObject> m_pFlashlight; // 플래시라이트
-	shared_ptr<CRadarObject> m_pRaider; // 레이더
+	shared_ptr<CRadarObject> m_pRader; // 레이더
 	shared_ptr<CTeleportObject> m_pTeleport; // 텔레포트아이템
 	shared_ptr<CMineObject> m_pMine; // 텔레포트아이템
+	shared_ptr<CFuseObject> m_pFuse;// 퓨즈 아이템
 
+	vector<shared_ptr<CMineObject>> m_vpEnvironmentMineItems; // 마인 아이템을 담은 컨테이너
 public:
 	XMFLOAT4X4* GetLeftHandItemFlashLightModelTransform() const;
-	XMFLOAT4X4 GetRightHandItemRaiderModelTransform() const;
+	XMFLOAT4X4 GetRightHandItemRaderModelTransform() const;
 	XMFLOAT4X4* GetRightHandItemTeleportItemModelTransform() const;
 
 	XMFLOAT4X4* GetFlashLigthWorldTransform();
 	void SetFlashLight(shared_ptr<CGameObject> object) { m_pFlashlight = object; }
-	void SetRaider(shared_ptr<CGameObject> object) { m_pRaider->SetChild(object); }
-	void SetTeleportItem(shared_ptr<CGameObject> object) { m_pTeleport->SetChild(object); }
-	void SetMineItem(shared_ptr<CGameObject> object) { m_pMine->SetChild(object); }
+	void SetRader(shared_ptr<CRadarObject> object) { m_pRader = object; }
+	void SetTeleportItem(shared_ptr<CTeleportObject> object) { m_pTeleport = object; }
+	void SetMineItem(shared_ptr<CMineObject> object) { m_pMine = object; }
+	void SetFuseItem(shared_ptr<CFuseObject> object) { m_pFuse = object; }
 
-	XMFLOAT4X4* RaiderUpdate(float fElapsedTime);
-	bool PlayRaiderUI() { return m_fOpenRaiderTime == 0.0f && m_bRightClick; }
+	XMFLOAT4X4* RaderUpdate(float fElapsedTime);
+	bool PlayRaiderUI() { return m_fOpenRaderTime == 0.0f && m_bRightClick; }
 	float GetEscapeLength();
 private:
-	// 레이더 아이템
-	XMFLOAT4X4 m_xmf4x4Raider;
-	float m_fOpenRaiderTime;
+	// 레이더 아이템 행렬
+	XMFLOAT4X4 m_xmf4x4Rader;
+	float m_fOpenRaderTime;
 	bool m_bRightClick = false;
+	
+	//피격 텍스쳐링을 위한 재질
+	shared_ptr<CMaterial> m_pHitEffectMaterial;
+	FrameTimeInfo* m_pcbMappedTime;
+	D3D12_GPU_DESCRIPTOR_HANDLE		m_d3dTimeCbvGPUDescriptorHandle;
+	ComPtr<ID3D12Resource>			m_pd3dcbTime;
+
+	FrameTimeInfo* m_pcbMappedTimeEnd;
+	D3D12_GPU_DESCRIPTOR_HANDLE		m_d3dTimeCbvGPUDescriptorHandleEnd;
+	ComPtr<ID3D12Resource>			m_pd3dcbTimeEnd;
+	bool m_bHitEffectBlend = false;
+
+public:
+	void SetHitEvent();
 };
 
 struct FrameTimeInfo;
@@ -246,6 +269,9 @@ public:
 	virtual void Render(ID3D12GraphicsCommandList* pd3dCommandList);
 
 private:
-	bool electricBlend = true;
-
+	bool m_bElectricBlend = false;
+	shared_ptr<CMaterial> m_pElectircaterial;
+public:
+	void SetEectricShock();
+	void SetElectiricMt(shared_ptr<CMaterial> mt) { m_pElectircaterial = mt; }
 };

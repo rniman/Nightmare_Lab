@@ -389,39 +389,32 @@ void CServerBlueSuitPlayer::UseItem(shared_ptr<CServerCollisionManager>& pCollis
 	array<shared_ptr<CServerGameObject>,3> apObjects;
 	if (m_pKeysBuffer['1'] & 0xF0)
 	{
-		if (m_apSlotItems[Teleport]->IsObtained())
-		{
-			apObjects[Teleport] = pCollisionManager->GetCollisionObjectWithNumber(m_apSlotItems[Teleport]->GetReferenceNumber());
+		if (m_apSlotItems[Teleport]->IsObtained()) {
+			m_selectItem = RightItem::TELEPORT;
 		}
 	}
 	if (m_pKeysBuffer['2'] & 0xF0)
 	{
 		if (m_apSlotItems[Radar]->IsObtained())
 		{
-			apObjects[Radar] = pCollisionManager->GetCollisionObjectWithNumber(m_apSlotItems[Radar]->GetReferenceNumber());
+			m_selectItem = RightItem::RAIDER;
 		}
 	}
 	if (m_pKeysBuffer['3'] & 0xF0)
 	{
 		if (m_apSlotItems[Mine]->IsObtained())
 		{
-			apObjects[Mine] = pCollisionManager->GetCollisionObjectWithNumber(m_apSlotItems[Mine]->GetReferenceNumber());
+			m_selectItem = RightItem::LANDMINE;
 		}
 	}
 	if (m_pKeysBuffer['4'] & 0xF0)
 	{
-		UseFuse(pCollisionManager);
-	}
-
-	for (int i = 0; i < 3; ++i)
-	{
-		if (apObjects[i])
+		if (m_apSlotItems[0]->IsObtained() || m_apSlotItems[1]->IsObtained()|| m_apSlotItems[2]->IsObtained())
 		{
-			apObjects[i]->UpdateUsing(shared_from_this(), pCollisionManager);
-			m_apSlotItems[i]->SetObtain(false);
-			m_apSlotItems[i]->SetReferenceNumber(-1);
+			m_selectItem = RightItem::FUSE;
 		}
 	}
+
 }
 
 void CServerBlueSuitPlayer::Update(float fElapsedTime)
@@ -500,17 +493,17 @@ int CServerBlueSuitPlayer::AddItem(const shared_ptr<CServerGameObject>& pGameObj
 	}
 
 	int nSlot = -1;
-	if (dynamic_pointer_cast<CServerTeleportObject>(pGameObject))
+	if (dynamic_pointer_cast<CServerMineObject>(pGameObject))
 	{
-		nSlot = Teleport;
+		nSlot = Mine;
 	}
 	else if (dynamic_pointer_cast<CServerRadarObject>(pGameObject))
 	{
 		nSlot = Radar;
 	}
-	else if (dynamic_pointer_cast<CServerMineObject>(pGameObject))
+	else if (dynamic_pointer_cast<CServerTeleportObject>(pGameObject))
 	{
-		nSlot = Mine;
+		nSlot = Teleport;
 	}
 	else if (dynamic_pointer_cast<CServerFuseObject>(pGameObject))
 	{
@@ -608,6 +601,59 @@ int CServerBlueSuitPlayer::GetReferenceSlotItemNum(int nIndex)
 int CServerBlueSuitPlayer::GetReferenceFuseItemNum(int nIndex) 
 { 
 	return m_apFuseItems[nIndex]->GetReferenceNumber();
+}
+
+void CServerBlueSuitPlayer::RightClickProcess(shared_ptr<CServerCollisionManager>& pCollisionManager)
+{
+	if (!m_bRightClick) {
+		return;
+	}
+
+	array<shared_ptr<CServerGameObject>, 3> apObjects;
+
+	switch (m_selectItem)
+	{
+	case RightItem::NONE:
+		break;
+	case RightItem::RAIDER:
+		if (m_apSlotItems[Radar]->IsObtained())
+		{
+			apObjects[Radar] = pCollisionManager->GetCollisionObjectWithNumber(m_apSlotItems[Radar]->GetReferenceNumber());
+			m_selectItem = RightItem::NONE;
+		}
+		break;
+	case RightItem::TELEPORT:
+		if (m_apSlotItems[Teleport]->IsObtained())
+		{
+			apObjects[Teleport] = pCollisionManager->GetCollisionObjectWithNumber(m_apSlotItems[Teleport]->GetReferenceNumber());
+			m_selectItem = RightItem::NONE;
+		}
+		break;
+	case RightItem::LANDMINE:
+		if (m_apSlotItems[Mine]->IsObtained())
+		{
+			apObjects[Mine] = pCollisionManager->GetCollisionObjectWithNumber(m_apSlotItems[Mine]->GetReferenceNumber());
+			m_selectItem = RightItem::NONE;
+		}
+		break;
+	case RightItem::FUSE:
+		UseFuse(pCollisionManager);
+		break;
+	default:
+		break;
+	}
+
+	for (int i = 0; i < 3; ++i)
+	{
+		if (apObjects[i])
+		{
+			apObjects[i]->UpdateUsing(shared_from_this(), pCollisionManager);
+			m_apSlotItems[i]->SetObtain(false);
+			m_apSlotItems[i]->SetReferenceNumber(-1);
+		}
+	}
+
+	SetRightClick(false);
 }
 
 ////

@@ -21,6 +21,15 @@ enum RECV_HEAD
 	HEAD_NUM_OF_CLIENT
 };
 
+struct CS_ANIMATION_INFO {
+	float pitch = 0.0f;
+};
+
+struct CS_PLAYER_INFO {
+	RightItem m_selectItem;
+	bool m_bRightClick = false;
+};
+
 struct CS_CLIENTS_INFO
 {
 	int m_nClientId = -1;
@@ -36,6 +45,9 @@ struct CS_CLIENTS_INFO
 	int m_nNumOfObject = -1;
 	std::array<int, MAX_RECV_OBJECT_INFO> m_anObjectNum;
 	std::array<XMFLOAT4X4, MAX_RECV_OBJECT_INFO> m_axmf4x4World;
+
+	CS_ANIMATION_INFO m_animationInfo;
+	CS_PLAYER_INFO m_playerInfo;
 };
 
 class CTcpClient

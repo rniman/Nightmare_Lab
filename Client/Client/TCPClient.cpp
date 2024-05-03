@@ -148,8 +148,8 @@ void CTcpClient::OnProcessingReadMessage(HWND hWnd, UINT nMessageID, WPARAM wPar
 				m_apPlayers[i]->SetClientId(m_aClientInfo[i].m_nClientId);
 				m_apPlayers[i]->SetPosition(m_aClientInfo[i].m_xmf3Position);
 				m_apPlayers[i]->SetVelocity(m_aClientInfo[i].m_xmf3Velocity);
-				
-				if(i != m_nMainClientId)
+				m_apPlayers[i]->SetPitch(m_aClientInfo[i].m_animationInfo.pitch);
+				if(i != m_nMainClientID)
 				{
 					m_apPlayers[i]->SetLook(m_aClientInfo[i].m_xmf3Look);
 					m_apPlayers[i]->SetRight(m_aClientInfo[i].m_xmf3Right);
@@ -175,12 +175,14 @@ void CTcpClient::OnProcessingReadMessage(HWND hWnd, UINT nMessageID, WPARAM wPar
 				{
 					continue;
 				}
+#ifdef LOADSCENE
 				shared_ptr<CGameObject> pGameObject = g_collisionManager.GetCollisionObjectWithNumber(nObjectNum).lock();
 				if (pGameObject)
 				{
 					pGameObject->m_xmf4x4World = m_aClientInfo[i].m_axmf4x4World[j];
 					pGameObject->m_xmf4x4ToParent = m_aClientInfo[i].m_axmf4x4World[j];
 				}
+#endif LOADSCENE
 			}
 		}
 	}
@@ -235,6 +237,11 @@ void CTcpClient::OnProcessingWriteMessage(HWND hWnd, UINT nMessageID, WPARAM wPa
 		return;
 	}
 
+	//데이터 갱신 후 전송
+	m_aClientInfo[m_nMainClientID].m_animationInfo.pitch = m_apPlayers[m_nMainClientID]->GetPitch();
+	m_aClientInfo[m_nMainClientID].m_playerInfo.m_bRightClick = m_apPlayers[m_nMainClientID]->IsRightClick();
+	m_apPlayers[m_nMainClientID]->SetRightClick(false);
+
 	switch (m_socketState)
 	{
 	case SOCKET_STATE::SEND_KEY_BUFFER:
@@ -253,6 +260,8 @@ void CTcpClient::OnProcessingWriteMessage(HWND hWnd, UINT nMessageID, WPARAM wPa
 		nBufferSize += sizeof(std::chrono::time_point<std::chrono::steady_clock>);
 		nBufferSize += sizeof(XMFLOAT4X4);
 		nBufferSize += sizeof(XMFLOAT3) * 2;		
+		nBufferSize += sizeof(CS_ANIMATION_INFO);
+		nBufferSize += sizeof(CS_PLAYER_INFO);
 
 		SendNum++;
 		// 키버퍼, 카메라Matrix, LOOK,RIGHT 같이 보내주기
@@ -260,9 +269,12 @@ void CTcpClient::OnProcessingWriteMessage(HWND hWnd, UINT nMessageID, WPARAM wPa
 							nHead,
 							now,
 							keysBuffer,
-							m_apPlayers[m_nMainClientId]->GetCamera()->GetViewMatrix(),
-							m_apPlayers[m_nMainClientId]->GetLook(), 
-							m_apPlayers[m_nMainClientId]->GetRight());
+							m_apPlayers[m_nMainClientID]->GetCamera()->GetViewMatrix(),
+							m_apPlayers[m_nMainClientID]->GetLook(), 
+							m_apPlayers[m_nMainClientID]->GetRight(),
+							m_aClientInfo[m_nMainClientID].m_animationInfo,
+							m_aClientInfo[m_nMainClientID].m_playerInfo
+		);
 
 		if (nRetval == -1 && WSAGetLastError() == WSAEWOULDBLOCK)
 		{
@@ -371,6 +383,7 @@ void CTcpClient::UpdateZombiePlayer()
 
 void CTcpClient::UpdatePlayerItem(int nIndex)
 {
+	pBlueSuitPlayer->SelectItem(m_aClientInfo[i].m_playerInfo.m_selectItem);
 	shared_ptr<CBlueSuitPlayer> pBlueSuitPlayer = dynamic_pointer_cast<CBlueSuitPlayer>(m_apPlayers[nIndex]);
 	if (pBlueSuitPlayer)
 	{

@@ -1,5 +1,6 @@
 #pragma once
 #include "Object.h"
+#include "TextureBlendObject.h"
 
 class CItemObject : public CGameObject
 {
@@ -118,6 +119,7 @@ public:
 class CMineObject : public CItemObject
 {
 public:
+	
 	CMineObject(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dCommandList, ID3D12RootSignature* pd3dGraphicsRootSignature);
 	virtual ~CMineObject();
 
@@ -126,8 +128,17 @@ public:
 	virtual void Animate(float fElapsedTime) override;
 	virtual void UpdatePicking() override;
 	virtual void UpdateUsing(const shared_ptr<CGameObject>& pGameObject) override;
-private:
 
+	void SetInstall(bool val) { m_bInstall = val; }
+	bool IsInstall() { return m_bInstall; }
+private:
+	bool m_bInstall = false;
+	bool m_bCollide = false;
+
+	shared_ptr<TextureBlendObject> m_pExplosionObject;
+public:
+	void SetExplosionObject(shared_ptr<TextureBlendObject> object) { m_pExplosionObject = object; }
+	void CollideZombie();
 };
 
 /// <CGameObject - CMineObject>

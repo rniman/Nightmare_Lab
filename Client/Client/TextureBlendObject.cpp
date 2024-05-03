@@ -23,6 +23,8 @@ TextureBlendObject::TextureBlendObject(ID3D12Device* pd3dDevice, ID3D12GraphicsC
 	m_pcbMappedTime->localTime = 0.0f;
 	m_pcbMappedTime->usePattern = -1.0f;
 	m_d3dTimeCbvGPUDescriptorHandle = CScene::CreateConstantBufferViews(pd3dDevice, 1, m_pd3dcbTime.Get(), ncbElementBytes);
+
+	m_fLocalTime = 10.0f; // 실행되려면 1.0f 이하여야함 
 }
 
 TextureBlendObject::~TextureBlendObject()
@@ -32,7 +34,7 @@ TextureBlendObject::~TextureBlendObject()
 void TextureBlendObject::Animate(float fElapsedTime)
 {
 	if (m_fLocalTime > 1.0f) {
-		//return;
+		return;
 	}
 	m_fLocalTime += fElapsedTime;
 
@@ -44,7 +46,7 @@ void TextureBlendObject::Animate(float fElapsedTime)
 void TextureBlendObject::Render(ID3D12GraphicsCommandList* pd3dCommandList)
 {
 	if (m_fLocalTime > 1.0f) {
-		//return;
+		return;
 	}
 
 	m_pcbMappedTime->localTime = m_fLocalTime;

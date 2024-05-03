@@ -421,8 +421,11 @@ CBlueSuitPlayer::CBlueSuitPlayer(ID3D12Device* pd3dDevice, ID3D12GraphicsCommand
 
 	m_xmf3Scale = XMFLOAT3(1.0f,1.0f,1.0f);
 
-	m_xmf4x4Raider = Matrix4x4::Identity();
-	m_pRaider = make_unique<CRadarObject>(pd3dDevice, pd3dCommandList, pd3dGraphicsRootSignature);
+	m_xmf4x4Rader = Matrix4x4::Identity();
+	/*m_pRader = make_shared<CRadarObject>(pd3dDevice, pd3dCommandList, pd3dGraphicsRootSignature);
+	m_pTeleport = make_shared<CTeleportObject>(pd3dDevice, pd3dCommandList, pd3dGraphicsRootSignature);
+	m_pMine = make_shared<CMineObject>(pd3dDevice, pd3dCommandList, pd3dGraphicsRootSignature);
+	m_pFuse = make_shared<CFuseObject>(pd3dDevice, pd3dCommandList, pd3dGraphicsRootSignature);*/
 
 	m_apSlotItems[0] = make_shared<CTeleportObject>(pd3dDevice, pd3dCommandList, pd3dGraphicsRootSignature);
 	m_apSlotItems[0]->SetCollision(false);
@@ -436,6 +439,22 @@ CBlueSuitPlayer::CBlueSuitPlayer(ID3D12Device* pd3dDevice, ID3D12GraphicsCommand
 		m_apFuseItems[i] = make_shared<CFuseObject>(pd3dDevice, pd3dCommandList, pd3dGraphicsRootSignature);
 		m_apFuseItems[i]->SetCollision(false);
 	}
+
+	shared_ptr<CTexture> pTexture = make_shared<CTexture>(1, RESOURCE_TEXTURE2D, 0, 1);
+	pTexture->LoadTextureFromDDSFile(pd3dDevice, pd3dCommandList, (wchar_t*)L"Asset/Textures/redColor.dds", RESOURCE_TEXTURE2D, 0);
+	m_pHitEffectMaterial = make_shared<CMaterial>(1); // 텍스처가 1개
+	m_pHitEffectMaterial->SetTexture(pTexture, 0);
+	CScene::CreateShaderResourceViews(pd3dDevice, pTexture, 0, 13);
+
+	UINT ncbElementBytes = ((sizeof(FrameTimeInfo) + 255) & ~255); //256의 배수
+	m_pd3dcbTime = ::CreateBufferResource(pd3dDevice, pd3dCommandList, NULL, ncbElementBytes, D3D12_HEAP_TYPE_UPLOAD, D3D12_RESOURCE_STATE_VERTEX_AND_CONSTANT_BUFFER, NULL);
+	m_pd3dcbTime->Map(0, NULL, (void**)&m_pcbMappedTime);
+	m_d3dTimeCbvGPUDescriptorHandle = CScene::CreateConstantBufferViews(pd3dDevice, 1, m_pd3dcbTime.Get(), ncbElementBytes);
+	m_pcbMappedTime->usePattern = -1.0f;
+
+	m_pd3dcbTimeEnd = ::CreateBufferResource(pd3dDevice, pd3dCommandList, NULL, ncbElementBytes, D3D12_HEAP_TYPE_UPLOAD, D3D12_RESOURCE_STATE_VERTEX_AND_CONSTANT_BUFFER, NULL);
+	m_pd3dcbTimeEnd->Map(0, NULL, (void**)&m_pcbMappedTimeEnd);
+	m_d3dTimeCbvGPUDescriptorHandleEnd = CScene::CreateConstantBufferViews(pd3dDevice, 1, m_pd3dcbTimeEnd.Get(), ncbElementBytes);
 
 	SetPlayerUpdatedContext(pContext);
 	SetCameraUpdatedContext(pContext);
@@ -486,8 +505,6 @@ shared_ptr<CCamera> CBlueSuitPlayer::ChangeCamera(DWORD nNewCameraMode, float fE
 void CBlueSuitPlayer::Rotate(float x, float y, float z)
 {
 	CPlayer::Rotate(x, y, z);
-
-	dynamic_pointer_cast<CBlueSuitAnimationController>(m_pSkinnedAnimationController)->SetElbowPitch(m_fPitch);
 }
 
 //void CBlueSuitPlayer::Move(DWORD dwDirection, float fDistance, bool bUpdateVelocity)
@@ -626,6 +643,16 @@ void CBlueSuitPlayer::Animate(float fElapsedTime)
 	{
 		return;
 	}
+	auto controller = dynamic_pointer_cast<CBlueSuitAnimationController>(m_pSkinnedAnimationController);
+	if (controller) {
+		controller->SetElbowPitch(m_fPitch);
+		if (m_selectItem != RightItem::NONE) {
+			controller->SetSelectItem(true);
+		}
+		else {
+			controller->SetSelectItem(false);
+		}
+	}
 
 	CPlayer::Animate(fElapsedTime);
 
@@ -633,7 +660,67 @@ void CBlueSuitPlayer::Animate(float fElapsedTime)
 	m_pFlashlight->UpdateTransform(GetLeftHandItemFlashLightModelTransform());
 	//플레이어의 왼손: 레이더 // 내 눈에서만 레이더가 확대되는것처럼 보임. 즉, 자신의 오른손에 레이더는 사라지고 확대창으로.
 	// 다른 플레이어를 렌더링 할때는 손에 있는 형태로 보여야함.
-	m_pRaider->UpdateTransform(RaiderUpdate(fElapsedTime));
+
+	m_pRader->SetObtain(true);
+	m_pTeleport->SetObtain(true);
+	m_pMine->SetObtain(true);
+	m_pFuse->SetObtain(true);
+
+	switch (m_selectItem)
+	{
+	case RightItem::NONE:
+		break;
+	case RightItem::RAIDER:
+		m_pRader->SetObtain(false);
+		m_pRader->UpdateTransform(RaderUpdate(fElapsedTime));
+		break;
+	case RightItem::TELEPORT:
+		m_pTeleport->SetObtain(false);
+		m_pTeleport->UpdateTransform(GetRightHandItemTeleportItemModelTransform());
+		break;
+	case RightItem::LANDMINE:
+		m_pMine->SetObtain(false);
+		m_pMine->UpdateTransform(GetRightHandItemTeleportItemModelTransform());
+		break;
+	case RightItem::FUSE:
+		m_pFuse->SetObtain(false);
+		m_pFuse->UpdateTransform(GetRightHandItemTeleportItemModelTransform());
+		break;
+	default:
+		break;
+	}
+
+	m_pcbMappedTime->localTime += fElapsedTime;
+	if (int(m_pcbMappedTime->localTime * 10.0f) % 3 == 0) {
+		m_pcbMappedTime->usePattern = -1.0f;
+	}
+	else {
+		m_pcbMappedTime->usePattern = 1.0f;
+	}
+	if (m_pcbMappedTime->localTime >= 1.5f) {
+		m_pcbMappedTime->usePattern = -1.0f;
+		m_bHitEffectBlend = false;
+	}
+}
+
+void CBlueSuitPlayer::Render(ID3D12GraphicsCommandList* pd3dCommandList)
+{
+	if (m_bHitEffectBlend) {
+		m_pHitEffectMaterial->UpdateShaderVariable(pd3dCommandList, nullptr);
+
+		pd3dCommandList->SetGraphicsRootDescriptorTable(12, m_d3dTimeCbvGPUDescriptorHandle);
+
+		CPlayer::Render(pd3dCommandList);
+
+		pd3dCommandList->SetGraphicsRootDescriptorTable(12, m_d3dTimeCbvGPUDescriptorHandleEnd);
+
+		/*if (int(m_pcbMappedTime->localTime*10.f) % 2 == 0) {
+			m_pcbMappedTime->usePattern *= -1.0f;
+		}*/
+		return;
+	}
+
+	CPlayer::Render(pd3dCommandList);
 }
 
 void CBlueSuitPlayer::UpdatePicking() 
@@ -654,7 +741,7 @@ void CBlueSuitPlayer::RightClickProcess()
 		break;
 	case RightItem::RAIDER:
 		m_bRightClick = !m_bRightClick;
-		m_fOpenRaiderTime = 0.3f;
+		m_fOpenRaderTime = 0.3f;
 		break;
 	case RightItem::TELEPORT:
 		Teleport();
@@ -778,10 +865,17 @@ XMFLOAT4X4* CBlueSuitPlayer::GetLeftHandItemFlashLightModelTransform() const
 	return &controller->m_pAnimationSets->m_vpBoneFrameCaches[i]->m_xmf4x4World;
 }
 
-XMFLOAT4X4 CBlueSuitPlayer::GetRightHandItemRaiderModelTransform() const
+void CBlueSuitPlayer::SetHitEvent()
+{
+	m_pcbMappedTime->localTime = 0.0f;
+	m_pcbMappedTime->usePattern = 1.0f;
+	m_bHitEffectBlend = true;
+}
+
+XMFLOAT4X4 CBlueSuitPlayer::GetRightHandItemRaderModelTransform() const
 {
 	auto controller = m_pSkinnedAnimationController.get();
-	int i = dynamic_pointer_cast<CBlueSuitAnimationController>(m_pSkinnedAnimationController)->GetBoneFrameIndexToRightHandRaiderItem();
+	int i = dynamic_pointer_cast<CBlueSuitAnimationController>(m_pSkinnedAnimationController)->GetBoneFrameIndexToRightHandRaderItem();
 
 	return controller->m_pAnimationSets->m_vpBoneFrameCaches[i]->m_xmf4x4World;
 }
@@ -795,17 +889,17 @@ XMFLOAT4X4* CBlueSuitPlayer::GetRightHandItemTeleportItemModelTransform() const
 }
 
 
-XMFLOAT4X4* CBlueSuitPlayer::RaiderUpdate(float fElapsedTime)
+XMFLOAT4X4* CBlueSuitPlayer::RaderUpdate(float fElapsedTime)
 {
 	//우클릭을 누를시에 아이템 확대(시점을 내려다보면 아이템이 확인되고 우클릭을 누르면 확대되어 확인가능)
 	if (m_bRightClick) {
-		if (m_fOpenRaiderTime > 0.0f) {
-			m_fOpenRaiderTime -= fElapsedTime;
-			if (m_fOpenRaiderTime < 0.0f) {
-				m_fOpenRaiderTime = 0.0f;
+		if (m_fOpenRaderTime > 0.0f) {
+			m_fOpenRaderTime -= fElapsedTime;
+			if (m_fOpenRaderTime < 0.0f) {
+				m_fOpenRaderTime = 0.0f;
 			}
 		}
-		m_xmf4x4Raider = Matrix4x4::Identity();
+		m_xmf4x4Rader = Matrix4x4::Identity();
 		// 플레이어의 카메라 위치 가져오기
 		XMFLOAT3 cPos = GetCamera()->GetPosition();
 		XMVECTOR pos = { cPos.x, cPos.y, cPos.z, 1.0f };
@@ -824,25 +918,25 @@ XMFLOAT4X4* CBlueSuitPlayer::RaiderUpdate(float fElapsedTime)
 		// 카메라가 바라보는 방향으로 이동할 벡터 계산
 		XMVECTOR translation = XMVectorScale(look, 0.5f);
 		right = XMVectorScale(right, 0.25f);
-		up = XMVectorScale(up, m_fOpenRaiderTime + 0.1f);
+		up = XMVectorScale(up, m_fOpenRaderTime + 0.1f);
 		translation += right - up;
 
-		// Right, Up, Look 벡터로 m_xmf4x4Raider 행렬 업데이트
-		m_xmf4x4Raider._11 = cRight.x; m_xmf4x4Raider._12 = cRight.y; m_xmf4x4Raider._13 = cRight.z;
-		m_xmf4x4Raider._21 = cUp.x; m_xmf4x4Raider._22 = cUp.y; m_xmf4x4Raider._23 = cUp.z;
-		m_xmf4x4Raider._31 = cLook.x; m_xmf4x4Raider._32 = cLook.y; m_xmf4x4Raider._33 = cLook.z;
+		// Right, Up, Look 벡터로 m_xmf4x4Rader 행렬 업데이트
+		m_xmf4x4Rader._11 = cRight.x; m_xmf4x4Rader._12 = cRight.y; m_xmf4x4Rader._13 = cRight.z;
+		m_xmf4x4Rader._21 = cUp.x; m_xmf4x4Rader._22 = cUp.y; m_xmf4x4Rader._23 = cUp.z;
+		m_xmf4x4Rader._31 = cLook.x; m_xmf4x4Rader._32 = cLook.y; m_xmf4x4Rader._33 = cLook.z;
 		
-		// m_xmf4x4Raider 행렬을 변환하여 업데이트
-		XMStoreFloat4x4(&m_xmf4x4Raider,
+		// m_xmf4x4Rader 행렬을 변환하여 업데이트
+		XMStoreFloat4x4(&m_xmf4x4Rader,
 			(XMMatrixRotationZ(XMConvertToRadians(175.0f)) * XMMatrixRotationX(XMConvertToRadians(90.0f)))
-			* XMLoadFloat4x4(&m_xmf4x4Raider)
+			* XMLoadFloat4x4(&m_xmf4x4Rader)
 			* XMMatrixTranslationFromVector(translation + pos));
 	}
 	else {
-		m_xmf4x4Raider = GetRightHandItemRaiderModelTransform();
+		m_xmf4x4Rader = GetRightHandItemRaderModelTransform();
 	}
 
-	return &m_xmf4x4Raider;
+	return &m_xmf4x4Rader;
 }
 
 float CBlueSuitPlayer::GetEscapeLength()
@@ -853,6 +947,23 @@ float CBlueSuitPlayer::GetEscapeLength()
 	float length = Vector3::Length(escapePosToPos);
 
 	return length;
+}
+
+void CBlueSuitPlayer::AddEnvironmentMineItems(shared_ptr<CMineObject> object)
+{
+	m_vpEnvironmentMineItems.push_back(object);
+}
+
+void CBlueSuitPlayer::UseMine(int item_id)
+{
+	// 지뢰 아이템을 먹으면 다시 생성되지 않아야 함.
+	// 지뢰를 설치하고 그 지뢰를 밟을 때까지 아이템은 재생성 되지 못함.
+	// 지뢰 아이템을 먹었다면 클라이언트에서 생성한 지뢰 번호를 알아내야함.
+	auto mine = m_vpEnvironmentMineItems[item_id];
+
+	mine->SetObtain(false); // 렌더링 O
+	mine->SetPosition(GetPosition());// 현재 플레이어 위치에 설치
+	mine->SetInstall(true);
 }
 
 
@@ -881,6 +992,14 @@ CZombiePlayer::CZombiePlayer(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList
 	m_pd3dcbTimeEnd = ::CreateBufferResource(pd3dDevice, pd3dCommandList, NULL, ncbElementBytes, D3D12_HEAP_TYPE_UPLOAD, D3D12_RESOURCE_STATE_VERTEX_AND_CONSTANT_BUFFER, NULL);
 	m_pd3dcbTimeEnd->Map(0, NULL, (void**)&m_pcbMappedTimeEnd);
 	m_d3dTimeCbvGPUDescriptorHandleEnd = CScene::CreateConstantBufferViews(pd3dDevice, 1, m_pd3dcbTimeEnd.Get(), ncbElementBytes);
+	
+
+	// 감전 텍스쳐링 추가
+	shared_ptr<CTexture> pTexture = make_shared<CTexture>(1, RESOURCE_TEXTURE2D, 0, 1);
+	pTexture->LoadTextureFromDDSFile(pd3dDevice, pd3dCommandList, (wchar_t*)L"Asset/Textures/elecpatern.dds", RESOURCE_TEXTURE2D, 0);
+	m_pElectircaterial = make_shared<CMaterial>(1); // 텍스처가 1개
+	m_pElectircaterial->SetTexture(pTexture, 0);
+	CScene::CreateShaderResourceViews(pd3dDevice, pTexture, 0, 13);
 
 	SetPlayerUpdatedContext(pContext);
 	SetCameraUpdatedContext(pContext);
@@ -944,10 +1063,17 @@ void CZombiePlayer::Update(float fElapsedTime)
 	}
 }
 
+void CZombiePlayer::SetEectricShock()
+{ // 지뢰와 충돌시에 수행할 함수
+	m_bElectricBlend = true;
+	m_pcbMappedTime->usePattern = 1.0f;
+}
+
 void CZombiePlayer::Render(ID3D12GraphicsCommandList* pd3dCommandList)
 {
-	if (electricBlend) {
-		m_pcbMappedTime->usePattern = 1.0f;
+	if (m_bElectricBlend) {
+		m_pElectircaterial->UpdateShaderVariable(pd3dCommandList, nullptr);
+
 		pd3dCommandList->SetGraphicsRootDescriptorTable(12, m_d3dTimeCbvGPUDescriptorHandle);
 
 		CPlayer::Render(pd3dCommandList);

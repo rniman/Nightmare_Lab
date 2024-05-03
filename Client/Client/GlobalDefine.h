@@ -3,6 +3,7 @@
 #define FRAME_BUFFER_WIDTH 1600
 #define FRAME_BUFFER_HEIGHT 1024
 #define SINGLE_PLAY // define시 싱글로 진행
+#define LOADSCENE
 
 #define ADD_RENDERTARGET_COUNT 4  
 #define ADD_DEPTH_MAP_COUNT 1
@@ -67,6 +68,14 @@ enum class ObjectType { DEFAULT= 0, HEXAHERON};
 #define RANDOM_COLOR			XMFLOAT4(rand() / float(RAND_MAX), rand() / float(RAND_MAX), rand() / float(RAND_MAX), rand() / float(RAND_MAX))
 
 #define EPSILON					1.0e-10f
+
+enum RightItem {
+	NONE = 0,
+	RAIDER,
+	TELEPORT,
+	LANDMINE,
+	FUSE,
+};
 
 inline std::string HrToString(HRESULT hr)
 {

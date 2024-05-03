@@ -397,17 +397,37 @@ void CServerTeleportObject::SetWorldMatrix(const XMFLOAT4X4& xmf4x4World)
 ////// /// /// /// /// /// /// /// /// /// /// /// /// /// /// /// /// /// /// /// /// /// /// /// /// /// /// /// ///  
 /// <CGameObject - CMineObject>
 
-//CServerMineObject::~CServerMineObject()
-//{
-//}
-//
-//void CServerMineObject::UpdatePicking()
-//{
-//}
-//
-//void CServerMineObject::UpdateUsing(const shared_ptr<CServerGameObject>& pGameObject)
-//{
-//}
+CServerMineObject::CServerMineObject()
+{
+	m_xmf3PositionOffset = XMFLOAT3(0.0f, 0.0f, 0.0f);
+
+	BoundingOrientedBox oobb;
+	oobb.Center = XMFLOAT3(0.0f, 0.0f, 0.0f);
+	oobb.Extents = XMFLOAT3(0.3263, 0.09443, 0.3681);
+	XMStoreFloat4(&oobb.Orientation, XMQuaternionIdentity());
+	m_voobbOrigin.push_back(oobb);
+
+	strcpy(m_pstrFrameName, "MineObject");
+}
+
+CServerMineObject::~CServerMineObject()
+{
+}
+
+void CServerMineObject::UpdateUsing(const shared_ptr<CServerGameObject>& pGameObject, shared_ptr<CServerCollisionManager>& pCollisionManager)
+{
+	shared_ptr<CServerBlueSuitPlayer> pBlueSuitPlayer = dynamic_pointer_cast<CServerBlueSuitPlayer>(pGameObject);
+	if (!pBlueSuitPlayer)
+	{
+		return;
+	}
+
+	// 아이템 리셋하는 함수 작성
+	m_bObtained = false;
+	m_bCollision = true;
+	SetRandomPosition(pCollisionManager);
+}
+
 
 /// <CGameObject - CMineObject>
 ////// /// /// /// /// /// /// /// /// /// /// /// /// /// /// /// /// /// /// /// /// /// /// /// /// /// /// /// ///  
@@ -608,4 +628,3 @@ CServerStairTriggerObject::CServerStairTriggerObject(char* pstrFrameName, const 
 	xmf3Point3 = XMFLOAT3(-m_fx, m_fy + m_fOffsetY, m_fz + 3.5f / 2.f);
 	m_xmf4Plane = Plane::CreateFromPoints(xmf3Point1, xmf3Point2, xmf3Point3);
 }
-

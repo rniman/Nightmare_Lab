@@ -12,7 +12,7 @@
 using namespace DirectX;
 //using namespace DirectX::PackedVector;
 
-constexpr float EPSILON = 1.0e-10f;
+#include "../Client/GlobalDefine.h"
 
 extern BYTE ReadStringFromFile(FILE* pInFile, char* pstrToken);
 extern int ReadIntegerFromFile(FILE* pInFile);

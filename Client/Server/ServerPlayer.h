@@ -1,14 +1,14 @@
 #pragma once
 #include "ServerObject.h"
 
-constexpr WORD DIR_FORWARD = 0x01;
-constexpr WORD DIR_BACKWARD = 0x02;
-constexpr WORD DIR_LEFT = 0x04;
-constexpr WORD DIR_RIGHT = 0x08;
+//constexpr WORD DIR_FORWARD = 0x01;
+//constexpr WORD DIR_BACKWARD = 0x02;
+//constexpr WORD DIR_LEFT = 0x04;
+//constexpr WORD DIR_RIGHT = 0x08;
 constexpr WORD PRESS_LBUTTON = 0x10;
 constexpr WORD PRESS_RBUTTON = 0x20;
-constexpr WORD DIR_UP = 0x40;
-constexpr WORD DIR_DOWN = 0x80;
+//constexpr WORD DIR_UP = 0x40;
+//constexpr WORD DIR_DOWN = 0x80;
 constexpr FLOAT ASPECT_RATIO = 1600.0f / 1024.0f;
 
 class CServerPlayer : public CServerGameObject
@@ -70,6 +70,9 @@ public:
 
 	bool IsInvincibility() const { return m_bInvincibility; }
 
+
+	virtual void RightClickProcess(shared_ptr<CServerCollisionManager>& pCollisionManager) {}
+	void SetRightClick(bool val) { m_bRightClick = val; }
 protected:
 	// 첫 데이터를 받기 시작
 	bool m_bRecvData = false;
@@ -107,6 +110,7 @@ protected:
 	bool						m_bInvincibility = false;	// HIT가 가능한 상태인지를 나타냄
 	float						m_fCoolTimeInvincibility = 0.0f;
 
+	bool m_bRightClick = false;
 };
 
 ///
@@ -142,7 +146,13 @@ public:
 
 	int GetReferenceSlotItemNum(int nIndex);
 	int GetReferenceFuseItemNum(int nIndex);
+
+	RightItem GetRightItem() {	return m_selectItem;  }
+	virtual void RightClickProcess(shared_ptr<CServerCollisionManager>& pCollisionManager);
+
 private:
+	RightItem m_selectItem = NONE;
+
 	std::array<shared_ptr<CServerItemObject>, 3> m_apSlotItems;
 
 	int m_nFuseNum = 0;

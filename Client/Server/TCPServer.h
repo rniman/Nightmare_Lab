@@ -8,6 +8,14 @@ class CServerGameObject;
 class CServerPlayer;
 class CServerCollisionManager;
 
+struct SC_ANIMATION_INFO {
+	float pitch = 1.0f;
+};
+
+struct SC_PLAYER_INFO {
+	RightItem m_selectItem;
+	bool m_bRightClick = false;
+};
 
 struct SC_UPDATE_INFO
 {
@@ -24,6 +32,9 @@ struct SC_UPDATE_INFO
 	int m_nNumOfObject = -1;
 	std::array<int, MAX_SEND_OBJECT_INFO> m_anObjectNum = { -1, -1, -1, -1, -1 };
 	std::array<XMFLOAT4X4, MAX_SEND_OBJECT_INFO> m_axmf4x4World;
+
+	SC_ANIMATION_INFO m_animationInfo;
+	SC_PLAYER_INFO m_playerInfo;
 };
 
 enum class SOCKET_STATE

@@ -472,6 +472,7 @@ void CGameFramework::OnProcessingMouseMessage(HWND hWnd, UINT nMessageID, WPARAM
 		break;
 	case WM_RBUTTONDOWN:
 		m_pMainPlayer->SetPickedObject(LOWORD(lParam), HIWORD(lParam), m_pScene.get());
+		m_pMainPlayer->SetRightClick(true);
 		break;
 	case WM_LBUTTONUP:
 	case WM_RBUTTONUP:
@@ -537,6 +538,40 @@ void CGameFramework::OnProcessingKeyboardMessage(HWND hWnd, UINT nMessageID, WPA
 			m_pMainPlayer->SetPosition(Vector3::Add(m_pMainPlayer->GetPosition(), xmf3Shift));
 		}
 			break;
+		//case 'E': //상호작용
+		//	if (!m_pMainPlayer)
+		//	{
+		//		break;
+		//	}
+		//	if (shared_ptr<CGameObject> pPickedObject = m_pMainPlayer->GetPickedObject().lock())
+		//	{
+		//		m_pMainPlayer->UpdatePicking();
+		//	}
+		//	break;
+		/*case '1': {
+			auto player = dynamic_pointer_cast<CBlueSuitPlayer>(m_pMainPlayer);
+			if (player)
+			{
+				player->UseMine(0);
+				player->SetHitEvent();
+			}
+			auto Zplayer = dynamic_pointer_cast<CZombiePlayer>(m_pMainPlayer);
+			if (Zplayer) {
+				Zplayer->SetEectricShock();
+			}
+		}
+			break;*/
+		//case '2':
+		//	//uiY += 10.f;
+		//	break;
+		//case '3':
+		//case '4':
+		//	if (!m_pMainPlayer)
+		//	{
+		//		break;
+		//	}
+		//	m_pMainPlayer->UseItem(wParam - '1');
+		//	break;
 		default:
 			break;
 		}
