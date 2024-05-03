@@ -24,7 +24,7 @@ public:
 
 	virtual void LoadModelAndAnimation(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dCommandList, ID3D12RootSignature* pd3dGraphicsRootSignature, const shared_ptr<CLoadedModelInfo>& pLoadModelInfo) override {};
 
-	virtual void Move(DWORD dwDirection, float fDistance, bool bVelocity = false);
+	//virtual void Move(DWORD dwDirection, float fDistance, bool bVelocity = false);
 	void Move(const XMFLOAT3& xmf3Shift, bool bVelocity = false);
 	void Move(float fxOffset = 0.0f, float fyOffset = 0.0f, float fzOffset = 0.0f) {};
 	virtual void Rotate(float x, float y, float z);
@@ -142,7 +142,7 @@ public:
 	virtual shared_ptr<CCamera> ChangeCamera(DWORD nNewCameraMode, float fElapsedTime);
 
 	virtual void Rotate(float x, float y, float z);
-	virtual void Move(DWORD dwDirection, float fDistance, bool bVelocity = false);
+	//virtual void Move(DWORD dwDirection, float fDistance, bool bVelocity = false);
 	virtual void Update(float fElapsedTime) override;
 	virtual void Animate(float fElapsedTime);
 
@@ -178,6 +178,8 @@ public:
 		m_apFuseItems[nIndex]->SetReferenceNumber(-1);
 	}
 
+	void SetInterruption(bool bInterruption) { m_bInterruption = bInterruption; }
+
 	int GetReferenceSlotItemNum(int nIndex) { return m_apSlotItems[nIndex]->GetReferenceNumber(); }
 	int GetReferenceFuseItemNum(int nIndex) { return m_apFuseItems[nIndex]->GetReferenceNumber(); }
 private:
@@ -191,6 +193,9 @@ private:
 	bool m_bShiftRun = false;
 	bool m_bAbleRun = true;
 	float m_fStamina = 5.0f;
+
+	bool m_bInterruption = false; // true시 안개 효과 심해짐
+	float m_fInterruption = 0.0f;
 
 private: 
 	shared_ptr<CGameObject> m_pFlashlight; // 플래시라이트

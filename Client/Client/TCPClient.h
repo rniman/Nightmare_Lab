@@ -24,6 +24,7 @@ enum RECV_HEAD
 struct CS_CLIENTS_INFO
 {
 	int m_nClientId = -1;
+	bool m_bAlive = true;
 	XMFLOAT3 m_xmf3Position;
 	XMFLOAT3 m_xmf3Velocity;
 	XMFLOAT3 m_xmf3Look;
@@ -40,8 +41,8 @@ struct CS_CLIENTS_INFO
 class CTcpClient
 {
 private:
-	int m_nMainClientID = -1;
-	int m_nClient = -1;
+	int m_nMainClientId = -1;
+	int m_nClient = -1;				// 클라이언트 수
 
 	bool m_bRecvDelayed = false;	// 오는 데이터를 전부 받지 못했다
 	bool m_bRecvHead = false;
@@ -82,8 +83,11 @@ public:
 	int SendData(SOCKET socket, size_t nBufferSize, Args&&... args);
 	int RecvData(SOCKET socket, size_t nBufferSize);
 
+	void UpdateZombiePlayer();
+	void UpdatePlayerItem(int nIndex);
+
 	//Interface
-	int GetClientId() const { return m_nMainClientID; }
+	int GetClientId() const { return m_nMainClientId; }
 	int GetNumOfClient() const { return m_nClient; }
 	XMFLOAT3 GetPostion(int id);
 	std::array<CS_CLIENTS_INFO, 5>& GetArrayClientsInfo();

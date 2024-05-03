@@ -70,8 +70,8 @@ void TCPServer::OnProcessingAcceptMessage(HWND hWnd, UINT nMessageID, WPARAM wPa
 	}
 
 	// 추가된 클라이언트의 정보를 추가한다.
-	int nClientIndex = AddSocketInfo(sockClient, addrClient, nAddrlen);
-	printf("\n[TCP 서버] 클라이언트 접속: IP 주소=%s, 포트 번호=%d\n", m_vSocketInfoList[nClientIndex].m_pAddr, ntohs(m_vSocketInfoList[nClientIndex].m_addrClient.sin_port));
+	int nSocketIndex = AddSocketInfo(sockClient, addrClient, nAddrlen);
+	printf("\n[TCP 서버] 클라이언트 접속: IP 주소=%s, 포트 번호=%d\n", m_vSocketInfoList[nSocketIndex].m_pAddr, ntohs(m_vSocketInfoList[nSocketIndex].m_addrClient.sin_port));
 
 	int retval = WSAAsyncSelect(sockClient, hWnd, WM_SOCKET, FD_READ | FD_WRITE | FD_CLOSE);
 	if (retval == SOCKET_ERROR)
@@ -81,9 +81,17 @@ void TCPServer::OnProcessingAcceptMessage(HWND hWnd, UINT nMessageID, WPARAM wPa
 	}
 
 	// 임시로 CBlueSuitPlayer만 생성
-	m_apPlayers[nClientIndex] = make_shared<CServerBlueSuitPlayer>();
-	m_apPlayers[nClientIndex]->SetPlayerId(nClientIndex);
-	m_pCollisionManager->AddCollisionPlayer(m_apPlayers[nClientIndex], nClientIndex);
+	if (nSocketIndex == 0)	// Socket Index가 0이면 Zombie
+	{
+		m_apPlayers[nSocketIndex] = make_shared<CServerZombiePlayer>();
+		m_apPlayers[nSocketIndex]->SetPlayerId(nSocketIndex);
+	}
+	else
+	{
+		m_apPlayers[nSocketIndex] = make_shared<CServerBlueSuitPlayer>();
+		m_apPlayers[nSocketIndex]->SetPlayerId(nSocketIndex);
+	}
+	m_pCollisionManager->AddCollisionPlayer(m_apPlayers[nSocketIndex], nSocketIndex);
 
 	for (auto& sockInfo : m_vSocketInfoList)
 	{
@@ -166,7 +174,6 @@ void TCPServer::OnProcessingReadMessage(HWND hWnd, UINT nMessageID, WPARAM wPara
 		memcpy(&xmf3Right, m_vSocketInfoList[nSocketIndex].m_pCurrentBuffer + sizeof(__int64) + sizeof(UCHAR[256]) + sizeof(XMFLOAT4X4) + sizeof(XMFLOAT3), sizeof(XMFLOAT3));
 		pPlayer->SetLook(xmf3Look);
 		pPlayer->SetRight(xmf3Right);
-
 	}
 		break;
 	default:
@@ -248,7 +255,8 @@ void TCPServer::OnProcessingWriteMessage(HWND hWnd, UINT nMessageID, WPARAM wPar
 void TCPServer::OnProcessingCloseMessage(HWND hWnd, UINT nMessageID, WPARAM wParam, LPARAM lParam)
 {
 	int nIndex = RemoveSocketInfo((SOCKET)wParam);
-	m_apPlayers[nIndex]->SetPlayerId(-1);
+	m_apPlayers[nIndex].reset();
+	//m_apPlayers[nIndex]->SetPlayerId(-1);
 }
 
 bool TCPServer::Init(HWND hWnd)
@@ -315,6 +323,11 @@ void TCPServer::SimulationLoop()
 			continue;
 		}
 
+		if (!pPlayer->IsAlive())
+		{
+			continue;
+		}
+
 		pPlayer->SetPickedObject(m_pCollisionManager);	
 		if (pPlayer->GetPickedObject().lock())
 		{
@@ -329,6 +342,8 @@ void TCPServer::SimulationLoop()
 		pPlayer->UpdatePicking();
 		//UpdateInformation(pPlayer);
 		m_pCollisionManager->Collide(fElapsedTime, pPlayer);
+
+		pPlayer->OnUpdateToParent();
 	}
 
 	m_pCollisionManager->Update(fElapsedTime);
@@ -449,22 +464,34 @@ void TCPServer::UpdateInformation()
 		}
 		nPlayerId = pPlayer->GetPlayerId();
 
+		m_aUpdateInfo[nPlayerId].m_bAlive = pPlayer->IsAlive();
 		m_aUpdateInfo[nPlayerId].m_xmf3Position = pPlayer->GetPosition();
 		m_aUpdateInfo[nPlayerId].m_xmf3Velocity = pPlayer->GetVelocity();
 		m_aUpdateInfo[nPlayerId].m_xmf3Look = pPlayer->GetLook();
 		m_aUpdateInfo[nPlayerId].m_xmf3Right = pPlayer->GetRight();
 
 		// 지금은 일단 이렇게 해뒀지만 나중에는 0번이 Enemy고정일듯
-		shared_ptr<CServerBlueSuitPlayer> pBlueSuitPlayer = dynamic_pointer_cast<CServerBlueSuitPlayer>(pPlayer);
-		for (int i = 0; i < 3; ++i)
+		if (nPlayerId == 0)	//Enemy
 		{
-			if (pBlueSuitPlayer)
+			shared_ptr<CServerZombiePlayer> pZombiePlayer = dynamic_pointer_cast<CServerZombiePlayer>(pPlayer);
+
+			m_aUpdateInfo[nPlayerId].m_nSlotObjectNum[0] = pZombiePlayer->IsTracking() ? 1 : -1;		// 추적
+			m_aUpdateInfo[nPlayerId].m_nSlotObjectNum[1] = pZombiePlayer->IsInterruption() ? 1 : -1;	// 시야방해
+			m_aUpdateInfo[nPlayerId].m_nSlotObjectNum[2] = pZombiePlayer->IsAttack() ? 1 : -1;			// 공격
+		}
+		else
+		{
+			shared_ptr<CServerBlueSuitPlayer> pBlueSuitPlayer = dynamic_pointer_cast<CServerBlueSuitPlayer>(pPlayer);
+			for (int i = 0; i < 3; ++i)
 			{
-				m_aUpdateInfo[nPlayerId].m_nSlotObjectNum[i] = pBlueSuitPlayer->GetReferenceSlotItemNum(i);
-				m_aUpdateInfo[nPlayerId].m_nFuseObjectNum[i] = pBlueSuitPlayer->GetReferenceFuseItemNum(i);
+				if (pBlueSuitPlayer)
+				{
+					m_aUpdateInfo[nPlayerId].m_nSlotObjectNum[i] = pBlueSuitPlayer->GetReferenceSlotItemNum(i);
+					m_aUpdateInfo[nPlayerId].m_nFuseObjectNum[i] = pBlueSuitPlayer->GetReferenceFuseItemNum(i);
+				}
 			}
 		}
-			
+
 		// 업데이트 오브젝트는 리셋
 		m_aUpdateInfo[nPlayerId].m_nNumOfObject = 0;
 		for (int i = 0; i < 20; ++i)

@@ -98,6 +98,53 @@ void CServerCollisionManager::Collide(float fElapsedTime, const shared_ptr<CServ
 	XMVECTOR xmvTranslation = XMVectorSet(pPlayer->GetPosition().x, pPlayer->GetPosition().y, pPlayer->GetPosition().z, 1.0f);
 	aabbPlayer.Transform(aabbPlayer, 1.0f, XMQuaternionIdentity(), xmvTranslation);
 
+	shared_ptr<CServerZombiePlayer> pZombiePlayer = dynamic_pointer_cast<CServerZombiePlayer>(pPlayer);
+	// 플레이어 충돌검사
+	for (const auto& pwOtherPlayer : m_apPlayer)
+	{
+		shared_ptr<CServerPlayer> pOtherPlayer = pwOtherPlayer.lock();
+		if (!pOtherPlayer || pOtherPlayer->GetPlayerId() == -1)
+		{
+			continue;
+		}
+
+		if (!pOtherPlayer->IsCollision())	// 충돌 검사 대상이 아님(EX: 죽음)
+		{
+			continue;
+		}
+
+		if (pPlayer->GetPlayerId() == pOtherPlayer->GetPlayerId())
+		{
+			continue;
+		}
+
+		BoundingBox aabbOtherPlayer;
+		aabbOtherPlayer.Center = pOtherPlayer->GetOOBB(0).Center;
+		aabbOtherPlayer.Extents = pOtherPlayer->GetOOBB(0).Extents;
+		XMFLOAT4 xmf4OtherPosition = XMFLOAT4(pOtherPlayer->GetPosition().x, pOtherPlayer->GetPosition().y, pOtherPlayer->GetPosition().z, 1.0f);
+		XMVECTOR xmvTranslation = XMLoadFloat4(&xmf4OtherPosition);
+		aabbOtherPlayer.Transform(aabbOtherPlayer, 1.0f, XMQuaternionIdentity(), xmvTranslation);
+
+		if (aabbOtherPlayer.Intersects(aabbPlayer))
+		{
+			pPlayer->CollideWithPlayer(shared_from_this(), fElapsedTime, pOtherPlayer);
+		}
+
+		if (pOtherPlayer->IsInvincibility())
+		{
+			continue;
+		}
+
+		if (pZombiePlayer)
+		{
+			if (pZombiePlayer->IsAttack())
+			{
+				pZombiePlayer->CheckAttack(pOtherPlayer, aabbOtherPlayer);
+			}
+		}
+
+	}
+
 	for (int i = pPlayer->GetWidth() - 2; i <= pPlayer->GetWidth() + 2; ++i)
 	{
 		for (int j = pPlayer->GetDepth() - 2; j <= pPlayer->GetDepth() + 2; ++j)
@@ -178,5 +225,9 @@ void CServerCollisionManager::Collide(float fElapsedTime, const shared_ptr<CServ
 		}
 		pPlayer->SetWorldMatrix(xmf3StairPosition);
 	}
+}
+
+void CServerCollisionManager::CollideWithPlayer(float fElapsedTime)
+{
 }
 

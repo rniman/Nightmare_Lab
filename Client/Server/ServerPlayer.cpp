@@ -8,11 +8,36 @@ CServerPlayer::CServerPlayer()
 {
 	ZeroMemory(m_pKeysBuffer, 256);
 
-	m_xmf3Position = XMFLOAT3(9.f, 0.0f, 13.9);
+	// 후보지를 두고 int 값에 따라 그곳에 가도록 해야할듯
+	uniform_int_distribution<int> disFloatPosition(0, 15);
+
+	array<XMFLOAT3, 16> axmf3Positions = {
+		XMFLOAT3(9.f, 0.0f, 13.9),
+		XMFLOAT3(9.f, 0.0f, -13.9),
+		XMFLOAT3(-9.f, 0.0f, 13.9),
+		XMFLOAT3(-9.f, 0.0f, -13.9),
+		XMFLOAT3(9.f, 4.5f, 13.9),
+		XMFLOAT3(9.f, 4.5f, -13.9),
+		XMFLOAT3(-9.f, 4.5f, 13.9),
+		XMFLOAT3(-9.f, 4.5f, -13.9),
+		XMFLOAT3(-9.f, 9.0f, -13.9),
+		XMFLOAT3(9.f, 9.0f, -13.9),
+		XMFLOAT3(-9.f, 9.0f, 13.9),
+		XMFLOAT3(-9.f, 9.0f, -13.9),
+		XMFLOAT3(-9.f, 13.5f, -13.9),
+		XMFLOAT3(9.f, 13.5f, -13.9),
+		XMFLOAT3(-9.f, 13.5f, 13.9),
+		XMFLOAT3(-9.f, 13.5f, -13.9)
+	};
+
+	m_xmf3Position = axmf3Positions[disFloatPosition(TCPServer::m_mt19937Gen)];
 	m_xmf3OldPosition = m_xmf3Position;
 
+	//m_xmf3Position = XMFLOAT3(9.f, 0.0f, 13.9);
+	//m_xmf3OldPosition = m_xmf3Position;
+
 	XMFLOAT3 xmf3Center = XMFLOAT3(0.0f, 0.8f, 0.0f);
-	XMFLOAT3 xmf3Extents = XMFLOAT3(0.4f, 0.8f, 0.4f);
+	XMFLOAT3 xmf3Extents = XMFLOAT3(0.5f, 0.8f, 0.5f);
 	XMFLOAT4 xmf4Orientation;
 	XMStoreFloat4(&xmf4Orientation, XMQuaternionIdentity());
 
@@ -34,6 +59,12 @@ void CServerPlayer::Update(float fElapsedTime)
 	if (m_nPlayerId == -1)
 	{
 		return;
+	}
+
+	m_fCoolTimeInvincibility -= fElapsedTime;
+	if (m_bInvincibility && m_fCoolTimeInvincibility < 0.0f)
+	{
+		m_bInvincibility = false;
 	}
 
 	DWORD dwDirection = 0;
@@ -76,7 +107,6 @@ void CServerPlayer::Update(float fElapsedTime)
 	float fDeceleration = (m_fFriction * fElapsedTime);
 	if (fDeceleration > fLength) fDeceleration = fLength;
 	m_xmf3Velocity = Vector3::Add(m_xmf3Velocity, Vector3::ScalarProduct(m_xmf3Velocity, -fDeceleration, true));
-
 }
 
 void CServerPlayer::Collide(const shared_ptr<CServerCollisionManager>& pCollisionManager, float fElapsedTime, shared_ptr<CServerGameObject> pCollided)
@@ -85,7 +115,7 @@ void CServerPlayer::Collide(const shared_ptr<CServerCollisionManager>& pCollisio
 	XMFLOAT3 xmf3NormalOfVelocity = Vector3::Normalize(m_xmf3Velocity);
 
 	XMFLOAT3 xmf3OldPosition = m_xmf3OldPosition;
-	m_bCollision = false;
+	m_bOccurredCollision = false;
 
 	BoundingBox aabbPlayer;
 
@@ -113,7 +143,7 @@ void CServerPlayer::Collide(const shared_ptr<CServerCollisionManager>& pCollisio
 		m_xmf3Position = xmf3OldPosition;
 		CalculateSpace();
 
-		m_bCollision = false;
+		m_bOccurredCollision = false;
 		xmf3SubVelocity[k] = Vector3::ScalarProduct(xmf3SubVelocity[k], Vector3::Length(xmf3ResultVelocity), false);
 		Move(xmf3SubVelocity[k], false);
 
@@ -123,9 +153,9 @@ void CServerPlayer::Collide(const shared_ptr<CServerCollisionManager>& pCollisio
 		XMVECTOR xmvTranslation = XMVectorSet(m_xmf3Position.x, m_xmf3Position.y, m_xmf3Position.z, 1.0f);
 		aabbPlayer.Transform(aabbPlayer, 1.0f, XMQuaternionIdentity(), xmvTranslation);
 
-		for (int i = m_nWidth - 2; i <= m_nWidth +  2 && !m_bCollision; ++i)
+		for (int i = m_nWidth - 2; i <= m_nWidth +  2 && !m_bOccurredCollision; ++i)
 		{
-			for (int j = m_nDepth - 2; j <= m_nDepth + 2 && !m_bCollision; ++j)
+			for (int j = m_nDepth - 2; j <= m_nDepth + 2 && !m_bOccurredCollision; ++j)
 			{
 				if (i < 0 || i >= pCollisionManager->GetWidth() || j < 0 || j >= pCollisionManager->GetDepth())
 				{
@@ -179,19 +209,19 @@ void CServerPlayer::Collide(const shared_ptr<CServerCollisionManager>& pCollisio
 
 						if (oobb.Intersects(aabbPlayer))
 						{
-							m_bCollision = true;
+							m_bOccurredCollision = true;
 							break;
 						}
 					}
 
-					if (m_bCollision)
+					if (m_bOccurredCollision)
 					{
 						break;
 					}
 				}
 			}
 		}
-		if (!m_bCollision)
+		if (!m_bOccurredCollision)
 		{
 			if (!Vector3::IsZero(xmf3SubVelocity[k]))
 			{
@@ -201,11 +231,19 @@ void CServerPlayer::Collide(const shared_ptr<CServerCollisionManager>& pCollisio
 		}
 	}
 
-	if (m_bCollision)
+	if (m_bOccurredCollision)
 	{
 		m_xmf3Position = m_xmf3OldPosition = xmf3OldPosition;
 		CalculateSpace();
 	}
+	OnUpdateToParent();
+}
+
+void CServerPlayer::CollideWithPlayer(const shared_ptr<CServerCollisionManager>& pCollisionManager, float fElapsedTime, shared_ptr<CServerPlayer> pCollidedPlayer)
+{
+	XMFLOAT3 xmf3OldPosition = m_xmf3OldPosition;
+	m_xmf3Position = xmf3OldPosition;
+	CalculateSpace();
 	OnUpdateToParent();
 }
 
@@ -240,8 +278,9 @@ void CServerPlayer::OnUpdateToParent()
 	m_xmf4x4ToParent._31 = m_xmf3Look.x; m_xmf4x4ToParent._32 = m_xmf3Look.y; m_xmf4x4ToParent._33 = m_xmf3Look.z;
 	m_xmf4x4ToParent._41 = m_xmf3Position.x; m_xmf4x4ToParent._42 = m_xmf3Position.y; m_xmf4x4ToParent._43 = m_xmf3Position.z;
 
-	XMMATRIX xmtxScale = XMMatrixScaling(1.0f, 1.0f, 1.0f);
-	m_xmf4x4ToParent = Matrix4x4::Multiply(xmtxScale, m_xmf4x4ToParent);
+	//XMMATRIX xmtxScale = XMMatrixScaling(1.0f, 1.0f, 1.0f);
+	//m_xmf4x4ToParent = Matrix4x4::Multiply(xmtxScale, m_xmf4x4ToParent);
+	UpdateTransform(NULL);
 }
 
 void CServerPlayer::SetPickedObject(const shared_ptr<CServerCollisionManager> pCollisionManager)
@@ -438,6 +477,21 @@ void CServerBlueSuitPlayer::UpdatePicking()
 	}
 }
 
+void CServerBlueSuitPlayer::Hit()
+{
+	m_nHealthPoint -= 1;
+	m_bInvincibility = true;
+	m_fCoolTimeInvincibility = 3.0f;
+
+	printf("%d의 현재 체력: %d\n", m_nPlayerId, m_nHealthPoint);
+
+	if (m_nHealthPoint <= 0)
+	{
+		m_bCollision = false;
+		m_bAlive = false;
+	}
+}
+
 int CServerBlueSuitPlayer::AddItem(const shared_ptr<CServerGameObject>& pGameObject)
 {
 	if (!dynamic_pointer_cast<CServerItemObject>(pGameObject))	// 아이템이 아님
@@ -524,8 +578,8 @@ void CServerBlueSuitPlayer::TeleportRandomPosition()
 	uniform_int_distribution<int> disFloatPosition(0, 15);
 
 	array<XMFLOAT3, 16> axmf3Positions = {
-		XMFLOAT3(9.f, 0.0f, 13.5),
-		XMFLOAT3(9.f, 0.0f, -13.5),
+		XMFLOAT3(9.f, 0.0f, 13.9),
+		XMFLOAT3(9.f, 0.0f, -13.9),
 		XMFLOAT3(-9.f, 0.0f, 13.9),
 		XMFLOAT3(-9.f, 0.0f, -13.9),
 		XMFLOAT3(9.f, 4.5f, 13.9),
@@ -554,4 +608,126 @@ int CServerBlueSuitPlayer::GetReferenceSlotItemNum(int nIndex)
 int CServerBlueSuitPlayer::GetReferenceFuseItemNum(int nIndex) 
 { 
 	return m_apFuseItems[nIndex]->GetReferenceNumber();
+}
+
+////
+////
+////
+
+CServerZombiePlayer::CServerZombiePlayer()
+	: CServerPlayer()
+{
+	m_oobbAttackBox.Center = XMFLOAT3(0.0f, 0.8f, 0.0f);
+	m_oobbAttackBox.Extents = XMFLOAT3(0.5f, 0.8f, 0.5f);
+	XMStoreFloat4(&m_oobbAttackBox.Orientation, XMQuaternionIdentity());
+}
+
+void CServerZombiePlayer::UseItem(shared_ptr<CServerCollisionManager>& pCollisionManager) 
+{
+	if (m_pKeysBuffer['1'] & 0xF0 && m_fCoolTimeTracking <= 0.0f)	// 추적
+	{
+		m_fCoolTimeTracking = 10.0f;
+		m_bTracking = true;
+	}
+	if (m_pKeysBuffer['2'] & 0xF0 && m_fCoolTimeInterruption <= 0.0f)	// 시야방해
+	{
+		m_fCoolTimeInterruption = 10.0f;
+		m_bInterruption = true;
+	}
+	if (m_pKeysBuffer['3'] & 0xF0 && m_fCoolTimeRunning <= 0.0f)	// 달리기
+	{
+		m_fCoolTimeRunning = 10.0f;
+		m_bRunning = true;
+		m_fMaxVelocityXZ = 12.0f;
+	}
+}
+
+void CServerZombiePlayer::Update(float fElapsedTime)
+{
+	m_fCoolTimeAttack -= fElapsedTime;
+	if (m_fCoolTimeAttack <= 1.0f)
+	{
+		m_bAttack = false;
+	}
+	if (m_pKeysBuffer[VK_LBUTTON] & 0xF0 && m_fCoolTimeAttack <= 0.0f)	// 일반 공격
+	{
+		// 원래 클라에서는 track 2번을 enable시킴
+		m_bAttack = true;
+		m_fCoolTimeAttack = 2.0f;
+		
+		m_oobbAttackBox.Center = XMFLOAT3(0.0f, 0.8f, 0.0f);
+		m_oobbAttackBox.Extents = XMFLOAT3(0.5f, 0.8f, 0.5f);
+		XMStoreFloat4(&m_oobbAttackBox.Orientation, XMQuaternionIdentity());
+		
+		OnUpdateToParent();
+		m_oobbAttackBox.Transform(m_oobbAttackBox, XMLoadFloat4x4(&m_xmf4x4ToParent));
+		XMStoreFloat4(&m_oobbAttackBox.Orientation, XMQuaternionNormalize(XMLoadFloat4(&m_oobbAttackBox.Orientation)));
+
+		XMFLOAT3 xmf3Offset = Vector3::ScalarProduct(m_xmf3Look, 0.8f, false);
+		m_oobbAttackBox.Center.x += xmf3Offset.x;
+		m_oobbAttackBox.Center.y += xmf3Offset.y;
+		m_oobbAttackBox.Center.z += xmf3Offset.z;
+	}
+
+	if (m_fCoolTimeInterruption < 5.0f)
+	{
+		m_bInterruption = false;
+	}
+
+	if (m_bRunning && m_fCoolTimeRunning < 5.0f)
+	{
+		m_fMaxVelocityXZ -= fElapsedTime;
+
+		if (m_fCoolTimeRunning < 1.0f)
+		{
+			m_fMaxVelocityXZ = 8.0f;
+			m_bRunning = false;
+		}
+	}
+
+	m_fCoolTimeTracking -= fElapsedTime;
+	m_fCoolTimeInterruption -= fElapsedTime;
+	m_fCoolTimeRunning -= fElapsedTime;
+
+	CServerPlayer::Update(fElapsedTime);
+}
+
+void CServerZombiePlayer::UpdatePicking()
+{
+	shared_ptr<CServerGameObject> pPickedObject = m_pPickedObject.lock();
+	if (!pPickedObject)
+	{
+		return;
+	}
+
+	if (!(m_pKeysBuffer['E'] & 0xF0))
+	{
+		m_bPressed = false;
+		return;
+	}
+	else if (!m_bPressed)	// Press가 지속됨
+	{
+		m_bPressed = true;
+	}
+	else
+	{
+		return;
+	}
+
+	if (!dynamic_pointer_cast<CServerItemObject>(pPickedObject))	// 아이템이 아님
+	{
+		pPickedObject->UpdatePicking();
+	}
+}
+
+void CServerZombiePlayer::Hit() 
+{
+}
+
+void CServerZombiePlayer::CheckAttack(shared_ptr<CServerPlayer>& pPlayer, const BoundingBox& aabbPlayer)
+{
+	if (m_oobbAttackBox.Intersects(aabbPlayer))
+	{
+		pPlayer->Hit();
+	}
 }

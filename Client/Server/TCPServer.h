@@ -12,12 +12,13 @@ class CServerCollisionManager;
 struct SC_UPDATE_INFO
 {
 	int m_nClientId = -1;
+	bool m_bAlive = true;
 	XMFLOAT3 m_xmf3Position;
 	XMFLOAT3 m_xmf3Velocity;
 	XMFLOAT3 m_xmf3Look;
 	XMFLOAT3 m_xmf3Right;
 
-	int m_nSlotObjectNum[3] = { -1, -1, -1 };	// 각 슬롯에 포함된 오브젝트 번호(없으면 -1)
+	int m_nSlotObjectNum[3] = { -1, -1, -1 };	// 각 슬롯에 포함된 오브젝트 번호(없으면 -1) /// 적 플레이어는 스킬 사용시 1로, 스킬 끝나거나 사용X시 0 (추적, 시야방해, 공격) 달리기의 경우 아직 정하지 않음
 	int m_nFuseObjectNum[3] = { -1, -1, -1 };	// 퓨즈 오브젝트 번호(없으면 -1)
 
 	int m_nNumOfObject = -1;

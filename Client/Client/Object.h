@@ -452,6 +452,8 @@ public:
 	void SetCollision(bool bCollision) { m_bCollsion = bCollision; }
 	bool GetCollision()const { return m_bCollsion; }
 
+	bool IsAlive() const { return m_bAlive; }
+	void SetAlive(bool bAlive) { m_bAlive = bAlive; }
 	bool CheckPicking(const weak_ptr<CGameObject>& pGameObject, const XMFLOAT3& xmf3PickPosition, const XMFLOAT4X4& mxf4x4ViewMatrix, float& fDistance);
 	virtual void UpdatePicking() {};
 	virtual void UpdateUsing(const shared_ptr<CGameObject>& pGameObject) {};
@@ -484,6 +486,7 @@ public:
 	// 애니메이션 관련
 	shared_ptr<CAnimationController> m_pSkinnedAnimationController;
 
+	bool m_bAlive = true;
 	vector<BoundingOrientedBox> m_voobbOrigin;
 	bool m_bCollsion = true;
 	int m_nCollisionType = 0; // 0:None, 1:Standard, 2:Picking

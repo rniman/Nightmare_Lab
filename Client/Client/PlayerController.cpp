@@ -496,32 +496,32 @@ void CZombieAnimationController::AdvanceTime(float fElapsedTime, CGameObject* pR
 				}
 			}
 
-			if (m_vAnimationTracks[2].m_bEnable)
+		}
+ 
+		if (m_vAnimationTracks[2].m_bEnable)
+		{
+			int nAttackAnimationTrack = 2;
+			shared_ptr<CAnimationSet> pAnimationSet = m_pAnimationSets->m_vpAnimationSets[m_vAnimationTracks[nAttackAnimationTrack].m_nAnimationSet];
+			float fPosition = m_vAnimationTracks[nAttackAnimationTrack].UpdatePosition(m_vAnimationTracks[nAttackAnimationTrack].m_fPosition, fElapsedTime, pAnimationSet->m_fLength);
+
+			for (int j = m_nStartSpine; j <= m_nEndSpine; j++)
 			{
-				int nAttackAnimationTrack = 2;
-				shared_ptr<CAnimationSet> pAnimationSet = m_pAnimationSets->m_vpAnimationSets[m_vAnimationTracks[nAttackAnimationTrack].m_nAnimationSet];
-				float fPosition = m_vAnimationTracks[nAttackAnimationTrack].UpdatePosition(m_vAnimationTracks[nAttackAnimationTrack].m_fPosition, fElapsedTime, pAnimationSet->m_fLength);
-
-				for (int j = m_nStartSpine; j <= m_nEndSpine; j++)
+				if (j >= m_nStartNeck && j <= m_nEndNeck)
 				{
-					if (j >= m_nStartNeck && j <= m_nEndNeck)
-					{
-						continue;
-					}
-
-					XMFLOAT4X4 xmf4x4Transform = m_pAnimationSets->m_vpBoneFrameCaches[j]->m_xmf4x4ToParent;
-					XMFLOAT4X4 xmf4x4TrackTransform = pAnimationSet->GetSRT(j, fPosition);
-					xmf4x4Transform = Matrix4x4::Scale(xmf4x4TrackTransform, m_vAnimationTracks[nAttackAnimationTrack].m_fWeight);
-					m_pAnimationSets->m_vpBoneFrameCaches[j]->m_xmf4x4ToParent = xmf4x4Transform;
+					continue;
 				}
 
-				if (fPosition >= pAnimationSet->m_fLength - ANIMATION_CALLBACK_EPSILON)
-				{
-					SetTrackEnable(2, false);
-					SetTrackPosition(2, 0.0f);
-				}
+				XMFLOAT4X4 xmf4x4Transform = m_pAnimationSets->m_vpBoneFrameCaches[j]->m_xmf4x4ToParent;
+				XMFLOAT4X4 xmf4x4TrackTransform = pAnimationSet->GetSRT(j, fPosition);
+				xmf4x4Transform = Matrix4x4::Scale(xmf4x4TrackTransform, m_vAnimationTracks[nAttackAnimationTrack].m_fWeight);
+				m_pAnimationSets->m_vpBoneFrameCaches[j]->m_xmf4x4ToParent = xmf4x4Transform;
 			}
 
+			if (fPosition >= pAnimationSet->m_fLength - ANIMATION_CALLBACK_EPSILON)
+			{
+				SetTrackEnable(2, false);
+				SetTrackPosition(2, 0.0f);
+			}
 		}
 
 		pRootGameObject->UpdateTransform(NULL);

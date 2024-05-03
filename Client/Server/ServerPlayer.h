@@ -20,6 +20,8 @@ public:
 	virtual void UseItem(shared_ptr<CServerCollisionManager>& pCollisionManager) {};
 	virtual void Update(float fElapsedTime) override;
 	virtual void Collide(const shared_ptr<CServerCollisionManager>& pCollisionManager, float fElapsedTime, shared_ptr<CServerGameObject> pCollided) override;
+	void CollideWithPlayer(const shared_ptr<CServerCollisionManager>& pCollisionManager, float fElapsedTime, shared_ptr<CServerPlayer> pCollidedPlayer);
+	virtual void Hit() {};	//BlueSuit: zombie Attack, Zombie: mine
 	void Move(const XMFLOAT3& xmf3Shift, bool bUpdateVelocity);
 
 	virtual void UpdatePicking() override {};
@@ -65,15 +67,18 @@ public:
 	XMFLOAT3 GetRight() const { return m_xmf3Right; }
 
 	weak_ptr<CServerGameObject> GetPickedObject() { return m_pPickedObject; }
+
+	bool IsInvincibility() const { return m_bInvincibility; }
+
 protected:
 	// 첫 데이터를 받기 시작
 	bool m_bRecvData = false;
 
 	// 통신을 통해 받는 정보
-	int m_nPlayerId = -1;
+	int m_nPlayerId = -1;	//m_vSocketInfoList인덱스 번호
 	UCHAR m_pKeysBuffer[256];
 
-	bool m_bCollision = false;
+	bool m_bOccurredCollision = false;
 	bool m_bStair = false;		// 계단에 있는 상태
 	
 	float m_fStairMax;
@@ -98,6 +103,9 @@ protected:
 
 	XMFLOAT4X4					m_xmf4x4View;
 	XMFLOAT4X4					m_xmf4x4Projection;
+
+	bool						m_bInvincibility = false;	// HIT가 가능한 상태인지를 나타냄
+	float						m_fCoolTimeInvincibility = 0.0f;
 
 };
 
@@ -125,6 +133,7 @@ public:
 	virtual void UseItem(shared_ptr<CServerCollisionManager>& pCollisionManager);
 	virtual void Update(float fElapsedTime) override;
 	virtual void UpdatePicking() override;
+	virtual void Hit() override;
 
 	int AddItem(const shared_ptr<CServerGameObject>& pGameObject);
 	//virtual void UseItem(int nSlot) override;
@@ -142,14 +151,41 @@ private:
 	bool m_bShiftRun = false;
 	bool m_bAbleRun = true;
 	float m_fStamina = 5.0f;
+
+	int m_nHealthPoint = 3;
 };
 
 ///
 ///
 /// 
 
-
 class CServerZombiePlayer : public CServerPlayer
 {
+public:
+	CServerZombiePlayer();
+	virtual ~CServerZombiePlayer() {};
 
+	virtual void UseItem(shared_ptr<CServerCollisionManager>& pCollisionManager) override;;
+	virtual void Update(float fElapsedTime) override;
+	virtual void UpdatePicking() override;
+	virtual void Hit() override;;
+	void CheckAttack(shared_ptr<CServerPlayer>& pPlayer, const BoundingBox& aabbPlayer);
+
+	bool IsTracking() const { return m_bTracking; }
+	bool IsInterruption() const { return m_bInterruption; }
+	bool IsRunning() const { return m_bRunning; }
+	bool IsAttack() const { return m_bAttack; }
+
+private:
+	BoundingOrientedBox m_oobbAttackBox;
+
+	float m_fCoolTimeTracking = 0.0f;
+	float m_fCoolTimeInterruption = 0.0f;
+	float m_fCoolTimeRunning = 0.0f;
+	float m_fCoolTimeAttack = 0.0f;
+
+	bool m_bTracking = false;
+	bool m_bInterruption = false;
+	bool m_bRunning = false;
+	bool m_bAttack = false;	// true면 클라에서 track을 enable시킴
 };

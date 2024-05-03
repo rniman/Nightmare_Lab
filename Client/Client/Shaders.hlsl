@@ -205,13 +205,13 @@ PS_MULTIPLE_RENDER_TARGETS_OUTPUT PSStandard(VS_STANDARD_OUTPUT input)
         }
     }
     
-    float3 vCameraPosition = gvCameraPosition.xyz;
-    float3 vPostionToCamera = vCameraPosition - input.positionW;
-    float fDistanceToCamera = length(vPostionToCamera);
+    //float3 vCameraPosition = gvCameraPosition.xyz;
+    //float3 vPostionToCamera = vCameraPosition - input.positionW;
+    //float fDistanceToCamera = length(vPostionToCamera);
     
-    //float fFogFactor = saturate(((gvfFogInfo.x + gvfFogInfo.y) - fDistanceToCamera) / gvfFogInfo.y);
-    float fFogFactor = saturate(1.0f / pow(gvfFogInfo.y + gvfFogInfo.x, pow(fDistanceToCamera * gvfFogInfo.z, 2)));
-    //float fFogFactor = saturate(1.0f / pow(gvfFogInfo.y + gvfFogInfo.x, fDistanceToCamera * gvfFogInfo.z));
+    ////float fFogFactor = saturate(((gvfFogInfo.x + gvfFogInfo.y) - fDistanceToCamera) / gvfFogInfo.y);
+    //float fFogFactor = saturate(1.0f / pow(gvfFogInfo.y + gvfFogInfo.x, pow(fDistanceToCamera * gvfFogInfo.z, 2)));
+    ////float fFogFactor = saturate(1.0f / pow(gvfFogInfo.y + gvfFogInfo.x, fDistanceToCamera * gvfFogInfo.z));
     //cColor = lerp(gvFogColor, cColor, fFogFactor);
     
     output.cTexture = cColor;
@@ -337,7 +337,15 @@ float4 PSPostProcessing(PS_POSTPROCESSING_OUT input) : SV_Target
     
     float4 light = Lighting(position, normal);
     
-    return (cColor * light);
+    float3 vCameraPosition = gvCameraPosition.xyz;
+    float3 vPostionToCamera = vCameraPosition - position.xyz;
+    float fDistanceToCamera = length(vPostionToCamera);
+    //float fFogFactor = saturate(((gvfFogInfo.x + gvfFogInfo.y) - fDistanceToCamera) / gvfFogInfo.y);
+    float fFogFactor = saturate(1.0f / pow(gvfFogInfo.y + gvfFogInfo.x, pow(fDistanceToCamera * gvfFogInfo.z, 2)));
+    //float fFogFactor = saturate(1.0f / pow(gvfFogInfo.y + gvfFogInfo.x, fDistanceToCamera * gvfFogInfo.z));
+    cColor = lerp(gvFogColor, cColor * light, fFogFactor);
+    
+    return (cColor);
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////

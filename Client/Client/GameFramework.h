@@ -51,10 +51,10 @@ public:
 	void OnProcessingSocketMessage(HWND hWnd, UINT nMessageID, WPARAM wParam, LPARAM lParam);
 	void OnProcessingWindowMessage(HWND hWnd, UINT nMessageID, WPARAM wParam, LPARAM lParam);
 
-	int GetClientId() const { return m_pTcpClient->GetClientId(); }
+	int GetClientIdFromTcpClient() const { return m_pTcpClient->GetClientId(); }
 
 	static UCHAR* GetKeysBuffer();
-
+	static int GetMainClientId() { return m_nMainClientId; }
 	void SetPlayerObjectOfClient(int nClientId);
 private:
 	D3D12_VIEWPORT m_d3dViewport;
@@ -109,8 +109,10 @@ private:
 	_TCHAR								m_pszFrameRate[200];
 	
 	static UCHAR						m_pKeysBuffer[256];
+
 	//TCPClient
 	unique_ptr<CTcpClient>				m_pTcpClient;
+	static int							m_nMainClientId;	// TcpClient에서 받게 된다. -> 플레이어 1인칭으로 그릴때 비교해서 그려주게 하기위해
 public:
 	void PrepareDrawText();
 	void RenderUI();

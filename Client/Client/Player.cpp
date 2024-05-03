@@ -32,7 +32,7 @@ void CSoundCallbackHandler::HandleCallback(void* pCallbackData, float fTrackPosi
 CPlayer::CPlayer(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dCommandList, ID3D12RootSignature* pd3dGraphicsRootSignature, void* pContext)
 	: CGameObject(pd3dDevice, pd3dCommandList)
 {
-	m_pCamera = ChangeCamera(THIRD_PERSON_CAMERA, 0.0f);
+	m_pCamera = ChangeCamera(FIRST_PERSON_CAMERA, 0.0f);
 	CreateShaderVariables(pd3dDevice, pd3dCommandList);
 }
 
@@ -57,19 +57,19 @@ void CPlayer::ReleaseShaderVariables()
 	if (m_pCamera) m_pCamera->ReleaseShaderVariables();
 }
 
-void CPlayer::Move(DWORD dwDirection, float fDistance, bool bUpdateVelocity)
-{
-	if (dwDirection)
-	{
-		XMFLOAT3 xmf3Shift = XMFLOAT3(0, 0, 0);
-		if (dwDirection & DIR_FORWARD) xmf3Shift = Vector3::Add(xmf3Shift, m_xmf3Look, fDistance);
-		if (dwDirection & DIR_BACKWARD) xmf3Shift = Vector3::Add(xmf3Shift, m_xmf3Look, -fDistance);
-		if (dwDirection & DIR_RIGHT) xmf3Shift = Vector3::Add(xmf3Shift, m_xmf3Right, fDistance);
-		if (dwDirection & DIR_LEFT) xmf3Shift = Vector3::Add(xmf3Shift, m_xmf3Right, -fDistance);
-
-		Move(xmf3Shift, bUpdateVelocity);
-	}
-}
+//void CPlayer::Move(DWORD dwDirection, float fDistance, bool bUpdateVelocity)
+//{
+//	if (dwDirection)
+//	{
+//		XMFLOAT3 xmf3Shift = XMFLOAT3(0, 0, 0);
+//		if (dwDirection & DIR_FORWARD) xmf3Shift = Vector3::Add(xmf3Shift, m_xmf3Look, fDistance);
+//		if (dwDirection & DIR_BACKWARD) xmf3Shift = Vector3::Add(xmf3Shift, m_xmf3Look, -fDistance);
+//		if (dwDirection & DIR_RIGHT) xmf3Shift = Vector3::Add(xmf3Shift, m_xmf3Right, fDistance);
+//		if (dwDirection & DIR_LEFT) xmf3Shift = Vector3::Add(xmf3Shift, m_xmf3Right, -fDistance);
+//
+//		Move(xmf3Shift, bUpdateVelocity);
+//	}
+//}
 
 void CPlayer::Move(const XMFLOAT3& xmf3Shift, bool bUpdateVelocity)
 {
@@ -347,12 +347,12 @@ void CPlayer::Collide(float fElapsedTime, const shared_ptr<CGameObject>& pCollid
 
 void CPlayer::Render(ID3D12GraphicsCommandList* pd3dCommandList)
 {
-	if (m_nClientId == -1)
+	if (m_nClientId == -1 || !m_bAlive)
 	{
 		return;
 	}
 
-	if (m_pCamera->GetMode() == THIRD_PERSON_CAMERA) 
+	if (m_pCamera->GetMode() == THIRD_PERSON_CAMERA || m_nClientId != CGameFramework::GetMainClientId()) 
 	{
 		CGameObject::Render(pd3dCommandList);
 	}
@@ -416,6 +416,9 @@ void CPlayer::SetPickedObject(int nx, int ny, CScene* pScene)
 CBlueSuitPlayer::CBlueSuitPlayer(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dCommandList, ID3D12RootSignature* pd3dGraphicsRootSignature, void* pContext)
 	:CPlayer(pd3dDevice, pd3dCommandList, pd3dGraphicsRootSignature, pContext)
 {
+	m_pCamera->SetFogColor(XMFLOAT4(0.1f, 0.1f, 0.1f, 0.1f));
+	m_pCamera->SetFogInfo(XMFLOAT4(0.0f, 10.0f, 0.10f, 1.0f));
+
 	m_xmf3Scale = XMFLOAT3(1.0f,1.0f,1.0f);
 
 	m_xmf4x4Raider = Matrix4x4::Identity();
@@ -487,24 +490,42 @@ void CBlueSuitPlayer::Rotate(float x, float y, float z)
 	dynamic_pointer_cast<CBlueSuitAnimationController>(m_pSkinnedAnimationController)->SetElbowPitch(m_fPitch);
 }
 
-void CBlueSuitPlayer::Move(DWORD dwDirection, float fDistance, bool bUpdateVelocity)
-{
-	float fLength = sqrtf(m_xmf3Velocity.x * m_xmf3Velocity.x + m_xmf3Velocity.z * m_xmf3Velocity.z);
-
-	if ((dwDirection & LSHIFT) && m_bAbleRun) 
-	{
-		m_bShiftRun = true;
-	}
-	else
-	{
-		m_bShiftRun = false;
-	}
-
-	CPlayer::Move(dwDirection, fDistance, bUpdateVelocity);
-}
+//void CBlueSuitPlayer::Move(DWORD dwDirection, float fDistance, bool bUpdateVelocity)
+//{
+//	float fLength = sqrtf(m_xmf3Velocity.x * m_xmf3Velocity.x + m_xmf3Velocity.z * m_xmf3Velocity.z);
+//
+//	if ((dwDirection & LSHIFT) && m_bAbleRun) 
+//	{
+//		m_bShiftRun = true;
+//	}
+//	else
+//	{
+//		m_bShiftRun = false;
+//	}
+//
+//	CPlayer::Move(dwDirection, fDistance, bUpdateVelocity);
+//}
 
 void CBlueSuitPlayer::Update(float fElapsedTime)
 {
+	if (m_bInterruption)
+	{
+		m_fInterruption += fElapsedTime;
+		if (m_fInterruption > 2.0f)
+		{
+			m_fInterruption = 2.0f;
+		}
+	}
+	else
+	{
+		m_fInterruption -= fElapsedTime;
+		if (m_fInterruption <= 0.0f)
+		{
+			m_fInterruption = 0.0f;
+		}
+	}
+	m_pCamera->SetFogInfo(XMFLOAT4(0.0f, 10.0f, 0.10f + m_fInterruption / 8, 1.0f));
+
 	if (m_bShiftRun)
 	{
 		m_fStamina -= fElapsedTime;
@@ -523,6 +544,7 @@ void CBlueSuitPlayer::Update(float fElapsedTime)
 		}
 	}
 
+	// 카메라 위치 업데이트
 	CPlayer::Update(fElapsedTime);
 
 	if (m_pSkinnedAnimationController)
@@ -846,6 +868,9 @@ XMFLOAT4X4* CBlueSuitPlayer::GetFlashLigthWorldTransform()
 CZombiePlayer::CZombiePlayer(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dCommandList, ID3D12RootSignature* pd3dGraphicsRootSignature, void* pContext)
 	:CPlayer(pd3dDevice, pd3dCommandList, pd3dGraphicsRootSignature, pContext)
 {
+	m_pCamera->SetFogColor(XMFLOAT4(0.5f, 0.5f, 0.5f, 0.5f));
+	m_pCamera->SetFogInfo(XMFLOAT4(1.0f, 10.0f, 0.05f, 1.0f));
+
 	m_xmf3Scale = XMFLOAT3(1.0f, 1.0f, 1.0f);
 	
 	UINT ncbElementBytes = ((sizeof(FrameTimeInfo) + 255) & ~255); //256의 배수

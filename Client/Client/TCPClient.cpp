@@ -125,7 +125,7 @@ void CTcpClient::OnProcessingReadMessage(HWND hWnd, UINT nMessageID, WPARAM wPar
 			break;
 		}
 
-		memcpy(&m_nMainClientID, m_pCurrentBuffer, sizeof(int));
+		memcpy(&m_nMainClientId, m_pCurrentBuffer, sizeof(int));
 		memcpy(&m_nClient, m_pCurrentBuffer + sizeof(int), sizeof(int));
 		break;
 	case HEAD_UPDATE_DATA:
@@ -144,61 +144,25 @@ void CTcpClient::OnProcessingReadMessage(HWND hWnd, UINT nMessageID, WPARAM wPar
 		{
 			if (m_apPlayers[i])
 			{
+				m_apPlayers[i]->SetAlive(m_aClientInfo[i].m_bAlive);
 				m_apPlayers[i]->SetClientId(m_aClientInfo[i].m_nClientId);
 				m_apPlayers[i]->SetPosition(m_aClientInfo[i].m_xmf3Position);
 				m_apPlayers[i]->SetVelocity(m_aClientInfo[i].m_xmf3Velocity);
 				
-				if(i != m_nMainClientID)
+				if(i != m_nMainClientId)
 				{
 					m_apPlayers[i]->SetLook(m_aClientInfo[i].m_xmf3Look);
 					m_apPlayers[i]->SetRight(m_aClientInfo[i].m_xmf3Right);
 				}
 			}
 
-			shared_ptr<CBlueSuitPlayer> pBlueSuitPlayer = dynamic_pointer_cast<CBlueSuitPlayer>(m_apPlayers[i]);
-			if(pBlueSuitPlayer)
+			if (i == 0)
 			{
-				for (int j = 0; j < 3; ++j)
-				{
-					if (m_aClientInfo[i].m_nSlotObjectNum[j] != -1)
-					{
-						shared_ptr<CGameObject> pGameObject = g_collisionManager.GetCollisionObjectWithNumber(m_aClientInfo[i].m_nSlotObjectNum[j]).lock();
-						shared_ptr<CItemObject> pItemObject = dynamic_pointer_cast<CItemObject>(pGameObject);
-						pItemObject->SetObtain(true);
-						pBlueSuitPlayer->SetSlotItem(j, m_aClientInfo[i].m_nSlotObjectNum[j]);
-					}
-					else // -1을 받았는데 플레이어가 가진 Reference값이 -1이 아닌 경우를 생각해야함
-					{
-						if (pBlueSuitPlayer->GetReferenceSlotItemNum(j) != -1)
-						{
-							shared_ptr<CGameObject> pGameObject = g_collisionManager.GetCollisionObjectWithNumber(pBlueSuitPlayer->GetReferenceSlotItemNum(j)).lock();
-							shared_ptr<CItemObject> pItemObject = dynamic_pointer_cast<CItemObject>(pGameObject);
-							pItemObject->SetObtain(false);
-							pBlueSuitPlayer->SetSlotItemEmpty(j);
-						}
-					}
-				}
-
-				for (int j = 0; j < 3; ++j)
-				{
-					if (m_aClientInfo[i].m_nFuseObjectNum[j] != -1)
-					{
-						shared_ptr<CGameObject> pGameObject = g_collisionManager.GetCollisionObjectWithNumber(m_aClientInfo[i].m_nFuseObjectNum[j]).lock();
-						shared_ptr<CItemObject> pItemObject = dynamic_pointer_cast<CItemObject>(pGameObject);
-						pItemObject->SetObtain(true);
-						pBlueSuitPlayer->SetFuseItem(j, m_aClientInfo[i].m_nFuseObjectNum[j]);
-					}
-					else // -1을 받았는데 플레이어가 가진 Reference값이 -1이 아닌 경우를 생각해야함
-					{
-						if (pBlueSuitPlayer->GetReferenceFuseItemNum(j) != -1)
-						{
-							shared_ptr<CGameObject> pGameObject = g_collisionManager.GetCollisionObjectWithNumber(pBlueSuitPlayer->GetReferenceFuseItemNum(j)).lock();
-							shared_ptr<CItemObject> pItemObject = dynamic_pointer_cast<CItemObject>(pGameObject);
-							pItemObject->SetObtain(false);
-							pBlueSuitPlayer->SetFuseItemEmpty(j);
-						}
-					}
-				}
+				UpdateZombiePlayer();
+			}
+			else
+			{
+				UpdatePlayerItem(i);
 			}
 
 			int nNumOfGameObject = m_aClientInfo[i].m_nNumOfObject;
@@ -266,7 +230,7 @@ void CTcpClient::OnProcessingWriteMessage(HWND hWnd, UINT nMessageID, WPARAM wPa
 	size_t nBufferSize = sizeof(int);
 	int nHead;
 	int nRetval;
-	if (m_nMainClientID == -1  || m_bRecvDelayed == true)	// 아직 ID를 넘겨 받지 못했거나 딜레이 되었다.
+	if (m_nMainClientId == -1  || m_bRecvDelayed == true)	// 아직 ID를 넘겨 받지 못했거나 딜레이 되었다.
 	{
 		return;
 	}
@@ -296,9 +260,9 @@ void CTcpClient::OnProcessingWriteMessage(HWND hWnd, UINT nMessageID, WPARAM wPa
 							nHead,
 							now,
 							keysBuffer,
-							m_apPlayers[m_nMainClientID]->GetCamera()->GetViewMatrix(),
-							m_apPlayers[m_nMainClientID]->GetLook(), 
-							m_apPlayers[m_nMainClientID]->GetRight());
+							m_apPlayers[m_nMainClientId]->GetCamera()->GetViewMatrix(),
+							m_apPlayers[m_nMainClientId]->GetLook(), 
+							m_apPlayers[m_nMainClientId]->GetRight());
 
 		if (nRetval == -1 && WSAGetLastError() == WSAEWOULDBLOCK)
 		{
@@ -359,5 +323,97 @@ int CTcpClient::RecvData(SOCKET socket, size_t nBufferSize)
 		m_nCurrentRecvByte = 0;
 		m_bRecvDelayed = false;
 		return 0;
+	}
+}
+
+void CTcpClient::UpdateZombiePlayer()
+{
+	shared_ptr<CZombiePlayer> pZombiePlayer = dynamic_pointer_cast<CZombiePlayer>(m_apPlayers[0]);
+	if (!pZombiePlayer)
+	{
+		return;
+	}
+
+	if (m_aClientInfo[0].m_nSlotObjectNum[0] == 1)	// 추적
+	{
+
+	}
+
+	if (m_aClientInfo[0].m_nSlotObjectNum[1] == 1)	// 시야방해
+	{
+		// 모든 플레이어의 안개효과 심화됨 ( 내 플레이어 안개만 조정하면 됨 )
+		for (int i = 1; i < MAX_CLIENT; ++i)
+		{
+			if (m_apPlayers[i]->GetClientId() != m_nMainClientId)
+			{
+				continue;
+			}
+			dynamic_pointer_cast<CBlueSuitPlayer>(m_apPlayers[i])->SetInterruption(true);
+		}
+	}
+	else
+	{
+		for (int i = 1; i < MAX_CLIENT; ++i)
+		{
+			if (m_apPlayers[i]->GetClientId() != m_nMainClientId)
+			{
+				continue;
+			}
+			dynamic_pointer_cast<CBlueSuitPlayer>(m_apPlayers[i])->SetInterruption(false);
+		}
+	}
+
+	if (m_aClientInfo[0].m_nSlotObjectNum[2] == 1)	// 공격을 시도
+	{
+		pZombiePlayer->m_pSkinnedAnimationController->SetTrackEnable(2, true);
+	}
+}
+
+void CTcpClient::UpdatePlayerItem(int nIndex)
+{
+	shared_ptr<CBlueSuitPlayer> pBlueSuitPlayer = dynamic_pointer_cast<CBlueSuitPlayer>(m_apPlayers[nIndex]);
+	if (pBlueSuitPlayer)
+	{
+		for (int j = 0; j < 3; ++j)
+		{
+			if (m_aClientInfo[nIndex].m_nSlotObjectNum[j] != -1)
+			{
+				shared_ptr<CGameObject> pGameObject = g_collisionManager.GetCollisionObjectWithNumber(m_aClientInfo[nIndex].m_nSlotObjectNum[j]).lock();
+				shared_ptr<CItemObject> pItemObject = dynamic_pointer_cast<CItemObject>(pGameObject);
+				pItemObject->SetObtain(true);
+				pBlueSuitPlayer->SetSlotItem(j, m_aClientInfo[nIndex].m_nSlotObjectNum[j]);
+			}
+			else // -1을 받았는데 플레이어가 가진 Reference값이 -1이 아닌 경우를 생각해야함
+			{
+				if (pBlueSuitPlayer->GetReferenceSlotItemNum(j) != -1)
+				{
+					shared_ptr<CGameObject> pGameObject = g_collisionManager.GetCollisionObjectWithNumber(pBlueSuitPlayer->GetReferenceSlotItemNum(j)).lock();
+					shared_ptr<CItemObject> pItemObject = dynamic_pointer_cast<CItemObject>(pGameObject);
+					pItemObject->SetObtain(false);
+					pBlueSuitPlayer->SetSlotItemEmpty(j);
+				}
+			}
+		}
+
+		for (int j = 0; j < 3; ++j)
+		{
+			if (m_aClientInfo[nIndex].m_nFuseObjectNum[j] != -1)
+			{
+				shared_ptr<CGameObject> pGameObject = g_collisionManager.GetCollisionObjectWithNumber(m_aClientInfo[nIndex].m_nFuseObjectNum[j]).lock();
+				shared_ptr<CItemObject> pItemObject = dynamic_pointer_cast<CItemObject>(pGameObject);
+				pItemObject->SetObtain(true);
+				pBlueSuitPlayer->SetFuseItem(j, m_aClientInfo[nIndex].m_nFuseObjectNum[j]);
+			}
+			else // -1을 받았는데 플레이어가 가진 Reference값이 -1이 아닌 경우를 생각해야함
+			{
+				if (pBlueSuitPlayer->GetReferenceFuseItemNum(j) != -1)
+				{
+					shared_ptr<CGameObject> pGameObject = g_collisionManager.GetCollisionObjectWithNumber(pBlueSuitPlayer->GetReferenceFuseItemNum(j)).lock();
+					shared_ptr<CItemObject> pItemObject = dynamic_pointer_cast<CItemObject>(pGameObject);
+					pItemObject->SetObtain(false);
+					pBlueSuitPlayer->SetFuseItemEmpty(j);
+				}
+			}
+		}
 	}
 }

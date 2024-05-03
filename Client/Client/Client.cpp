@@ -66,8 +66,7 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
 		}
 		else
 		{
-			//int nClientId = gGameFramework.m_pTcpClient->GetClientId();
-			int nClientId = gGameFramework.GetClientId();
+			int nClientId = gGameFramework.GetClientIdFromTcpClient();
 			if (nClientId != -1)
 			{
 				break;

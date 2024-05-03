@@ -310,27 +310,40 @@ void CScene::BuildObjects(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* p
 	//Player 생성 + 아이템
 	for (int i = 0; i < MAX_CLIENT; ++i)
 	{
-		m_apPlayer[i] = std::make_shared<CZombiePlayer>(pd3dDevice, pd3dCommandList, m_pd3dGraphicsRootSignature.Get(), nullptr);
-		//shared_ptr<CLoadedModelInfo> pBlueSuitPlayerModel = CGameObject::LoadGeometryAndAnimationFromFile(pd3dDevice, pd3dCommandList, m_pd3dGraphicsRootSignature.Get(), "Asset/Model/BlueSuitFree01.bin",MeshType::Standard);
-		//m_apPlayer[i]->LoadModelAndAnimation(pd3dDevice, pd3dCommandList, m_pd3dGraphicsRootSignature.Get(), pBlueSuitPlayerModel);
-		shared_ptr<CLoadedModelInfo> pZombiePlayerModel = CGameObject::LoadGeometryAndAnimationFromFile(pd3dDevice, pd3dCommandList, m_pd3dGraphicsRootSignature.Get(), "Asset/Model/Zom_1.bin", MeshType::Standard);
-		m_apPlayer[i]->LoadModelAndAnimation(pd3dDevice, pd3dCommandList, m_pd3dGraphicsRootSignature.Get(), pZombiePlayerModel);
-		m_vShader[SKINNEDANIMATION_STANDARD_SHADER]->AddGameObject(m_apPlayer[i]);
+		if (i == 0)
+		{
+			m_apPlayer[i] = std::make_shared<CZombiePlayer>(pd3dDevice, pd3dCommandList, m_pd3dGraphicsRootSignature.Get(), nullptr);
+			shared_ptr<CLoadedModelInfo> pZombiePlayerModel = CGameObject::LoadGeometryAndAnimationFromFile(pd3dDevice, pd3dCommandList, m_pd3dGraphicsRootSignature.Get(), "Asset/Model/Zom_1.bin", MeshType::Standard);
+			m_apPlayer[i]->LoadModelAndAnimation(pd3dDevice, pd3dCommandList, m_pd3dGraphicsRootSignature.Get(), pZombiePlayerModel);
+			m_vShader[SKINNEDANIMATION_STANDARD_SHADER]->AddGameObject(m_apPlayer[i]);
+
+			continue;
+		}
+		else
+		{
+			m_apPlayer[i] = std::make_shared<CBlueSuitPlayer>(pd3dDevice, pd3dCommandList, m_pd3dGraphicsRootSignature.Get(), nullptr);
+			shared_ptr<CLoadedModelInfo> pBlueSuitPlayerModel = CGameObject::LoadGeometryAndAnimationFromFile(pd3dDevice, pd3dCommandList, m_pd3dGraphicsRootSignature.Get(), "Asset/Model/BlueSuitFree01.bin",MeshType::Standard);
+			m_apPlayer[i]->LoadModelAndAnimation(pd3dDevice, pd3dCommandList, m_pd3dGraphicsRootSignature.Get(), pBlueSuitPlayerModel);
+			m_vShader[SKINNEDANIMATION_STANDARD_SHADER]->AddGameObject(m_apPlayer[i]);
+		}
 
 		//플래시라이트모델 로드
-		shared_ptr<CTeleportObject> flashLight = make_shared<CTeleportObject>(pd3dDevice, pd3dCommandList, m_pd3dGraphicsRootSignature.Get());
-		shared_ptr<CLoadedModelInfo> pflashLightModel = CGameObject::LoadGeometryAndAnimationFromFile(pd3dDevice, pd3dCommandList, m_pd3dGraphicsRootSignature.Get(), (char*)"Asset/Model/Flashlight.bin", MeshType::Standard);
-		flashLight->LoadModelAndAnimation(pd3dDevice, pd3dCommandList, m_pd3dGraphicsRootSignature.Get(), pflashLightModel);
-		m_vShader[STANDARD_SHADER]->AddGameObject(flashLight);
+		shared_ptr<CTeleportObject> pFlashLight = make_shared<CTeleportObject>(pd3dDevice, pd3dCommandList, m_pd3dGraphicsRootSignature.Get());
+		shared_ptr<CLoadedModelInfo> pFlashLightModel = CGameObject::LoadGeometryAndAnimationFromFile(pd3dDevice, pd3dCommandList, m_pd3dGraphicsRootSignature.Get(), (char*)"Asset/Model/Flashlight.bin", MeshType::Standard);
+		pFlashLight->LoadModelAndAnimation(pd3dDevice, pd3dCommandList, m_pd3dGraphicsRootSignature.Get(), pFlashLightModel);
+		m_vShader[STANDARD_SHADER]->AddGameObject(pFlashLight);
 
 		//레이더모델 로드
 		shared_ptr<CLoadedModelInfo> pRaiderModel = CGameObject::LoadGeometryAndAnimationFromFile(pd3dDevice, pd3dCommandList, m_pd3dGraphicsRootSignature.Get(), (char*)"Asset/Model/레이더.bin", MeshType::Standard);
 		m_vShader[STANDARD_SHADER]->AddGameObject(pRaiderModel->m_pModelRootObject);
 
-		auto player = dynamic_pointer_cast<CBlueSuitPlayer>(m_apPlayer[i]);
-		if (player) {
-			dynamic_pointer_cast<CBlueSuitPlayer>(m_apPlayer[i])->SetFlashLight(flashLight);
-			dynamic_pointer_cast<CBlueSuitPlayer>(m_apPlayer[i])->SetRaider(pRaiderModel->m_pModelRootObject);
+		shared_ptr<CBlueSuitPlayer> pBlueSuitPlayer = dynamic_pointer_cast<CBlueSuitPlayer>(m_apPlayer[i]);
+		if (pBlueSuitPlayer)
+		{
+			pBlueSuitPlayer->SetFlashLight(pFlashLight);
+			pBlueSuitPlayer->SetRaider(pRaiderModel->m_pModelRootObject);
+			/*dynamic_pointer_cast<CBlueSuitPlayer>(m_apPlayer[i])->SetFlashLight(flashLight);
+			dynamic_pointer_cast<CBlueSuitPlayer>(m_apPlayer[i])->SetRaider(pRaiderModel->m_pModelRootObject);*/
 		}
 	}
 	
@@ -464,9 +477,7 @@ void CScene::BuildLights()
 	m_pLights[0].m_xmf3Attenuation = XMFLOAT3(1.0f, -0.1f, 0.01f);
 	m_pLights[0].m_fFalloff        = 1.0f;
 	m_pLights[0].m_fPhi            = (float)cos(XMConvertToRadians(35.0f));
-	m_pLights[0].m_fTheta          = (float)cos(XMConvertToRadians(25.0f));
-
-	
+	m_pLights[0].m_fTheta          = (float)cos(XMConvertToRadians(25.0f));	
 }
 
 void CScene::LoadScene(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dCommandList)

@@ -11,6 +11,7 @@
  extern UINT gnDsvDescriptorIncrementSize;
 
  UCHAR CGameFramework::m_pKeysBuffer[256] = {};
+ int CGameFramework::m_nMainClientId = -1;
 
  CGameFramework::CGameFramework()
 {
@@ -468,10 +469,6 @@ void CGameFramework::OnProcessingMouseMessage(HWND hWnd, UINT nMessageID, WPARAM
 		{
 			break;
 		}
-		if(dynamic_cast<CZombiePlayer*>(m_pMainPlayer.get()))
-		{
-			m_pMainPlayer->m_pSkinnedAnimationController->SetTrackEnable(2, true);
-		}
 		break;
 	case WM_RBUTTONDOWN:
 		m_pMainPlayer->SetPickedObject(LOWORD(lParam), HIWORD(lParam), m_pScene.get());
@@ -540,30 +537,6 @@ void CGameFramework::OnProcessingKeyboardMessage(HWND hWnd, UINT nMessageID, WPA
 			m_pMainPlayer->SetPosition(Vector3::Add(m_pMainPlayer->GetPosition(), xmf3Shift));
 		}
 			break;
-		//case 'E': //상호작용
-		//	if (!m_pMainPlayer)
-		//	{
-		//		break;
-		//	}
-		//	if (shared_ptr<CGameObject> pPickedObject = m_pMainPlayer->GetPickedObject().lock())
-		//	{
-		//		m_pMainPlayer->UpdatePicking();
-		//	}
-		//	break;
-		//case '1':
-		//	//uiX += 10.f;
-		//	break;
-		//case '2':
-		//	//uiY += 10.f;
-		//	break;
-		//case '3':
-		//case '4':
-		//	if (!m_pMainPlayer)
-		//	{
-		//		break;
-		//	}
-		//	m_pMainPlayer->UseItem(wParam - '1');
-		//	break;
 		default:
 			break;
 		}
@@ -633,6 +606,7 @@ UCHAR* CGameFramework::GetKeysBuffer()
 
 void CGameFramework::SetPlayerObjectOfClient(int nClientId)
 {
+	m_nMainClientId = nClientId;
 	m_pMainPlayer = m_apPlayer[nClientId];
 	m_pMainPlayer->GetCamera()->SetPlayer(m_pMainPlayer);
 	m_pCamera = m_pMainPlayer->GetCamera();

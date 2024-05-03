@@ -83,6 +83,9 @@ public:
 	D3D12_GPU_DESCRIPTOR_HANDLE GetDescriptorHandle();
 	void SetDescriptorHandle(D3D12_GPU_DESCRIPTOR_HANDLE handle);
 
+	void SetFogColor(const XMFLOAT4& xmf4FogColor) { m_xmf4FogColor = xmf4FogColor; }
+	void SetFogInfo(const XMFLOAT4& xmf4FogInfo) { m_xmf4FogInfo = xmf4FogInfo; }
+
 protected:
 	XMFLOAT3						m_xmf3Position;
 	XMFLOAT3						m_xmf3Right;
