@@ -344,7 +344,7 @@ void CFuseObject::Animate(float fElapsedTime)
 void CFuseObject::UpdatePicking()
 {
 	m_bObtained = true;
-	m_bCollsion = false;
+	m_bCollision = false;
 }
 
 void CFuseObject::UpdateUsing(const shared_ptr<CGameObject>& pGameObject)
@@ -355,7 +355,7 @@ void CFuseObject::UpdateUsing(const shared_ptr<CGameObject>& pGameObject)
 		return;
 	}
 	m_bObtained = false;
-	m_bCollsion = true;
+	m_bCollision = true;
 }
 
 /// <CGameObject - CFuseObject>

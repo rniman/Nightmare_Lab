@@ -320,7 +320,11 @@ public:
 	XMFLOAT3 GetBoneFrameLookVector(int index);
 	XMFLOAT3 GetBoneFrameRightVector(int index);
 	XMFLOAT3 GetBoneFrameUpVector(int index);
+
+	bool IsAnimation() const { return m_bAnimation; }
 public:
+	bool m_bAnimation = true;	// false가 되면 완전히 죽어서 이후 아무것도 안함
+
 	float 							m_fTime = 0.0f;
 
 	int	m_nAnimationTracks = 0;
@@ -449,8 +453,8 @@ public:
 	void LoadBoundingBox(vector<BoundingOrientedBox>& voobbOrigin);
 
 	// Picking
-	void SetCollision(bool bCollision) { m_bCollsion = bCollision; }
-	bool GetCollision()const { return m_bCollsion; }
+	void SetCollision(bool bCollision) { m_bCollision = bCollision; }
+	bool GetCollision()const { return m_bCollision; }
 
 	bool IsAlive() const { return m_bAlive; }
 	void SetAlive(bool bAlive) { m_bAlive = bAlive; }
@@ -488,7 +492,7 @@ public:
 
 	bool m_bAlive = true;
 	vector<BoundingOrientedBox> m_voobbOrigin;
-	bool m_bCollsion = true;
+	bool m_bCollision = true;
 	int m_nCollisionType = 0; // 0:None, 1:Standard, 2:Picking
 	int m_nCollisionNum = -1;
 

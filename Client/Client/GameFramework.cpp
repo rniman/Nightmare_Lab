@@ -471,8 +471,6 @@ void CGameFramework::OnProcessingMouseMessage(HWND hWnd, UINT nMessageID, WPARAM
 		}
 		break;
 	case WM_RBUTTONDOWN:
-		m_pMainPlayer->SetPickedObject(LOWORD(lParam), HIWORD(lParam), m_pScene.get());
-		m_pMainPlayer->SetRightClick(true);
 		break;
 	case WM_LBUTTONUP:
 	case WM_RBUTTONUP:
@@ -764,7 +762,8 @@ void CGameFramework::ProcessInput()
 			{
 				if (m_pKeysBuffer[VK_LBUTTON] & 0xF0)
 				{
-					m_pMainPlayer->Rotate(cyDelta, cxDelta, 0.0f);
+					if(m_pMainPlayer->m_bAlive || !m_pMainPlayer->m_pSkinnedAnimationController->IsAnimation())
+						m_pMainPlayer->Rotate(cyDelta, cxDelta, 0.0f);
 				}
 			}
 

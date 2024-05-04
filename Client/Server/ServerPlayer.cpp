@@ -12,22 +12,22 @@ CServerPlayer::CServerPlayer()
 	uniform_int_distribution<int> disFloatPosition(0, 15);
 
 	array<XMFLOAT3, 16> axmf3Positions = {
-		XMFLOAT3(9.f, 0.0f, 13.9),
-		XMFLOAT3(9.f, 0.0f, -13.9),
-		XMFLOAT3(-9.f, 0.0f, 13.9),
-		XMFLOAT3(-9.f, 0.0f, -13.9),
-		XMFLOAT3(9.f, 4.5f, 13.9),
-		XMFLOAT3(9.f, 4.5f, -13.9),
-		XMFLOAT3(-9.f, 4.5f, 13.9),
-		XMFLOAT3(-9.f, 4.5f, -13.9),
-		XMFLOAT3(-9.f, 9.0f, -13.9),
-		XMFLOAT3(9.f, 9.0f, -13.9),
-		XMFLOAT3(-9.f, 9.0f, 13.9),
-		XMFLOAT3(-9.f, 9.0f, -13.9),
-		XMFLOAT3(-9.f, 13.5f, -13.9),
-		XMFLOAT3(9.f, 13.5f, -13.9),
-		XMFLOAT3(-9.f, 13.5f, 13.9),
-		XMFLOAT3(-9.f, 13.5f, -13.9)
+		XMFLOAT3(10.0f, 0.0f, 13.5),
+		XMFLOAT3(10.0f, 0.0f, -13.5),
+		XMFLOAT3(-10.0f, 0.0f, 13.5),
+		XMFLOAT3(-10.0f, 0.0f, -13.5),
+		XMFLOAT3(10.0f, 4.5f, 13.5),
+		XMFLOAT3(10.0f, 4.5f, -13.5),
+		XMFLOAT3(-10.0f, 4.5f, 13.5),
+		XMFLOAT3(-10.0f, 4.5f, -13.5),
+		XMFLOAT3(-10.0f, 9.0f, -13.5),
+		XMFLOAT3(10.0f, 9.0f, -13.5),
+		XMFLOAT3(-10.0f, 9.0f, 13.5),
+		XMFLOAT3(-10.0f, 9.0f, -13.5),
+		XMFLOAT3(-10.0f, 13.5f, -13.5),
+		XMFLOAT3(10.0f, 13.5f, -13.5),
+		XMFLOAT3(-10.0f, 13.5f, 13.5),
+		XMFLOAT3(-10.0f, 13.5f, -13.5)
 	};
 
 	m_xmf3Position = axmf3Positions[disFloatPosition(TCPServer::m_mt19937Gen)];
@@ -46,7 +46,7 @@ CServerPlayer::CServerPlayer()
 	SetFriction(250.0f);
 	SetGravity(XMFLOAT3(0.0f, 0.0f, 0.0f));
 	SetMaxVelocityXZ(8.0f);
-	SetMaxVelocityY(40.0f);
+	SetMaxVelocityY(8.0f);
 
 	m_xmf4x4Projection = Matrix4x4::PerspectiveFovLH(XMConvertToRadians(60.0f), ASPECT_RATIO, 0.01f, 100.0f); // 1ÀÎÄª
 	//m_xmf4x4Projection = Matrix4x4::PerspectiveFovLH(XMConvertToRadians(60.0f), ASPECT_RATIO, 1.01f, 100.0f);
@@ -56,11 +56,6 @@ CServerPlayer::CServerPlayer()
 
 void CServerPlayer::Update(float fElapsedTime)
 {
-	if (m_nPlayerId == -1)
-	{
-		return;
-	}
-
 	m_fCoolTimeInvincibility -= fElapsedTime;
 	if (m_bInvincibility && m_fCoolTimeInvincibility < 0.0f)
 	{
@@ -75,6 +70,24 @@ void CServerPlayer::Update(float fElapsedTime)
 	if (m_pKeysBuffer['S'] & 0xF0) dwDirection |= DIR_BACKWARD;
 	if (m_pKeysBuffer['A'] & 0xF0) dwDirection |= DIR_LEFT;
 	if (m_pKeysBuffer['D'] & 0xF0) dwDirection |= DIR_RIGHT;
+
+	if (!m_bAlive)
+	{
+		if (m_fDeathTime < 4.0f)
+		{
+			m_fDeathTime += fElapsedTime;
+			return;
+		}
+
+		XMFLOAT3 xmf3Shift = XMFLOAT3(0, 0, 0);
+		if (dwDirection & DIR_FORWARD) xmf3Shift = Vector3::Add(xmf3Shift, m_xmf3Look, 12.5f * fElapsedTime);
+		if (dwDirection & DIR_BACKWARD) xmf3Shift = Vector3::Add(xmf3Shift, m_xmf3Look, -12.5f * fElapsedTime);
+		if (dwDirection & DIR_RIGHT) xmf3Shift = Vector3::Add(xmf3Shift, m_xmf3Right, 12.5f * fElapsedTime);
+		if (dwDirection & DIR_LEFT) xmf3Shift = Vector3::Add(xmf3Shift, m_xmf3Right, -12.5f * fElapsedTime);
+
+		Move(xmf3Shift, false);
+		return;
+	}
 
 	if (dwDirection)
 	{
@@ -269,6 +282,14 @@ void CServerPlayer::CalculateSpace()
 	m_nWidth = static_cast<int>((m_xmf3Position.x - GRID_START_X) / SPACE_SIZE_XZ);
 	m_nFloor = static_cast<int>((m_xmf3Position.y - GRID_START_Y) / SPACE_SIZE_Y);
 	m_nDepth = static_cast<int>((m_xmf3Position.z - GRID_START_Z) / SPACE_SIZE_XZ);
+
+	if (m_nWidth < 0) m_nWidth = 0;
+	if (m_nDepth < 0) m_nDepth = 0;
+	if (m_nFloor < 0) m_nFloor = 0;
+
+	if (m_nWidth >= SPACE_WIDTH) m_nWidth = SPACE_WIDTH - 1;
+	if (m_nDepth >= SPACE_DEPTH) m_nDepth = SPACE_DEPTH - 1;
+	if (m_nFloor >= SPACE_FLOOR) m_nFloor = SPACE_FLOOR - 1;
 }
 
 void CServerPlayer::OnUpdateToParent()
@@ -285,13 +306,10 @@ void CServerPlayer::OnUpdateToParent()
 
 void CServerPlayer::SetPickedObject(const shared_ptr<CServerCollisionManager> pCollisionManager)
 {
-	if (!IsRecvData())
+	if (!IsRecvData() || !IsAlive())
 	{
 		return;
 	}
-
-	//if (!(m_pKeysBuffer[VK_RBUTTON] & 0xF0))
-	//	return;
 
 	m_pPickedObject.reset();
 
@@ -386,6 +404,11 @@ CServerBlueSuitPlayer::CServerBlueSuitPlayer()
 
 void CServerBlueSuitPlayer::UseItem(shared_ptr<CServerCollisionManager>& pCollisionManager)
 {
+	if (!IsAlive()) // Á×À½
+	{
+		return;
+	}
+
 	array<shared_ptr<CServerGameObject>,3> apObjects;
 	if (m_pKeysBuffer['1'] & 0xF0)
 	{
@@ -444,6 +467,11 @@ void CServerBlueSuitPlayer::Update(float fElapsedTime)
 
 void CServerBlueSuitPlayer::UpdatePicking()
 {
+	if (!IsAlive()) // Á×À½
+	{
+		return;
+	}
+
 	shared_ptr<CServerGameObject> pPickedObject = m_pPickedObject.lock();
 	if (!pPickedObject)
 	{
@@ -482,6 +510,7 @@ void CServerBlueSuitPlayer::Hit()
 	{
 		m_bCollision = false;
 		m_bAlive = false;
+		m_xmf3OldPosition = m_xmf3Position;
 	}
 }
 

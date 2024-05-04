@@ -389,3 +389,39 @@ float4 PSTransparent(VS_STANDARD_OUTPUT input) : SV_Target
     cColor.w *= 0.5f; // 알파값 조절 
     return cColor;
 }
+
+
+//UI Shader
+struct VS_USER_INTERFACE_INPUT
+{
+    float3 position : POSITION;
+    float2 uv : TEXCOORD;
+};
+
+struct VS_USER_INTERFACE_OUTPUT
+{
+    float4 position : SV_POSITION;
+    float2 uv : TEXCOORD;
+};
+
+// 정점 쉐이더를 정의한다.
+VS_USER_INTERFACE_OUTPUT VSUserInterface(VS_USER_INTERFACE_INPUT input)
+{
+    VS_USER_INTERFACE_OUTPUT output;
+
+    //float4 positionW = float4(input.position, 1.0f); -> 나중에 UI추가될때 월드 하고 곱하기
+    output.position = float4(input.position.xy, 0.0f, 1.0f);
+    output.uv = input.uv;
+    
+    return output;
+}
+
+// 픽셀 쉐이더를 정의한다.
+float4 PSUserInterface(VS_USER_INTERFACE_OUTPUT input) : SV_TARGET
+{
+    float4 cAlbedoColor = float4(1.0f, 1.0f, 0.0f, 1.0f);
+    
+    cAlbedoColor = AlbedoTexture.Sample(gssWrap, input.uv);
+    cAlbedoColor.b = 1.0f;
+    return float4(cAlbedoColor);
+}

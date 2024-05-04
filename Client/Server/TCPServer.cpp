@@ -151,7 +151,7 @@ void TCPServer::OnProcessingReadMessage(HWND hWnd, UINT nMessageID, WPARAM wPara
 		std::chrono::time_point<std::chrono::steady_clock> client;
 
 		// Time, KeysBuffer, viewMatrix, vecLook, vecRight
-		nBufferSize = sizeof(__int64) + sizeof(UCHAR[256]) + sizeof(XMFLOAT4X4) + sizeof(XMFLOAT3) * 2 + sizeof(SC_ANIMATION_INFO) + sizeof(SC_PLAYER_INFO);
+		nBufferSize = sizeof(__int64) + sizeof(UCHAR[256]) + sizeof(XMFLOAT4X4) + sizeof(XMFLOAT3) * 3 + sizeof(SC_ANIMATION_INFO) + sizeof(SC_PLAYER_INFO);
 		m_vSocketInfoList[nSocketIndex].RecvNum++;
 		nRetval = RecvData(nSocketIndex, nBufferSize);
 		if (nRetval == SOCKET_ERROR)
@@ -173,13 +173,16 @@ void TCPServer::OnProcessingReadMessage(HWND hWnd, UINT nMessageID, WPARAM wPara
 		pPlayer->SetViewMatrix(xmf4x4View);
 		sizeOffset += sizeof(XMFLOAT4X4);
 
-		XMFLOAT3 xmf3Look, xmf3Right;
+		XMFLOAT3 xmf3Look, xmf3Right, xmf3Up;
 		memcpy(&xmf3Look, m_vSocketInfoList[nSocketIndex].m_pCurrentBuffer + sizeOffset, sizeof(XMFLOAT3));
 		sizeOffset += sizeof(XMFLOAT3);
 		memcpy(&xmf3Right, m_vSocketInfoList[nSocketIndex].m_pCurrentBuffer + sizeOffset, sizeof(XMFLOAT3));
 		sizeOffset += sizeof(XMFLOAT3);
+		memcpy(&xmf3Up, m_vSocketInfoList[nSocketIndex].m_pCurrentBuffer + sizeOffset, sizeof(XMFLOAT3));
+		sizeOffset += sizeof(XMFLOAT3);
 		pPlayer->SetLook(xmf3Look);
 		pPlayer->SetRight(xmf3Right);
+		pPlayer->SetUp(xmf3Up);
 
 		SC_ANIMATION_INFO animationInfo;
 		memcpy(&animationInfo, m_vSocketInfoList[nSocketIndex].m_pCurrentBuffer + sizeOffset, sizeof(SC_ANIMATION_INFO)); 
@@ -314,7 +317,7 @@ bool TCPServer::Init(HWND hWnd)
 	}
 
 	m_pCollisionManager = make_shared<CServerCollisionManager>();
-	m_pCollisionManager->CreateCollision(4, 10, 10);
+	m_pCollisionManager->CreateCollision(SPACE_FLOOR, SPACE_WIDTH, SPACE_DEPTH);
 
 	// 씬 생성
 	LoadScene();
@@ -338,19 +341,8 @@ void TCPServer::SimulationLoop()
 			continue;
 		}
 
-		if (!pPlayer->IsAlive())
-		{
-			continue;
-		}
-
 		pPlayer->SetPickedObject(m_pCollisionManager);	
-		if (pPlayer->GetPickedObject().lock())
-		{
-			//char buf[256];
-			//pPlayer->GetPickedObject().lock()->GetFrameName();
-			//memcpy(buf, pPlayer->GetPickedObject().lock()->GetFrameName(), 256);
-			//printf("%s\t", buf);
-		}
+
 		pPlayer->RightClickProcess(m_pCollisionManager);
 		pPlayer->UseItem(m_pCollisionManager);
 		pPlayer->Update(fElapsedTime);
@@ -509,7 +501,7 @@ void TCPServer::UpdateInformation()
 		}
 		// 업데이트 오브젝트는 리셋
 		m_aUpdateInfo[nPlayerId].m_nNumOfObject = 0;
-		for (int i = 0; i < 20; ++i)
+		for (int i = 0; i < MAX_SEND_OBJECT_INFO; ++i)
 		{
 			m_aUpdateInfo[nPlayerId].m_anObjectNum[i] = -1;
 		}

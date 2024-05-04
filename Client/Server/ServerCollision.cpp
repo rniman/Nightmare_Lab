@@ -85,7 +85,7 @@ void CServerCollisionManager::Update(float fElapsedTime)
 
 void CServerCollisionManager::Collide(float fElapsedTime, const shared_ptr<CServerPlayer>& pPlayer)
 {
-	if (!pPlayer || pPlayer->GetPlayerId() == -1)
+	if (!pPlayer->IsAlive()) // Á×À½
 	{
 		return;
 	}
@@ -108,7 +108,7 @@ void CServerCollisionManager::Collide(float fElapsedTime, const shared_ptr<CServ
 			continue;
 		}
 
-		if (!pOtherPlayer->IsCollision())	// Ãæµ¹ °Ë»ç ´ë»óÀÌ ¾Æ´Ô(EX: Á×À½)
+		if (!pOtherPlayer->IsAlive() || !pOtherPlayer->IsCollision())	// Ãæµ¹ °Ë»ç ´ë»óÀÌ ¾Æ´Ô(EX: Á×À½)
 		{
 			continue;
 		}

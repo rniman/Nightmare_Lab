@@ -94,24 +94,89 @@ void CPlayer::Rotate(float x, float y, float z)
 	DWORD nCurrentCameraMode = m_pCamera->GetMode();
 	if ((nCurrentCameraMode == FIRST_PERSON_CAMERA) || (nCurrentCameraMode == THIRD_PERSON_CAMERA))
 	{
-		if (x != 0.0f)
+		if(m_bAlive)
 		{
-			m_fPitch += x;
-			if (m_fPitch > +89.0f) { x -= (m_fPitch - 89.0f); m_fPitch = +89.0f; }
-			if (m_fPitch < -89.0f) { x -= (m_fPitch + 89.0f); m_fPitch = -89.0f; }
+			if (x != 0.0f)
+			{
+				m_fPitch += x;
+				if (m_fPitch > +89.0f)
+				{
+					x -= (m_fPitch - 89.0f);
+					m_fPitch = +89.0f;
+				}
+				if (m_fPitch < -89.0f)
+				{
+					x -= (m_fPitch + 89.0f);
+					m_fPitch = -89.0f;
+				}
+			}
+			if (y != 0.0f)
+			{
+				m_fYaw += y;
+				if (m_fYaw > 360.0f)
+				{
+					m_fYaw -= 360.0f;
+				}
+				if (m_fYaw < 0.0f)
+				{
+					m_fYaw += 360.0f;
+				}
+			}
+			if (z != 0.0f)
+			{
+				m_fRoll += z;
+				if (m_fRoll > +20.0f)
+				{
+					z -= (m_fRoll - 20.0f);
+					m_fRoll = +20.0f;
+				}
+				if (m_fRoll < -20.0f)
+				{
+					z -= (m_fRoll + 20.0f);
+					m_fRoll = -20.0f;
+				}
+			}
 		}
-		if (y != 0.0f)
+		else 
 		{
-			m_fYaw += y;
-			if (m_fYaw > 360.0f) m_fYaw -= 360.0f;
-			if (m_fYaw < 0.0f) m_fYaw += 360.0f;
+			if (x != 0.0f)
+			{
+				m_fPitch += x;
+				if (m_fPitch < -180.0f)
+				{
+					m_fPitch = 360.0f + m_fPitch;
+				}
+				if (m_fPitch > 180.0f)
+				{
+					m_fPitch = -360.0f + m_fPitch;
+				}
+			}
+			if (y != 0.0f)
+			{
+				m_fYaw += y;
+				if (m_fYaw < -180.0f)
+				{
+					m_fYaw = 360.0f + m_fYaw;
+				}
+				if (m_fYaw > 180.0f)
+				{
+					m_fYaw = -360.0f + m_fYaw;
+				}
+			}
+			if (z != 0.0f)
+			{
+				m_fRoll += z;
+				if (m_fRoll < -180.0f)
+				{
+					m_fRoll = 360.0f + m_fRoll;
+				}
+				if (m_fRoll > 180.0f)
+				{
+					m_fRoll = -360.0f + m_fRoll;
+				}
+			}
 		}
-		if (z != 0.0f)
-		{
-			m_fRoll += z;
-			if (m_fRoll > +20.0f) { z -= (m_fRoll - 20.0f); m_fRoll = +20.0f; }
-			if (m_fRoll < -20.0f) { z -= (m_fRoll + 20.0f); m_fRoll = -20.0f; }
-		}
+
 		m_pCamera->Rotate(m_fPitch, m_fYaw, m_fRoll);
 		if (y != 0.0f)
 		{
@@ -347,69 +412,16 @@ void CPlayer::Collide(float fElapsedTime, const shared_ptr<CGameObject>& pCollid
 
 void CPlayer::Render(ID3D12GraphicsCommandList* pd3dCommandList)
 {
-	if (m_nClientId == -1 || !m_bAlive)
+	if (m_nClientId == -1)
 	{
 		return;
 	}
 
-	if (m_pCamera->GetMode() == THIRD_PERSON_CAMERA || m_nClientId != CGameFramework::GetMainClientId()) 
+	if (m_pCamera->GetMode() == THIRD_PERSON_CAMERA || m_nClientId != CGameFramework::GetMainClientId() || !m_bAlive)
 	{
 		CGameObject::Render(pd3dCommandList);
 	}
 }
-
-void CPlayer::SetPickedObject(int nx, int ny, CScene* pScene)
-{
-	//CGameObject* pPickedObject = nullptr;
-	//m_pPickedObject.reset();
-	//XMFLOAT3 pickPosition;
-
-	//if(m_pCamera->GetMode() == THIRD_PERSON_CAMERA)
-	//{
-	//	pickPosition.x = ((2.0f * nx) / (float)m_pCamera->GetViewport().Width - 1) / m_pCamera->GetProjectionMatrix()._11;
-	//	pickPosition.y = -(((2.0f * ny) / (float)m_pCamera->GetViewport().Height - 1) / m_pCamera->GetProjectionMatrix()._22);
-
-	//}
-	//else
-	//{
-	//	pickPosition.x = 0.0f;
-	//	pickPosition.y = 0.0f;
-	//}
-	//pickPosition.z = 1.0f;
-
-	//float fNearestHitDistance = FLT_MAX;
-
-	//for (int i = m_nWidth - 1; i <= m_nWidth + 1; ++i)
-	//{
-	//	for (int j = m_nDepth - 1; j <= m_nDepth + 1; ++j)
-	//	{
-	//		if (i < 0 || i >= g_collisionManager.GetWidth() || j < 0 || j >= g_collisionManager.GetDepth())
-	//		{
-	//			continue;
-	//		}
-
-	//		for (auto& pCollisionObject : g_collisonManager.GetSpaceGameObjects(m_nFloor, i, j))
-	//		{
-	//			if (!pCollisionObject.lock() || pCollisionObject.lock()->GetCollisionType() != 2) // 2아니면 넘김
-	//			{
-	//				continue;
-	//			}
-
-	//			float fHitDistance = FLT_MAX;
-	//			if (CGameObject::CheckPicking(pCollisionObject, pickPosition, m_pCamera->GetViewMatrix(), fHitDistance))
-	//			{
-	//				if (fHitDistance < fNearestHitDistance)
-	//				{
-	//					fNearestHitDistance = fHitDistance;
-	//					m_pPickedObject = pCollisionObject;
-	//				}
-	//			}
-	//		}
-	//	}
-	//}
-}
-
-
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 // 
 
@@ -417,7 +429,7 @@ CBlueSuitPlayer::CBlueSuitPlayer(ID3D12Device* pd3dDevice, ID3D12GraphicsCommand
 	:CPlayer(pd3dDevice, pd3dCommandList, pd3dGraphicsRootSignature, pContext)
 {
 	m_pCamera->SetFogColor(XMFLOAT4(0.1f, 0.1f, 0.1f, 0.1f));
-	m_pCamera->SetFogInfo(XMFLOAT4(0.0f, 10.0f, 0.10f, 1.0f));//START, RANGE, Density, MOD
+	m_pCamera->SetFogInfo(XMFLOAT4(0.0f, 10.0f, 0.05f, 1.0f));
 
 	m_xmf3Scale = XMFLOAT3(1.0f,1.0f,1.0f);
 
@@ -471,7 +483,7 @@ void CBlueSuitPlayer::LoadModelAndAnimation(ID3D12Device* pd3dDevice, ID3D12Grap
 	int nCbv = 0;
 	nCbv = cntCbvModelObject(shared_from_this(), 0);
 
-	m_pSkinnedAnimationController = make_shared<CBlueSuitAnimationController>(pd3dDevice, pd3dCommandList, 5, pLoadModelInfo);
+	m_pSkinnedAnimationController = make_shared<CBlueSuitAnimationController>(pd3dDevice, pd3dCommandList, 6, pLoadModelInfo);
 
 	//	m_pSkinnedAnimationController->SetCallbackKeys(1, 2);
 	//#ifdef _WITH_SOUND_RESOURCE
@@ -541,34 +553,51 @@ void CBlueSuitPlayer::Update(float fElapsedTime)
 			m_fInterruption = 0.0f;
 		}
 	}
-	m_pCamera->SetFogInfo(XMFLOAT4(0.0f, 10.0f, 0.02f + m_fInterruption / 8, 1.0f));
+	m_pCamera->SetFogInfo(XMFLOAT4(0.0f, 10.0f, 0.05f + m_fInterruption / 8, 1.0f));
 
-	if (m_bShiftRun)
-	{
-		m_fStamina -= fElapsedTime;
-		if (m_fStamina < 0.0f)
-		{
-			m_bAbleRun = false;
-			m_bShiftRun = false;
-		}
-	}
-	else if(m_fStamina < 5.0f)
-	{
-		m_fStamina += fElapsedTime;
-		if (!m_bAbleRun && m_fStamina > 3.0f)
-		{
-			m_bAbleRun = true;
-		}
-	}
+	//if (m_bShiftRun)
+	//{
+	//	m_fStamina -= fElapsedTime;
+	//	if (m_fStamina < 0.0f)
+	//	{
+	//		m_bAbleRun = false;
+	//		m_bShiftRun = false;
+	//	}
+	//}
+	//else if(m_fStamina < 5.0f)
+	//{
+	//	m_fStamina += fElapsedTime;
+	//	if (!m_bAbleRun && m_fStamina > 3.0f)
+	//	{
+	//		m_bAbleRun = true;
+	//	}
+	//}
 
 	// 카메라 위치 업데이트
 	CPlayer::Update(fElapsedTime);
 
-	if (m_pSkinnedAnimationController)
+	if (m_pSkinnedAnimationController && m_pSkinnedAnimationController->IsAnimation())
 	{
 		float fLength = sqrtf(m_xmf3Velocity.x * m_xmf3Velocity.x + m_xmf3Velocity.z * m_xmf3Velocity.z);
 
-		if (::IsZero(fLength))	//속력이 0이면 트랙 0을 다시 true
+		if (!m_bAlive)
+		{
+			if (!m_pSkinnedAnimationController->m_bTransition)
+			{
+				if(m_pSkinnedAnimationController->m_nNowState != PlayerState::DEATH)
+				{
+					m_pSkinnedAnimationController->m_bTransition = true;
+					m_pSkinnedAnimationController->m_nNextState = PlayerState::DEATH;
+
+					float fStartPosition =
+						m_pSkinnedAnimationController->m_vAnimationTransitions[m_pSkinnedAnimationController->m_nNowState + 4].m_fTransitionStart
+						* m_pSkinnedAnimationController->m_pAnimationSets->m_vpAnimationSets[m_pSkinnedAnimationController->m_vAnimationTracks[5].m_nAnimationSet]->m_fLength;
+
+					m_pSkinnedAnimationController->SetTrackPosition(5, fStartPosition);
+				}
+			}
+		}
+		else if (::IsZero(fLength))	//속력이 0이면 트랙 0을 다시 true
 		{
 			if (m_pSkinnedAnimationController->m_nNowState != PlayerState::IDLE)
 			{
@@ -639,7 +668,7 @@ void CBlueSuitPlayer::Update(float fElapsedTime)
 
 void CBlueSuitPlayer::Animate(float fElapsedTime)
 {
-	if (m_nClientId == -1)
+	if (m_nClientId == -1 || !m_pSkinnedAnimationController->IsAnimation())
 	{
 		return;
 	}
@@ -1015,18 +1044,18 @@ void CZombiePlayer::LoadModelAndAnimation(ID3D12Device* pd3dDevice, ID3D12Graphi
 	LoadBoundingBox(m_voobbOrigin);
 	m_pSkinnedAnimationController = make_shared<CZombieAnimationController>(pd3dDevice, pd3dCommandList, 3, pLoadModelInfo);
 
-	m_pSkinnedAnimationController->SetCallbackKeys(1, 2);
-#ifdef _WITH_SOUND_RESOURCE
-	m_pSkinnedAnimationController->SetCallbackKey(0, 0.1f, _T("Footstep01"));
-	m_pSkinnedAnimationController->SetCallbackKey(1, 0.5f, _T("Footstep02"));
-	m_pSkinnedAnimationController->SetCallbackKey(2, 0.9f, _T("Footstep03"));
-#else
-
-	m_pSkinnedAnimationController->SetCallbackKey(1, 0, 0.1f, (void*)_T("Sound/Footstep01.wav"));
-	m_pSkinnedAnimationController->SetCallbackKey(1, 1, 0.9f, (void*)_T("Sound/Footstep02.wav"));
-#endif
-	shared_ptr<CAnimationCallbackHandler> pAnimationCallbackHandler = make_shared<CSoundCallbackHandler>();
-	m_pSkinnedAnimationController->SetAnimationCallbackHandler(1, pAnimationCallbackHandler);
+//	m_pSkinnedAnimationController->SetCallbackKeys(1, 2);
+//#ifdef _WITH_SOUND_RESOURCE
+//	m_pSkinnedAnimationController->SetCallbackKey(0, 0.1f, _T("Footstep01"));
+//	m_pSkinnedAnimationController->SetCallbackKey(1, 0.5f, _T("Footstep02"));
+//	m_pSkinnedAnimationController->SetCallbackKey(2, 0.9f, _T("Footstep03"));
+//#else
+//
+//	m_pSkinnedAnimationController->SetCallbackKey(1, 0, 0.1f, (void*)_T("Sound/Footstep01.wav"));
+//	m_pSkinnedAnimationController->SetCallbackKey(1, 1, 0.9f, (void*)_T("Sound/Footstep02.wav"));
+//#endif
+//	shared_ptr<CAnimationCallbackHandler> pAnimationCallbackHandler = make_shared<CSoundCallbackHandler>();
+//	m_pSkinnedAnimationController->SetAnimationCallbackHandler(1, pAnimationCallbackHandler);
 
 	if (m_pSkinnedAnimationController) m_pSkinnedAnimationController->UpdateShaderVariables(pd3dCommandList);
 }

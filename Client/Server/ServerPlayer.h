@@ -42,6 +42,7 @@ public:
 
 	void SetLook(const XMFLOAT3& xmf3Look) { m_xmf3Look = xmf3Look; }
 	void SetRight(const XMFLOAT3& xmf3Right) { m_xmf3Right = xmf3Right; }
+	void SetUp(const XMFLOAT3& xmf3Up) { m_xmf3Up = xmf3Up; }
 
 	void SetFriction(float fFriction) { m_fFriction = fFriction; }
 	void SetGravity(const XMFLOAT3& xmf3Gravity) { m_xmf3Gravity = xmf3Gravity; }
@@ -109,6 +110,7 @@ protected:
 
 	bool						m_bInvincibility = false;	// HIT가 가능한 상태인지를 나타냄
 	float						m_fCoolTimeInvincibility = 0.0f;
+	float						m_fDeathTime = 0.0f;
 
 	bool m_bRightClick = false;
 };

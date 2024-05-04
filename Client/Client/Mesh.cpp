@@ -68,6 +68,63 @@ void CMesh::Render(ID3D12GraphicsCommandList* pd3dCommandList, int nSubSet)
 	}
 }
 
+/////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+// [0504] UI위한 사각형 메쉬
+
+CUserInterfaceRectMesh::CUserInterfaceRectMesh(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dCommandList, float fWidth, float fHeight, float fDepth, float fMaxU, float fMaxV, float fMinU, float fMinV)
+	: CMesh(pd3dDevice, pd3dCommandList)
+{
+	m_nVertices = 6;
+	m_d3dPrimitiveTopology = D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST;
+
+	m_pxmf3ModelPositions = new XMFLOAT3[m_nVertices];
+	m_pxmf2UV0 = new XMFLOAT2[m_nVertices];
+
+	float fx = (fWidth * 0.5f), fy = (fHeight * 0.5f), fz = (fDepth * 0.5f);
+
+	m_pxmf3ModelPositions[0] = XMFLOAT3(+fx, +fy, fz); m_pxmf2UV0[0] = XMFLOAT2(fMaxU, fMinV);
+	m_pxmf3ModelPositions[1] = XMFLOAT3(+fx, -fy, fz); m_pxmf2UV0[1] = XMFLOAT2(fMaxU, fMaxV);
+	m_pxmf3ModelPositions[2] = XMFLOAT3(-fx, -fy, fz); m_pxmf2UV0[2] = XMFLOAT2(fMinU, fMaxV);
+	m_pxmf3ModelPositions[3] = XMFLOAT3(-fx, -fy, fz); m_pxmf2UV0[3] = XMFLOAT2(fMinU, fMaxV);
+	m_pxmf3ModelPositions[4] = XMFLOAT3(-fx, +fy, fz); m_pxmf2UV0[4] = XMFLOAT2(fMinU, fMinV);
+	m_pxmf3ModelPositions[5] = XMFLOAT3(+fx, +fy, fz); m_pxmf2UV0[5] = XMFLOAT2(fMaxU, fMinV);
+
+	m_pd3dVertexBuffer = ::CreateBufferResource(pd3dDevice, pd3dCommandList, m_pxmf3ModelPositions, sizeof(XMFLOAT3) * m_nVertices, D3D12_HEAP_TYPE_DEFAULT, D3D12_RESOURCE_STATE_VERTEX_AND_CONSTANT_BUFFER, &m_pd3dVertexUploadBuffer);
+
+	m_d3dVertexBufferView.BufferLocation = m_pd3dVertexBuffer->GetGPUVirtualAddress();
+	m_d3dVertexBufferView.StrideInBytes = sizeof(XMFLOAT3);
+	m_d3dVertexBufferView.SizeInBytes = sizeof(XMFLOAT3) * m_nVertices;
+
+	m_pd3dUV0Buffer = ::CreateBufferResource(pd3dDevice, pd3dCommandList, m_pxmf2UV0, sizeof(XMFLOAT2) * m_nVertices, D3D12_HEAP_TYPE_DEFAULT, D3D12_RESOURCE_STATE_VERTEX_AND_CONSTANT_BUFFER, &m_pd3dUV0UploadBuffer);
+
+	m_d3dUV0BufferView.BufferLocation = m_pd3dUV0Buffer->GetGPUVirtualAddress();
+	m_d3dUV0BufferView.StrideInBytes = sizeof(XMFLOAT2);
+	m_d3dUV0BufferView.SizeInBytes = sizeof(XMFLOAT2) * m_nVertices;
+}
+
+CUserInterfaceRectMesh::~CUserInterfaceRectMesh()
+{
+}
+
+void CUserInterfaceRectMesh::ReleaseUploadBuffers()
+{
+	CMesh::ReleaseUploadBuffers();
+
+	if (m_pd3dUV0UploadBuffer.Get()) m_pd3dUV0UploadBuffer.Reset();
+}
+
+void CUserInterfaceRectMesh::OnPreRender(ID3D12GraphicsCommandList* pd3dCommandList)
+{
+	D3D12_VERTEX_BUFFER_VIEW views[] = { m_d3dVertexBufferView ,m_d3dUV0BufferView };
+	pd3dCommandList->IASetVertexBuffers(m_nSlot, 2, views);
+}
+
+void CUserInterfaceRectMesh::Render(ID3D12GraphicsCommandList* pd3dCommandList, int nSubSet)
+{
+	CMesh::Render(pd3dCommandList, nSubSet);
+}
+
+
 ////////////////////////////////////////////////////////////////////////////////////////////
 //// HexahedronMesh
 HexahedronMesh::HexahedronMesh(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dCommandList, float xSize, float ySize, float zSize) : CMesh(pd3dDevice,pd3dCommandList)

@@ -1328,12 +1328,12 @@ void CGameObject::ObjectCopy(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList
 	if (srcobject->m_pChild) {
 		// child 복사
 		dstObject->m_pChild = make_shared<CGameObject>(pd3dDevice, pd3dCommandList);
-		srcobject->m_pChild->ObjectCopy(pd3dDevice, pd3dCommandList, dstObject->m_pChild, srcobject->m_pChild);
+		dstObject->m_pChild->ObjectCopy(pd3dDevice, pd3dCommandList, dstObject->m_pChild, srcobject->m_pChild);
 	}
 	if (srcobject->m_pSibling) {
 		// sibling 복사
 		dstObject->m_pSibling = make_shared<CGameObject>(pd3dDevice, pd3dCommandList);
-		srcobject->m_pSibling->ObjectCopy(pd3dDevice, pd3dCommandList, dstObject->m_pSibling, srcobject->m_pSibling);
+		dstObject->m_pSibling->ObjectCopy(pd3dDevice, pd3dCommandList, dstObject->m_pSibling, srcobject->m_pSibling);
 	}
 }
 

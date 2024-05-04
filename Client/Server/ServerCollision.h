@@ -1,6 +1,10 @@
 #pragma once
 #include "TCPServer.h"
 
+constexpr int SPACE_FLOOR{ 4 };
+constexpr int SPACE_WIDTH{ 10 };
+constexpr int SPACE_DEPTH{ 10 };
+
 constexpr float SPACE_SIZE_XZ{ 6.0f };
 constexpr float SPACE_SIZE_Y{ 4.5f };
 constexpr float GRID_START_X{ -30.0f };

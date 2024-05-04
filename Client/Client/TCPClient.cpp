@@ -259,22 +259,40 @@ void CTcpClient::OnProcessingWriteMessage(HWND hWnd, UINT nMessageID, WPARAM wPa
 		}
 		nBufferSize += sizeof(std::chrono::time_point<std::chrono::steady_clock>);
 		nBufferSize += sizeof(XMFLOAT4X4);
-		nBufferSize += sizeof(XMFLOAT3) * 2;
+		nBufferSize += sizeof(XMFLOAT3) * 3;
 		nBufferSize += sizeof(CS_ANIMATION_INFO);
 		nBufferSize += sizeof(CS_PLAYER_INFO);
 
 		SendNum++;
 		// 키버퍼, 카메라Matrix, LOOK,RIGHT 같이 보내주기
-		nRetval = SendData(wParam, nBufferSize,
-			nHead,
-			now,
-			keysBuffer,
-			m_apPlayers[m_nMainClientId]->GetCamera()->GetViewMatrix(),
-			m_apPlayers[m_nMainClientId]->GetLook(),
-			m_apPlayers[m_nMainClientId]->GetRight(),
-			m_aClientInfo[m_nMainClientId].m_animationInfo,
-			m_aClientInfo[m_nMainClientId].m_playerInfo
-		);
+		if(m_apPlayers[m_nMainClientId]->IsAlive())
+		{
+			nRetval = SendData(wParam, nBufferSize,
+				nHead,
+				now,
+				keysBuffer,
+				m_apPlayers[m_nMainClientId]->GetCamera()->GetViewMatrix(),
+				m_apPlayers[m_nMainClientId]->GetLookVector(),
+				m_apPlayers[m_nMainClientId]->GetRightVector(),
+				m_apPlayers[m_nMainClientId]->GetUpVector(),
+				m_aClientInfo[m_nMainClientId].m_animationInfo,
+				m_aClientInfo[m_nMainClientId].m_playerInfo
+			);
+		}
+		else
+		{
+			nRetval = SendData(wParam, nBufferSize,
+				nHead,
+				now,
+				keysBuffer,
+				m_apPlayers[m_nMainClientId]->GetCamera()->GetViewMatrix(),
+				m_apPlayers[m_nMainClientId]->GetCamera()->GetLookVector(),
+				m_apPlayers[m_nMainClientId]->GetCamera()->GetRightVector(),
+				m_apPlayers[m_nMainClientId]->GetCamera()->GetUpVector(),
+				m_aClientInfo[m_nMainClientId].m_animationInfo,
+				m_aClientInfo[m_nMainClientId].m_playerInfo
+			);
+		}
 
 		if (nRetval == -1 && WSAGetLastError() == WSAEWOULDBLOCK)
 		{

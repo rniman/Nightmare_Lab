@@ -78,7 +78,6 @@ public:
 	void SetCamera(shared_ptr<CCamera> pCamera) { m_pCamera = pCamera; }
 
 	// Picking
-	void SetPickedObject(int nx, int ny, CScene* pScene);
 	weak_ptr<CGameObject> GetPickedObject() { return m_pPickedObject; }
 	virtual void UpdatePicking() override {};
 	virtual void UseItem(int nSlot) {};
@@ -99,7 +98,6 @@ public:
 protected:
 	int m_nClientId = -1;
 
-	bool m_bCollision = false;
 	int m_nFloor = 0;
 	int m_nWidth = 0;
 	int m_nDepth = 0;

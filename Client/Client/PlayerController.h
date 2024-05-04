@@ -5,7 +5,8 @@ enum PlayerState
 {
 	IDLE,
 	WALK,
-	RUN
+	RUN,
+	DEATH
 };
 
 class CAnimationController;
@@ -20,6 +21,14 @@ public:
 	virtual void AdvanceTime(float fElapsedTime, CGameObject* pRootGameObject);
 
 	void BlendAnimation(int nTrack1, int nTrack2, float fElapsedTime, float fBlentWeight);
+	void TransitionBlueSuitPlayer(float fElapsedTime);
+	void TransitionIDLEtoWALK(float fElapsedTime, int nTransitionIndex);
+	void TransitionWALKtoIDLE(float fElapsedTime, int nTransitionIndex);
+	void TransitionWALKtoRUN(float fElapsedTime, int nTransitionIndex);
+	void TransitionRUNtoWALK(float fElapsedTime, int nTransitionIndex);
+	void TransitionToDEATH(float fElapsedTime, int nTransitionIndex);
+
+	void BlendLeftArm(float fElapsedTime);
 
 	//플레이어가 들고 있는 플레시라이트의 월드변환정보를 반환
 	int GetBoneFrameIndexToFlashLight() { return m_nPlayerFlashLight; }
@@ -67,6 +76,9 @@ public:
 	virtual void OnRootMotion(CGameObject* pRootGameObject) {}
 	virtual void AdvanceTime(float fElapsedTime, CGameObject* pRootGameObject);
 	void BlendAnimation(int nTrack1, int nTrack2, float fElapsedTime, float fBlentWeight);
+	void TransitionZombiePlayer(float fElapsedTime);
+	void TransitionIDLEtoWALK(float fElapsedTime, int nTransitionIndex);
+	void TransitionWALKtoIDLE(float fElapsedTime, int nTransitionIndex);
 
 private:
 	int m_nStartSpine = -1;
