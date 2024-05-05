@@ -280,11 +280,11 @@ void CScene::BuildObjects(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* p
 	// CBV(RootObject) : //육면체(1), 오브젝트(1), DeskObject(1), DoorObject(1), flashLight(1), 서버인원예상(20), fuse(3)
 	// CBV(Model) : Zom(72),  Zom_Controller(2 * N),// BlueSuit(85), BlueSuit_Controller(2 * N), Desk(3), Door(5), flashLight(1), Fuse(6), 레이더(5),텔레포트아이템(1),지뢰(1)
 	int nCntCbv = 1 + 1 + 2 + 66 +
-		(72 + 2) + (85 + 2) * MAX_CLIENT + 2 + 7 + 10 + 5 * MAX_CLIENT + 1 * MAX_CLIENT + 120 + 1 + 1+200;
+		(72 + 2) + (85 + 2) * MAX_CLIENT + 2 + 7 + 10 + 5 * MAX_CLIENT + 1 * MAX_CLIENT + 120 + 1 + 1+500;
 	// SRV(Default) : 디퍼드렌더링텍스처(ADD_RENDERTARGET_COUNT로 정의된 개수임)
 	// SRV(Scene Load) : 79
 	// SRV: Zombie(3), // BlueSuit(6), 육면체(1), 엘런(8(오클루젼맵제거), Desk(3), Door(9), flashLight(3) , m_nLights,지뢰(4),Electiric
-	int nCntSrv = ADD_RENDERTARGET_COUNT + 6 * MAX_CLIENT + 79 + 3 + 3 + 3 * MAX_CLIENT + m_nLights + 4 * MAX_CLIENT + 1 + 10*4+10;
+	int nCntSrv = ADD_RENDERTARGET_COUNT + 6 * MAX_CLIENT + 79 + 3 + 3 + 3 * MAX_CLIENT + m_nLights + 4 * MAX_CLIENT + 1 + 10*4+10+200;
 	
 	CreateCbvSrvDescriptorHeaps(pd3dDevice, nCntCbv, nCntSrv);
 
@@ -311,7 +311,7 @@ void CScene::BuildObjects(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* p
 	//Player 생성 + 아이템
 	for (int i = 0; i < MAX_CLIENT; ++i)
 	{
-		if (i == 0)
+		if (i == ZOMBIEPLAYER)
 		{
 			m_apPlayer[i] = std::make_shared<CZombiePlayer>(pd3dDevice, pd3dCommandList, m_pd3dGraphicsRootSignature.Get(), nullptr);
 			shared_ptr<CLoadedModelInfo> pZombiePlayerModel = CGameObject::LoadGeometryAndAnimationFromFile(pd3dDevice, pd3dCommandList, m_pd3dGraphicsRootSignature.Get(), "Asset/Model/Zom_1.bin", MeshType::Standard);
@@ -337,7 +337,7 @@ void CScene::BuildObjects(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* p
 
 		//레이더모델 로드
 		shared_ptr<CRadarObject> pRaderObject = make_shared<CRadarObject>(pd3dDevice, pd3dCommandList, m_pd3dGraphicsRootSignature.Get());
-		static shared_ptr<CLoadedModelInfo> pRaderModel = CGameObject::LoadGeometryAndAnimationFromFile(pd3dDevice, pd3dCommandList, m_pd3dGraphicsRootSignature.Get(), (char*)"Asset/Model/레이더.bin", MeshType::Standard);
+		static shared_ptr<CLoadedModelInfo> pRaderModel = CGameObject::LoadGeometryAndAnimationFromFile(pd3dDevice, pd3dCommandList, m_pd3dGraphicsRootSignature.Get(), (char*)"Asset/Model/Rader.bin", MeshType::Standard);
 		pRaderObject->ObjectCopy(pd3dDevice, pd3dCommandList, pRaderObject, pRaderModel->m_pModelRootObject);
 		m_vShader[STANDARD_SHADER]->AddGameObject(pRaderObject);
 
@@ -392,9 +392,20 @@ void CScene::BuildObjects(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* p
 		m_vShader[STANDARD_SHADER]->AddGameObject(pTeleportObject);
 	}
 
+	for (int i = 0; i < 10; ++i)
+	{
+		//레이더모델 로드
+		shared_ptr<CRadarObject> pRaderObject = make_shared<CRadarObject>(pd3dDevice, pd3dCommandList, m_pd3dGraphicsRootSignature.Get());
+		static shared_ptr<CLoadedModelInfo> pRaderModel = CGameObject::LoadGeometryAndAnimationFromFile(pd3dDevice, pd3dCommandList, m_pd3dGraphicsRootSignature.Get(), (char*)"Asset/Model/Rader.bin", MeshType::Standard);
+		pRaderObject->ObjectCopy(pd3dDevice, pd3dCommandList, pRaderObject, pRaderModel->m_pModelRootObject);
+
+		g_collisionManager.AddCollisionObject(pRaderObject);
+		m_vShader[STANDARD_SHADER]->AddGameObject(pRaderObject);
+	}
+
 	shared_ptr<CLoadedModelInfo> pElectricBlendModel = CGameObject::LoadGeometryAndAnimationFromFile(pd3dDevice, pd3dCommandList, m_pd3dGraphicsRootSignature.Get(), "Asset/Model/electricBlend.bin", MeshType::Blend);
 	shared_ptr<CLoadedModelInfo> pMineModel = CGameObject::LoadGeometryAndAnimationFromFile(pd3dDevice, pd3dCommandList, m_pd3dGraphicsRootSignature.Get(), (char*)"Asset/Model/Item_Mine.bin", MeshType::Standard);
-	for (int i = 0; i < 10; ++i)
+	for (int i = 0; i < 50; ++i)
 	{	//CJI [0422] : 지뢰아이템 이펙트는 동적할당을 줄이기위해서 미리 만들어둔 블렌드 객체를 이용해 렌더링한다.
 		shared_ptr<TextureBlendObject> mineExplosionObject = make_shared<TextureBlendObject>(pd3dDevice, pd3dCommandList, pElectricBlendModel->m_pModelRootObject, m_apPlayer[mainPlayerId]);
 		m_vTextureBlendObjects.push_back(mineExplosionObject);
@@ -413,7 +424,6 @@ void CScene::BuildObjects(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* p
 			}
 		}
 	}
-
 	CreateShaderVariables(pd3dDevice, pd3dCommandList);
 }
 

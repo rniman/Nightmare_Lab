@@ -19,7 +19,7 @@ CServerItemObject::CServerItemObject()
 	m_nCollisionType = Picking;
 }
 
-void CServerItemObject::Update(float fElapsedTime)
+void CServerItemObject::Update(float fElapsedTime, shared_ptr<CServerCollisionManager>& pCollisionManager)
 {
 	//CServerGameObject::Update(fElapsedTime);
 	m_xmf4x4World = m_pDrawerObject->GetWorldMatrix();
@@ -38,7 +38,7 @@ void CServerItemObject::SetDrawerStartEnd(int nStartDrawer1, int nEndDrawer1, in
 void CServerItemObject::SetWorldMatrix(const XMFLOAT4X4& xmf4x4World)
 {
 	XMFLOAT4X4 m_xmf4x4FinalWorld = xmf4x4World;
-	if(m_nDrawerNumber >= m_nStartDrawer1 && m_nDrawerNumber <= m_nEndDrawer1)
+	if (m_nDrawerNumber >= m_nStartDrawer1 && m_nDrawerNumber <= m_nEndDrawer1)
 	{
 		m_xmf4x4FinalWorld._42 += m_fDrawer1OffsetY;
 	}
@@ -78,7 +78,7 @@ CServerDrawerObject::CServerDrawerObject(char* pstrFrameName, const XMFLOAT4X4& 
 	: CServerGameObject(pstrFrameName, xmf4x4World, voobb)
 {
 	m_nCollisionType = Picking;
-	
+
 	m_xmf3OriginPosition = XMFLOAT3(xmf4x4World._41, xmf4x4World._42, xmf4x4World._43);
 	m_xmf3Forward = XMFLOAT3(1.0f, 0.0f, 0.0f);
 	XMMATRIX mtxWorld = XMLoadFloat4x4(&m_xmf4x4World);
@@ -89,7 +89,7 @@ CServerDrawerObject::~CServerDrawerObject()
 {
 }
 
-void CServerDrawerObject::Update(float fElapsedTime)
+void CServerDrawerObject::Update(float fElapsedTime, shared_ptr<CServerCollisionManager>& pCollisionManager)
 {
 	XMFLOAT3 xmf3Position = XMFLOAT3(m_xmf4x4World._41, m_xmf4x4World._42, m_xmf4x4World._43);
 	float fDistance = Vector3::Distance(xmf3Position, m_xmf3OriginPosition);
@@ -156,7 +156,7 @@ CServerDoorObject::~CServerDoorObject()
 {
 }
 
-void CServerDoorObject::Update(float fElapsedTime)
+void CServerDoorObject::Update(float fElapsedTime, shared_ptr<CServerCollisionManager>& pCollisionManager)
 {
 	if ((m_bOpened && m_fRotationAngle < m_fDoorAngle) || (!m_bOpened && m_fRotationAngle > m_fDoorAngle))
 	{
@@ -208,7 +208,7 @@ CServerElevatorDoorObject::CServerElevatorDoorObject(char* pstrFrameName, const 
 	m_xmf3Right = Vector3::TransformNormal(m_xmf3Right, mtxWorld);
 }
 
-void CServerElevatorDoorObject::Update(float fElapsedTime)
+void CServerElevatorDoorObject::Update(float fElapsedTime, shared_ptr<CServerCollisionManager>& pCollisionManager)
 {
 	XMFLOAT3 xmf3Position = XMFLOAT3(m_xmf4x4World._41, m_xmf4x4World._42, m_xmf4x4World._43);
 	float fDistance = Vector3::Distance(xmf3Position, m_xmf3OriginPosition);
@@ -285,12 +285,12 @@ CServerTeleportObject::~CServerTeleportObject()
 {
 }
 
-//void CTeleportObject::Update(float fElapsedTime)
+//void CTeleportObject::Update(float fElapsedTime, shared_ptr<CServerCollisionManager>& pCollisionManager)
 //{
 //	CGameObject::Animate(fElapsedTime);
 //}
 
-void CServerTeleportObject::Update(float fElapsedTime)
+void CServerTeleportObject::Update(float fElapsedTime, shared_ptr<CServerCollisionManager>& pCollisionManager)
 {
 	if (m_bObtained)
 	{
@@ -402,16 +402,49 @@ CServerMineObject::CServerMineObject()
 	m_xmf3PositionOffset = XMFLOAT3(0.0f, 0.0f, 0.0f);
 
 	BoundingOrientedBox oobb;
-	oobb.Center = XMFLOAT3(0.0f, 0.0f, 0.0f);
-	oobb.Extents = XMFLOAT3(0.3263, 0.09443, 0.3681);
+	oobb.Center = XMFLOAT3(0.003596, -0.00012212, -0.01279);
+	oobb.Extents = XMFLOAT3(0.26312, 0.066229, 0.27357);
 	XMStoreFloat4(&oobb.Orientation, XMQuaternionIdentity());
+
+	m_voobbOrigin.clear();
 	m_voobbOrigin.push_back(oobb);
 
 	strcpy(m_pstrFrameName, "MineObject");
+
+	m_bInstall = false;
+
 }
 
 CServerMineObject::~CServerMineObject()
 {
+}
+
+void CServerMineObject::Update(float fElapsedTime, shared_ptr<CServerCollisionManager>& pCollisionManager)
+{
+	if (m_bInstall) {
+		if (m_fExplosionTime > 0.0f) {
+			m_fExplosionTime -= fElapsedTime;
+
+			if (m_fExplosionTime < 0.0f) { // 폭발이 끝난 후에 오브젝트를 재배치함
+				m_bInstall = false;
+				SetRandomPosition(pCollisionManager);
+			}
+		}
+
+	}
+	else {
+		if (m_bObtained)
+		{
+			return;
+		}
+
+		XMFLOAT4X4 xmf4x4FuseWorld = m_pDrawerObject->GetWorldMatrix();
+		xmf4x4FuseWorld._41 += m_xmf3PositionOffset.x;
+		xmf4x4FuseWorld._42 += m_xmf3PositionOffset.y;
+		xmf4x4FuseWorld._43 += m_xmf3PositionOffset.z;
+
+		CServerItemObject::SetWorldMatrix(xmf4x4FuseWorld);
+	}
 }
 
 void CServerMineObject::UpdateUsing(const shared_ptr<CServerGameObject>& pGameObject, shared_ptr<CServerCollisionManager>& pCollisionManager)
@@ -422,10 +455,16 @@ void CServerMineObject::UpdateUsing(const shared_ptr<CServerGameObject>& pGameOb
 		return;
 	}
 
-	// 아이템 리셋하는 함수 작성
+	//// 아이템 리셋하는 함수 작성
+
 	m_bObtained = false;
 	m_bCollision = true;
-	SetRandomPosition(pCollisionManager);
+
+	m_bInstall = true;
+	XMFLOAT3 position = pBlueSuitPlayer->GetPosition();
+
+	SetPosition(position);
+	pCollisionManager->ReplaceCollisionObject(shared_from_this());
 }
 
 
@@ -451,7 +490,7 @@ CServerFuseObject::~CServerFuseObject()
 {
 }
 
-void CServerFuseObject::Update(float fElapsedTime)
+void CServerFuseObject::Update(float fElapsedTime, shared_ptr<CServerCollisionManager>& pCollisionManager)
 {
 	if (m_bObtained)
 	{
@@ -552,18 +591,54 @@ void CServerFuseObject::SetWorldMatrix(const XMFLOAT4X4& xmf4x4World)
 ////// /// /// /// /// /// /// /// /// /// /// /// /// /// /// /// /// /// /// /// /// /// /// /// /// /// /// /// ///  
 /// <CGameObject - CRadarObject>
 
+CServerRadarObject::CServerRadarObject()
+{
+	m_xmf3PositionOffset = XMFLOAT3(0.0f, 0.0f, 0.0f);
+
+	BoundingOrientedBox oobb;
+	oobb.Center = XMFLOAT3(0.0f, 0.0f, 0.0f);
+	oobb.Extents = XMFLOAT3(0.16935, 0.034772, 0.195917);
+	XMStoreFloat4(&oobb.Orientation, XMQuaternionIdentity());
+
+	m_voobbOrigin.clear();
+	m_voobbOrigin.push_back(oobb);
+
+	strcpy(m_pstrFrameName, "RaderObject");
+
+}
+
 CServerRadarObject::~CServerRadarObject()
 {
 }
 
-void CServerRadarObject::UpdatePicking()
+void CServerRadarObject::Update(float fElapsedTime, shared_ptr<CServerCollisionManager>& pCollisionManager)
 {
+	if (m_bObtained)
+	{
+		return;
+	}
+	
+	XMFLOAT4X4 xmf4x4RadarWorld = m_pDrawerObject->GetWorldMatrix();
+	
+	xmf4x4RadarWorld._41 += m_xmf3PositionOffset.x;
+	xmf4x4RadarWorld._42 += m_xmf3PositionOffset.y;
+	xmf4x4RadarWorld._43 += m_xmf3PositionOffset.z;
+
+	CServerItemObject::SetWorldMatrix(xmf4x4RadarWorld);
 }
 
 void CServerRadarObject::UpdateUsing(const shared_ptr<CServerGameObject>& pGameObject, shared_ptr<CServerCollisionManager>& pCollisionManager)
 {
-	m_bObtained = false;
-	m_bCollision = true;
+	shared_ptr<CServerBlueSuitPlayer> pBlueSuitPlayer = dynamic_pointer_cast<CServerBlueSuitPlayer>(pGameObject);
+	if (!pBlueSuitPlayer)
+	{
+		return;
+	}
+
+	//// 아이템 리셋하는 함수 작성
+	//m_bObtained = false;
+	//m_bCollision = true;
+	//SetRandomPosition(pCollisionManager);
 }
 
 /// <CGameObject - CRadarObject>

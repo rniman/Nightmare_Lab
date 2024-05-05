@@ -218,7 +218,7 @@ void CShader::Render(ID3D12GraphicsCommandList* pd3dCommandList, const shared_pt
 	int i = 0;
 	for (auto& object : m_vGameObjects) 
 	{
-		if (i == 10)
+		if (i == 25)
 		{
 			int x = 0;
 		}
@@ -251,6 +251,7 @@ void CShader::ReleaseUploadBuffers()
 
 void CShader::AddGameObject(const shared_ptr<CGameObject>& pGameObject)
 {
+	object_count++;
 	m_vGameObjects.push_back(pGameObject);
 	//m_vGameObjects.push_back(shared_ptr<CGameObject>(object));
 }

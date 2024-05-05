@@ -473,6 +473,7 @@ void CGameFramework::OnProcessingMouseMessage(HWND hWnd, UINT nMessageID, WPARAM
 	case WM_RBUTTONDOWN:
 		m_pMainPlayer->SetPickedObject(LOWORD(lParam), HIWORD(lParam), m_pScene.get());
 		m_pMainPlayer->SetRightClick(true);
+		m_pMainPlayer->RightClickProcess();
 		break;
 	case WM_LBUTTONUP:
 	case WM_RBUTTONUP:
@@ -725,6 +726,13 @@ void CGameFramework::BuildObjects()
 
 	m_GameTimer.Reset();
 	PreRenderTasks(); // 사전 렌더링 작업
+
+	for (auto& pPlayer : m_apPlayer)
+	{
+		pPlayer->ChangeCamera(FIRST_PERSON_CAMERA, 0.0f);
+		pPlayer->Update(m_GameTimer.GetTimeElapsed());
+	}
+	m_pCamera = m_pMainPlayer->GetCamera();
 }
 
 void CGameFramework::ReleaseObjects()
@@ -841,7 +849,7 @@ void CGameFramework::PreRenderTasks()
 		exit(0);
 	}
 
-	m_pMainPlayer->Update(m_GameTimer.GetTimeElapsed());
+	m_pMainPlayer->Update(/*m_GameTimer.GetTimeElapsed()*/0.01f);
 
 	AnimateObjects();
 	// 이곳에서 렌더링 하기전에 준비작업을 시행하도록한다. ex) 쉐도우맵 베이킹
@@ -1039,7 +1047,7 @@ void CGameFramework::FrameAdvance()
 	_stprintf_s(m_pszFrameRate + nLength, 200 - nLength, _T("ID:%d, NumOfClinet: %d, (%4f, %4f, %4f)"), m_pTcpClient->GetClientId(), m_pTcpClient->GetNumOfClient(), xmf3Position.x, xmf3Position.y, xmf3Position.z);
 	::SetWindowText(m_hWnd, m_pszFrameRate);
 
-	//char buf[256];
-	//sprintf_s(buf, sizeof(buf), "Debug: %f %f %f\n", xmf3Position.x, xmf3Position.y, xmf3Position.z);
-	//OutputDebugStringA(buf);
+	/*char buf[256];
+	sprintf_s(buf, sizeof(buf), "Debug: %f %f %f\n", xmf3Position.x, xmf3Position.y, xmf3Position.z);
+	OutputDebugStringA(buf);*/
 }

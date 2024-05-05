@@ -28,6 +28,8 @@ struct CS_ANIMATION_INFO {
 struct CS_PLAYER_INFO {
 	RightItem m_selectItem;
 	bool m_bRightClick = false;
+
+	int m_iMineobjectNum = -1;
 };
 
 struct CS_CLIENTS_INFO

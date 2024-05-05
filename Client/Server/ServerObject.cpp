@@ -9,7 +9,7 @@ CServerGameObject::CServerGameObject(char* pstrFrameName, const XMFLOAT4X4& xmf4
 	m_voobbOrigin = voobb;
 }
 
-void CServerGameObject::Update(float fElapsedTime)
+void CServerGameObject::Update(float fElapsedTime, shared_ptr<CServerCollisionManager>& pCollisionManager)
 {
 }
 
@@ -62,4 +62,11 @@ bool CServerGameObject::CheckPicking(const shared_ptr<CServerGameObject>& pColli
 	}
 
 	return false;
+}
+
+void CServerGameObject::SetPosition(XMFLOAT3 position)
+{
+	m_xmf4x4World._41 = position.x;
+	m_xmf4x4World._42 = position.y;
+	m_xmf4x4World._43 = position.z;
 }

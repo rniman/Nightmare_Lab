@@ -130,6 +130,7 @@ public:
 	virtual void UpdateUsing(const shared_ptr<CGameObject>& pGameObject) override;
 
 	void SetInstall(bool val) { m_bInstall = val; }
+	void SetCollide(bool val) { m_bCollide = val; }
 	bool IsInstall() { return m_bInstall; }
 private:
 	bool m_bInstall = false;

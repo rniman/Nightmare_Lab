@@ -16,7 +16,7 @@ public:
 	CServerGameObject(char* pstrFrameName, const XMFLOAT4X4& xmf4x4World, const vector<BoundingOrientedBox>& voobb);
 	virtual ~CServerGameObject() {};
 
-	virtual void Update(float fElapsedTime);
+	virtual void Update(float fElapsedTime, shared_ptr<CServerCollisionManager>& pCollisionManager);
 	virtual void Collide(const shared_ptr<CServerCollisionManager>& pCollisionManager, float fElapsedTime, shared_ptr<CServerGameObject> pCollided) {};
 
 	void Move(XMFLOAT3 xmf3Offset);
@@ -47,6 +47,8 @@ public:
 	int GetWidth()const { return m_nWidth; }
 	int GetDepth()const { return m_nDepth; }
 	int GetFloor()const { return m_nFloor; }
+
+	void SetPosition(XMFLOAT3 position);
 protected:
 	char m_pstrFrameName[64];
 	XMFLOAT4X4 m_xmf4x4ToParent;

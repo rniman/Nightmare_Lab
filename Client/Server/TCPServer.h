@@ -15,6 +15,8 @@ struct SC_ANIMATION_INFO {
 struct SC_PLAYER_INFO {
 	RightItem m_selectItem;
 	bool m_bRightClick = false;
+	
+	int m_iMineobjectNum = -1;
 };
 
 struct SC_UPDATE_INFO
@@ -107,6 +109,9 @@ public:
 	void CreateItemObject();
 	void CreatSendObject();
 
+	int CheckAllClientsSentData(int cur_nPlayer);
+	void SetAllClientsSendStatus(int cur_nPlayer, bool val);
+
 	// Interface
 	shared_ptr<CServerPlayer> GetPlayer(int nIndex) { return m_apPlayers[nIndex]; }
 
@@ -131,6 +136,10 @@ private:
 	int m_nEndDrawer1 = -1;
 	int m_nStartDrawer2 = -1;
 	int m_nEndDrawer2 = -1;
+
+	bool m_bDataSend[MAX_CLIENT] = { false };
+	// 송수신 , 데이터 업데이트는 싱글스레드로 이루어짐. 데이터를 send한 이후에 업데이트된 데이터가 send이전에 덮어씌어버리면 올바른 동기화가 이뤄지지 않음
+
 };
 
 extern void err_quit(const char* msg);
