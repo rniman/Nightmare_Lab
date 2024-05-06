@@ -550,18 +550,14 @@ void TCPServer::UpdateInformation()
 
 				m_aUpdateInfo[nPlayerId].m_playerInfo.m_iMineobjectNum = pZombiePlayer->GetCollideMineRef();
 				// 지뢰충돌에 대한 데이터 로직
-				int sendClientCount = CheckAllClientsSentData(cur_nPlayer);
-				if (m_aUpdateInfo[nPlayerId].m_playerInfo.m_iMineobjectNum == -1 && sendClientCount == cur_nPlayer) {
+				if (m_aUpdateInfo[nPlayerId].m_playerInfo.m_iMineobjectNum == -1) {
 					m_aUpdateInfo[nPlayerId].m_playerInfo.m_iMineobjectNum = pZombiePlayer->GetCollideMineRef();
-					SetAllClientsSendStatus(cur_nPlayer, false); // 데이터가 보내기 전까지는 m_iMineobjectNum 변수는 갱신될수없음
+					pZombiePlayer->expDelay = 0.0f;
 				} 
 				else {
-					sendClientCount = CheckAllClientsSentData(cur_nPlayer);
-					if (sendClientCount == cur_nPlayer) { // 데이터를 보낸 이후에 대한 처리가 이루어져야함.
-						//ref를 전송하기 전에 -1로 덮으면 안됨.
+					if (pZombiePlayer->expDelay > 0.05f) {
 						pZombiePlayer->SetCollideMineRef(-1);// 보내고 즉시 해제
 						m_aUpdateInfo[nPlayerId].m_playerInfo.m_iMineobjectNum = pZombiePlayer->GetCollideMineRef();
-						SetAllClientsSendStatus(cur_nPlayer, false);
 					}
 				}
 			}

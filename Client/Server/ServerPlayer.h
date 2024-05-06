@@ -216,4 +216,6 @@ public:
 	void SetCollideMineRef(int val) { m_iCollideMineRef = val; }
 	void SetStopMove(float val) { m_fStopMove = val; }
 	void CollisionMine(int ref);
+
+	float expDelay = 0.0f;
 };

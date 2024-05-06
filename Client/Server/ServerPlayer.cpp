@@ -739,7 +739,7 @@ void CServerZombiePlayer::UseItem(shared_ptr<CServerCollisionManager>& pCollisio
 void CServerZombiePlayer::Update(float fElapsedTime, shared_ptr<CServerCollisionManager>& pCollisionManager)
 {
 	m_fCoolTimeAttack -= fElapsedTime;
-
+	expDelay += fElapsedTime;
 	if (m_fNoStopTime > 0.0f) { // 움직임 제한 쿨타임
 		m_fNoStopTime -= fElapsedTime;
 

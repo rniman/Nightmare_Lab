@@ -323,7 +323,7 @@ void CScene::BuildObjects(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* p
 			m_vShader[SKINNEDANIMATION_STANDARD_SHADER]->AddGameObject(m_apPlayer[i]);
 			
 			// [0506] OutLine Shader
-			if (mainPlayerId == 0)
+			if (mainPlayerId == ZOMBIEPLAYER)
 			{
 				m_vForwardRenderShader.push_back(make_unique<COutLineShader>());
 				m_vForwardRenderShader[OUT_LINE_SHADER]->CreateShader(pd3dDevice, pd3dCommandList, m_pd3dGraphicsRootSignature.Get(), 1, nullptr, DXGI_FORMAT_D24_UNORM_S8_UINT);
@@ -342,7 +342,7 @@ void CScene::BuildObjects(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* p
 
 			//[0505] BLUE SUIT 플레이어의 외곽선을 그리기 위해
 			// Zombie 플레이어여야만 필요하다
-			if(mainPlayerId == 0)
+			if(mainPlayerId == ZOMBIEPLAYER)
 			{
 				m_vForwardRenderShader[OUT_LINE_SHADER]->AddGameObject(m_apPlayer[i]);
 			}
