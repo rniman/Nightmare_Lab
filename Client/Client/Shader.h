@@ -199,8 +199,12 @@ public:
 	vector<shared_ptr<CCamera>>& GetLightCamera() { return  m_pLightCamera; }
 };
 
-// UI SHADER
-class UserInterfaceShader : public CShader
+/// <CShader - CPostProcessingShader>
+////// /// /// /// /// /// /// /// /// /// /// /// /// /// /// /// /// /// /// /// /// /// /// /// /// /// /// /// ///  
+/// <CShader - CUserInterfaceShader>
+
+// [0504] UI SHADER
+class CUserInterfaceShader : public CShader
 {
 public:
 
@@ -215,4 +219,39 @@ public:
 	virtual void BuildObjects(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dCommandList, ID3D12RootSignature* pd3dGraphicsRootSignature) override;
 
 private:
+};
+
+/// <CShader - UserInterfaceShader>
+////// /// /// /// /// /// /// /// /// /// /// /// /// /// /// /// /// /// /// /// /// /// /// /// /// /// /// /// ///  
+/// <CShader - StandardShader - OutLineShader>
+
+class CBlueSuitPlayer;
+class CZombiePlayer;
+
+//[0505] OutLine
+class COutLineShader : public CShader
+{
+public:
+	COutLineShader() {};
+	virtual ~COutLineShader() {};
+
+	virtual D3D12_INPUT_LAYOUT_DESC CreateInputLayout();
+	virtual D3D12_SHADER_BYTECODE CreateVertexShader();
+	virtual D3D12_SHADER_BYTECODE CreatePixelShader();
+
+	virtual D3D12_DEPTH_STENCIL_DESC CreateDepthStencilState();
+	virtual D3D12_RASTERIZER_DESC CreateRasterizerState();
+
+	virtual void CreateShader(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dCommandList, ID3D12RootSignature* pd3dGraphicsRootSignature, UINT nRenderTargets, DXGI_FORMAT* pdxgiRtvFormats, DXGI_FORMAT dxgiDsvFormat);
+
+	virtual void Render(ID3D12GraphicsCommandList* pd3dCommandList, const shared_ptr<CCamera>& pCamera, int nPipelineState = 0);
+
+	virtual void AddGameObject(const shared_ptr<CGameObject>& pGameObject);
+
+	void SetPostProcessingShader(CPostProcessingShader* pPostProcessingShader) { m_pPostProcessingShader = pPostProcessingShader; }
+private:
+	shared_ptr<CZombiePlayer> m_pZombiePlayer;
+
+	bool m_bOutLine = false;
+	CPostProcessingShader* m_pPostProcessingShader = nullptr;
 };

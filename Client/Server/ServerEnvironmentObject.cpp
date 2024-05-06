@@ -378,7 +378,7 @@ void CServerTeleportObject::SetRandomPosition(shared_ptr<CServerCollisionManager
 		}
 		pCollisionManager->ReplaceCollisionObject(shared_from_this());
 
-		printf("%d New Pos: %f %f %f\n", m_nCollisionNum, m_xmf4x4World._41, m_xmf4x4World._42, m_xmf4x4World._43);
+		//printf("%d New Pos: %f %f %f\n", m_nCollisionNum, m_xmf4x4World._41, m_xmf4x4World._42, m_xmf4x4World._43);
 		break;
 	}
 }

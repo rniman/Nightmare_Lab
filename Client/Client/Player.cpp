@@ -589,11 +589,11 @@ void CBlueSuitPlayer::Update(float fElapsedTime)
 					m_pSkinnedAnimationController->m_bTransition = true;
 					m_pSkinnedAnimationController->m_nNextState = PlayerState::DEATH;
 
-					float fStartPosition =
-						m_pSkinnedAnimationController->m_vAnimationTransitions[m_pSkinnedAnimationController->m_nNowState + 4].m_fTransitionStart
-						* m_pSkinnedAnimationController->m_pAnimationSets->m_vpAnimationSets[m_pSkinnedAnimationController->m_vAnimationTracks[5].m_nAnimationSet]->m_fLength;
+					//float fStartPosition =
+					//	m_pSkinnedAnimationController->m_vAnimationTransitions[m_pSkinnedAnimationController->m_nNowState + 4].m_fTransitionStart
+					//	* m_pSkinnedAnimationController->m_pAnimationSets->m_vpAnimationSets[m_pSkinnedAnimationController->m_vAnimationTracks[5].m_nAnimationSet]->m_fLength;
 
-					m_pSkinnedAnimationController->SetTrackPosition(5, fStartPosition);
+					//m_pSkinnedAnimationController->SetTrackPosition(5, fStartPosition);
 				}
 			}
 		}
@@ -719,6 +719,7 @@ void CBlueSuitPlayer::Animate(float fElapsedTime)
 		break;
 	}
 
+
 	m_pcbMappedTime->localTime += fElapsedTime;
 	if (int(m_pcbMappedTime->localTime * 10.0f) % 3 == 0) {
 		m_pcbMappedTime->usePattern = -1.0f;
@@ -730,11 +731,29 @@ void CBlueSuitPlayer::Animate(float fElapsedTime)
 		m_pcbMappedTime->usePattern = -1.0f;
 		m_bHitEffectBlend = false;
 	}
+	
+	if (m_bTracking)
+	{
+		m_pcbMappedTime->fTrackingTime += fElapsedTime;
+		if (m_pcbMappedTime->fTrackingTime > 2.0f)
+		{
+			m_pcbMappedTime->fTrackingTime = 2.0f;
+		}
+	}
+	else
+	{
+		m_pcbMappedTime->fTrackingTime -= fElapsedTime;
+		if (m_pcbMappedTime->fTrackingTime < 0.0f)
+		{
+			m_pcbMappedTime->fTrackingTime = 0.0f;
+		}
+	}
 }
 
 void CBlueSuitPlayer::Render(ID3D12GraphicsCommandList* pd3dCommandList)
 {
-	if (m_bHitEffectBlend) {
+	if (m_bHitEffectBlend)
+	{
 		m_pHitEffectMaterial->UpdateShaderVariable(pd3dCommandList, nullptr);
 
 		pd3dCommandList->SetGraphicsRootDescriptorTable(12, m_d3dTimeCbvGPUDescriptorHandle);
@@ -747,6 +766,11 @@ void CBlueSuitPlayer::Render(ID3D12GraphicsCommandList* pd3dCommandList)
 			m_pcbMappedTime->usePattern *= -1.0f;
 		}*/
 		return;
+	}
+
+	if(m_bTracking)
+	{
+		pd3dCommandList->SetGraphicsRootDescriptorTable(12, m_d3dTimeCbvGPUDescriptorHandle);
 	}
 
 	CPlayer::Render(pd3dCommandList);
@@ -1032,6 +1056,7 @@ CZombiePlayer::CZombiePlayer(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList
 
 	SetPlayerUpdatedContext(pContext);
 	SetCameraUpdatedContext(pContext);
+
 }
 
 CZombiePlayer::~CZombiePlayer()
@@ -1062,6 +1087,24 @@ void CZombiePlayer::LoadModelAndAnimation(ID3D12Device* pd3dDevice, ID3D12Graphi
 
 void CZombiePlayer::Update(float fElapsedTime)
 {
+	// 
+	//if(m_bTracking)
+	//{
+	//	m_fTrackingTime += fElapsedTime;
+	//	if (m_fTrackingTime > 2.0f)
+	//	{
+	//		m_fTrackingTime = 2.0f;
+	//	}
+	//}
+	//else
+	//{
+	//	m_fTrackingTime -= fElapsedTime;
+	//	if (m_fTrackingTime < 0.0f)
+	//	{
+	//		m_fTrackingTime = 0.0f;
+	//	}
+	//}
+
 	CPlayer::Update(fElapsedTime);
 
 	m_pcbMappedTime->time += fElapsedTime;

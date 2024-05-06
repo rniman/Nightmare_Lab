@@ -187,7 +187,7 @@ void CScene::CreateGraphicsRootSignature(ID3D12Device* pd3dDevice)
 	pd3dRootParameters[12].ParameterType = D3D12_ROOT_PARAMETER_TYPE_DESCRIPTOR_TABLE;
 	pd3dRootParameters[12].DescriptorTable.NumDescriptorRanges = 1;
 	pd3dRootParameters[12].DescriptorTable.pDescriptorRanges = &pd3dDescriptorRanges[12]; //cbFrameInfo
-	pd3dRootParameters[12].ShaderVisibility = D3D12_SHADER_VISIBILITY_PIXEL;
+	pd3dRootParameters[12].ShaderVisibility = D3D12_SHADER_VISIBILITY_ALL;	// -> 일단 임시로 ALL(TrackingTime)
 
 	pd3dRootParameters[13].ParameterType = D3D12_ROOT_PARAMETER_TYPE_DESCRIPTOR_TABLE;
 	pd3dRootParameters[13].DescriptorTable.NumDescriptorRanges = 1;
@@ -270,7 +270,7 @@ ComPtr<ID3D12RootSignature> CScene::GetGraphicsRootSignature()
 	return m_pd3dGraphicsRootSignature;
 }
 
-void CScene::BuildObjects(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dCommandList,int mainPlayerId)
+void CScene::BuildObjects(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dCommandList, int mainPlayerId)
 {
 	BuildLights();
 	CreateGraphicsRootSignature(pd3dDevice);
@@ -306,6 +306,9 @@ void CScene::BuildObjects(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* p
 	m_vForwardRenderShader.push_back(make_unique<TextureBlendAnimationShader>());
 	m_vForwardRenderShader[TEXTUREBLEND_SHADER]->CreateShader(pd3dDevice, pd3dCommandList, m_pd3dGraphicsRootSignature.Get(), 1, nullptr, DXGI_FORMAT_D24_UNORM_S8_UINT);
 
+	//[0505] UI
+	m_vForwardRenderShader.push_back(make_unique<CUserInterfaceShader>());
+	m_vForwardRenderShader[USER_INTERFACE_SHADER]->CreateShader(pd3dDevice, pd3dCommandList, m_pd3dGraphicsRootSignature.Get(), 1, nullptr, DXGI_FORMAT_D24_UNORM_S8_UINT);
 
 	LoadScene(pd3dDevice, pd3dCommandList);
 
@@ -318,6 +321,15 @@ void CScene::BuildObjects(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* p
 			shared_ptr<CLoadedModelInfo> pZombiePlayerModel = CGameObject::LoadGeometryAndAnimationFromFile(pd3dDevice, pd3dCommandList, m_pd3dGraphicsRootSignature.Get(), "Asset/Model/Zom_1.bin", MeshType::Standard);
 			m_apPlayer[i]->LoadModelAndAnimation(pd3dDevice, pd3dCommandList, m_pd3dGraphicsRootSignature.Get(), pZombiePlayerModel);
 			m_vShader[SKINNEDANIMATION_STANDARD_SHADER]->AddGameObject(m_apPlayer[i]);
+			
+			// [0506] OutLine Shader
+			if (mainPlayerId == 0)
+			{
+				m_vForwardRenderShader.push_back(make_unique<COutLineShader>());
+				m_vForwardRenderShader[OUT_LINE_SHADER]->CreateShader(pd3dDevice, pd3dCommandList, m_pd3dGraphicsRootSignature.Get(), 1, nullptr, DXGI_FORMAT_D24_UNORM_S8_UINT);
+
+				m_vForwardRenderShader[OUT_LINE_SHADER]->AddGameObject(m_apPlayer[i]);
+			}
 
 			continue;
 		}
@@ -327,6 +339,13 @@ void CScene::BuildObjects(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* p
 			shared_ptr<CLoadedModelInfo> pBlueSuitPlayerModel = CGameObject::LoadGeometryAndAnimationFromFile(pd3dDevice, pd3dCommandList, m_pd3dGraphicsRootSignature.Get(), "Asset/Model/BlueSuitFree01.bin",MeshType::Standard);
 			m_apPlayer[i]->LoadModelAndAnimation(pd3dDevice, pd3dCommandList, m_pd3dGraphicsRootSignature.Get(), pBlueSuitPlayerModel);
 			m_vShader[SKINNEDANIMATION_STANDARD_SHADER]->AddGameObject(m_apPlayer[i]);
+
+			//[0505] BLUE SUIT 플레이어의 외곽선을 그리기 위해
+			// Zombie 플레이어여야만 필요하다
+			if(mainPlayerId == 0)
+			{
+				m_vForwardRenderShader[OUT_LINE_SHADER]->AddGameObject(m_apPlayer[i]);
+			}
 		}
 
 		//플래시라이트모델 로드
@@ -407,17 +426,15 @@ void CScene::BuildObjects(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* p
 
 		g_collisionManager.AddCollisionObject(pMineObject);
 		m_vShader[STANDARD_SHADER]->AddGameObject(pMineObject);
-		for (int j = 0;j < MAX_CLIENT;++j) {
+		for (int j = 0; j < MAX_CLIENT; ++j) {
 			auto player = dynamic_pointer_cast<CBlueSuitPlayer>(m_apPlayer[j]);
 			if (player) {
 				player->AddEnvironmentMineItems(pMineObject);
 			}
 		}
 	}
+	
 	// [0504] UserInterface
-	m_vForwardRenderShader.push_back(make_unique<UserInterfaceShader>());
-	m_vForwardRenderShader[USER_INTERFACE_SHADER]->CreateShader(pd3dDevice, pd3dCommandList, m_pd3dGraphicsRootSignature.Get(), 1, nullptr, DXGI_FORMAT_D24_UNORM_S8_UINT);
-
 	m_vForwardRenderShader[USER_INTERFACE_SHADER]->BuildObjects(pd3dDevice, pd3dCommandList, m_pd3dGraphicsRootSignature.Get());
 
 	CreateShaderVariables(pd3dDevice, pd3dCommandList);

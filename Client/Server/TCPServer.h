@@ -66,7 +66,6 @@ struct SOCKETINFO
 	char m_pCurrentBuffer[BUFSIZE + 1];
 
 	SOCKET_STATE m_socketState = SOCKET_STATE::SEND_ID;
-	SOCKET_STATE m_prevSocketState = SOCKET_STATE::SEND_ID;
 
 	int SendNum = 0;
 	int RecvNum = 0;

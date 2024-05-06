@@ -28,6 +28,9 @@ cbuffer cbFrameInfo : register(b5)
     float time : packoffset(c0.x);
     float localTime : packoffset(c0.y);
     float usePattern : packoffset(c0.z);
+    
+    // [0506] 플레이어 외곽선
+    float gfTrackingTime : packoffset(c0.w);
 }
 
 
@@ -391,7 +394,7 @@ float4 PSTransparent(VS_STANDARD_OUTPUT input) : SV_Target
 }
 
 
-//UI Shader
+//[0504] UI Shader
 struct VS_USER_INTERFACE_INPUT
 {
     float3 position : POSITION;
@@ -404,7 +407,6 @@ struct VS_USER_INTERFACE_OUTPUT
     float2 uv : TEXCOORD;
 };
 
-// 정점 쉐이더를 정의한다.
 VS_USER_INTERFACE_OUTPUT VSUserInterface(VS_USER_INTERFACE_INPUT input)
 {
     VS_USER_INTERFACE_OUTPUT output;
@@ -416,7 +418,6 @@ VS_USER_INTERFACE_OUTPUT VSUserInterface(VS_USER_INTERFACE_INPUT input)
     return output;
 }
 
-// 픽셀 쉐이더를 정의한다.
 float4 PSUserInterface(VS_USER_INTERFACE_OUTPUT input) : SV_TARGET
 {
     float4 cAlbedoColor = float4(1.0f, 1.0f, 0.0f, 1.0f);
@@ -424,4 +425,73 @@ float4 PSUserInterface(VS_USER_INTERFACE_OUTPUT input) : SV_TARGET
     cAlbedoColor = AlbedoTexture.Sample(gssWrap, input.uv);
     cAlbedoColor.b = 1.0f;
     return float4(cAlbedoColor);
+}
+
+//[0505] OutLineShader
+
+struct VS_OUT_LINE_INPUT
+{
+    float3 position : POSITION;
+    float2 uv : TEXCOORD;
+    float3 normal : NORMAL;
+    float3 tangent : TANGENT;
+    float3 bitangent : BITANGENT;
+    int4 indices : BONEINDEX;
+    float4 weights : BONEWEIGHT;
+};
+
+VS_STANDARD_OUTPUT VSOutLineMask(VS_OUT_LINE_INPUT input)
+{
+    VS_STANDARD_OUTPUT output;
+    
+    float4x4 mtxVertexToBoneWorld = (float4x4) 0.0f;
+    for(int i = 0; i < MAX_VERTEX_INFLUENCES; i++)
+    {
+        mtxVertexToBoneWorld += input.weights[i] * mul(gpmtxBoneOffsets[input.indices[i]], gpmtxBoneTransforms[input.indices[i]]);
+    }
+    output.positionW = mul(float4(input.position, 1.0f), mtxVertexToBoneWorld).xyz;
+    output.normalW = mul(input.normal, (float3x3) mtxVertexToBoneWorld).xyz;
+    output.tangentW = mul(input.tangent, (float3x3) mtxVertexToBoneWorld).xyz;
+    output.bitangentW = mul(input.bitangent, (float3x3) mtxVertexToBoneWorld).xyz;
+    
+    //output.positionW -= output.normalW * 0.005f;
+
+    output.position = mul(mul(float4(output.positionW, 1.0f), gmtxView), gmtxProjection);
+    
+    output.uv = input.uv;
+
+    return (output);
+}
+
+VS_STANDARD_OUTPUT VSOutLine(VS_OUT_LINE_INPUT input)
+{
+    VS_STANDARD_OUTPUT output;
+    
+    float4x4 mtxVertexToBoneWorld = (float4x4) 0.0f;
+    for(int i = 0; i < MAX_VERTEX_INFLUENCES; i++)
+    {
+        mtxVertexToBoneWorld += input.weights[i] * mul(gpmtxBoneOffsets[input.indices[i]], gpmtxBoneTransforms[input.indices[i]]);
+    }
+    output.positionW = mul(float4(input.position, 1.0f), mtxVertexToBoneWorld).xyz;
+    output.normalW = mul(input.normal, (float3x3) mtxVertexToBoneWorld).xyz;
+    output.tangentW = mul(input.tangent, (float3x3) mtxVertexToBoneWorld).xyz;
+    output.bitangentW = mul(input.bitangent, (float3x3) mtxVertexToBoneWorld).xyz;
+    
+    output.positionW += output.normalW * 0.01f * (gfTrackingTime * 0.5f);
+
+    output.position = mul(mul(float4(output.positionW, 1.0f), gmtxView), gmtxProjection);
+
+    output.uv = input.uv;
+
+    return (output);
+}
+
+//float4 PSOutLineMask(VS_STANDARD_OUTPUT input) : SV_TARGET
+//{
+//    return float4(0.0f, 0.0f, 0.0f, 0.0f);
+//}
+
+float4 PSOutLine(VS_STANDARD_OUTPUT input) : SV_TARGET
+{
+    return float4(1.0f, 1.0f, 1.0f, 1.0f);
 }

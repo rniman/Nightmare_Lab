@@ -1,6 +1,7 @@
 #include "stdafx.h"
 #include "Shader.h"
 #include "Scene.h"
+#include "Player.h"
 
 CShader::CShader()
 {
@@ -215,21 +216,14 @@ void CShader::Render(ID3D12GraphicsCommandList* pd3dCommandList, const shared_pt
 {
 	UpdatePipeLineState(pd3dCommandList, nPipelineState);
 
-	int i = 0;
 	for (auto& object : m_vGameObjects) 
 	{
-		if (i == 10)
-		{
-			int x = 0;
-		}
-
 		if (!object->m_bThisContainTransparent) {
 			object->Render(pd3dCommandList);
 		}
 		else {
 			object->RenderOpaque(pd3dCommandList);
 		}
-		++i;
 	}
 }
 
@@ -881,7 +875,7 @@ void CPostProcessingShader::OnShadowPrepareRenderTarget(ID3D12GraphicsCommandLis
 	}
 }
 
-D3D12_INPUT_LAYOUT_DESC UserInterfaceShader::CreateInputLayout()
+D3D12_INPUT_LAYOUT_DESC CUserInterfaceShader::CreateInputLayout()
 {
 	UINT nInputElementDescs = 2;
 	D3D12_INPUT_ELEMENT_DESC* pd3dInputElementDescs = new D3D12_INPUT_ELEMENT_DESC[nInputElementDescs];
@@ -899,17 +893,17 @@ D3D12_INPUT_LAYOUT_DESC UserInterfaceShader::CreateInputLayout()
 	return(d3dInputLayoutDesc);
 }
 
-D3D12_SHADER_BYTECODE UserInterfaceShader::CreateVertexShader()
+D3D12_SHADER_BYTECODE CUserInterfaceShader::CreateVertexShader()
 {
 	return(CShader::CompileShaderFromFile(L"Shaders.hlsl", "VSUserInterface", "vs_5_1", m_pd3dVertexShaderBlob.GetAddressOf()));
 }
 
-D3D12_SHADER_BYTECODE UserInterfaceShader::CreatePixelShader()
+D3D12_SHADER_BYTECODE CUserInterfaceShader::CreatePixelShader()
 {
 	return(CShader::CompileShaderFromFile(L"Shaders.hlsl", "PSUserInterface", "ps_5_1", m_pd3dPixelShaderBlob.GetAddressOf()));
 }
 
-D3D12_RASTERIZER_DESC UserInterfaceShader::CreateRasterizerState()
+D3D12_RASTERIZER_DESC CUserInterfaceShader::CreateRasterizerState()
 {
 	D3D12_RASTERIZER_DESC d3dRasterizerDesc;
 	::ZeroMemory(&d3dRasterizerDesc, sizeof(D3D12_RASTERIZER_DESC));
@@ -928,7 +922,7 @@ D3D12_RASTERIZER_DESC UserInterfaceShader::CreateRasterizerState()
 	return(d3dRasterizerDesc);
 }
 
-D3D12_BLEND_DESC UserInterfaceShader::CreateBlendState()
+D3D12_BLEND_DESC CUserInterfaceShader::CreateBlendState()
 {
 	D3D12_BLEND_DESC d3dBlendDesc;
 	::ZeroMemory(&d3dBlendDesc, sizeof(D3D12_BLEND_DESC));
@@ -948,7 +942,7 @@ D3D12_BLEND_DESC UserInterfaceShader::CreateBlendState()
 	return(d3dBlendDesc);
 }
 
-void UserInterfaceShader::CreateShader(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dCommandList, ID3D12RootSignature* pd3dGraphicsRootSignature, UINT nRenderTargets, DXGI_FORMAT* pdxgiRtvFormats, DXGI_FORMAT dxgiDsvFormat)
+void CUserInterfaceShader::CreateShader(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dCommandList, ID3D12RootSignature* pd3dGraphicsRootSignature, UINT nRenderTargets, DXGI_FORMAT* pdxgiRtvFormats, DXGI_FORMAT dxgiDsvFormat)
 {
 	m_nPipelineState = 1;
 	m_vpd3dPipelineState.reserve(m_nPipelineState);
@@ -960,7 +954,7 @@ void UserInterfaceShader::CreateShader(ID3D12Device* pd3dDevice, ID3D12GraphicsC
 	CShader::CreateShader(pd3dDevice, pd3dCommandList, pd3dGraphicsRootSignature, nRenderTargets, pdxgiRtvFormats, dxgiDsvFormat); //m_ppd3dPipelineStates[0] »ý¼º
 }
 
-void UserInterfaceShader::BuildObjects(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dCommandList, ID3D12RootSignature* pd3dGraphicsRootSignature) 
+void CUserInterfaceShader::BuildObjects(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dCommandList, ID3D12RootSignature* pd3dGraphicsRootSignature) 
 {
 	shared_ptr<CTexture> ptexCrosshair = make_shared<CTexture>(1, RESOURCE_TEXTURE2D, 0, 1);
 	ptexCrosshair->LoadTextureFromDDSFile(pd3dDevice, pd3dCommandList, (wchar_t*)L"Asset/Textures/crosshair.dds", RESOURCE_TEXTURE2D, 0);
@@ -980,3 +974,157 @@ void UserInterfaceShader::BuildObjects(ID3D12Device* pd3dDevice, ID3D12GraphicsC
 
 	AddGameObject(pCrosshair);
 }
+
+/// <CShader - UserInterfaceShader>
+////// /// /// /// /// /// /// /// /// /// /// /// /// /// /// /// /// /// /// /// /// /// /// /// /// /// /// /// ///  
+/// <CShader - StandardShader - OutLineShader>
+
+D3D12_INPUT_LAYOUT_DESC COutLineShader::CreateInputLayout()
+{
+	UINT nInputElementDescs = 7;
+	D3D12_INPUT_ELEMENT_DESC* pd3dInputElementDescs = new D3D12_INPUT_ELEMENT_DESC[nInputElementDescs];
+
+	pd3dInputElementDescs[0] = { "POSITION", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, 0, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0 };
+	pd3dInputElementDescs[1] = { "TEXCOORD", 0, DXGI_FORMAT_R32G32_FLOAT, 1, 0, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0 };
+	pd3dInputElementDescs[2] = { "NORMAL", 0, DXGI_FORMAT_R32G32B32_FLOAT, 2, 0, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0 };
+	pd3dInputElementDescs[3] = { "TANGENT", 0, DXGI_FORMAT_R32G32B32_FLOAT, 3, 0, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0 };
+	pd3dInputElementDescs[4] = { "BITANGENT", 0, DXGI_FORMAT_R32G32B32_FLOAT, 4, 0, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0 };
+	pd3dInputElementDescs[5] = { "BONEINDEX", 0, DXGI_FORMAT_R32G32B32A32_SINT, 5, 0, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0 };
+	pd3dInputElementDescs[6] = { "BONEWEIGHT", 0, DXGI_FORMAT_R32G32B32A32_FLOAT, 6, 0, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0 };
+
+	D3D12_INPUT_LAYOUT_DESC d3dInputLayoutDesc;
+	d3dInputLayoutDesc.pInputElementDescs = pd3dInputElementDescs;
+	d3dInputLayoutDesc.NumElements = nInputElementDescs;
+
+	return(d3dInputLayoutDesc);
+}
+
+D3D12_SHADER_BYTECODE COutLineShader::CreateVertexShader()
+{
+	if (m_PipeLineIndex == 0)
+	{
+		return(CShader::CompileShaderFromFile(L"Shaders.hlsl", "VSOutLineMask", "vs_5_1", m_pd3dVertexShaderBlob.GetAddressOf()));
+	}
+	else
+	{
+		return(CShader::CompileShaderFromFile(L"Shaders.hlsl", "VSOutLine", "vs_5_1", m_pd3dVertexShaderBlob.GetAddressOf()));
+	}
+}
+
+D3D12_SHADER_BYTECODE COutLineShader::CreatePixelShader()
+{
+	return(CShader::CompileShaderFromFile(L"Shaders.hlsl", "PSOutLine", "ps_5_1", m_pd3dPixelShaderBlob.GetAddressOf()));	
+}
+
+D3D12_DEPTH_STENCIL_DESC COutLineShader::CreateDepthStencilState()
+{
+	D3D12_DEPTH_STENCIL_DESC d3dDepthStencilDesc;
+	::ZeroMemory(&d3dDepthStencilDesc, sizeof(D3D12_DEPTH_STENCIL_DESC));
+	if(m_PipeLineIndex ==0)
+	{
+		d3dDepthStencilDesc.DepthEnable = TRUE;
+		d3dDepthStencilDesc.DepthWriteMask = D3D12_DEPTH_WRITE_MASK_ALL;//D3D12_DEPTH_WRITE_MASK_ALL
+		d3dDepthStencilDesc.DepthFunc = D3D12_COMPARISON_FUNC_LESS_EQUAL; // D3D12_COMPARISON_FUNC_LESS_EQUAL
+		d3dDepthStencilDesc.StencilEnable = TRUE;
+		d3dDepthStencilDesc.StencilReadMask = 0xff;
+		d3dDepthStencilDesc.StencilWriteMask = 0xff;
+		d3dDepthStencilDesc.FrontFace.StencilFailOp = D3D12_STENCIL_OP_REPLACE;
+		d3dDepthStencilDesc.FrontFace.StencilDepthFailOp = D3D12_STENCIL_OP_REPLACE;
+		d3dDepthStencilDesc.FrontFace.StencilPassOp = D3D12_STENCIL_OP_REPLACE;
+		d3dDepthStencilDesc.FrontFace.StencilFunc = D3D12_COMPARISON_FUNC_NEVER;
+		d3dDepthStencilDesc.BackFace = d3dDepthStencilDesc.FrontFace;
+	}
+	else
+	{
+		d3dDepthStencilDesc.DepthEnable = TRUE;
+		d3dDepthStencilDesc.DepthWriteMask = D3D12_DEPTH_WRITE_MASK_ZERO;//D3D12_DEPTH_WRITE_MASK_ALL
+		d3dDepthStencilDesc.DepthFunc = D3D12_COMPARISON_FUNC_LESS; // D3D12_COMPARISON_FUNC_LESS_EQUAL
+		d3dDepthStencilDesc.StencilEnable = TRUE;
+		d3dDepthStencilDesc.StencilReadMask = 0xff;
+		d3dDepthStencilDesc.StencilWriteMask = 0xff;
+		d3dDepthStencilDesc.FrontFace.StencilFailOp = D3D12_STENCIL_OP_KEEP;
+		d3dDepthStencilDesc.FrontFace.StencilDepthFailOp = D3D12_STENCIL_OP_KEEP;
+		d3dDepthStencilDesc.FrontFace.StencilPassOp = D3D12_STENCIL_OP_KEEP;
+		d3dDepthStencilDesc.FrontFace.StencilFunc = D3D12_COMPARISON_FUNC_NOT_EQUAL;
+		d3dDepthStencilDesc.BackFace = d3dDepthStencilDesc.FrontFace;
+	}
+
+	return d3dDepthStencilDesc;
+}
+
+D3D12_RASTERIZER_DESC COutLineShader::CreateRasterizerState()
+{
+	D3D12_RASTERIZER_DESC d3dRasterizerDesc;
+	::ZeroMemory(&d3dRasterizerDesc, sizeof(D3D12_RASTERIZER_DESC));
+	d3dRasterizerDesc.FillMode = D3D12_FILL_MODE_SOLID;
+	d3dRasterizerDesc.CullMode = D3D12_CULL_MODE_BACK;
+	d3dRasterizerDesc.FrontCounterClockwise = FALSE;
+	d3dRasterizerDesc.DepthBias = 0;
+	d3dRasterizerDesc.DepthBiasClamp = 0.0f;
+	d3dRasterizerDesc.SlopeScaledDepthBias = 0.0f;
+	d3dRasterizerDesc.DepthClipEnable = TRUE;
+	d3dRasterizerDesc.MultisampleEnable = FALSE;
+	d3dRasterizerDesc.AntialiasedLineEnable = FALSE;
+	d3dRasterizerDesc.ForcedSampleCount = 0;
+	d3dRasterizerDesc.ConservativeRaster = D3D12_CONSERVATIVE_RASTERIZATION_MODE_OFF;
+
+	return(d3dRasterizerDesc);
+}
+
+void COutLineShader::CreateShader(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dCommandList, ID3D12RootSignature* pd3dGraphicsRootSignature, UINT nRenderTargets, DXGI_FORMAT* pdxgiRtvFormats, DXGI_FORMAT dxgiDsvFormat)
+{
+	m_nPipelineState = 2;
+	m_vpd3dPipelineState.reserve(m_nPipelineState);
+	for (int i = 0; i < m_nPipelineState; ++i)
+	{
+		m_vpd3dPipelineState.emplace_back();
+		CShader::CreateShader(pd3dDevice, pd3dCommandList, pd3dGraphicsRootSignature, nRenderTargets, pdxgiRtvFormats, dxgiDsvFormat);
+	}
+}
+
+void COutLineShader::Render(ID3D12GraphicsCommandList* pd3dCommandList, const shared_ptr<CCamera>& pCamera, int nPipelineState)
+{
+	if (!m_pZombiePlayer->IsTracking())
+	{
+		return;
+	}
+
+	pd3dCommandList->ClearDepthStencilView(m_pPostProcessingShader->GetDsvCPUDesctriptorHandle(0), D3D12_CLEAR_FLAG_DEPTH | D3D12_CLEAR_FLAG_STENCIL, 1.0f, 0, 0, NULL);
+	pd3dCommandList->OMSetStencilRef(1);
+	for (int i = 0; i < m_nPipelineState; ++i)
+	{
+		CShader::Render(pd3dCommandList, pCamera, i);
+	}
+}
+
+void COutLineShader::AddGameObject(const shared_ptr<CGameObject>& pGameObject)
+{
+	if (dynamic_pointer_cast<CZombiePlayer>(pGameObject))
+	{
+		m_pZombiePlayer = dynamic_pointer_cast<CZombiePlayer>(pGameObject);
+	}
+	else
+	{
+		m_vGameObjects.push_back(pGameObject);
+	}
+}
+
+//D3D12_BLEND_DESC COutLineShader::CreateBlendState()
+//{
+//	D3D12_BLEND_DESC d3dBlendDesc;
+//	::ZeroMemory(&d3dBlendDesc, sizeof(D3D12_BLEND_DESC));
+//	d3dBlendDesc.AlphaToCoverageEnable = FALSE;
+//	d3dBlendDesc.IndependentBlendEnable = FALSE;
+//	d3dBlendDesc.RenderTarget[0].BlendEnable = true;
+//	d3dBlendDesc.RenderTarget[0].LogicOpEnable = false;
+//	d3dBlendDesc.RenderTarget[0].SrcBlend = D3D12_BLEND_SRC_ALPHA;
+//	d3dBlendDesc.RenderTarget[0].DestBlend = D3D12_BLEND_INV_SRC_ALPHA;
+//	d3dBlendDesc.RenderTarget[0].BlendOp = D3D12_BLEND_OP_ADD;
+//	d3dBlendDesc.RenderTarget[0].SrcBlendAlpha = D3D12_BLEND_ONE;
+//	d3dBlendDesc.RenderTarget[0].DestBlendAlpha = D3D12_BLEND_ZERO;
+//	d3dBlendDesc.RenderTarget[0].BlendOpAlpha = D3D12_BLEND_OP_ADD;
+//	d3dBlendDesc.RenderTarget[0].LogicOp = D3D12_LOGIC_OP_NOOP;
+//	d3dBlendDesc.RenderTarget[0].RenderTargetWriteMask = D3D12_COLOR_WRITE_ENABLE_ALL;
+//	return d3dBlendDesc;
+//}
+

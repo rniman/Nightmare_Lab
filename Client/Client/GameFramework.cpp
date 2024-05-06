@@ -53,7 +53,7 @@ bool CGameFramework::OnCreate(HINSTANCE hInstance, HWND hMainWnd)
 
 	//m_pTcpClient = make_shared<CTcpClient>(hMainWnd);
 
-	g_collisionManager.CreateCollision(4, 10, 10);
+	g_collisionManager.CreateCollision(SPACE_FLOOR, SPACE_WIDTH, SPACE_DEPTH);
 
 	BuildObjects();
 
@@ -708,6 +708,12 @@ void CGameFramework::BuildObjects()
 	m_pPostProcessingShader->CreateShadowMapResource(m_d3d12Device.Get(), m_d3dCommandList.Get(),m_pScene->m_nLights, d3dRtvCPUDescriptorHandle);
 	//D3D12_GPU_DESCRIPTOR_HANDLE d3dDsvGPUDescriptorHandle = CScene::CreateShaderResourceView(m_d3d12Device.Get(), m_d3dDepthStencilBuffer.Get(), DXGI_FORMAT_R32_FLOAT);
 	m_pPostProcessingShader->CreateLightCamera(m_d3d12Device.Get(), m_d3dCommandList.Get(), m_pScene.get());
+
+	//[0505] COutLineShader 내부에서 m_pPostProcessingShader->GetDsvCPUDesctriptorHandle(0)을 사용하기위해서 필요
+	if(m_pTcpClient->GetClientId() == 0)
+	{
+		dynamic_cast<COutLineShader*>(m_pScene->m_vForwardRenderShader[OUT_LINE_SHADER].get())->SetPostProcessingShader(m_pPostProcessingShader);
+	}
 
 	m_d3dCommandList->Close();
 	ID3D12CommandList* ppd3dCommandLists[] = { m_d3dCommandList.Get()};

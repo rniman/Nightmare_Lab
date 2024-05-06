@@ -236,7 +236,7 @@ void CTcpClient::OnProcessingWriteMessage(HWND hWnd, UINT nMessageID, WPARAM wPa
 	{
 		return;
 	}
-
+	
 	//데이터 갱신 후 전송
 	m_aClientInfo[m_nMainClientId].m_animationInfo.pitch = m_apPlayers[m_nMainClientId]->GetPitch();
 	m_aClientInfo[m_nMainClientId].m_playerInfo.m_bRightClick = m_apPlayers[m_nMainClientId]->IsRightClick();
@@ -265,16 +265,16 @@ void CTcpClient::OnProcessingWriteMessage(HWND hWnd, UINT nMessageID, WPARAM wPa
 
 		SendNum++;
 		// 키버퍼, 카메라Matrix, LOOK,RIGHT 같이 보내주기
-		if(m_apPlayers[m_nMainClientId]->IsAlive())
+		if(m_apPlayers[m_nMainClientId]->m_pSkinnedAnimationController->IsAnimation())
 		{
 			nRetval = SendData(wParam, nBufferSize,
 				nHead,
 				now,
 				keysBuffer,
 				m_apPlayers[m_nMainClientId]->GetCamera()->GetViewMatrix(),
-				m_apPlayers[m_nMainClientId]->GetLookVector(),
-				m_apPlayers[m_nMainClientId]->GetRightVector(),
-				m_apPlayers[m_nMainClientId]->GetUpVector(),
+				m_apPlayers[m_nMainClientId]->GetLook(),
+				m_apPlayers[m_nMainClientId]->GetRight(),
+				m_apPlayers[m_nMainClientId]->GetUp(),
 				m_aClientInfo[m_nMainClientId].m_animationInfo,
 				m_aClientInfo[m_nMainClientId].m_playerInfo
 			);
@@ -364,34 +364,62 @@ void CTcpClient::UpdateZombiePlayer()
 		return;
 	}
 
-	if (m_aClientInfo[0].m_nSlotObjectNum[0] == 1)	// 추적
-	{
 
-	}
-
-	if (m_aClientInfo[0].m_nSlotObjectNum[1] == 1)	// 시야방해
+	// 시야 방해
+	for (int i = 0; i < MAX_CLIENT; ++i)
 	{
-		// 모든 플레이어의 안개효과 심화됨 ( 내 플레이어 안개만 조정하면 됨 )
-		for (int i = 1; i < MAX_CLIENT; ++i)
+		if (m_nMainClientId == 0)	// 추적
 		{
-			if (m_apPlayers[i]->GetClientId() != m_nMainClientId)
+			if (m_aClientInfo[0].m_nSlotObjectNum[0] == 1)
 			{
-				continue;
+				m_apPlayers[i]->SetTracking(true);
 			}
+			else
+			{
+				m_apPlayers[i]->SetTracking(false);
+			}
+		}
+
+		if (m_apPlayers[i]->GetClientId() != m_nMainClientId || i == 0)
+		{
+			continue;
+		}
+		if (m_aClientInfo[0].m_nSlotObjectNum[1] == 1)
+		{
 			dynamic_pointer_cast<CBlueSuitPlayer>(m_apPlayers[i])->SetInterruption(true);
 		}
-	}
-	else
-	{
-		for (int i = 1; i < MAX_CLIENT; ++i)
+		else
 		{
-			if (m_apPlayers[i]->GetClientId() != m_nMainClientId)
-			{
-				continue;
-			}
 			dynamic_pointer_cast<CBlueSuitPlayer>(m_apPlayers[i])->SetInterruption(false);
 		}
+
 	}
+	//if (m_aClientInfo[0].m_nSlotObjectNum[1] == 1)	// 시야방해
+	//{
+	//	// 모든 플레이어의 안개효과 심화됨 ( 내 플레이어 안개만 조정하면 됨 )
+	//	for (int i = 1; i < MAX_CLIENT; ++i)
+	//	{
+	//		if (m_apPlayers[i]->GetClientId() != m_nMainClientId)
+	//		{
+	//			continue;
+	//		}
+	//		dynamic_pointer_cast<CBlueSuitPlayer>(m_apPlayers[i])->SetInterruption(true);
+	//	}
+	//}
+	//else
+	//{
+		//for (int i = 1; i < MAX_CLIENT; ++i)
+		//{
+		//	if (m_apPlayers[i]->GetClientId() != m_nMainClientId)
+		//	{
+		//		continue;
+		//	}
+		//	if (m_aClientInfo[0].m_nSlotObjectNum[1] == 1)
+		//		dynamic_pointer_cast<CBlueSuitPlayer>(m_apPlayers[i])->SetInterruption(true);
+		//	else
+		//		dynamic_pointer_cast<CBlueSuitPlayer>(m_apPlayers[i])->SetInterruption(false);
+		//}
+	//}
 
 	if (m_aClientInfo[0].m_nSlotObjectNum[2] == 1)	// 공격을 시도
 	{

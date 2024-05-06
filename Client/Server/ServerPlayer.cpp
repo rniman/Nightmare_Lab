@@ -744,6 +744,11 @@ void CServerZombiePlayer::Update(float fElapsedTime)
 		m_oobbAttackBox.Center.z += xmf3Offset.z;
 	}
 
+	if (m_fCoolTimeTracking < 5.0f)
+	{
+		m_bTracking = false;
+	}
+
 	if (m_fCoolTimeInterruption < 5.0f)
 	{
 		m_bInterruption = false;

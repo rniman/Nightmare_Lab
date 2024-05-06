@@ -10,6 +10,8 @@ struct FrameTimeInfo {
 	float time = 0.0f;
 	float localTime = 0.0f;
 	float usePattern = -1.0f; // shaders에서 패턴텍스처를 사용하는가? 0보다 큰값이면 사용하는 것. 최적화 필요. 쉐이더를 나누면 분기문 줄일수있음.
+
+	float fTrackingTime = 0.0f;
 };
 
 class CGameFramework

@@ -1,10 +1,20 @@
 #pragma once
 
+constexpr int SPACE_FLOOR{ 4 };
+constexpr int SPACE_WIDTH{ 30 };
+constexpr int SPACE_DEPTH{ 30 };
+
 constexpr float SPACE_SIZE_XZ{ 6.0f };
 constexpr float SPACE_SIZE_Y{ 4.5f };
-constexpr float GRID_START_X{ -30.0f };
-constexpr float GRID_START_Y{ -0.5f };
-constexpr float GRID_START_Z{ -30.0f };
+constexpr float GRID_START_X{ -90.0f };
+constexpr float GRID_START_Y{ -0.01f };
+constexpr float GRID_START_Z{ -90.0f };
+//
+//constexpr float SPACE_SIZE_XZ{ 6.0f };
+//constexpr float SPACE_SIZE_Y{ 4.5f };
+//constexpr float GRID_START_X{ -30.0f };
+//constexpr float GRID_START_Y{ -0.5f };
+//constexpr float GRID_START_Z{ -30.0f };
 
 class CGameObject;
 class CPlayer;

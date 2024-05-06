@@ -95,6 +95,8 @@ public:
 	bool IsRightClick() { return m_bRightClick; }
 	void SetRightClick(bool val) { m_bRightClick = val; }
 
+	void SetTracking(bool bTracking) { m_bTracking = bTracking; }
+	bool IsTracking()const { return m_bTracking; }
 protected:
 	int m_nClientId = -1;
 
@@ -129,6 +131,9 @@ protected:
 	weak_ptr<CGameObject> m_pPickedObject;
 
 	bool m_bRightClick = false;
+
+	bool m_bTracking = false;
+	//float m_fTrackingTime = 0.0f;
 };
 
 class CBlueSuitPlayer : public CPlayer

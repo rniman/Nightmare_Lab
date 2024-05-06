@@ -99,7 +99,7 @@ void TCPServer::OnProcessingAcceptMessage(HWND hWnd, UINT nMessageID, WPARAM wPa
 		{
 			continue;
 		}
-		sockInfo.m_prevSocketState = sockInfo.m_socketState;
+		//sockInfo.m_prevSocketState = sockInfo.m_socketState;
 		sockInfo.m_socketState = SOCKET_STATE::SEND_NUM_OF_CLIENT;
 	}
 
@@ -162,7 +162,6 @@ void TCPServer::OnProcessingReadMessage(HWND hWnd, UINT nMessageID, WPARAM wPara
 		int sizeOffset = 0;
 		memcpy(&client, m_vSocketInfoList[nSocketIndex].m_pCurrentBuffer + sizeOffset, sizeof(std::chrono::time_point<std::chrono::steady_clock>));
 		std::chrono::duration<double> deltaTime = now - client;
-		//printf("dif: %lf ms\n", deltaTime.count() * 1000.0f);
 		sizeOffset += sizeof(__int64);
 
 		memcpy(pPlayer->GetKeysBuffer(), m_vSocketInfoList[nSocketIndex].m_pCurrentBuffer + sizeOffset, sizeof(UCHAR[256]));
@@ -180,6 +179,7 @@ void TCPServer::OnProcessingReadMessage(HWND hWnd, UINT nMessageID, WPARAM wPara
 		sizeOffset += sizeof(XMFLOAT3);
 		memcpy(&xmf3Up, m_vSocketInfoList[nSocketIndex].m_pCurrentBuffer + sizeOffset, sizeof(XMFLOAT3));
 		sizeOffset += sizeof(XMFLOAT3);
+
 		pPlayer->SetLook(xmf3Look);
 		pPlayer->SetRight(xmf3Right);
 		pPlayer->SetUp(xmf3Up);
@@ -261,8 +261,8 @@ void TCPServer::OnProcessingWriteMessage(HWND hWnd, UINT nMessageID, WPARAM wPar
 		if (nRetval == -1 && WSAGetLastError() == WSAEWOULDBLOCK)
 		{
 		}
-		m_vSocketInfoList[nSocketIndex].m_socketState = m_vSocketInfoList[nSocketIndex].m_prevSocketState;
-
+		
+		m_vSocketInfoList[nSocketIndex].m_socketState = SOCKET_STATE::SEND_UPDATE_DATA;
 		break;
 	default:
 		break;
@@ -381,7 +381,7 @@ int TCPServer::AddSocketInfo(SOCKET sockClient, struct sockaddr_in addrClient, i
 	sockInfo.m_bRecvDelayed = false;
 	sockInfo.m_bRecvHead = false;
 	sockInfo.m_socketState = SOCKET_STATE::SEND_ID;
-	sockInfo.m_prevSocketState = SOCKET_STATE::SEND_ID;
+	//sockInfo.m_prevSocketState = SOCKET_STATE::SEND_ID;
 	
 	// 배열에 정보 추가 
 	for (int i = 0; i < m_nClient + 1; ++i)
@@ -450,7 +450,7 @@ int TCPServer::RemoveSocketInfo(SOCKET sock)
 					continue;
 				}
 
-				otherSocketInfo.m_prevSocketState = otherSocketInfo.m_socketState;
+				//otherSocketInfo.m_prevSocketState = otherSocketInfo.m_socketState;
 				otherSocketInfo.m_socketState = SOCKET_STATE::SEND_NUM_OF_CLIENT;
 			}
 

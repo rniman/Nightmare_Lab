@@ -14,6 +14,7 @@
 #define TRANSPARENT_SHADER 0 // 투명객체에 대한 쉐이더는 항상 후순위로 배치
 #define TEXTUREBLEND_SHADER 1
 #define USER_INTERFACE_SHADER 2
+#define OUT_LINE_SHADER 3
 
 //#define NOTRENDERING_SHADER 3
 
