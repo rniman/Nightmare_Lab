@@ -617,11 +617,6 @@ void CServerBlueSuitPlayer::RightClickProcess(shared_ptr<CServerCollisionManager
 	case RightItem::NONE:
 		break;
 	case RightItem::RAIDER:
-		/*if (m_apSlotItems[Radar]->IsObtained())
-		{
-			apObjects[Radar] = pCollisionManager->GetCollisionObjectWithNumber(m_apSlotItems[Radar]->GetReferenceNumber());
-			m_selectItem = RightItem::NONE;
-		}*/
 		break;
 	case RightItem::TELEPORT:
 		if (m_apSlotItems[Teleport]->IsObtained())
@@ -637,8 +632,31 @@ void CServerBlueSuitPlayer::RightClickProcess(shared_ptr<CServerCollisionManager
 			m_selectItem = RightItem::NONE;
 		}
 		break;
-	case RightItem::FUSE:
-		UseFuse(pCollisionManager);
+	case RightItem::FUSE: {
+		bool notFuse3 = false;
+		for (auto& pFuseItem : m_apFuseItems) {
+			if (!pFuseItem || !pFuseItem->IsObtained()) {
+				notFuse3 = true;
+				break;
+			}
+		}
+		if (notFuse3) {
+			break;
+		}
+		auto pPickedObject = m_pPickedObject.lock();
+
+		auto door = dynamic_pointer_cast<CServerElevatorDoorObject>(pPickedObject);
+		if (door) {
+			if (door->IsEscape()) {
+				door->EscapeDoorOpen();
+				UseFuse(pCollisionManager);
+				m_selectItem = RightItem::NONE;
+			}
+			else {
+				std::cout << "Å»Ãâ±¸°¡ ¾Æ´Õ´Ï´Ù." << std::endl;
+			}
+		}
+	}
 		break;
 	default:
 		break;

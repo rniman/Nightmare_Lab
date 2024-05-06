@@ -210,6 +210,10 @@ CServerElevatorDoorObject::CServerElevatorDoorObject(char* pstrFrameName, const 
 
 void CServerElevatorDoorObject::Update(float fElapsedTime, shared_ptr<CServerCollisionManager>& pCollisionManager)
 {
+	if (!IsEscape()) {
+		return;
+	}
+
 	XMFLOAT3 xmf3Position = XMFLOAT3(m_xmf4x4World._41, m_xmf4x4World._42, m_xmf4x4World._43);
 	float fDistance = Vector3::Distance(xmf3Position, m_xmf3OriginPosition);
 
@@ -250,6 +254,14 @@ void CServerElevatorDoorObject::Update(float fElapsedTime, shared_ptr<CServerCol
 
 void CServerElevatorDoorObject::UpdatePicking()
 {
+	
+}
+
+void CServerElevatorDoorObject::EscapeDoorOpen()
+{
+	if (!IsEscape()) {
+		return;
+	}
 	if (m_bOpened)
 	{
 		m_bOpened = false;

@@ -49,8 +49,9 @@ public:
 	int GetFloor()const { return m_nFloor; }
 
 	void SetPosition(XMFLOAT3 position);
-protected:
+
 	char m_pstrFrameName[64];
+protected:
 	XMFLOAT4X4 m_xmf4x4ToParent;
 	XMFLOAT4X4 m_xmf4x4World;
 

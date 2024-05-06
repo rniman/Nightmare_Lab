@@ -293,6 +293,7 @@ void CMineObject::UpdatePicking()
 void CMineObject::UpdateUsing(const shared_ptr<CGameObject>& pGameObject)
 {
 }
+
 void CMineObject::CollideZombie()
 {
 	if (m_bCollide)

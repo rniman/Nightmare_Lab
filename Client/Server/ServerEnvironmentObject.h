@@ -120,11 +120,17 @@ public:
 
 	virtual void Update(float fElapsedTime, shared_ptr<CServerCollisionManager>& pCollisionManager) override;
 	virtual void UpdatePicking() override;
+	void EscapeDoorOpen();
+
+	void SetEscapeDoor(bool val) { m_bEscapeDoor = val; }
+	bool IsEscape() { return m_bEscapeDoor; }
 private:
 	bool m_bOpened = false;
 	bool m_bAnimate = false;
 	XMFLOAT3 m_xmf3OriginPosition;
 	XMFLOAT3 m_xmf3Right;
+
+	bool m_bEscapeDoor = false;
 };
 
 /// <CGameObject - CElevatorDoorObject>

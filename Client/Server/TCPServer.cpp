@@ -321,6 +321,39 @@ bool TCPServer::Init(HWND hWnd)
 	// 씬 생성
 	LoadScene();
 
+	//pGameObject = make_shared<CServerElevatorDoorObject>(pstrFrameName, xmf4x4World, voobb);
+	int ELEVATORDOORCOUNT = 16;
+	int start_door{ -1 };
+	for (int i = 0; i < m_pCollisionManager->GetNumberOfCollisionObject();++i) {
+		shared_ptr<CServerGameObject> object = m_pCollisionManager->GetCollisionObjectWithNumber(i);
+		auto pElevaterDoor = dynamic_pointer_cast<CServerElevatorDoorObject>(object);
+		if (!pElevaterDoor) {
+			continue;
+		}
+		if (strcmp(pElevaterDoor->m_pstrFrameName, "Door1")) {
+			continue;
+		}
+		if (pElevaterDoor) {
+			start_door = i;
+			break;
+		}
+	}
+
+	int random_escape_index = rand() % ELEVATORDOORCOUNT;
+	for (int i = 0; i < ELEVATORDOORCOUNT;++i) {
+		shared_ptr<CServerGameObject> object = m_pCollisionManager->GetCollisionObjectWithNumber(start_door + i);
+		auto pElevaterDoor = dynamic_pointer_cast<CServerElevatorDoorObject>(object);
+		if (!pElevaterDoor) {
+			std::cout << "엘리베이터 문이 아닙니다.!" << std::endl;
+			assert(0); //반드시 CServerElevatorDoorObject 일것임. 아니면 시스템 종료 씬 오브젝트 정렬의 문제 발생
+		}
+		
+		if (i == random_escape_index) {
+			pElevaterDoor->SetEscapeDoor(true);
+		}
+		//pElevaterDoor->SetEscapeDoor(false); // 디버그를 위해서 모든 문을 잠금
+	}
+
 	// 아이템 생성
 	CreateItemObject();
 
@@ -523,12 +556,13 @@ void TCPServer::UpdateInformation()
 				m_aUpdateInfo[nPlayerId].m_nSlotObjectNum[1] = pZombiePlayer->IsInterruption() ? 1 : -1;	// 시야방해
 				m_aUpdateInfo[nPlayerId].m_nSlotObjectNum[2] = pZombiePlayer->IsAttack() ? 1 : -1;			// 공격
 
+				m_aUpdateInfo[nPlayerId].m_playerInfo.m_iMineobjectNum = pZombiePlayer->GetCollideMineRef();
 				// 지뢰충돌에 대한 데이터 로직
 				int sendClientCount = CheckAllClientsSentData(cur_nPlayer);
 				if (m_aUpdateInfo[nPlayerId].m_playerInfo.m_iMineobjectNum == -1 && sendClientCount == cur_nPlayer) {
 					m_aUpdateInfo[nPlayerId].m_playerInfo.m_iMineobjectNum = pZombiePlayer->GetCollideMineRef();
 					SetAllClientsSendStatus(cur_nPlayer, false); // 데이터가 보내기 전까지는 m_iMineobjectNum 변수는 갱신될수없음
-				}
+				} 
 				else {
 					sendClientCount = CheckAllClientsSentData(cur_nPlayer);
 					if (sendClientCount == cur_nPlayer) { // 데이터를 보낸 이후에 대한 처리가 이루어져야함.
@@ -651,6 +685,8 @@ void TCPServer::LoadScene()
 			break;
 		}
 	}
+
+
 }
 
 void TCPServer::CreateSceneObject(char* pstrFrameName, const XMFLOAT4X4& xmf4x4World, const vector<BoundingOrientedBox>& voobb)
@@ -715,6 +751,8 @@ void TCPServer::CreateSceneObject(char* pstrFrameName, const XMFLOAT4X4& xmf4x4W
 	{
 		pGameObject = make_shared<CServerGameObject>(pstrFrameName, xmf4x4World, voobb);
 	}
+
+	strcpy(pGameObject->m_pstrFrameName, pstrFrameName);
 
 	nServerObjectNum++;
 	m_pCollisionManager->AddCollisionObject(pGameObject);
@@ -813,9 +851,9 @@ void TCPServer::CreateItemObject()
 
 void TCPServer::CreatSendObject()
 {
-	int nIndex = 0;
 	for (const auto& pPlayer : m_apPlayers)
 	{
+		int nIndex = 0;
 		if (!pPlayer || pPlayer->GetPlayerId() == -1)
 		{
 			continue;
@@ -831,7 +869,10 @@ void TCPServer::CreatSendObject()
 			{
 				continue;
 			}
-
+			if (nIndex >= MAX_SEND_OBJECT_INFO) {
+				std::cout << "nIndex 가 Max 치를 넘은 오류\n";
+				assert(0);
+			}
 			m_aUpdateInfo[nId].m_anObjectNum[nIndex] = pGameObject->GetCollisionNum();
 			m_aUpdateInfo[nId].m_axmf4x4World[nIndex] = pGameObject->GetWorldMatrix();
 			nIndex++;
@@ -863,17 +904,13 @@ void TCPServer::CreatSendObject()
 						continue;
 					}
 					
-					/*auto mineDibug = dynamic_pointer_cast<CServerMineObject>(pGameObject);
-					if (mineDibug) {
-						if (mineDibug->IsInstall()) {
-						}
-					}*/
 					m_aUpdateInfo[nId].m_anObjectNum[nIndex] = pGameObject->GetCollisionNum();
 					m_aUpdateInfo[nId].m_axmf4x4World[nIndex] = pGameObject->GetWorldMatrix();
 
 					nIndex++;
 					if (nIndex == MAX_SEND_OBJECT_INFO)
 					{
+						std::cout << "보내려고 하는 객체가 MAX_SEND_OBJECT_INFO 개수가 되었습니다.\n";
 						break;
 					}
 				}

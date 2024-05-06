@@ -921,7 +921,7 @@ void CGameFramework::FrameAdvance()
 	hResult = m_d3dCommandList->Reset(m_d3dCommandAllocator[m_nSwapChainBufferIndex].Get(), NULL);
 
 	{
-		int ndynamicShadowMap = 1;
+		int ndynamicShadowMap = 4;
 		// 그림자맵에 해당하는 텍스처를 렌더타겟으로 변환
 		m_pPostProcessingShader->OnShadowPrepareRenderTarget(m_d3dCommandList.Get(), ndynamicShadowMap); //플레이어의 손전등 1개 -> [0] 번째 요소에 들어있음.
 

@@ -1069,6 +1069,7 @@ void CZombiePlayer::Update(float fElapsedTime)
 
 void CZombiePlayer::SetEectricShock()
 { // 지뢰와 충돌시에 수행할 함수
+	m_pcbMappedTime->time = 0.0f;
 	m_bElectricBlend = true;
 	m_pcbMappedTime->usePattern = 1.0f;
 }
