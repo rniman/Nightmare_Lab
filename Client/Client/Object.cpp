@@ -1321,7 +1321,6 @@ void CGameObject::ObjectCopy(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList
 	for (int i = 0; i < srcobject->m_nMaterials;++i) {
 		dstObject->m_vpMaterials.push_back(srcobject->m_vpMaterials[i]);
 	}
-
 	memcpy(&m_xmf4x4ToParent, &srcobject->m_xmf4x4ToParent, sizeof(XMFLOAT4X4));
 	strcpy(m_pstrFrameName, srcobject->m_pstrFrameName);
 

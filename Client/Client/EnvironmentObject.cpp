@@ -296,16 +296,10 @@ void CMineObject::UpdateUsing(const shared_ptr<CGameObject>& pGameObject)
 
 void CMineObject::CollideZombie()
 {
-	if (!IsInstall()) { // 설치가 안됐다면 수행 x
-		return;
-	}
-	
-	// 일단 클라에서 테스트를 위해 충돌 했다고 가정.
 	if (m_bCollide)
 	{
-		SetInstall(false); // 설치 제거
 		SetObtain(true);
-		
+		m_bCollide = false;
 		XMFLOAT3 pos = GetPosition();
 		pos.y += 1.0f;
 		m_pExplosionObject->SetPosition(pos);

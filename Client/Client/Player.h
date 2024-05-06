@@ -248,6 +248,11 @@ private:
 
 public:
 	void SetHitEvent();
+private:
+	float m_fStopMoving = 0.0f;
+	int m_iMineobjectNum = -1;
+public:
+
 };
 
 struct FrameTimeInfo;

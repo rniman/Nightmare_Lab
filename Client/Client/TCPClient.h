@@ -2,7 +2,7 @@
 constexpr UINT WM_SOCKET{ WM_USER + 1 };
 constexpr char SERVERIP[16]{ "127.0.0.1" };
 constexpr UINT SERVERPORT{ 9000 };
-constexpr UINT BUFSIZE{ 10000 };
+constexpr UINT BUFSIZE{ 30000 };
 
 constexpr size_t MAX_CLIENT{ 5 };
 constexpr size_t MAX_RECV_OBJECT_INFO{ 60 };
@@ -28,6 +28,8 @@ struct CS_ANIMATION_INFO {
 struct CS_PLAYER_INFO {
 	RightItem m_selectItem;
 	bool m_bRightClick = false;
+
+	int m_iMineobjectNum = -1;
 };
 
 struct CS_CLIENTS_INFO

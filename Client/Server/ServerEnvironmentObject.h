@@ -10,7 +10,7 @@ public:
 	CServerItemObject();
 	virtual ~CServerItemObject() {};
 
-	virtual void Update(float fElapsedTime);
+	virtual void Update(float fElapsedTime, shared_ptr<CServerCollisionManager>& pCollisionManager);
 	virtual void UpdateUsing(const shared_ptr<CServerGameObject>& pGameObject, shared_ptr<CServerCollisionManager>& pCollisionManager) {};
 
 	static void SetDrawerStartEnd(int nDrawer1Start, int nDrawer1End, int nDrawer2Start, int nDrawer2End);
@@ -48,7 +48,7 @@ protected:
 	shared_ptr<CServerDrawerObject> m_pDrawerObject;
 
 	int m_nReferenceNumber = -1;	// 플레이어가 가진 아이템 오브젝트가 현재 어떤 오브젝트를 가졌는지(플레이어 내부 오브젝트 전용)
-									// 사용시 다시 -1이 되야함
+	// 사용시 다시 -1이 되야함
 };
 
 /// <CGameObject - CItemObject>
@@ -75,7 +75,7 @@ public:
 	CServerDrawerObject(char* pstrFrameName, const XMFLOAT4X4& xmf4x4World, const vector<BoundingOrientedBox>& voobb);
 	virtual ~CServerDrawerObject();
 
-	virtual void Update(float fElapsedTime) override;
+	virtual void Update(float fElapsedTime, shared_ptr<CServerCollisionManager>& pCollisionManager) override;
 	virtual void UpdatePicking() override;
 
 	bool IsOpen() const { return m_bOpened; }
@@ -98,7 +98,7 @@ public:
 	CServerDoorObject(char* pstrFrameName, const XMFLOAT4X4& xmf4x4World, const vector<BoundingOrientedBox>& voobb);
 	virtual ~CServerDoorObject();
 
-	virtual void Update(float fElapsedTime) override;
+	virtual void Update(float fElapsedTime, shared_ptr<CServerCollisionManager>& pCollisionManager) override;
 	virtual void UpdatePicking() override;
 
 private:
@@ -118,13 +118,19 @@ public:
 	CServerElevatorDoorObject(char* pstrFrameName, const XMFLOAT4X4& xmf4x4World, const vector<BoundingOrientedBox>& voobb);
 	virtual ~CServerElevatorDoorObject() {};
 
-	virtual void Update(float fElapsedTime) override;
+	virtual void Update(float fElapsedTime, shared_ptr<CServerCollisionManager>& pCollisionManager) override;
 	virtual void UpdatePicking() override;
+	void EscapeDoorOpen();
+
+	void SetEscapeDoor(bool val) { m_bEscapeDoor = val; }
+	bool IsEscape() { return m_bEscapeDoor; }
 private:
 	bool m_bOpened = false;
 	bool m_bAnimate = false;
 	XMFLOAT3 m_xmf3OriginPosition;
 	XMFLOAT3 m_xmf3Right;
+
+	bool m_bEscapeDoor = false;
 };
 
 /// <CGameObject - CElevatorDoorObject>
@@ -137,10 +143,10 @@ public:
 	CServerTeleportObject();
 	virtual ~CServerTeleportObject();
 
-	virtual void Update(float fElapsedTime) override;
+	virtual void Update(float fElapsedTime, shared_ptr<CServerCollisionManager>& pCollisionManager) override;
 	virtual void UpdatePicking() override;
 	virtual void UpdateUsing(const shared_ptr<CServerGameObject>& pGameObject, shared_ptr<CServerCollisionManager>& pCollisionManager) override;
-	
+
 	virtual void SetRandomPosition(shared_ptr<CServerCollisionManager>& pCollisionManager) override;
 
 	virtual void SetWorldMatrix(const XMFLOAT4X4& xmf4x4World) override;
@@ -156,7 +162,16 @@ public:
 	CServerMineObject();
 	virtual ~CServerMineObject();
 
+	virtual void Update(float fElapsedTime, shared_ptr<CServerCollisionManager>& pCollisionManager);
 	virtual void UpdateUsing(const shared_ptr<CServerGameObject>& pGameObject, shared_ptr<CServerCollisionManager>& pCollisionManager) override;
+
+	bool IsInstall() { return m_bInstall; }
+	void SetInstall(bool val) { m_bInstall = val; }
+	void SetExplosionTime(float val) { m_fExplosionTime = val; }
+private:
+	bool m_bInstall;
+	float m_fExplosionTime = 0.0f;
+
 };
 
 /// <CGameObject - CMineObject>
@@ -169,7 +184,7 @@ public:
 	CServerFuseObject();
 	virtual ~CServerFuseObject();
 
-	virtual void Update(float fElapsedTime) override;
+	virtual void Update(float fElapsedTime, shared_ptr<CServerCollisionManager>& pCollisionManager) override;
 	virtual void UpdatePicking() override;
 	virtual void UpdateUsing(const shared_ptr<CServerGameObject>& pGameObject, shared_ptr<CServerCollisionManager>& pCollisionManager) override;
 
@@ -182,18 +197,15 @@ public:
 ////// /// /// /// /// /// /// /// /// /// /// /// /// /// /// /// /// /// /// /// /// /// /// /// /// /// /// /// ///  
 /// <CGameObject - CItemObject - CRadarObject>
 
-class CServerRadarObject : public CServerItemObject
+class CServerRadarObject : public CServerMineObject
 {
 public:
+	CServerRadarObject();
 	virtual ~CServerRadarObject();
 
-	virtual void Update(float fElapsedTime) override {};
-	virtual void UpdatePicking() override;
+	XMFLOAT4X4 m_xmf4x4Scalematrix;
+	virtual void Update(float fElapsedTime, shared_ptr<CServerCollisionManager>& pCollisionManager) override;
 	virtual void UpdateUsing(const shared_ptr<CServerGameObject>& pGameObject, shared_ptr<CServerCollisionManager>& pCollisionManager) override;
-
-	virtual void SetRandomPosition(shared_ptr<CServerCollisionManager>& pCollisionManager) override {};
-
-	virtual void SetWorldMatrix(const XMFLOAT4X4& xmf4x4World) override {};
 };
 
 /// <CGameObject - CRadarObject>

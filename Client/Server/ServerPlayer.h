@@ -18,7 +18,7 @@ public:
 	virtual ~CServerPlayer() {};
 
 	virtual void UseItem(shared_ptr<CServerCollisionManager>& pCollisionManager) {};
-	virtual void Update(float fElapsedTime) override;
+	virtual void Update(float fElapsedTime, shared_ptr<CServerCollisionManager>& pCollisionManager) override;
 	virtual void Collide(const shared_ptr<CServerCollisionManager>& pCollisionManager, float fElapsedTime, shared_ptr<CServerGameObject> pCollided) override;
 	void CollideWithPlayer(const shared_ptr<CServerCollisionManager>& pCollisionManager, float fElapsedTime, shared_ptr<CServerPlayer> pCollidedPlayer);
 	virtual void Hit() {};	//BlueSuit: zombie Attack, Zombie: mine
@@ -84,7 +84,7 @@ protected:
 
 	bool m_bOccurredCollision = false;
 	bool m_bStair = false;		// 계단에 있는 상태
-	
+
 	float m_fStairMax;
 	float m_fStairMin;
 	XMFLOAT4 m_xmf4StairPlane;
@@ -137,7 +137,7 @@ public:
 	virtual ~CServerBlueSuitPlayer() {};
 
 	virtual void UseItem(shared_ptr<CServerCollisionManager>& pCollisionManager);
-	virtual void Update(float fElapsedTime) override;
+	virtual void Update(float fElapsedTime, shared_ptr<CServerCollisionManager>& pCollisionManager) override;
 	virtual void UpdatePicking() override;
 	virtual void Hit() override;
 
@@ -149,7 +149,7 @@ public:
 	int GetReferenceSlotItemNum(int nIndex);
 	int GetReferenceFuseItemNum(int nIndex);
 
-	RightItem GetRightItem() {	return m_selectItem;  }
+	RightItem GetRightItem() { return m_selectItem; }
 	virtual void RightClickProcess(shared_ptr<CServerCollisionManager>& pCollisionManager);
 
 private:
@@ -165,6 +165,8 @@ private:
 	float m_fStamina = 5.0f;
 
 	int m_nHealthPoint = 3;
+
+
 };
 
 ///
@@ -178,7 +180,7 @@ public:
 	virtual ~CServerZombiePlayer() {};
 
 	virtual void UseItem(shared_ptr<CServerCollisionManager>& pCollisionManager) override;;
-	virtual void Update(float fElapsedTime) override;
+	virtual void Update(float fElapsedTime, shared_ptr<CServerCollisionManager>& pCollisionManager) override;
 	virtual void UpdatePicking() override;
 	virtual void Hit() override;;
 	void CheckAttack(shared_ptr<CServerPlayer>& pPlayer, const BoundingBox& aabbPlayer);
@@ -200,4 +202,18 @@ private:
 	bool m_bInterruption = false;
 	bool m_bRunning = false;
 	bool m_bAttack = false;	// true면 클라에서 track을 enable시킴
+
+	// 좀비 지뢰 관련
+	bool m_bCollisionMine = false;
+	float m_fStopMove = 0.0f;
+	float m_fNoStopTime = 0.0f;
+	int m_iCollideMineRef = -1;
+public:
+	bool GetCollisionMine() { return m_bCollisionMine; }
+	float GetNoStopTime() { return m_fNoStopTime; }
+	int GetCollideMineRef() { return m_iCollideMineRef; }
+
+	void SetCollideMineRef(int val) { m_iCollideMineRef = val; }
+	void SetStopMove(float val) { m_fStopMove = val; }
+	void CollisionMine(int ref);
 };

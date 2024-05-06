@@ -81,7 +81,7 @@ void TCPServer::OnProcessingAcceptMessage(HWND hWnd, UINT nMessageID, WPARAM wPa
 	}
 
 	// 임시로 CBlueSuitPlayer만 생성
-	if (nSocketIndex == 0)	// Socket Index가 0이면 Zombie
+	if (nSocketIndex == ZOMBIEPLAYER)	// Socket Index가 0이면 Zombie
 	{
 		m_apPlayers[nSocketIndex] = make_shared<CServerZombiePlayer>();
 		m_apPlayers[nSocketIndex]->SetPlayerId(nSocketIndex);
@@ -248,6 +248,8 @@ void TCPServer::OnProcessingWriteMessage(HWND hWnd, UINT nMessageID, WPARAM wPar
 
 		m_vSocketInfoList[nSocketIndex].SendNum++;
 		nRetval = SendData(m_vSocketInfoList[nSocketIndex].m_sock, nBufferSize, nHead, m_aUpdateInfo);
+
+		m_bDataSend[nSocketIndex] = true;
 		if (nRetval == -1 && WSAGetLastError() == WSAEWOULDBLOCK)
 		{
 		}
@@ -322,6 +324,39 @@ bool TCPServer::Init(HWND hWnd)
 	// 씬 생성
 	LoadScene();
 
+	//pGameObject = make_shared<CServerElevatorDoorObject>(pstrFrameName, xmf4x4World, voobb);
+	int ELEVATORDOORCOUNT = 16;
+	int start_door{ -1 };
+	for (int i = 0; i < m_pCollisionManager->GetNumberOfCollisionObject();++i) {
+		shared_ptr<CServerGameObject> object = m_pCollisionManager->GetCollisionObjectWithNumber(i);
+		auto pElevaterDoor = dynamic_pointer_cast<CServerElevatorDoorObject>(object);
+		if (!pElevaterDoor) {
+			continue;
+		}
+		if (strcmp(pElevaterDoor->m_pstrFrameName, "Door1")) {
+			continue;
+		}
+		if (pElevaterDoor) {
+			start_door = i;
+			break;
+		}
+	}
+
+	int random_escape_index = rand() % ELEVATORDOORCOUNT;
+	for (int i = 0; i < ELEVATORDOORCOUNT;++i) {
+		shared_ptr<CServerGameObject> object = m_pCollisionManager->GetCollisionObjectWithNumber(start_door + i);
+		auto pElevaterDoor = dynamic_pointer_cast<CServerElevatorDoorObject>(object);
+		if (!pElevaterDoor) {
+			std::cout << "엘리베이터 문이 아닙니다.!" << std::endl;
+			assert(0); //반드시 CServerElevatorDoorObject 일것임. 아니면 시스템 종료 씬 오브젝트 정렬의 문제 발생
+		}
+		
+		if (i == random_escape_index) {
+			pElevaterDoor->SetEscapeDoor(true);
+		}
+		//pElevaterDoor->SetEscapeDoor(false); // 디버그를 위해서 모든 문을 잠금
+	}
+
 	// 아이템 생성
 	CreateItemObject();
 
@@ -345,7 +380,7 @@ void TCPServer::SimulationLoop()
 
 		pPlayer->RightClickProcess(m_pCollisionManager);
 		pPlayer->UseItem(m_pCollisionManager);
-		pPlayer->Update(fElapsedTime);
+		pPlayer->Update(fElapsedTime, m_pCollisionManager);
 		pPlayer->UpdatePicking();
 		//UpdateInformation(pPlayer);
 		m_pCollisionManager->Collide(fElapsedTime, pPlayer);
@@ -460,8 +495,36 @@ int TCPServer::RemoveSocketInfo(SOCKET sock)
 	return -1;
 }
 
+int TCPServer::CheckAllClientsSentData(int cur_nPlayer)
+{
+	int sendClientCount{};
+	for (int i = 0; i < cur_nPlayer;++i) {
+		if (m_bDataSend[i]) {
+			sendClientCount++;
+		}
+	}
+	return sendClientCount;
+}
+
+void TCPServer::SetAllClientsSendStatus(int cur_nPlayer,bool val)
+{
+	for (int i = 0; i < cur_nPlayer;++i) {
+		m_bDataSend[i] = val;
+	}
+}
+
 void TCPServer::UpdateInformation()
 {
+	int cur_nPlayer{};
+	for (const auto& pPlayer : m_apPlayers)
+	{
+		if (!pPlayer || pPlayer->GetPlayerId() == -1)
+		{
+			continue;
+		}
+		++cur_nPlayer;
+	}
+
 	for (const auto& pPlayer : m_apPlayers)
 	{
 		int nPlayerId;
@@ -476,15 +539,32 @@ void TCPServer::UpdateInformation()
 		m_aUpdateInfo[nPlayerId].m_xmf3Velocity = pPlayer->GetVelocity();
 		m_aUpdateInfo[nPlayerId].m_xmf3Look = pPlayer->GetLook();
 		m_aUpdateInfo[nPlayerId].m_xmf3Right = pPlayer->GetRight();
-
 		// 지금은 일단 이렇게 해뒀지만 나중에는 0번이 Enemy고정일듯
-		if (nPlayerId == 0)	//Enemy
+		if (nPlayerId == ZOMBIEPLAYER)	//Enemy
 		{
 			shared_ptr<CServerZombiePlayer> pZombiePlayer = dynamic_pointer_cast<CServerZombiePlayer>(pPlayer);
+			if (pZombiePlayer) {
+				m_aUpdateInfo[nPlayerId].m_nSlotObjectNum[0] = pZombiePlayer->IsTracking() ? 1 : -1;		// 추적
+				m_aUpdateInfo[nPlayerId].m_nSlotObjectNum[1] = pZombiePlayer->IsInterruption() ? 1 : -1;	// 시야방해
+				m_aUpdateInfo[nPlayerId].m_nSlotObjectNum[2] = pZombiePlayer->IsAttack() ? 1 : -1;			// 공격
 
-			m_aUpdateInfo[nPlayerId].m_nSlotObjectNum[0] = pZombiePlayer->IsTracking() ? 1 : -1;		// 추적
-			m_aUpdateInfo[nPlayerId].m_nSlotObjectNum[1] = pZombiePlayer->IsInterruption() ? 1 : -1;	// 시야방해
-			m_aUpdateInfo[nPlayerId].m_nSlotObjectNum[2] = pZombiePlayer->IsAttack() ? 1 : -1;			// 공격
+				m_aUpdateInfo[nPlayerId].m_playerInfo.m_iMineobjectNum = pZombiePlayer->GetCollideMineRef();
+				// 지뢰충돌에 대한 데이터 로직
+				int sendClientCount = CheckAllClientsSentData(cur_nPlayer);
+				if (m_aUpdateInfo[nPlayerId].m_playerInfo.m_iMineobjectNum == -1 && sendClientCount == cur_nPlayer) {
+					m_aUpdateInfo[nPlayerId].m_playerInfo.m_iMineobjectNum = pZombiePlayer->GetCollideMineRef();
+					SetAllClientsSendStatus(cur_nPlayer, false); // 데이터가 보내기 전까지는 m_iMineobjectNum 변수는 갱신될수없음
+				} 
+				else {
+					sendClientCount = CheckAllClientsSentData(cur_nPlayer);
+					if (sendClientCount == cur_nPlayer) { // 데이터를 보낸 이후에 대한 처리가 이루어져야함.
+						//ref를 전송하기 전에 -1로 덮으면 안됨.
+						pZombiePlayer->SetCollideMineRef(-1);// 보내고 즉시 해제
+						m_aUpdateInfo[nPlayerId].m_playerInfo.m_iMineobjectNum = pZombiePlayer->GetCollideMineRef();
+						SetAllClientsSendStatus(cur_nPlayer, false);
+					}
+				}
+			}
 		}
 		else
 		{
@@ -498,6 +578,7 @@ void TCPServer::UpdateInformation()
 				}
 			}
 			m_aUpdateInfo[nPlayerId].m_playerInfo.m_selectItem = pBlueSuitPlayer->GetRightItem();
+			
 		}
 		// 업데이트 오브젝트는 리셋
 		m_aUpdateInfo[nPlayerId].m_nNumOfObject = 0;
@@ -596,6 +677,8 @@ void TCPServer::LoadScene()
 			break;
 		}
 	}
+
+
 }
 
 void TCPServer::CreateSceneObject(char* pstrFrameName, const XMFLOAT4X4& xmf4x4World, const vector<BoundingOrientedBox>& voobb)
@@ -661,6 +744,8 @@ void TCPServer::CreateSceneObject(char* pstrFrameName, const XMFLOAT4X4& xmf4x4W
 		pGameObject = make_shared<CServerGameObject>(pstrFrameName, xmf4x4World, voobb);
 	}
 
+	strcpy(pGameObject->m_pstrFrameName, pstrFrameName);
+
 	nServerObjectNum++;
 	m_pCollisionManager->AddCollisionObject(pGameObject);
 }
@@ -673,7 +758,7 @@ void TCPServer::CreateItemObject()
 	uniform_int_distribution<int> item_dis(0, 99);
 	uniform_int_distribution<int> rotation_dis(1, 360);
 	uniform_real_distribution<float> pos_dis(-0.2f, 0.2f);
-	for(int i = 0; i < 30;++i)
+	for(int i = 0; i < 80;++i)
 	{
 		int nDrawerNum = dis(m_mt19937Gen);
 		shared_ptr<CServerDrawerObject> pDrawerObject = dynamic_pointer_cast<CServerDrawerObject>(m_pCollisionManager->GetCollisionObjectWithNumber(nDrawerNum));
@@ -691,7 +776,7 @@ void TCPServer::CreateItemObject()
 		shared_ptr<CServerItemObject> pItemObject;
 
 		XMFLOAT3 xmf3RandOffset = XMFLOAT3(pos_dis(m_mt19937Gen), 0.0f, pos_dis(m_mt19937Gen));
-		XMFLOAT3 xmf3RandRotation = XMFLOAT3(90.0f, 0.0f, 0.0f/*(float)rotation_dis(m_mt19937Gen)*/);
+		XMFLOAT3 xmf3RandRotation = XMFLOAT3(0.0f, 0.0f, (float)rotation_dis(m_mt19937Gen));
 		if(i < 10)		// Fuse
 		{
 			pItemObject = make_shared<CServerFuseObject>();
@@ -717,8 +802,23 @@ void TCPServer::CreateItemObject()
 			pItemObject->SetWorldMatrix(xmf4x4World);
 			m_pCollisionManager->AddCollisionObject(pItemObject);
 		}
-		else if (i < 30)	// Mine
+		else if (i < 30)	// Rader
 		{
+			xmf3RandRotation = XMFLOAT3(90.0f, 0.0f, 0.0f);
+			pItemObject = make_shared<CServerRadarObject>();
+			pItemObject->SetDrawerNumber(nDrawerNum);
+			pItemObject->SetDrawer(pDrawerObject);
+			pDrawerObject->m_pStoredItem = pItemObject;
+
+			pItemObject->SetRandomRotation(xmf3RandRotation);
+			pItemObject->SetRandomOffset(xmf3RandOffset);
+			pItemObject->SetWorldMatrix(xmf4x4World);
+			m_pCollisionManager->AddCollisionObject(pItemObject);
+		}
+		else if (i < 80)	// Mine
+		{
+			xmf3RandRotation = XMFLOAT3(90.0f, 0.0f, 0.0f);
+
 			pItemObject = make_shared<CServerMineObject>();
 			pItemObject->SetDrawerNumber(nDrawerNum);
 			pItemObject->SetDrawer(pDrawerObject);
@@ -729,6 +829,7 @@ void TCPServer::CreateItemObject()
 			pItemObject->SetWorldMatrix(xmf4x4World);
 			m_pCollisionManager->AddCollisionObject(pItemObject);
 		}
+
 		//else if (nCreateItem < 30)	// mine
 		//{
 		//	shared_ptr<CServerMineObject> pFuseObject = make_shared<CServerMineObject>();
@@ -742,9 +843,9 @@ void TCPServer::CreateItemObject()
 
 void TCPServer::CreatSendObject()
 {
-	int nIndex = 0;
 	for (const auto& pPlayer : m_apPlayers)
 	{
+		int nIndex = 0;
 		if (!pPlayer || pPlayer->GetPlayerId() == -1)
 		{
 			continue;
@@ -759,6 +860,10 @@ void TCPServer::CreatSendObject()
 			if (!pGameObject)
 			{
 				continue;
+			}
+			if (nIndex >= MAX_SEND_OBJECT_INFO) {
+				std::cout << "nIndex 가 Max 치를 넘은 오류\n";
+				assert(0);
 			}
 			m_aUpdateInfo[nId].m_anObjectNum[nIndex] = pGameObject->GetCollisionNum();
 			m_aUpdateInfo[nId].m_axmf4x4World[nIndex] = pGameObject->GetWorldMatrix();
@@ -790,13 +895,14 @@ void TCPServer::CreatSendObject()
 					{
 						continue;
 					}
-
+					
 					m_aUpdateInfo[nId].m_anObjectNum[nIndex] = pGameObject->GetCollisionNum();
 					m_aUpdateInfo[nId].m_axmf4x4World[nIndex] = pGameObject->GetWorldMatrix();
 
 					nIndex++;
 					if (nIndex == MAX_SEND_OBJECT_INFO)
 					{
+						std::cout << "보내려고 하는 객체가 MAX_SEND_OBJECT_INFO 개수가 되었습니다.\n";
 						break;
 					}
 				}

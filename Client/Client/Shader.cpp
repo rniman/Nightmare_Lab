@@ -245,6 +245,7 @@ void CShader::ReleaseUploadBuffers()
 
 void CShader::AddGameObject(const shared_ptr<CGameObject>& pGameObject)
 {
+	object_count++;
 	m_vGameObjects.push_back(pGameObject);
 	//m_vGameObjects.push_back(shared_ptr<CGameObject>(object));
 }

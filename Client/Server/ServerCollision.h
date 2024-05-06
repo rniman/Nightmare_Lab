@@ -33,6 +33,7 @@ public:
 	void Update(float fElapsedTime);
 	void Collide(float fElapsedTime, const shared_ptr<CServerPlayer>& pPlayer);
 	void CollideWithPlayer(float fElapsedTime);
+	void CollideWithMine(shared_ptr<CServerGameObject> pGameObject, shared_ptr<CServerGameObject> pPlayer, BoundingBox& aabbPlayer);
 
 	collisionGrid_t m_collisionGridGameObjects;
 	std::array<weak_ptr<CServerPlayer>, MAX_CLIENT> m_apPlayer;

@@ -54,7 +54,7 @@ CServerPlayer::CServerPlayer()
 	XMMATRIX mtxProjection = XMLoadFloat4x4(&m_xmf4x4Projection);
 }
 
-void CServerPlayer::Update(float fElapsedTime)
+void CServerPlayer::Update(float fElapsedTime, shared_ptr<CServerCollisionManager>& pCollisionManager)
 {
 	m_fCoolTimeInvincibility -= fElapsedTime;
 	if (m_bInvincibility && m_fCoolTimeInvincibility < 0.0f)
@@ -166,7 +166,7 @@ void CServerPlayer::Collide(const shared_ptr<CServerCollisionManager>& pCollisio
 		XMVECTOR xmvTranslation = XMVectorSet(m_xmf3Position.x, m_xmf3Position.y, m_xmf3Position.z, 1.0f);
 		aabbPlayer.Transform(aabbPlayer, 1.0f, XMQuaternionIdentity(), xmvTranslation);
 
-		for (int i = m_nWidth - 2; i <= m_nWidth +  2 && !m_bOccurredCollision; ++i)
+		for (int i = m_nWidth - 2; i <= m_nWidth + 2 && !m_bOccurredCollision; ++i)
 		{
 			for (int j = m_nDepth - 2; j <= m_nDepth + 2 && !m_bOccurredCollision; ++j)
 			{
@@ -395,7 +395,7 @@ CServerBlueSuitPlayer::CServerBlueSuitPlayer()
 	m_apSlotItems[Mine] = make_shared<CServerMineObject>();
 	m_apSlotItems[Mine]->SetCollision(false);
 
-	for(int i=0;i<3;++i)
+	for (int i = 0;i < 3;++i)
 	{
 		m_apFuseItems[i] = make_shared<CServerFuseObject>();
 		m_apFuseItems[i]->SetCollision(false);
@@ -432,7 +432,7 @@ void CServerBlueSuitPlayer::UseItem(shared_ptr<CServerCollisionManager>& pCollis
 	}
 	if (m_pKeysBuffer['4'] & 0xF0)
 	{
-		if (m_apSlotItems[0]->IsObtained() || m_apSlotItems[1]->IsObtained()|| m_apSlotItems[2]->IsObtained())
+		if (m_apFuseItems[0]->IsObtained() || m_apFuseItems[1]->IsObtained() || m_apFuseItems[2]->IsObtained())
 		{
 			m_selectItem = RightItem::FUSE;
 		}
@@ -440,10 +440,11 @@ void CServerBlueSuitPlayer::UseItem(shared_ptr<CServerCollisionManager>& pCollis
 
 }
 
-void CServerBlueSuitPlayer::Update(float fElapsedTime)
+void CServerBlueSuitPlayer::Update(float fElapsedTime, shared_ptr<CServerCollisionManager>& pCollisionManager)
 {
 	//if (m_pKeysBuffer[VK_LSHIFT] & 0xF0) m_bShiftRun = true;
-
+	
+	
 	if (m_bShiftRun)
 	{
 		m_fStamina -= fElapsedTime;
@@ -462,7 +463,7 @@ void CServerBlueSuitPlayer::Update(float fElapsedTime)
 		}
 	}
 
-	CServerPlayer::Update(fElapsedTime);
+	CServerPlayer::Update(fElapsedTime, pCollisionManager);
 }
 
 void CServerBlueSuitPlayer::UpdatePicking()
@@ -522,13 +523,13 @@ int CServerBlueSuitPlayer::AddItem(const shared_ptr<CServerGameObject>& pGameObj
 	}
 
 	int nSlot = -1;
-	if (dynamic_pointer_cast<CServerMineObject>(pGameObject))
-	{
-		nSlot = Mine;
-	}
-	else if (dynamic_pointer_cast<CServerRadarObject>(pGameObject))
+	if (dynamic_pointer_cast<CServerRadarObject>(pGameObject))
 	{
 		nSlot = Radar;
+	}
+	else if (dynamic_pointer_cast<CServerMineObject>(pGameObject))
+	{
+		nSlot = Mine;
 	}
 	else if (dynamic_pointer_cast<CServerTeleportObject>(pGameObject))
 	{
@@ -585,7 +586,7 @@ void CServerBlueSuitPlayer::UseFuse(shared_ptr<CServerCollisionManager>& pCollis
 		if (pFuseItem && pFuseItem->IsObtained())
 		{
 			pObject = pCollisionManager->GetCollisionObjectWithNumber(pFuseItem->GetReferenceNumber());
-			
+
 			pObject->UpdateUsing(shared_from_this(), pCollisionManager);
 			pFuseItem->SetReferenceNumber(-1);
 			pFuseItem->SetObtain(false);
@@ -623,12 +624,12 @@ void CServerBlueSuitPlayer::TeleportRandomPosition()
 }
 
 int CServerBlueSuitPlayer::GetReferenceSlotItemNum(int nIndex)
-{ 
+{
 	return m_apSlotItems[nIndex]->GetReferenceNumber();
 }
 
-int CServerBlueSuitPlayer::GetReferenceFuseItemNum(int nIndex) 
-{ 
+int CServerBlueSuitPlayer::GetReferenceFuseItemNum(int nIndex)
+{
 	return m_apFuseItems[nIndex]->GetReferenceNumber();
 }
 
@@ -645,11 +646,6 @@ void CServerBlueSuitPlayer::RightClickProcess(shared_ptr<CServerCollisionManager
 	case RightItem::NONE:
 		break;
 	case RightItem::RAIDER:
-		if (m_apSlotItems[Radar]->IsObtained())
-		{
-			apObjects[Radar] = pCollisionManager->GetCollisionObjectWithNumber(m_apSlotItems[Radar]->GetReferenceNumber());
-			m_selectItem = RightItem::NONE;
-		}
 		break;
 	case RightItem::TELEPORT:
 		if (m_apSlotItems[Teleport]->IsObtained())
@@ -665,8 +661,31 @@ void CServerBlueSuitPlayer::RightClickProcess(shared_ptr<CServerCollisionManager
 			m_selectItem = RightItem::NONE;
 		}
 		break;
-	case RightItem::FUSE:
-		UseFuse(pCollisionManager);
+	case RightItem::FUSE: {
+		bool notFuse3 = false;
+		for (auto& pFuseItem : m_apFuseItems) {
+			if (!pFuseItem || !pFuseItem->IsObtained()) {
+				notFuse3 = true;
+				break;
+			}
+		}
+		if (notFuse3) {
+			break;
+		}
+		auto pPickedObject = m_pPickedObject.lock();
+
+		auto door = dynamic_pointer_cast<CServerElevatorDoorObject>(pPickedObject);
+		if (door) {
+			if (door->IsEscape()) {
+				door->EscapeDoorOpen();
+				UseFuse(pCollisionManager);
+				m_selectItem = RightItem::NONE;
+			}
+			else {
+				std::cout << "탈출구가 아닙니다." << std::endl;
+			}
+		}
+	}
 		break;
 	default:
 		break;
@@ -697,7 +716,7 @@ CServerZombiePlayer::CServerZombiePlayer()
 	XMStoreFloat4(&m_oobbAttackBox.Orientation, XMQuaternionIdentity());
 }
 
-void CServerZombiePlayer::UseItem(shared_ptr<CServerCollisionManager>& pCollisionManager) 
+void CServerZombiePlayer::UseItem(shared_ptr<CServerCollisionManager>& pCollisionManager)
 {
 	if (m_pKeysBuffer['1'] & 0xF0 && m_fCoolTimeTracking <= 0.0f)	// 추적
 	{
@@ -717,9 +736,22 @@ void CServerZombiePlayer::UseItem(shared_ptr<CServerCollisionManager>& pCollisio
 	}
 }
 
-void CServerZombiePlayer::Update(float fElapsedTime)
+void CServerZombiePlayer::Update(float fElapsedTime, shared_ptr<CServerCollisionManager>& pCollisionManager)
 {
 	m_fCoolTimeAttack -= fElapsedTime;
+
+	if (m_fNoStopTime > 0.0f) { // 움직임 제한 쿨타임
+		m_fNoStopTime -= fElapsedTime;
+
+		if (m_bCollisionMine) {
+			m_fStopMove -= fElapsedTime;
+			if (m_fStopMove < 0.0f) {
+				m_bCollisionMine = false;
+			}
+			return;
+		}
+	}
+
 	if (m_fCoolTimeAttack <= 1.0f)
 	{
 		m_bAttack = false;
@@ -769,7 +801,7 @@ void CServerZombiePlayer::Update(float fElapsedTime)
 	m_fCoolTimeInterruption -= fElapsedTime;
 	m_fCoolTimeRunning -= fElapsedTime;
 
-	CServerPlayer::Update(fElapsedTime);
+	CServerPlayer::Update(fElapsedTime, pCollisionManager);
 }
 
 void CServerZombiePlayer::UpdatePicking()
@@ -810,4 +842,12 @@ void CServerZombiePlayer::CheckAttack(shared_ptr<CServerPlayer>& pPlayer, const 
 	{
 		pPlayer->Hit();
 	}
+}
+
+void CServerZombiePlayer::CollisionMine(int ref)
+{
+	SetStopMove(1.0f);
+	m_bCollisionMine = true;
+	m_fNoStopTime = 2.0f;
+	m_iCollideMineRef = ref;
 }

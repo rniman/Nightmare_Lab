@@ -1,6 +1,7 @@
 #pragma once
 #include "../Common.h"
 
+#include <iostream>
 #include <array>
 #include <memory>
 #include <Bit>

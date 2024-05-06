@@ -280,7 +280,7 @@ void CPlayer::Animate(float fElapsedTime)
 {
 	if (m_nClientId == -1)
 	{
-		return;
+		//return;
 	}
 
 	OnUpdateToParent();
@@ -428,10 +428,11 @@ void CPlayer::Render(ID3D12GraphicsCommandList* pd3dCommandList)
 CBlueSuitPlayer::CBlueSuitPlayer(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dCommandList, ID3D12RootSignature* pd3dGraphicsRootSignature, void* pContext)
 	:CPlayer(pd3dDevice, pd3dCommandList, pd3dGraphicsRootSignature, pContext)
 {
+
 	m_pCamera->SetFogColor(XMFLOAT4(0.1f, 0.1f, 0.1f, 0.1f));
 	m_pCamera->SetFogInfo(XMFLOAT4(0.0f, 10.0f, 0.05f, 1.0f));
 
-	m_xmf3Scale = XMFLOAT3(1.0f,1.0f,1.0f);
+	//m_xmf3Scale = XMFLOAT3(1.25f,1.25f,1.25f);
 
 	m_xmf4x4Rader = Matrix4x4::Identity();
 	/*m_pRader = make_shared<CRadarObject>(pd3dDevice, pd3dCommandList, pd3dGraphicsRootSignature);
@@ -507,6 +508,7 @@ shared_ptr<CCamera> CBlueSuitPlayer::ChangeCamera(DWORD nNewCameraMode, float fE
 		int index = dynamic_pointer_cast<CBlueSuitAnimationController>(m_pSkinnedAnimationController)->GetBoneFrameIndex((char*)"Head_M");
 		XMFLOAT3 offset = m_pSkinnedAnimationController->GetBoneFramePositionVector(index);
 		offset.x = 0.0f; offset.z = 0.0f;
+		offset.y -= m_xmf3Position.y;
 		camera->SetOffset(offset);
 		camera->SetPosition(Vector3::Add(m_xmf3Position, m_pCamera->GetOffset()));
 	}
@@ -670,7 +672,8 @@ void CBlueSuitPlayer::Animate(float fElapsedTime)
 {
 	if (m_nClientId == -1 || !m_pSkinnedAnimationController->IsAnimation())
 	{
-		return;
+		//if(bool)
+		//return;
 	}
 	auto controller = dynamic_pointer_cast<CBlueSuitAnimationController>(m_pSkinnedAnimationController);
 	if (controller) {
@@ -721,7 +724,7 @@ void CBlueSuitPlayer::Animate(float fElapsedTime)
 
 
 	m_pcbMappedTime->localTime += fElapsedTime;
-	if (int(m_pcbMappedTime->localTime * 10.0f) % 3 == 0) {
+	if (int(m_pcbMappedTime->localTime * 10.0f) % 3 == 0) { // 히트시 깜빡임
 		m_pcbMappedTime->usePattern = -1.0f;
 	}
 	else {
@@ -761,10 +764,6 @@ void CBlueSuitPlayer::Render(ID3D12GraphicsCommandList* pd3dCommandList)
 		CPlayer::Render(pd3dCommandList);
 
 		pd3dCommandList->SetGraphicsRootDescriptorTable(12, m_d3dTimeCbvGPUDescriptorHandleEnd);
-
-		/*if (int(m_pcbMappedTime->localTime*10.f) % 2 == 0) {
-			m_pcbMappedTime->usePattern *= -1.0f;
-		}*/
 		return;
 	}
 
@@ -797,7 +796,6 @@ void CBlueSuitPlayer::RightClickProcess()
 		m_fOpenRaderTime = 0.3f;
 		break;
 	case RightItem::TELEPORT:
-		Teleport();
 		break;
 	case RightItem::LANDMINE:
 		break;
@@ -1107,7 +1105,13 @@ void CZombiePlayer::Update(float fElapsedTime)
 
 	CPlayer::Update(fElapsedTime);
 
-	m_pcbMappedTime->time += fElapsedTime;
+	if (m_bElectricBlend) {
+		m_pcbMappedTime->time += fElapsedTime;
+		if (m_pcbMappedTime->time > 3.0f) {
+			m_bElectricBlend = false;
+			m_pcbMappedTime->usePattern = -1.0f;
+		}
+	}
 
 	if (m_pSkinnedAnimationController)
 	{
@@ -1137,6 +1141,7 @@ void CZombiePlayer::Update(float fElapsedTime)
 
 void CZombiePlayer::SetEectricShock()
 { // 지뢰와 충돌시에 수행할 함수
+	m_pcbMappedTime->time = 0.0f;
 	m_bElectricBlend = true;
 	m_pcbMappedTime->usePattern = 1.0f;
 }

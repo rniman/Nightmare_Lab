@@ -47,6 +47,7 @@ public:
 protected:
 	// 게임내 오브젝트는 쉐이더가 관리한다.
 	vector<shared_ptr<CGameObject>> m_vGameObjects;
+	int object_count{};
 
 	// m_ppd3dPipelineState 를 만들때 Blob을 사용하므로 ComPtr 사용x (오류발생가능)
 	ComPtr<ID3DBlob> m_pd3dVertexShaderBlob;

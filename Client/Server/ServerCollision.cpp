@@ -78,7 +78,8 @@ void CServerCollisionManager::Update(float fElapsedTime)
 	{
 		if (pGameObject)
 		{
-			pGameObject->Update(fElapsedTime);
+			auto collisionMgr = shared_from_this();
+			pGameObject->Update(fElapsedTime, collisionMgr);
 		}
 	}
 }
@@ -188,6 +189,7 @@ void CServerCollisionManager::Collide(float fElapsedTime, const shared_ptr<CServ
 				}
 				else if (pGameObject->GetCollisionType() != Standard)
 				{
+					CollideWithMine(pGameObject, pPlayer, aabbPlayer);
 					continue;
 				}
 
@@ -226,14 +228,47 @@ void CServerCollisionManager::Collide(float fElapsedTime, const shared_ptr<CServ
 		pPlayer->SetWorldMatrix(xmf3StairPosition);
 	}
 
-	//Áö·Ú Ãæµ¹ aabbPlayer
-	auto zombiePlayer = dynamic_pointer_cast<CServerZombiePlayer>(pPlayer);
-	if (zombiePlayer) {
-
-	}
+	
 }
 
 void CServerCollisionManager::CollideWithPlayer(float fElapsedTime)
 {
+}
+
+void CServerCollisionManager::CollideWithMine(shared_ptr<CServerGameObject> pGameObject, shared_ptr<CServerGameObject> pPlayer,BoundingBox& aabbPlayer)
+{
+	if (pGameObject->GetCollisionType() != Picking) {
+		return;
+	}
+
+	auto zombiePlayer = dynamic_pointer_cast<CServerZombiePlayer>(pPlayer);
+	if (!zombiePlayer) {
+		return;
+	}
+	//Áö·Ú Ãæµ¹ aabbPlayer
+	auto mine = dynamic_pointer_cast<CServerMineObject>(pGameObject);
+	if (!mine) {
+		return;
+	}
+
+	if (zombiePlayer->GetNoStopTime() > 0.0f || !mine->IsInstall()) {
+		return;
+	}
+	for (const auto& oobbOrigin : pGameObject->GetVectorOOBB())
+	{
+		BoundingOrientedBox oobb;
+		XMFLOAT4X4 xmf4x4World = pGameObject->GetWorldMatrix();
+		oobbOrigin.Transform(oobb, XMLoadFloat4x4(&xmf4x4World));
+		XMStoreFloat4(&oobb.Orientation, XMQuaternionNormalize(XMLoadFloat4(&oobb.Orientation)));
+
+		if (!oobb.Intersects(aabbPlayer))
+		{
+			return;
+		}
+		std::cout << "Áö·Ú Ãæµ¹" << std::endl;
+		mine->SetObtain(true);
+		mine->SetExplosionTime(2.0f);
+		zombiePlayer->CollisionMine(mine->GetCollisionNum());
+	}
 }
 
