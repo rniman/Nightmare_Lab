@@ -442,16 +442,18 @@ void CServerBlueSuitPlayer::UseItem(shared_ptr<CServerCollisionManager>& pCollis
 
 void CServerBlueSuitPlayer::Update(float fElapsedTime, shared_ptr<CServerCollisionManager>& pCollisionManager)
 {
-	//if (m_pKeysBuffer[VK_LSHIFT] & 0xF0) m_bShiftRun = true;
-	
-	
-	if (m_bShiftRun)
+	if (m_pKeysBuffer[VK_LSHIFT] & 0xF0 && m_bAbleRun)
+	{
+		m_bRunning = true;
+	}
+
+	if (m_bRunning)
 	{
 		m_fStamina -= fElapsedTime;
 		if (m_fStamina < 0.0f)
 		{
 			m_bAbleRun = false;
-			m_bShiftRun = false;
+			m_bRunning = false;
 		}
 	}
 	else if (m_fStamina < 5.0f)

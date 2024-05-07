@@ -535,6 +535,7 @@ void TCPServer::UpdateInformation()
 		nPlayerId = pPlayer->GetPlayerId();
 
 		m_aUpdateInfo[nPlayerId].m_bAlive = pPlayer->IsAlive();
+		m_aUpdateInfo[nPlayerId].m_bRunning = pPlayer->IsRunning();
 		m_aUpdateInfo[nPlayerId].m_xmf3Position = pPlayer->GetPosition();
 		m_aUpdateInfo[nPlayerId].m_xmf3Velocity = pPlayer->GetVelocity();
 		m_aUpdateInfo[nPlayerId].m_xmf3Look = pPlayer->GetLook();

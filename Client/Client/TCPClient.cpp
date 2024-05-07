@@ -146,6 +146,7 @@ void CTcpClient::OnProcessingReadMessage(HWND hWnd, UINT nMessageID, WPARAM wPar
 			if (m_apPlayers[i])
 			{
 				m_apPlayers[i]->SetAlive(m_aClientInfo[i].m_bAlive);
+				m_apPlayers[i]->SetRunning(m_aClientInfo[i].m_bRunning);
 				m_apPlayers[i]->SetClientId(m_aClientInfo[i].m_nClientId);
 				m_apPlayers[i]->SetPosition(m_aClientInfo[i].m_xmf3Position);
 				m_apPlayers[i]->SetVelocity(m_aClientInfo[i].m_xmf3Velocity);

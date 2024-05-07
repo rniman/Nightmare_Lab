@@ -357,7 +357,7 @@ void CScene::BuildObjects(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* p
 
 		//레이더모델 로드
 		shared_ptr<CRadarObject> pRaderObject = make_shared<CRadarObject>(pd3dDevice, pd3dCommandList, m_pd3dGraphicsRootSignature.Get());
-		static shared_ptr<CLoadedModelInfo> pRaderModel = CGameObject::LoadGeometryAndAnimationFromFile(pd3dDevice, pd3dCommandList, m_pd3dGraphicsRootSignature.Get(), (char*)"Asset/Model/Rader.bin", MeshType::Standard);
+		static shared_ptr<CLoadedModelInfo> pRaderModel = CGameObject::LoadGeometryAndAnimationFromFile(pd3dDevice, pd3dCommandList, m_pd3dGraphicsRootSignature.Get(), (char*)"Asset/Model/Radar.bin", MeshType::Standard);
 		pRaderObject->ObjectCopy(pd3dDevice, pd3dCommandList, pRaderObject, pRaderModel->m_pModelRootObject);
 		m_vShader[STANDARD_SHADER]->AddGameObject(pRaderObject);
 
@@ -416,7 +416,7 @@ void CScene::BuildObjects(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* p
 	{
 		//레이더모델 로드
 		shared_ptr<CRadarObject> pRaderObject = make_shared<CRadarObject>(pd3dDevice, pd3dCommandList, m_pd3dGraphicsRootSignature.Get());
-		static shared_ptr<CLoadedModelInfo> pRaderModel = CGameObject::LoadGeometryAndAnimationFromFile(pd3dDevice, pd3dCommandList, m_pd3dGraphicsRootSignature.Get(), (char*)"Asset/Model/Rader.bin", MeshType::Standard);
+		static shared_ptr<CLoadedModelInfo> pRaderModel = CGameObject::LoadGeometryAndAnimationFromFile(pd3dDevice, pd3dCommandList, m_pd3dGraphicsRootSignature.Get(), (char*)"Asset/Model/Radar.bin", MeshType::Standard);
 		pRaderObject->ObjectCopy(pd3dDevice, pd3dCommandList, pRaderObject, pRaderModel->m_pModelRootObject);
 
 		g_collisionManager.AddCollisionObject(pRaderObject);

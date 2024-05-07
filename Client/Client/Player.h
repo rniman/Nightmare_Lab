@@ -77,6 +77,8 @@ public:
 	shared_ptr<CCamera> GetCamera() { return m_pCamera; }
 	void SetCamera(shared_ptr<CCamera> pCamera) { m_pCamera = pCamera; }
 
+	void SetRunning(bool bRunning) { m_bRunning = bRunning; }
+	bool IsRunning() const { return m_bRunning; }
 	// Picking
 	weak_ptr<CGameObject> GetPickedObject() { return m_pPickedObject; }
 	virtual void UpdatePicking() override {};
@@ -122,6 +124,8 @@ protected:
 	float           			m_fMaxVelocityXZ = 0.0f;
 	float           			m_fMaxVelocityY = 0.0f;
 	float           			m_fFriction = 0.0f;
+
+	bool						m_bRunning = false;
 
 	LPVOID						m_pPlayerUpdatedContext = NULL;
 	LPVOID						m_pCameraUpdatedContext = NULL;
@@ -199,7 +203,6 @@ private:
 	int m_nFuseNum = 0;
 	std::array<shared_ptr<CItemObject>, 3> m_apFuseItems;
 
-	bool m_bShiftRun = false;
 	bool m_bAbleRun = true;
 	float m_fStamina = 5.0f;
 

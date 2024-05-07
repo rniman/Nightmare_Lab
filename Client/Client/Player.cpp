@@ -508,7 +508,7 @@ shared_ptr<CCamera> CBlueSuitPlayer::ChangeCamera(DWORD nNewCameraMode, float fE
 		int index = dynamic_pointer_cast<CBlueSuitAnimationController>(m_pSkinnedAnimationController)->GetBoneFrameIndex((char*)"Head_M");
 		XMFLOAT3 offset = m_pSkinnedAnimationController->GetBoneFramePositionVector(index);
 		offset.x = 0.0f; offset.z = 0.0f;
-		offset.y -= m_xmf3Position.y;
+		offset.y = offset.y - m_xmf3Position.y;	// [0507]¼öÁ¤
 		camera->SetOffset(offset);
 		camera->SetPosition(Vector3::Add(m_xmf3Position, m_pCamera->GetOffset()));
 	}
@@ -626,13 +626,13 @@ void CBlueSuitPlayer::Update(float fElapsedTime)
 				m_pSkinnedAnimationController->m_bTransition = true;
 				m_pSkinnedAnimationController->m_nNextState = PlayerState::WALK;
 			}
-			else if (m_bShiftRun && m_pSkinnedAnimationController->m_nNowState == PlayerState::WALK)
+			else if (m_bRunning && m_pSkinnedAnimationController->m_nNowState == PlayerState::WALK)
 			{
 				m_pSkinnedAnimationController->m_bTransition = true;
 				m_pSkinnedAnimationController->m_nNextState = PlayerState::RUN;
 				m_pSkinnedAnimationController->SetTrackPosition(3, m_pSkinnedAnimationController->m_vAnimationTracks[1].m_fPosition);
 			}
-			else if (!m_bShiftRun && m_pSkinnedAnimationController->m_nNowState == PlayerState::RUN)
+			else if (!m_bRunning && m_pSkinnedAnimationController->m_nNowState == PlayerState::RUN)
 			{
 				m_pSkinnedAnimationController->m_bTransition = true;
 				m_pSkinnedAnimationController->m_nNextState = PlayerState::WALK;

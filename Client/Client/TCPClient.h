@@ -36,6 +36,7 @@ struct CS_CLIENTS_INFO
 {
 	int m_nClientId = -1;
 	bool m_bAlive = true;
+	bool m_bRunning = false;
 	XMFLOAT3 m_xmf3Position;
 	XMFLOAT3 m_xmf3Velocity;
 	XMFLOAT3 m_xmf3Look;

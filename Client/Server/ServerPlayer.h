@@ -67,10 +67,11 @@ public:
 	XMFLOAT3 GetLook() const { return m_xmf3Look; }
 	XMFLOAT3 GetRight() const { return m_xmf3Right; }
 
+	void SetRunning(bool bRunning) { m_bRunning = bRunning; }
+	bool IsRunning() const { return m_bRunning; }
 	weak_ptr<CServerGameObject> GetPickedObject() { return m_pPickedObject; }
 
 	bool IsInvincibility() const { return m_bInvincibility; }
-
 
 	virtual void RightClickProcess(shared_ptr<CServerCollisionManager>& pCollisionManager) {}
 	void SetRightClick(bool val) { m_bRightClick = val; }
@@ -101,6 +102,8 @@ protected:
 	float           			m_fMaxVelocityXZ = 0.0f;
 	float           			m_fMaxVelocityY = 0.0f;
 	float           			m_fFriction = 0.0f;
+
+	bool m_bRunning = false;
 
 	weak_ptr<CServerGameObject>		m_pPickedObject;
 	bool						m_bPressed = false;
@@ -160,7 +163,6 @@ private:
 	int m_nFuseNum = 0;
 	std::array<shared_ptr<CServerFuseObject>, 3> m_apFuseItems;
 
-	bool m_bShiftRun = false;
 	bool m_bAbleRun = true;
 	float m_fStamina = 5.0f;
 
