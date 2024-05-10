@@ -1,6 +1,6 @@
 ﻿#pragma once
 
-#define WIN32_LEAN_AND_MEAN             // 거의 사용되지 않는 내용은 Windows 헤더에서 제외합니다.
+#define WIN32_LEAN_AND_MEAN		// 거의 사용되지 않는 내용은 Windows 헤더에서 제외합니다.
 #define _CRT_SECURE_NO_WARNINGS // 구형 C 함수 사용 시 경고 끄기
 #define _WINSOCK_DEPRECATED_NO_WARNINGS // 구형 소켓 API 사용 시 경고 끄기
 // Windows 헤더 파일:
@@ -20,6 +20,9 @@
 #include <string>
 #include <wrl.h>
 #include <shellapi.h>
+
+//[0509] 임시로 png파일 읽어서 붙힘
+#include <atlimage.h>
 
 // STL
 #include <fstream>

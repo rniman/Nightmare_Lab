@@ -38,7 +38,8 @@ public:
 	void SetStairY(float fMax, float fMin) { m_fStairMax = fMax; m_fStairMin = fMin; }
 	void SetStairPlane(const XMFLOAT4& xmf4StairPlane) { m_xmf4StairPlane = xmf4StairPlane; }
 
-	void SetWorldMatrix(const XMFLOAT3& xmf3Position) { m_xmf3Position = xmf3Position; }
+	void SetPlayerPosition(const XMFLOAT3& xmf3Position) { m_xmf3Position = xmf3Position; }
+	void SetPlayerOldPosition(const XMFLOAT3& xmf3OldPosition) { m_xmf3OldPosition = xmf3OldPosition; }
 
 	void SetLook(const XMFLOAT3& xmf3Look) { m_xmf3Look = xmf3Look; }
 	void SetRight(const XMFLOAT3& xmf3Right) { m_xmf3Right = xmf3Right; }

@@ -6,6 +6,10 @@
 //constexpr size_t SWAPCHAIN_BUFFER_NUM = 2;
 //class TextObject;
 
+constexpr UINT WM_CREATE_TCP{ WM_USER + 2 };
+constexpr UINT BUTTON_CREATE_TCP_ID{ 1 };
+constexpr UINT EDIT_INPUT_ADDRESS_ID{ 2 };
+
 struct FrameTimeInfo {
 	float time = 0.0f;
 	float localTime = 0.0f;
@@ -22,8 +26,9 @@ public:
 
 	bool OnCreate(HINSTANCE hInstance, HWND hMainWnd);
 	void OnDestroy();
+	void OnDestroyLobby();
 
-	void CreateTcpClient(HWND hWnd);
+	void CreateLobby(HWND hWnd);
 
 	void CreateSwapChain();
 	void CreateDirect3DDevice();
@@ -50,6 +55,7 @@ public:
 
 	void OnProcessingMouseMessage(HWND hWnd, UINT nMessageID, WPARAM wParam, LPARAM lParam);
 	void OnProcessingKeyboardMessage(HWND hWnd, UINT nMessageID, WPARAM wParam, LPARAM lParam);
+	void OnProcessingCommandMessage(HWND hWnd, UINT nMessageID, WPARAM wParam, LPARAM lParam);
 	void OnProcessingSocketMessage(HWND hWnd, UINT nMessageID, WPARAM wParam, LPARAM lParam);
 	void OnProcessingWindowMessage(HWND hWnd, UINT nMessageID, WPARAM wParam, LPARAM lParam);
 
@@ -58,7 +64,14 @@ public:
 	static UCHAR* GetKeysBuffer();
 	static int GetMainClientId() { return m_nMainClientId; }
 	void SetPlayerObjectOfClient(int nClientId);
+
+	void SetConnected(bool bConnected) { m_bConnected = bConnected; }
+	bool IsConnected() const { return m_bConnected; }
+
+	bool IsTcpClient() const { return m_bTcpClient; }
+	void OnButtonClick(HWND hWnd);
 private:
+
 	D3D12_VIEWPORT m_d3dViewport;
 	D3D12_RECT m_d3dScissorRect;
 	//뷰포트와 씨저 사각형이다.
@@ -140,5 +153,17 @@ public:
 	D3D12_GPU_DESCRIPTOR_HANDLE m_d3dTimeCbvGPUDescriptorHandle;
 	ComPtr<ID3D12Resource>		m_pd3dcbTime;
 	FrameTimeInfo* m_pcbMappedTime;
+
+//[0507]
+private:
+	bool m_bConnected = false;
+	HWND m_hConnectButton;
+
+	bool m_bTcpClient = false;
+	UINT m_nEventCreateTcpClient;
+
+	HWND m_hIPAddressEdit;
+
+	_TCHAR m_pszIPAddress[16];
 };
 

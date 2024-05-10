@@ -1,14 +1,15 @@
 #pragma once
 #include "Timer.h"
 constexpr size_t MAX_CLIENT{ 5 };
-constexpr size_t MAX_SEND_OBJECT_INFO{ 60 };
+constexpr size_t MAX_SEND_OBJECT_INFO{ 20 };
 
 // 소켓 정보 저장을 위한 구조체와 변수
 class CServerGameObject;
 class CServerPlayer;
 class CServerCollisionManager;
 
-struct SC_ANIMATION_INFO {
+struct SC_ANIMATION_INFO
+{
 	float pitch = 1.0f;
 };
 
@@ -74,6 +75,8 @@ struct SOCKETINFO
 	int RecvNum = 0;
 };
 
+void ConvertCharToLPWSTR(const char* pstr, LPWSTR dest, int destSize);
+
 class TCPServer
 {
 public:
@@ -107,12 +110,17 @@ public:
 	void LoadScene();
 	void CreateSceneObject(char* pstrFrameName, const XMFLOAT4X4& xmf4x4World, const vector<BoundingOrientedBox>& voobb);
 	void CreateItemObject();
-	void CreatSendObject();
+	void CreateSendObject();
+
+	//[0509] 플레이어 시작 위치 겹치지 않도록 초기화
+	void InitPlayerPosition(shared_ptr<CServerPlayer>& pServerPlayer, int nIndex);
 
 	int CheckAllClientsSentData(int cur_nPlayer);
 	void SetAllClientsSendStatus(int cur_nPlayer, bool val);
 
 	// Interface
+	void SetClientListBox(HWND hListBox) { m_hClientListBox = hListBox; }
+
 	shared_ptr<CServerPlayer> GetPlayer(int nIndex) { return m_apPlayers[nIndex]; }
 
 	static default_random_engine m_mt19937Gen;
@@ -140,6 +148,11 @@ private:
 	bool m_bDataSend[MAX_CLIENT] = { false };
 	// 송수신 , 데이터 업데이트는 싱글스레드로 이루어짐. 데이터를 send한 이후에 업데이트된 데이터가 send이전에 덮어씌어버리면 올바른 동기화가 이뤄지지 않음
 
+	HWND m_hClientListBox;
+
+	//[0509] CServerPlayer에서 초기화하던 시작위치를 옮김
+	array<XMFLOAT3, 16> m_axmf3Positions;
+	array<int, MAX_CLIENT> m_anPlayerStartPosNum;
 };
 
 extern void err_quit(const char* msg);

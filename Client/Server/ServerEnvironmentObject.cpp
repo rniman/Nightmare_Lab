@@ -68,6 +68,7 @@ CServerEnvironmentObject::CServerEnvironmentObject(char* pstrFrameName, const XM
 	: CServerGameObject(pstrFrameName, xmf4x4World, voobb)
 {
 	m_nCollisionType = Standard;
+	m_bStatic = true;
 }
 
 /// <CGameObject - CEnvironmentObject>
@@ -210,7 +211,8 @@ CServerElevatorDoorObject::CServerElevatorDoorObject(char* pstrFrameName, const 
 
 void CServerElevatorDoorObject::Update(float fElapsedTime, shared_ptr<CServerCollisionManager>& pCollisionManager)
 {
-	if (!IsEscape()) {
+	if (!IsEscape()) 
+	{
 		return;
 	}
 

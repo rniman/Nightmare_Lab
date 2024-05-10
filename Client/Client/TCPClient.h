@@ -2,10 +2,10 @@
 constexpr UINT WM_SOCKET{ WM_USER + 1 };
 constexpr char SERVERIP[16]{ "127.0.0.1" };
 constexpr UINT SERVERPORT{ 9000 };
-constexpr UINT BUFSIZE{ 30000 };
+constexpr UINT BUFSIZE{ 10000 };
 
 constexpr size_t MAX_CLIENT{ 5 };
-constexpr size_t MAX_RECV_OBJECT_INFO{ 60 };
+constexpr size_t MAX_RECV_OBJECT_INFO{ 20 };
 
 class CPlayer;
 
@@ -53,6 +53,9 @@ struct CS_CLIENTS_INFO
 	CS_PLAYER_INFO m_playerInfo;
 };
 
+void ConvertLPWSTRToChar(LPWSTR lpwstr, char* dest, int destSize);
+void ConvertCharToLPWSTR(const char* pstr, LPWSTR dest, int destSize);
+
 class CTcpClient
 {
 private:
@@ -80,10 +83,10 @@ public:
 
 	int SendNum = 0;
 	int RecvNum = 0;
-	CTcpClient(HWND hWnd);
+	CTcpClient();
 	~CTcpClient();
 
-	void CreateSocket(HWND hWnd);
+	bool CreateSocket(HWND hWnd, TCHAR* pszIPAddress);
 	void OnDestroy();
 	void SetPlayer(const shared_ptr<CPlayer>& pPlayer, int nIndex = 0) { m_apPlayers[nIndex] = pPlayer; };
 
@@ -108,3 +111,4 @@ public:
 	std::array<CS_CLIENTS_INFO, 5>& GetArrayClientsInfo();
 	//SOCKET GetSocket() { return m_sock; }
 };
+

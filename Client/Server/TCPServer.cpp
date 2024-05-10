@@ -8,8 +8,41 @@
 default_random_engine TCPServer::m_mt19937Gen;
 size_t TCPServer::m_nClient = 0;
 
+void ConvertCharToLPWSTR(const char* pstr, LPWSTR dest, int destSize)
+{
+	// MultiByteToWideChar 함수를 사용하여 char*을 LPWSTR로 변환
+	MultiByteToWideChar(
+		CP_UTF8,
+		0,                   // 변환 옵션
+		pstr,                 // 변환할 문자열
+		-1,                  // 자동으로 문자열 길이 계산
+		dest,                // 대상 버퍼
+		destSize             // 대상 버퍼의 크기
+	);
+}
+
 TCPServer::TCPServer()
 {
+	m_axmf3Positions = {
+		XMFLOAT3(10.0f, 0.0f, 13.5),
+		XMFLOAT3(10.0f, 0.0f, -13.5),
+		XMFLOAT3(-10.0f, 0.0f, 13.5),
+		XMFLOAT3(-10.0f, 0.0f, -13.5),
+		XMFLOAT3(10.0f, 4.5f, 13.5),
+		XMFLOAT3(10.0f, 4.5f, -13.5),
+		XMFLOAT3(-10.0f, 4.5f, 13.5),
+		XMFLOAT3(-10.0f, 4.5f, -13.5),
+		XMFLOAT3(-10.0f, 9.0f, -13.5),
+		XMFLOAT3(10.0f, 9.0f, -13.5),
+		XMFLOAT3(-10.0f, 9.0f, 13.5),
+		XMFLOAT3(-10.0f, 9.0f, -13.5),
+		XMFLOAT3(-10.0f, 13.5f, -13.5),
+		XMFLOAT3(10.0f, 13.5f, -13.5),
+		XMFLOAT3(-10.0f, 13.5f, 13.5),
+		XMFLOAT3(-10.0f, 13.5f, -13.5)
+	};
+
+	m_anPlayerStartPosNum = { -1, -1, -1, -1, -1 };
 }
 
 TCPServer::~TCPServer()
@@ -52,12 +85,7 @@ void TCPServer::OnProcessingSocketMessage(HWND hWnd, UINT nMessageID, WPARAM wPa
 
 void TCPServer::OnProcessingAcceptMessage(HWND hWnd, UINT nMessageID, WPARAM wParam, LPARAM lParam)
 {
-	// 최대 클라이언트 수를 넘길수 없습니다.
-	if (m_nClient >= MAX_CLIENT)
-	{
-		return;
-	}
-
+	
 	SOCKET sockClient;
 	struct sockaddr_in addrClient;
 	int nAddrlen = sizeof(sockaddr_in);
@@ -71,6 +99,14 @@ void TCPServer::OnProcessingAcceptMessage(HWND hWnd, UINT nMessageID, WPARAM wPa
 
 	// 추가된 클라이언트의 정보를 추가한다.
 	int nSocketIndex = AddSocketInfo(sockClient, addrClient, nAddrlen);
+	
+	// MAX_CLIENT보다 더 많은 접속 요구
+	if (nSocketIndex == -1)	
+	{
+		closesocket(sockClient); // 클라이언트 소켓 종료
+		err_display("Maximum number of clients reached. Connection refused."); // 연결 거부 메시지 표시
+		return;
+	}
 	printf("\n[TCP 서버] 클라이언트 접속: IP 주소=%s, 포트 번호=%d\n", m_vSocketInfoList[nSocketIndex].m_pAddr, ntohs(m_vSocketInfoList[nSocketIndex].m_addrClient.sin_port));
 
 	int retval = WSAAsyncSelect(sockClient, hWnd, WM_SOCKET, FD_READ | FD_WRITE | FD_CLOSE);
@@ -79,6 +115,11 @@ void TCPServer::OnProcessingAcceptMessage(HWND hWnd, UINT nMessageID, WPARAM wPa
 		err_display("WSAAsyncSelect()");
 		RemoveSocketInfo(sockClient);
 	}
+	WCHAR pszList[256];
+	WCHAR pszIP[16];
+	ConvertCharToLPWSTR(m_vSocketInfoList[nSocketIndex].m_pAddr, pszIP, 16);
+	wsprintf(pszList, L"CLIENT[%d], IP: %s, 포트 번호: %d\n", nSocketIndex, pszIP, ntohs(m_vSocketInfoList[nSocketIndex].m_addrClient.sin_port));
+	SendMessage(m_hClientListBox, LB_ADDSTRING, 0, (LPARAM)pszList);
 
 	// 임시로 CBlueSuitPlayer만 생성
 	if (nSocketIndex == ZOMBIEPLAYER)	// Socket Index가 0이면 Zombie
@@ -91,6 +132,9 @@ void TCPServer::OnProcessingAcceptMessage(HWND hWnd, UINT nMessageID, WPARAM wPa
 		m_apPlayers[nSocketIndex] = make_shared<CServerBlueSuitPlayer>();
 		m_apPlayers[nSocketIndex]->SetPlayerId(nSocketIndex);
 	}
+
+	InitPlayerPosition(m_apPlayers[nSocketIndex], nSocketIndex);
+
 	m_pCollisionManager->AddCollisionPlayer(m_apPlayers[nSocketIndex], nSocketIndex);
 
 	for (auto& sockInfo : m_vSocketInfoList)
@@ -99,7 +143,6 @@ void TCPServer::OnProcessingAcceptMessage(HWND hWnd, UINT nMessageID, WPARAM wPa
 		{
 			continue;
 		}
-		//sockInfo.m_prevSocketState = sockInfo.m_socketState;
 		sockInfo.m_socketState = SOCKET_STATE::SEND_NUM_OF_CLIENT;
 	}
 
@@ -276,6 +319,7 @@ void TCPServer::OnProcessingCloseMessage(HWND hWnd, UINT nMessageID, WPARAM wPar
 {
 	int nIndex = RemoveSocketInfo((SOCKET)wParam);
 	m_apPlayers[nIndex].reset();
+	m_anPlayerStartPosNum[nIndex] = -1;
 	//m_apPlayers[nIndex]->SetPlayerId(-1);
 }
 
@@ -390,8 +434,15 @@ void TCPServer::SimulationLoop()
 
 	m_pCollisionManager->Update(fElapsedTime);
 
+	//printf("[");
+	//for(const auto& n:m_anPlayerStartPosNum)
+	//{
+	//	printf("%d\t", n);
+	//}
+	//printf("\b\b\b\b\b]\n");
+
 	UpdateInformation();
-	CreatSendObject();
+	CreateSendObject();
 }
 
 // 소켓 정보 추가
@@ -461,6 +512,7 @@ int TCPServer::GetSocketIndex(SOCKET sock)
 int TCPServer::RemoveSocketInfo(SOCKET sock)
 {
 	int nIndex = -1;
+	int nListBoxIndex = -1;
 	// 리스트에서 정보 제거
 	for (auto& sockInfo : m_vSocketInfoList)
 	{
@@ -469,10 +521,17 @@ int TCPServer::RemoveSocketInfo(SOCKET sock)
 		{
 			continue;
 		}
+		else
+		{
+			nListBoxIndex++;
+		}
 
 		if (sockInfo.m_sock == sock)
 		{
 			printf("[TCP 서버] 클라이언트 종료: IP 주소=%s, 포트 번호=%d\n", sockInfo.m_pAddr, ntohs(sockInfo.m_addrClient.sin_port));
+
+			SendMessage(m_hClientListBox, LB_DELETESTRING, (WPARAM)nListBoxIndex, 0);
+
 			closesocket(sockInfo.m_sock); // 소켓 닫기
 			sockInfo.m_bUsed = false;
 			
@@ -723,12 +782,15 @@ void TCPServer::CreateSceneObject(char* pstrFrameName, const XMFLOAT4X4& xmf4x4W
 	{
 		pGameObject = make_shared<CServerEnvironmentObject>(pstrFrameName, xmf4x4World, voobb);
 	}
-	else if (!strcmp(pstrFrameName, "Laboratory_Wall_Door_1") || !strcmp(pstrFrameName, "Laboratory_Wall_Door_1_2") 
-			|| !strcmp(pstrFrameName, "Laboratory_Tunnel_1") || !strcmp(pstrFrameName, "Laboratory_Table_1"))
+	else if (!strcmp(pstrFrameName, "Laboratory_Wall_Door_1") || !strcmp(pstrFrameName, "Laboratory_Wall_Door_1_2"))
 	{
 		pGameObject = make_shared<CServerEnvironmentObject>(pstrFrameName, xmf4x4World, voobb);
 	}
-	else if (!strcmp(pstrFrameName, "Laboratory_Tunnel_1_Stairs"))
+	else if(!strcmp(pstrFrameName, "Biological_Capsule_1") || !strcmp(pstrFrameName, "Laboratory_Table_1"))
+	{
+		pGameObject = make_shared<CServerEnvironmentObject>(pstrFrameName, xmf4x4World, voobb);
+	}
+	else if (!strcmp(pstrFrameName, "Laboratory_Tunnel_1_Stairs") || !strcmp(pstrFrameName, "Laboratory_Tunnel_1"))
 	{
 		pGameObject = make_shared<CServerEnvironmentObject>(pstrFrameName, xmf4x4World, voobb);
 	}
@@ -739,6 +801,7 @@ void TCPServer::CreateSceneObject(char* pstrFrameName, const XMFLOAT4X4& xmf4x4W
 	else
 	{
 		pGameObject = make_shared<CServerGameObject>(pstrFrameName, xmf4x4World, voobb);
+		pGameObject->SetStatic(true);
 	}
 
 	strcpy(pGameObject->m_pstrFrameName, pstrFrameName);
@@ -827,18 +890,10 @@ void TCPServer::CreateItemObject()
 			m_pCollisionManager->AddCollisionObject(pItemObject);
 		}
 
-		//else if (nCreateItem < 30)	// mine
-		//{
-		//	shared_ptr<CServerMineObject> pFuseObject = make_shared<CServerMineObject>();
-		//}
-		//else	// radar
-		//{
-		//	shared_ptr<CServerRadarObject> pFuseObject = make_shared<CServerRadarObject>();
-		//}
 	}
 }
 
-void TCPServer::CreatSendObject()
+void TCPServer::CreateSendObject()
 {
 	for (const auto& pPlayer : m_apPlayers)
 	{
@@ -888,7 +943,7 @@ void TCPServer::CreatSendObject()
 
 				for (const auto& pGameObject : m_pCollisionManager->GetSpaceGameObjects(pPlayer->GetFloor(), j, k))
 				{
-					if (!pGameObject)
+					if (!pGameObject || pGameObject->IsStatic())
 					{
 						continue;
 					}
@@ -907,6 +962,33 @@ void TCPServer::CreatSendObject()
 			}
 		}
 	}
+}
+
+void TCPServer::InitPlayerPosition(shared_ptr<CServerPlayer>& pServerPlayer, int nIndex)
+{
+	// 후보지를 두고 int 값에 따라 그곳에 가도록 해야할듯
+	uniform_int_distribution<int> disIntPosition(0, 15);
+
+	int nStartPosNum = disIntPosition(m_mt19937Gen);
+	bool bEmpty = true;
+	while (!bEmpty)
+	{
+		bEmpty = true;
+		nStartPosNum = disIntPosition(m_mt19937Gen);
+		for (const auto& nPlayerStartPos : m_anPlayerStartPosNum)
+		{
+			if (nPlayerStartPos == nStartPosNum)
+			{
+				bEmpty = false;
+				break;
+			}
+		}
+	}
+
+	m_anPlayerStartPosNum[nIndex] = nStartPosNum;
+	XMFLOAT3 xmf3Position = m_axmf3Positions[nStartPosNum];
+	pServerPlayer->SetPlayerPosition(xmf3Position);
+	pServerPlayer->SetPlayerOldPosition(xmf3Position);
 }
 
 template<class... Args>

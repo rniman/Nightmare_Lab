@@ -28,6 +28,8 @@
 
 	m_pScene = NULL;
 
+	m_pTcpClient = make_unique<CTcpClient>();
+
 	_tcscpy_s(m_pszFrameRate, _T("NightMare Lab ("));
 }
 
@@ -459,6 +461,12 @@ void CGameFramework::RenderUI()
 
 void CGameFramework::OnProcessingMouseMessage(HWND hWnd, UINT nMessageID, WPARAM wParam, LPARAM lParam)
 {
+	if (!m_bConnected)	// 서버와 연결 X
+	{
+
+		return;
+	}
+
 	if (m_pScene) m_pScene->OnProcessingMouseMessage(hWnd, nMessageID, wParam, lParam);
 	switch (nMessageID)
 	{
@@ -487,6 +495,28 @@ void CGameFramework::OnProcessingMouseMessage(HWND hWnd, UINT nMessageID, WPARAM
 
 void CGameFramework::OnProcessingKeyboardMessage(HWND hWnd, UINT nMessageID, WPARAM wParam, LPARAM lParam)
 {
+	if (!m_bConnected)
+	{
+		switch (nMessageID)
+		{
+		case WM_KEYUP:
+			switch (wParam)
+			{
+			case VK_ESCAPE:
+				::PostQuitMessage(0);
+				break;
+			default:
+				break;
+			}
+			break;
+		default:
+			break;
+
+		}
+
+		return;
+	}
+
 	if (m_pScene) m_pScene->OnProcessingKeyboardMessage(hWnd, nMessageID, wParam, lParam);
 	switch (nMessageID)
 	{
@@ -538,40 +568,6 @@ void CGameFramework::OnProcessingKeyboardMessage(HWND hWnd, UINT nMessageID, WPA
 			m_pMainPlayer->SetPosition(Vector3::Add(m_pMainPlayer->GetPosition(), xmf3Shift));
 		}
 			break;
-		//case 'E': //상호작용
-		//	if (!m_pMainPlayer)
-		//	{
-		//		break;
-		//	}
-		//	if (shared_ptr<CGameObject> pPickedObject = m_pMainPlayer->GetPickedObject().lock())
-		//	{
-		//		m_pMainPlayer->UpdatePicking();
-		//	}
-		//	break;
-		/*case '1': {
-			auto player = dynamic_pointer_cast<CBlueSuitPlayer>(m_pMainPlayer);
-			if (player)
-			{
-				player->UseMine(0);
-				player->SetHitEvent();
-			}
-			auto Zplayer = dynamic_pointer_cast<CZombiePlayer>(m_pMainPlayer);
-			if (Zplayer) {
-				Zplayer->SetEectricShock();
-			}
-		}
-			break;*/
-		//case '2':
-		//	//uiY += 10.f;
-		//	break;
-		//case '3':
-		//case '4':
-		//	if (!m_pMainPlayer)
-		//	{
-		//		break;
-		//	}
-		//	m_pMainPlayer->UseItem(wParam - '1');
-		//	break;
 		default:
 			break;
 		}
@@ -581,9 +577,21 @@ void CGameFramework::OnProcessingKeyboardMessage(HWND hWnd, UINT nMessageID, WPA
 	}
 }
 
+void CGameFramework::OnProcessingCommandMessage(HWND hWnd, UINT nMessageID, WPARAM wParam, LPARAM lParam)
+{
+	switch (nMessageID)
+	{
+	case WM_COMMAND:
+		if (LOWORD(wParam) == BUTTON_CREATE_TCP_ID)
+		{
+			OnButtonClick(hWnd);
+		}
+		break;
+	}
+}
+
 void CGameFramework::OnProcessingSocketMessage(HWND hWnd, UINT nMessageID, WPARAM wParam, LPARAM lParam)
 {
-
 	// 오류 발생 여부 확인
 	if (WSAGETSELECTERROR(lParam))
 	{
@@ -597,6 +605,11 @@ void CGameFramework::OnProcessingSocketMessage(HWND hWnd, UINT nMessageID, WPARA
 	case FD_READ:	// 소켓이 데이터를 읽을 준비가 되었다.
 	case FD_CLOSE:
 		m_pTcpClient->OnProcessingSocketMessage(hWnd, nMessageID, wParam, lParam);
+		if (WSAGETSELECTEVENT(lParam) == FD_CLOSE && m_bTcpClient)
+		{
+			m_bTcpClient = false;
+			err_display("exceed maximum client number");
+		}
 		break;
 	default:
 		break;
@@ -607,6 +620,12 @@ void CGameFramework::OnProcessingWindowMessage(HWND hWnd, UINT nMessageID, WPARA
 {
 	switch (nMessageID)
 	{
+	case WM_COMMAND:
+		OnProcessingCommandMessage(hWnd, nMessageID, wParam, lParam);
+		break;
+	case WM_CREATE_TCP:
+		m_bTcpClient = true;
+		break;
 	case WM_SOCKET:
 		OnProcessingSocketMessage(hWnd, nMessageID, wParam, lParam);
 		break;
@@ -650,13 +669,26 @@ void CGameFramework::SetPlayerObjectOfClient(int nClientId)
 	m_pScene->SetMainPlayer(m_pMainPlayer);
 }
 
+void CGameFramework::OnButtonClick(HWND hWnd)
+{
+	GetWindowText(m_hIPAddressEdit, m_pszIPAddress, 16);
+
+	if (m_pTcpClient->CreateSocket(hWnd, m_pszIPAddress))
+	{
+		SendMessage(hWnd, WM_CREATE_TCP, NULL, NULL);
+	}
+}
+
 void CGameFramework::OnDestroy()
 {
 	ReleaseObjects();
 
 	::CloseHandle(m_hFenceEvent);
 
-	m_dxgiSwapChain->SetFullscreenState(FALSE, NULL);
+	if(m_dxgiSwapChain)
+	{
+		m_dxgiSwapChain->SetFullscreenState(FALSE, NULL);
+	}
 
 #if defined(_DEBUG)
 	IDXGIDebug1* pdxgiDebug = NULL;
@@ -664,11 +696,67 @@ void CGameFramework::OnDestroy()
 	HRESULT hResult = pdxgiDebug->ReportLiveObjects(DXGI_DEBUG_ALL, DXGI_DEBUG_RLO_DETAIL);
 	pdxgiDebug->Release();
 #endif
+
 }
 
-void CGameFramework::CreateTcpClient(HWND hWnd)
+void CGameFramework::OnDestroyLobby()
 {
-	m_pTcpClient = make_unique<CTcpClient>(hWnd);
+	DestroyWindow(m_hConnectButton);
+	DestroyWindow(m_hIPAddressEdit);
+}
+
+void CGameFramework::CreateLobby(HWND hWnd)
+{
+	int nConnectButtonWidth = 300;
+	int nConnectButtonHeight= 60;
+
+	m_hConnectButton = CreateWindowEx(
+		WS_EX_CLIENTEDGE,
+		L"BUTTON", // 클래스 이름
+		L"Connect to Server", // 텍스트
+		WS_TABSTOP | WS_VISIBLE | WS_CHILD | BS_DEFPUSHBUTTON, // 스타일
+		FRAME_BUFFER_WIDTH / 2 - nConnectButtonWidth / 2, FRAME_BUFFER_HEIGHT / 2 + nConnectButtonHeight, nConnectButtonWidth, nConnectButtonHeight, // 위치와 크기
+		hWnd, // 부모 윈도우
+		(HMENU)BUTTON_CREATE_TCP_ID, // 버튼 ID
+		(HINSTANCE)GetWindowLongPtr(hWnd, GWLP_HINSTANCE),
+		NULL
+	);
+
+	int nIPEditWidth = 400;
+	int nIPEditHeight = 50;
+	m_hIPAddressEdit = CreateWindowEx(
+		WS_EX_CLIENTEDGE,      
+		L"EDIT",                
+		L"",      
+		WS_CHILD | WS_VISIBLE | WS_BORDER | SS_CENTER,
+		FRAME_BUFFER_WIDTH / 2 - nIPEditWidth / 2, FRAME_BUFFER_HEIGHT / 2, nIPEditWidth, nIPEditHeight,
+		hWnd,                
+		(HMENU)EDIT_INPUT_ADDRESS_ID,       
+		(HINSTANCE)GetWindowLongPtr(hWnd, GWLP_HINSTANCE),      
+		NULL                
+	);
+	SendMessage(m_hIPAddressEdit, EM_LIMITTEXT, (WPARAM)16, 0);	// 16글자 제한
+
+	
+	HFONT hFont = CreateFont(40, 0, 0, 0, FW_NORMAL, FALSE, FALSE, FALSE, DEFAULT_CHARSET,
+		OUT_DEFAULT_PRECIS, CLIP_DEFAULT_PRECIS, DEFAULT_QUALITY, DEFAULT_PITCH | FF_SWISS, L"Arial");
+	SendMessage(m_hIPAddressEdit, WM_SETFONT, (WPARAM)hFont, TRUE);
+
+
+	int nIPCaptionWidth = 400;
+	int nIPCaptionHeight = 40;
+	HWND hLabel = CreateWindowEx(
+		0,
+		L"STATIC",
+		L"IP ADDRESS",
+		WS_CHILD | WS_VISIBLE | SS_CENTER,
+		FRAME_BUFFER_WIDTH / 2 - nIPCaptionWidth / 2, FRAME_BUFFER_HEIGHT / 2 - nIPCaptionHeight, nIPCaptionWidth, nIPCaptionHeight,
+		hWnd,
+		(HMENU)EDIT_INPUT_ADDRESS_ID,
+		(HINSTANCE)GetWindowLongPtr(hWnd, GWLP_HINSTANCE),
+		NULL
+	);
+	SendMessage(hLabel, WM_SETFONT, (WPARAM)hFont, TRUE);
 }
 
 void CGameFramework::BuildObjects()
@@ -927,6 +1015,7 @@ void CGameFramework::FrameAdvance()
 	hResult = m_d3dCommandList->Reset(m_d3dCommandAllocator[m_nSwapChainBufferIndex].Get(), NULL);
 
 	{
+		//-> 물어보기
 		int ndynamicShadowMap = 4;
 		// 그림자맵에 해당하는 텍스처를 렌더타겟으로 변환
 		m_pPostProcessingShader->OnShadowPrepareRenderTarget(m_d3dCommandList.Get(), ndynamicShadowMap); //플레이어의 손전등 1개 -> [0] 번째 요소에 들어있음.
@@ -942,6 +1031,12 @@ void CGameFramework::FrameAdvance()
 			vlightCamera[0]->SetLookVector(XMFLOAT3(xmf4x4playerLight->_21, xmf4x4playerLight->_22, xmf4x4playerLight->_23));
 			vlightCamera[0]->RegenerateViewMatrix();
 			vlightCamera[0]->MultiplyViewProjection();
+			m_pScene->m_pLights[0].m_bEnable = true;
+		}
+		else
+		{
+			//[0507] 좀비일때 이거 안해주면 1층 엘레베이터 문에 그림자 짐
+			m_pScene->m_pLights[0].m_bEnable = false;
 		}
 
 		static XMFLOAT4X4 xmf4x4ToTexture = {

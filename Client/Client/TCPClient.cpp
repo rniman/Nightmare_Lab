@@ -4,16 +4,15 @@
 #include "Player.h"
 
 
-CTcpClient::CTcpClient(HWND hWnd)
+CTcpClient::CTcpClient()
 {
-	CreateSocket(hWnd);
 }
 
 CTcpClient::~CTcpClient()
 {
 }
 
-void CTcpClient::CreateSocket(HWND hWnd)
+bool CTcpClient::CreateSocket(HWND hWnd, TCHAR* pszIPAddress)
 {
 	int nRetval;
 
@@ -21,7 +20,8 @@ void CTcpClient::CreateSocket(HWND hWnd)
 	WSADATA wsa;
 	if (WSAStartup(MAKEWORD(2, 2), &wsa) != 0)
 	{
-		return;
+		err_quit("WSAStartup");
+		return false;
 	}
 
 	// 소켓 생성
@@ -31,25 +31,36 @@ void CTcpClient::CreateSocket(HWND hWnd)
 	if (s == INVALID_SOCKET)
 	{
 		err_quit("socket()");
+		return false;	
 	}
+
+	char pIPAddress[16];
+	ConvertLPWSTRToChar(pszIPAddress, pIPAddress, 16);
 
 	// connect()
 	struct sockaddr_in serveraddr;
 	memset(&serveraddr, 0, sizeof(serveraddr));
 	serveraddr.sin_family = AF_INET;
-	inet_pton(AF_INET, SERVERIP, &serveraddr.sin_addr);
+	//inet_pton(AF_INET, SERVERIP, &serveraddr.sin_addr);
+	inet_pton(AF_INET, pIPAddress, &serveraddr.sin_addr);
 	serveraddr.sin_port = htons(SERVERPORT);
 
 	//nRetval = connect(m_sock, (struct sockaddr*)&serveraddr, sizeof(serveraddr));
 	nRetval = connect(s, (struct sockaddr*)&serveraddr, sizeof(serveraddr));
-	if (nRetval == SOCKET_ERROR) 
+ 	if (nRetval == SOCKET_ERROR) 
 	{
-		err_quit("connect()");
-		return;
+		err_display("connect()");
+		return false;
 	}
 
 	//nRetval = WSAAsyncSelect(m_sock, hWnd, WM_SOCKET, FD_CLOSE | FD_READ | FD_WRITE);	// FD_WRITE가 발생할것이다.
 	nRetval = WSAAsyncSelect(s, hWnd, WM_SOCKET, FD_CLOSE | FD_READ | FD_WRITE);	// FD_WRITE가 발생할것이다.
+	if (nRetval == SOCKET_ERROR)
+	{
+		return false;
+	}
+
+	return true;
 }
 
 void CTcpClient::OnDestroy()
@@ -72,7 +83,6 @@ std::array<CS_CLIENTS_INFO, 5>& CTcpClient::GetArrayClientsInfo()
 
 void CTcpClient::OnProcessingSocketMessage(HWND hWnd, UINT nMessageID, WPARAM wParam, LPARAM lParam)
 {
-	
 	switch (WSAGETSELECTEVENT(lParam))
 	{
 	case FD_READ:	// 소켓이 데이터를 읽을 준비가 되었다.
@@ -151,6 +161,8 @@ void CTcpClient::OnProcessingReadMessage(HWND hWnd, UINT nMessageID, WPARAM wPar
 				m_apPlayers[i]->SetPosition(m_aClientInfo[i].m_xmf3Position);
 				m_apPlayers[i]->SetVelocity(m_aClientInfo[i].m_xmf3Velocity);
 				m_apPlayers[i]->SetPitch(m_aClientInfo[i].m_animationInfo.pitch);
+
+
 				if(i != m_nMainClientId)
 				{
 					m_apPlayers[i]->SetLook(m_aClientInfo[i].m_xmf3Look);
@@ -162,10 +174,12 @@ void CTcpClient::OnProcessingReadMessage(HWND hWnd, UINT nMessageID, WPARAM wPar
 				if (nObjectNum != -1) {
 					shared_ptr<CGameObject> pGameObject = g_collisionManager.GetCollisionObjectWithNumber(nObjectNum).lock();
 					auto mine = dynamic_pointer_cast<CMineObject>(pGameObject);
-					if (mine) {
+					if (mine)
+					{
 						mine->SetCollide(true);
 						shared_ptr<CZombiePlayer> pZombiePlayer = dynamic_pointer_cast<CZombiePlayer>(m_apPlayers[i]);
-						if (pZombiePlayer) {
+						if (pZombiePlayer) 
+						{
 							pZombiePlayer->SetEectricShock();
 						}
 
@@ -250,7 +264,7 @@ void CTcpClient::OnProcessingWriteMessage(HWND hWnd, UINT nMessageID, WPARAM wPa
 	size_t nBufferSize = sizeof(int);
 	int nHead;
 	int nRetval;
-	if (m_nMainClientId == -1 || m_bRecvDelayed == true)	// 아직 ID를 넘겨 받지 못했거나 딜레이 되었다.
+	if (m_nMainClientId == -1 || m_bRecvDelayed == true || !m_apPlayers[m_nMainClientId])	// 아직 ID를 넘겨 받지 못했거나 딜레이 되었다.
 	{
 		return;
 	}
@@ -501,4 +515,32 @@ void CTcpClient::UpdatePlayerItem(int nIndex)
 			}
 		}
 	}
+}
+
+void ConvertLPWSTRToChar(LPWSTR lpwstr, char* dest, int destSize)
+{
+	// WideCharToMultiByte 함수를 사용하여 LPWSTR을 char*로 변환
+	WideCharToMultiByte(
+		CP_UTF8,
+		0,                   // 변환 옵션
+		lpwstr,              // 변환할 유니코드 문자열
+		-1,                  // 자동으로 문자열 길이 계산
+		dest,                // 대상 버퍼
+		destSize,            // 대상 버퍼의 크기
+		NULL,                // 기본 문자 사용 안 함
+		NULL                 // 기본 문자 사용 여부를 저장할 변수의 주소
+	);
+}
+
+void ConvertCharToLPWSTR(const char* pstr, LPWSTR dest, int destSize)
+{
+	// MultiByteToWideChar 함수를 사용하여 char*을 LPWSTR로 변환
+	MultiByteToWideChar(
+		CP_UTF8,
+		0,                   // 변환 옵션
+		pstr,                 // 변환할 문자열
+		-1,                  // 자동으로 문자열 길이 계산
+		dest,                // 대상 버퍼
+		destSize             // 대상 버퍼의 크기
+	);
 }

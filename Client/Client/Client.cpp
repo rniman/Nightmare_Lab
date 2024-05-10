@@ -1,6 +1,8 @@
-﻿#include "stdafx.h"
+﻿
+#include "stdafx.h"
 #include "Client.h"
 #include "GameFramework.h"
+
 
 #define MAX_LOADSTRING 100
 
@@ -44,9 +46,9 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
 	HACCEL hAccelTable = LoadAccelerators(hInstance, MAKEINTRESOURCE(IDC_CLIENT));
 
 	MSG msg;
-	gGameFramework.CreateTcpClient(hWnd);
-	//gGameFramework.m_pTcpClient = make_shared<CTcpClient>(hWnd);
-	while (1)
+	gGameFramework.CreateLobby(hWnd);
+
+	while (!gGameFramework.IsConnected())
 	{
 		if (::PeekMessage(&msg, NULL, 0, 0, PM_REMOVE))
 		{
@@ -54,29 +56,31 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
 			{
 				break;
 			}
+
 			if (!::TranslateAccelerator(msg.hwnd, hAccelTable, &msg))
 			{
-				if (msg.lParam == FD_READ)
-				{
-					::TranslateMessage(&msg);
-					::DispatchMessage(&msg);
-				}
-				continue;
+				::TranslateMessage(&msg);
+				::DispatchMessage(&msg);
 			}
 		}
-		else
+		else if(gGameFramework.IsTcpClient())
 		{
 			int nClientId = gGameFramework.GetClientIdFromTcpClient();
 			if (nClientId != -1)
 			{
-				break;
+				gGameFramework.SetConnected(true);
 			}
 		}
 	}
 
-	gGameFramework.OnCreate(hInstance, hWnd);
+	if(gGameFramework.IsConnected())
+	{
+		gGameFramework.OnCreate(hInstance, hWnd);
+	}
+	gGameFramework.OnDestroyLobby();
+
 	// 기본 메시지 루프입니다:
-	while (1)
+	while (gGameFramework.IsConnected())
 	{
 		if (::PeekMessage(&msg, NULL, 0, 0, PM_REMOVE))
 		{
@@ -181,9 +185,37 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 {
 	switch (message)
 	{
-	case WM_SOCKET: // 소켓 관련 윈도우 메시지
-		gGameFramework.OnProcessingWindowMessage(hWnd, message, wParam, lParam);
+	case WM_PAINT: 
+	{
+		PAINTSTRUCT ps;
+		HDC hdc = BeginPaint(hWnd, &ps);
+
+		// 이미지 로드
+		CImage imageLobbyBackGround;
+		if(imageLobbyBackGround.Load(L"Asset/lobbyBackground.jpeg") != S_OK)
+		{
+			exit(-1);
+		}
+
+		RECT rect;
+		GetClientRect(hWnd, &rect);
+		imageLobbyBackGround.StretchBlt(hdc, rect);
+
+		EndPaint(hWnd, &ps);
 		break;
+	}
+	case WM_CTLCOLORSTATIC:
+	{
+		HDC hdcStatic = (HDC)wParam;
+		SetBkColor(hdcStatic, RGB(255, 255, 255)); // 흰색 배경 설정
+		return (LRESULT)GetStockObject(WHITE_BRUSH);
+	}
+		break;
+	case WM_SOCKET: // 소켓 관련 윈도우 메시지
+		//gGameFramework.OnProcessingWindowMessage(hWnd, message, wParam, lParam);
+		//break;
+	case WM_CREATE_TCP:
+	case WM_COMMAND:
 	case WM_SIZE:
 	case WM_LBUTTONDOWN:
 	case WM_LBUTTONUP:

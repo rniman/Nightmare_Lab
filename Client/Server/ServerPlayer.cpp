@@ -8,30 +8,6 @@ CServerPlayer::CServerPlayer()
 {
 	ZeroMemory(m_pKeysBuffer, 256);
 
-	// 후보지를 두고 int 값에 따라 그곳에 가도록 해야할듯
-	uniform_int_distribution<int> disFloatPosition(0, 15);
-
-	array<XMFLOAT3, 16> axmf3Positions = {
-		XMFLOAT3(10.0f, 0.0f, 13.5),
-		XMFLOAT3(10.0f, 0.0f, -13.5),
-		XMFLOAT3(-10.0f, 0.0f, 13.5),
-		XMFLOAT3(-10.0f, 0.0f, -13.5),
-		XMFLOAT3(10.0f, 4.5f, 13.5),
-		XMFLOAT3(10.0f, 4.5f, -13.5),
-		XMFLOAT3(-10.0f, 4.5f, 13.5),
-		XMFLOAT3(-10.0f, 4.5f, -13.5),
-		XMFLOAT3(-10.0f, 9.0f, -13.5),
-		XMFLOAT3(10.0f, 9.0f, -13.5),
-		XMFLOAT3(-10.0f, 9.0f, 13.5),
-		XMFLOAT3(-10.0f, 9.0f, -13.5),
-		XMFLOAT3(-10.0f, 13.5f, -13.5),
-		XMFLOAT3(10.0f, 13.5f, -13.5),
-		XMFLOAT3(-10.0f, 13.5f, 13.5),
-		XMFLOAT3(-10.0f, 13.5f, -13.5)
-	};
-
-	m_xmf3Position = axmf3Positions[disFloatPosition(TCPServer::m_mt19937Gen)];
-	m_xmf3OldPosition = m_xmf3Position;
 
 	//m_xmf3Position = XMFLOAT3(9.f, 0.0f, 13.9);
 	//m_xmf3OldPosition = m_xmf3Position;

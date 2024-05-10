@@ -28,13 +28,26 @@ int main()
 	if (!RegisterClass(&wndclass)) return 1;
 	
 	// 윈도우 생성
-	HWND hWnd = CreateWindow(_T("MyWndClass"), _T("TCP 서버"), WS_OVERLAPPEDWINDOW, 0, 0, 600, 200, NULL, NULL, NULL, NULL);
+	HWND hWnd = CreateWindow(_T("MyWndClass"), _T("TCP 서버"), WS_OVERLAPPEDWINDOW, 0, 0, 600, 600, NULL, NULL, NULL, NULL);
 	if (hWnd == NULL) return 1;
 	ShowWindow(hWnd, SW_SHOWNORMAL);
 	UpdateWindow(hWnd);
 
+	HWND hListBox = CreateWindowEx(
+		0,
+		L"LISTBOX",              // 클래스 이름
+		L"",                       // 콤보 박스에 표시되는 텍스트 (처음에는 비어 있음)
+		WS_VISIBLE | WS_CHILD | LBS_STANDARD, // 스타일
+		10, 10, 400, 200,          // 위치와 크기
+		hWnd,                      // 부모 윈도우 핸들
+		NULL,                      // 메뉴 핸들
+		NULL,						// 인스턴스 핸들
+		NULL                       // 추가 파라미터
+	);
+
 	//소켓 준비작업
 	g_tcpServer.Init(hWnd);
+	g_tcpServer.SetClientListBox(hListBox);
 
 	MSG msg;
 	// 메시지 루프
@@ -42,7 +55,6 @@ int main()
 	{
 		if(PeekMessage(&msg, NULL, 0, 0, PM_REMOVE))
 		{
-
 			TranslateMessage(&msg);
 			DispatchMessage(&msg);
 			if (msg.message == WM_QUIT)

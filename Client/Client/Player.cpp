@@ -670,11 +670,11 @@ void CBlueSuitPlayer::Update(float fElapsedTime)
 
 void CBlueSuitPlayer::Animate(float fElapsedTime)
 {
-	if (m_nClientId == -1 || !m_pSkinnedAnimationController->IsAnimation())
+	if (!m_pSkinnedAnimationController->IsAnimation())	// [0507] 죽은 플레이어는 Animate없어야함
 	{
-		//if(bool)
-		//return;
+		return;
 	}
+
 	auto controller = dynamic_pointer_cast<CBlueSuitAnimationController>(m_pSkinnedAnimationController);
 	if (controller) {
 		controller->SetElbowPitch(m_fPitch);

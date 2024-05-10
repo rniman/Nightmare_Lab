@@ -28,6 +28,7 @@ public:
 	static bool CheckPicking(const shared_ptr<CServerGameObject>& pCollisionGameObject, const XMFLOAT3& xmf3PickPosition, const XMFLOAT4X4& xmf4x4ViewMatrix, float& fDistance);
 
 	// Interface
+	void SetStatic(bool bStatic) { m_bStatic = bStatic; }
 	void SetCollision(bool bCollision) { m_bCollision = bCollision; }
 	void SetCollisionNum(int nCollisionNum) { m_nCollisionNum = nCollisionNum; }
 
@@ -37,6 +38,7 @@ public:
 	vector<BoundingOrientedBox> GetVectorOOBB() const { return m_voobbOrigin; };
 	BoundingOrientedBox GetOOBB(int nIndex) { return m_voobbOrigin[nIndex]; }
 	
+	bool IsStatic() const { return m_bStatic; }
 	bool IsAlive() const { return m_bAlive; }
 	bool IsCollision() const { return m_bCollision; }
 	int GetCollisionType() const { return m_nCollisionType; }
@@ -61,6 +63,7 @@ protected:
 
 	vector<BoundingOrientedBox> m_voobbOrigin;
 
+	bool m_bStatic = false;
 	bool m_bAlive = true;
 	bool m_bCollision = true;
 	int m_nCollisionType = None; // 0:None, 1:Standard, 2:Picking

@@ -78,6 +78,11 @@ void CServerCollisionManager::Update(float fElapsedTime)
 	{
 		if (pGameObject)
 		{
+			if (pGameObject->IsStatic())
+			{
+				continue;
+			}
+
 			auto collisionMgr = shared_from_this();
 			pGameObject->Update(fElapsedTime, collisionMgr);
 		}
@@ -225,7 +230,7 @@ void CServerCollisionManager::Collide(float fElapsedTime, const shared_ptr<CServ
 			xmf3StairPosition.y = pPlayer->GetStairMax();
 			pPlayer->SetStair(false);
 		}
-		pPlayer->SetWorldMatrix(xmf3StairPosition);
+		pPlayer->SetPlayerPosition(xmf3StairPosition);
 	}
 
 	
