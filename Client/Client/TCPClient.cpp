@@ -34,8 +34,8 @@ bool CTcpClient::CreateSocket(HWND hWnd, TCHAR* pszIPAddress)
 		return false;	
 	}
 
-	char pIPAddress[16];
-	ConvertLPWSTRToChar(pszIPAddress, pIPAddress, 16);
+	char pIPAddress[20];
+	ConvertLPWSTRToChar(pszIPAddress, pIPAddress, 20);
 
 	// connect()
 	struct sockaddr_in serveraddr;
@@ -156,11 +156,16 @@ void CTcpClient::OnProcessingReadMessage(HWND hWnd, UINT nMessageID, WPARAM wPar
 			if (m_apPlayers[i])
 			{
 				m_apPlayers[i]->SetAlive(m_aClientInfo[i].m_bAlive);
+				if (m_aClientInfo[i].m_bAlive == false) {
+					int x = 0;
+				}
 				m_apPlayers[i]->SetRunning(m_aClientInfo[i].m_bRunning);
 				m_apPlayers[i]->SetClientId(m_aClientInfo[i].m_nClientId);
 				m_apPlayers[i]->SetPosition(m_aClientInfo[i].m_xmf3Position);
 				m_apPlayers[i]->SetVelocity(m_aClientInfo[i].m_xmf3Velocity);
-				m_apPlayers[i]->SetPitch(m_aClientInfo[i].m_animationInfo.pitch);
+				if (i != m_nMainClientId) {
+					m_apPlayers[i]->SetPitch(m_aClientInfo[i].m_animationInfo.pitch);
+				}
 
 
 				if(i != m_nMainClientId)
@@ -244,11 +249,11 @@ void CTcpClient::OnProcessingReadMessage(HWND hWnd, UINT nMessageID, WPARAM wPar
 
 	if (nRetval != 0)
 	{
-		if (nRetval == SOCKET_ERROR && WSAGetLastError() == WSAEWOULDBLOCK)
+		/*if (nRetval == SOCKET_ERROR && WSAGetLastError() == WSAEWOULDBLOCK)
 		{
 			m_bRecvHead = true;
 			memset(m_pCurrentBuffer, 0, BUFSIZE);
-		}
+		}*/
 		return;
 	}
 	nHead = -1;

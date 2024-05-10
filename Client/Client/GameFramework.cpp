@@ -671,7 +671,7 @@ void CGameFramework::SetPlayerObjectOfClient(int nClientId)
 
 void CGameFramework::OnButtonClick(HWND hWnd)
 {
-	GetWindowText(m_hIPAddressEdit, m_pszIPAddress, 16);
+	GetWindowText(m_hIPAddressEdit, m_pszIPAddress, 20);
 
 	if (m_pTcpClient->CreateSocket(hWnd, m_pszIPAddress))
 	{
@@ -997,7 +997,7 @@ void CGameFramework::PreRenderTasks()
 //#define _WITH_PLAYER_TOP
 void CGameFramework::FrameAdvance()
 {
-	m_GameTimer.Tick(0.0f);
+	m_GameTimer.Tick(60.0f);
 
 	ProcessInput();
 
