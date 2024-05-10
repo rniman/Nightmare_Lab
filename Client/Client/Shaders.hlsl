@@ -346,7 +346,7 @@ float4 PSPostProcessing(PS_POSTPROCESSING_OUT input) : SV_Target
     //float fFogFactor = saturate(((gvfFogInfo.x + gvfFogInfo.y) - fDistanceToCamera) / gvfFogInfo.y);
     float fFogFactor = saturate(1.0f / pow(gvfFogInfo.y + gvfFogInfo.x, pow(fDistanceToCamera * gvfFogInfo.z, 2)));
     //float fFogFactor = saturate(1.0f / pow(gvfFogInfo.y + gvfFogInfo.x, fDistanceToCamera * gvfFogInfo.z));
-    cColor = lerp(gvFogColor, cColor /** light*/, fFogFactor);
+    cColor = lerp(gvFogColor, cColor * light, fFogFactor);
     
     return (cColor);
 }

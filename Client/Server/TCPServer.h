@@ -18,6 +18,9 @@ struct SC_PLAYER_INFO {
 	bool m_bRightClick = false;
 	
 	int m_iMineobjectNum = -1;
+	bool m_bAttacked = false;
+
+	int m_iEscapeDoor = -1;
 };
 
 struct SC_UPDATE_INFO

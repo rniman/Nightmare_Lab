@@ -5,6 +5,9 @@ constexpr UINT SERVERPORT{ 9000 };
 constexpr UINT BUFSIZE{ 10000 };
 
 constexpr size_t MAX_CLIENT{ 5 };
+constexpr size_t MAX_SURVIVOR{ 4 };
+constexpr size_t MAX_ZOMBIE{ 1 };
+constexpr size_t MAX_RECV_OBJECT_INFO{ 60 };
 constexpr size_t MAX_RECV_OBJECT_INFO{ 20 };
 
 class CPlayer;
@@ -30,6 +33,9 @@ struct CS_PLAYER_INFO {
 	bool m_bRightClick = false;
 
 	int m_iMineobjectNum = -1;
+	bool m_bAttacked = false;
+
+	int m_iEscapeDoor = -1;
 };
 
 struct CS_CLIENTS_INFO
@@ -102,7 +108,7 @@ public:
 	int RecvData(SOCKET socket, size_t nBufferSize);
 
 	void UpdateZombiePlayer();
-	void UpdatePlayerItem(int nIndex);
+	void UpdatePlayer(int nIndex);
 
 	//Interface
 	int GetClientId() const { return m_nMainClientId; }

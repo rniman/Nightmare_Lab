@@ -488,7 +488,7 @@ void CServerBlueSuitPlayer::Hit()
 {
 	m_nHealthPoint -= 1;
 	m_bInvincibility = true;
-	m_fCoolTimeInvincibility = 3.0f;
+	m_fCoolTimeInvincibility = 1.5f;
 
 	printf("%d의 현재 체력: %d\n", m_nPlayerId, m_nHealthPoint);
 

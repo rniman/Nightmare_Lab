@@ -21,7 +21,7 @@
 // m_vMesh 메쉬에 접근할 각 인덱스를 의미
 #define HEXAHEDRONMESH 0
 
-#define MAX_LIGHTS						25
+#define MAX_LIGHTS						28
 
 #define POINT_LIGHT						1
 #define SPOT_LIGHT						2
@@ -34,12 +34,12 @@ struct LIGHT
 	XMFLOAT4							m_xmf4Diffuse;
 	XMFLOAT4							m_xmf4Specular;
 	XMFLOAT3							m_xmf3Position;
+	bool								m_bEnable = false;
 	float 								m_fFalloff;
 	XMFLOAT3							m_xmf3Direction;
 	float 								m_fTheta; //cos(m_fTheta)
 	XMFLOAT3							m_xmf3Attenuation;
 	float								m_fPhi; //cos(m_fPhi)
-	bool								m_bEnable;
 	int									m_nType;
 	float								m_fRange;
 	float								padding;
@@ -50,6 +50,7 @@ struct LIGHTS
 	LIGHT								m_pLights[MAX_LIGHTS];
 	XMFLOAT4							m_xmf4GlobalAmbient;
 	int									m_nLights;
+	float bias = 0.0011f;
 };
 
 class CPlayer;

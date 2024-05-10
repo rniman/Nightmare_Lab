@@ -187,7 +187,6 @@ void CTcpClient::OnProcessingReadMessage(HWND hWnd, UINT nMessageID, WPARAM wPar
 						{
 							pZombiePlayer->SetEectricShock();
 						}
-
 					}
 				}
 			}
@@ -198,7 +197,7 @@ void CTcpClient::OnProcessingReadMessage(HWND hWnd, UINT nMessageID, WPARAM wPar
 			}
 			else
 			{
-				UpdatePlayerItem(i);
+				UpdatePlayer(i);
 			}
 
 			int nNumOfGameObject = m_aClientInfo[i].m_nNumOfObject;
@@ -464,61 +463,74 @@ void CTcpClient::UpdateZombiePlayer()
 	}
 }
 
-void CTcpClient::UpdatePlayerItem(int nIndex)
+void CTcpClient::UpdatePlayer(int nIndex)
 {
 	shared_ptr<CBlueSuitPlayer> pBlueSuitPlayer = dynamic_pointer_cast<CBlueSuitPlayer>(m_apPlayers[nIndex]);
-	if (pBlueSuitPlayer)
-	{
-		pBlueSuitPlayer->SelectItem(m_aClientInfo[nIndex].m_playerInfo.m_selectItem);
-		for (int j = 0; j < 3; ++j)
-		{
-			if (m_aClientInfo[nIndex].m_nSlotObjectNum[j] != -1)
-			{
-				shared_ptr<CGameObject> pGameObject = g_collisionManager.GetCollisionObjectWithNumber(m_aClientInfo[nIndex].m_nSlotObjectNum[j]).lock();
-				shared_ptr<CItemObject> pItemObject = dynamic_pointer_cast<CItemObject>(pGameObject);
-				if (pItemObject) {
-					pItemObject->SetObtain(true);
-					pBlueSuitPlayer->SetSlotItem(j, m_aClientInfo[nIndex].m_nSlotObjectNum[j]);
-				}
-			}
-			else // -1을 받았는데 플레이어가 가진 Reference값이 -1이 아닌 경우를 생각해야함
-			{
-				if (pBlueSuitPlayer->GetReferenceSlotItemNum(j) != -1)
-				{
-					shared_ptr<CGameObject> pGameObject = g_collisionManager.GetCollisionObjectWithNumber(pBlueSuitPlayer->GetReferenceSlotItemNum(j)).lock();
-					shared_ptr<CItemObject> pItemObject = dynamic_pointer_cast<CItemObject>(pGameObject);
-					if (pItemObject) {
-						pItemObject->SetObtain(false);
-						pBlueSuitPlayer->SetSlotItemEmpty(j);
-					}
-				}
-			}
-		}
 
-		for (int j = 0; j < 3; ++j)
+	if (!pBlueSuitPlayer) // 생존자가 아니면 수행 x
+	{
+		return;
+	}
+
+	int escapeDoor = m_aClientInfo[nIndex].m_playerInfo.m_iEscapeDoor;
+	if (escapeDoor != -1) {
+		shared_ptr<CGameObject> pGameObject = g_collisionManager.GetCollisionObjectWithNumber(escapeDoor).lock();
+		pBlueSuitPlayer->SetEscapePos(pGameObject->GetPosition());
+	}
+
+	pBlueSuitPlayer->SelectItem(m_aClientInfo[nIndex].m_playerInfo.m_selectItem);
+	for (int j = 0; j < 3; ++j)
+	{
+		if (m_aClientInfo[nIndex].m_nSlotObjectNum[j] != -1)
 		{
-			if (m_aClientInfo[nIndex].m_nFuseObjectNum[j] != -1)
+			shared_ptr<CGameObject> pGameObject = g_collisionManager.GetCollisionObjectWithNumber(m_aClientInfo[nIndex].m_nSlotObjectNum[j]).lock();
+			shared_ptr<CItemObject> pItemObject = dynamic_pointer_cast<CItemObject>(pGameObject);
+			if (pItemObject) {
+				pItemObject->SetObtain(true);
+				pBlueSuitPlayer->SetSlotItem(j, m_aClientInfo[nIndex].m_nSlotObjectNum[j]);
+			}
+		}
+		else // -1을 받았는데 플레이어가 가진 Reference값이 -1이 아닌 경우를 생각해야함
+		{
+			if (pBlueSuitPlayer->GetReferenceSlotItemNum(j) != -1)
 			{
-				shared_ptr<CGameObject> pGameObject = g_collisionManager.GetCollisionObjectWithNumber(m_aClientInfo[nIndex].m_nFuseObjectNum[j]).lock();
+				shared_ptr<CGameObject> pGameObject = g_collisionManager.GetCollisionObjectWithNumber(pBlueSuitPlayer->GetReferenceSlotItemNum(j)).lock();
 				shared_ptr<CItemObject> pItemObject = dynamic_pointer_cast<CItemObject>(pGameObject);
 				if (pItemObject) {
-					pItemObject->SetObtain(true);
-					pBlueSuitPlayer->SetFuseItem(j, m_aClientInfo[nIndex].m_nFuseObjectNum[j]);
-				}
-			}
-			else // -1을 받았는데 플레이어가 가진 Reference값이 -1이 아닌 경우를 생각해야함
-			{
-				if (pBlueSuitPlayer->GetReferenceFuseItemNum(j) != -1)
-				{
-					shared_ptr<CGameObject> pGameObject = g_collisionManager.GetCollisionObjectWithNumber(pBlueSuitPlayer->GetReferenceFuseItemNum(j)).lock();
-					shared_ptr<CItemObject> pItemObject = dynamic_pointer_cast<CItemObject>(pGameObject);
-					if (pItemObject) {
-						pItemObject->SetObtain(false);
-						pBlueSuitPlayer->SetFuseItemEmpty(j);
-					}
+					pItemObject->SetObtain(false);
+					pBlueSuitPlayer->SetSlotItemEmpty(j);
 				}
 			}
 		}
+	}
+
+	for (int j = 0; j < 3; ++j)
+	{
+		if (m_aClientInfo[nIndex].m_nFuseObjectNum[j] != -1)
+		{
+			shared_ptr<CGameObject> pGameObject = g_collisionManager.GetCollisionObjectWithNumber(m_aClientInfo[nIndex].m_nFuseObjectNum[j]).lock();
+			shared_ptr<CItemObject> pItemObject = dynamic_pointer_cast<CItemObject>(pGameObject);
+			if (pItemObject) {
+				pItemObject->SetObtain(true);
+				pBlueSuitPlayer->SetFuseItem(j, m_aClientInfo[nIndex].m_nFuseObjectNum[j]);
+			}
+		}
+		else // -1을 받았는데 플레이어가 가진 Reference값이 -1이 아닌 경우를 생각해야함
+		{
+			if (pBlueSuitPlayer->GetReferenceFuseItemNum(j) != -1)
+			{
+				shared_ptr<CGameObject> pGameObject = g_collisionManager.GetCollisionObjectWithNumber(pBlueSuitPlayer->GetReferenceFuseItemNum(j)).lock();
+				shared_ptr<CItemObject> pItemObject = dynamic_pointer_cast<CItemObject>(pGameObject);
+				if (pItemObject) {
+					pItemObject->SetObtain(false);
+					pBlueSuitPlayer->SetFuseItemEmpty(j);
+				}
+			}
+		}
+	}
+
+	if (m_aClientInfo[nIndex].m_playerInfo.m_bAttacked) {
+		pBlueSuitPlayer->SetHitEvent();
 	}
 }
 
