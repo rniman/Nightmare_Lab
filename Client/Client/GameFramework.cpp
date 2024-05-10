@@ -1024,31 +1024,41 @@ void CGameFramework::FrameAdvance()
 
 		auto& vlightCamera = m_pPostProcessingShader->GetLightCamera();
 		int lightId{};
-		for (int i = 0; i < MAX_CLIENT;++i) {
-			if (m_apPlayer[i]->GetClientId() == -1) continue;
-			auto survivor = dynamic_pointer_cast<CBlueSuitPlayer>(m_pScene->m_apPlayer[i]);
-			if (!survivor) continue;
-
-			if (survivor) {
-				XMFLOAT4X4* xmf4x4playerLight = survivor->GetFlashLigthWorldTransform();
-				vlightCamera[lightId]->SetPosition(XMFLOAT3(xmf4x4playerLight->_41, xmf4x4playerLight->_42, xmf4x4playerLight->_43));
-				vlightCamera[lightId]->SetLookVector(XMFLOAT3(xmf4x4playerLight->_21, xmf4x4playerLight->_22, xmf4x4playerLight->_23));
-				vlightCamera[lightId]->RegenerateViewMatrix();
-				vlightCamera[lightId]->MultiplyViewProjection();
+		auto zombie = dynamic_pointer_cast<CZombiePlayer>(m_apPlayer[m_nMainClientId]);
+		if (zombie) {
+			for (; lightId < MAX_CLIENT - 1;++lightId) {
+				m_pScene->m_pLights[lightId].m_bEnable = false;
 			}
+		}
+		else {
+			for (int i = 0; i < MAX_CLIENT;++i) {
+				if (m_apPlayer[i]->GetClientId() == -1) continue;
+				auto survivor = dynamic_pointer_cast<CBlueSuitPlayer>(m_pScene->m_apPlayer[i]);
+				if (!survivor) {
+					continue;
+				}
 
-			static XMFLOAT4X4 xmf4x4ToTexture = {
-			0.5f, 0.0f, 0.0f, 0.0f,
-			0.0f, -0.5f, 0.0f, 0.0f,
-			0.0f, 0.0f, 1.0f, 0.0f,
-			0.5f, 0.5f, 0.0f, 1.0f };
-			static XMMATRIX xmProjectionToTexture = XMLoadFloat4x4(&xmf4x4ToTexture);
+				if (survivor) {
+					XMFLOAT4X4* xmf4x4playerLight = survivor->GetFlashLigthWorldTransform();
+					vlightCamera[lightId]->SetPosition(XMFLOAT3(xmf4x4playerLight->_41, xmf4x4playerLight->_42, xmf4x4playerLight->_43));
+					vlightCamera[lightId]->SetLookVector(XMFLOAT3(xmf4x4playerLight->_21, xmf4x4playerLight->_22, xmf4x4playerLight->_23));
+					vlightCamera[lightId]->RegenerateViewMatrix();
+					vlightCamera[lightId]->MultiplyViewProjection();
+				}
 
-			XMFLOAT4X4 viewProjection = vlightCamera[lightId]->GetViewProjection();
-			XMMATRIX xmmtxViewProjection = XMLoadFloat4x4(&viewProjection);
-			XMStoreFloat4x4(&m_pScene->m_pLights[lightId].m_xmf4x4ViewProjection, XMMatrixTranspose(xmmtxViewProjection * xmProjectionToTexture));
-			
-			lightId++;
+				static XMFLOAT4X4 xmf4x4ToTexture = {
+				0.5f, 0.0f, 0.0f, 0.0f,
+				0.0f, -0.5f, 0.0f, 0.0f,
+				0.0f, 0.0f, 1.0f, 0.0f,
+				0.5f, 0.5f, 0.0f, 1.0f };
+				static XMMATRIX xmProjectionToTexture = XMLoadFloat4x4(&xmf4x4ToTexture);
+
+				XMFLOAT4X4 viewProjection = vlightCamera[lightId]->GetViewProjection();
+				XMMATRIX xmmtxViewProjection = XMLoadFloat4x4(&viewProjection);
+				XMStoreFloat4x4(&m_pScene->m_pLights[lightId].m_xmf4x4ViewProjection, XMMatrixTranspose(xmmtxViewProjection * xmProjectionToTexture));
+
+				lightId++;
+			}
 		}
 
 		for (int i = 0; i < ndynamicShadowMap/*m_pPostProcessingShader->GetShadowTexture()->GetTextures()*/;++i) {

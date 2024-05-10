@@ -696,7 +696,6 @@ void CScene::UpdateShaderVariables(ID3D12GraphicsCommandList* pd3dCommandList)
 
 			light_Id++;
 		}
-
 	}
 	
 	::memcpy(m_pcbMappedLights->m_pLights, m_pLights, sizeof(LIGHT)* m_nLights);

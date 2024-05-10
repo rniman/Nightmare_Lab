@@ -7,7 +7,6 @@ constexpr UINT BUFSIZE{ 10000 };
 constexpr size_t MAX_CLIENT{ 5 };
 constexpr size_t MAX_SURVIVOR{ 4 };
 constexpr size_t MAX_ZOMBIE{ 1 };
-constexpr size_t MAX_RECV_OBJECT_INFO{ 60 };
 constexpr size_t MAX_RECV_OBJECT_INFO{ 20 };
 
 class CPlayer;
