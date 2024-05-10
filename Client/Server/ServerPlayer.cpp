@@ -21,7 +21,7 @@ CServerPlayer::CServerPlayer()
 
 	SetFriction(250.0f);
 	SetGravity(XMFLOAT3(0.0f, 0.0f, 0.0f));
-	SetMaxVelocityXZ(8.0f);
+	SetMaxVelocityXZ(BLUESUIT_WALK_VELCOCITY);
 	SetMaxVelocityY(8.0f);
 
 	m_xmf4x4Projection = Matrix4x4::PerspectiveFovLH(XMConvertToRadians(60.0f), ASPECT_RATIO, 0.01f, 100.0f); // 1ÀÎÄª
@@ -421,6 +421,12 @@ void CServerBlueSuitPlayer::Update(float fElapsedTime, shared_ptr<CServerCollisi
 	if (m_pKeysBuffer[VK_LSHIFT] & 0xF0 && m_bAbleRun)
 	{
 		m_bRunning = true;
+		m_fMaxVelocityXZ = BLUESUIT_WALK_VELCOCITY * 2;
+	}
+	else if (m_bRunning)
+	{
+		m_bRunning = false;
+		m_fMaxVelocityXZ = BLUESUIT_WALK_VELCOCITY;
 	}
 
 	if (m_bRunning)
@@ -430,6 +436,7 @@ void CServerBlueSuitPlayer::Update(float fElapsedTime, shared_ptr<CServerCollisi
 		{
 			m_bAbleRun = false;
 			m_bRunning = false;
+			m_fMaxVelocityXZ = BLUESUIT_WALK_VELCOCITY;
 		}
 	}
 	else if (m_fStamina < 5.0f)
@@ -689,6 +696,8 @@ void CServerBlueSuitPlayer::RightClickProcess(shared_ptr<CServerCollisionManager
 CServerZombiePlayer::CServerZombiePlayer()
 	: CServerPlayer()
 {
+	SetMaxVelocityXZ(ZOMBIE_WALK_VELOCITY);
+
 	m_oobbAttackBox.Center = XMFLOAT3(0.0f, 0.8f, 0.0f);
 	m_oobbAttackBox.Extents = XMFLOAT3(0.5f, 0.8f, 0.5f);
 	XMStoreFloat4(&m_oobbAttackBox.Orientation, XMQuaternionIdentity());
@@ -710,7 +719,7 @@ void CServerZombiePlayer::UseItem(shared_ptr<CServerCollisionManager>& pCollisio
 	{
 		m_fCoolTimeRunning = 10.0f;
 		m_bRunning = true;
-		m_fMaxVelocityXZ = 12.0f;
+		m_fMaxVelocityXZ = ZOMBIE_WALK_VELOCITY * 2 - 1.0f;
 	}
 }
 
@@ -764,20 +773,23 @@ void CServerZombiePlayer::Update(float fElapsedTime, shared_ptr<CServerCollision
 		m_bInterruption = false;
 	}
 
-	if (m_bRunning && m_fCoolTimeRunning < 5.0f)
+	if (m_bRunning && m_fCoolTimeRunning < 7.0f)
 	{
-		m_fMaxVelocityXZ -= fElapsedTime;
+		m_fMaxVelocityXZ -= fElapsedTime * 2;
 
-		if (m_fCoolTimeRunning < 1.0f)
+		if (m_fCoolTimeRunning < 4.0f)
 		{
-			m_fMaxVelocityXZ = 8.0f;
+			m_fMaxVelocityXZ = ZOMBIE_WALK_VELOCITY;
 			m_bRunning = false;
 		}
 	}
 
 	m_fCoolTimeTracking -= fElapsedTime;
+	if (m_fCoolTimeTracking < 0.0f) m_fCoolTimeTracking = -1.0f;
 	m_fCoolTimeInterruption -= fElapsedTime;
+	if (m_fCoolTimeInterruption < 0.0f) m_fCoolTimeInterruption = -1.0f;
 	m_fCoolTimeRunning -= fElapsedTime;
+	if (m_fCoolTimeRunning < 0.0f) m_fCoolTimeRunning = -1.0f;
 
 	CServerPlayer::Update(fElapsedTime, pCollisionManager);
 }

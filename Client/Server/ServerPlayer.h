@@ -11,6 +11,9 @@ constexpr WORD PRESS_RBUTTON = 0x20;
 //constexpr WORD DIR_DOWN = 0x80;
 constexpr FLOAT ASPECT_RATIO = 1600.0f / 1024.0f;
 
+constexpr float BLUESUIT_WALK_VELCOCITY{ 6.0f };
+constexpr float ZOMBIE_WALK_VELOCITY{ 7.0f };
+
 class CServerPlayer : public CServerGameObject
 {
 public:
