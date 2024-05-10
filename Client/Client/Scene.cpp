@@ -677,7 +677,7 @@ void CScene::CreateShaderVariables(ID3D12Device* pd3dDevice, ID3D12GraphicsComma
 	m_pd3dcbLights = ::CreateBufferResource(pd3dDevice, pd3dCommandList, NULL, ncbElementBytes, D3D12_HEAP_TYPE_UPLOAD, D3D12_RESOURCE_STATE_VERTEX_AND_CONSTANT_BUFFER, NULL);
 
 	m_pd3dcbLights->Map(0, NULL, (void**)&m_pcbMappedLights);
-
+	m_pcbMappedLights->bias = 0.0011f;
 	m_d3dLightCbvGPUDescriptorHandle = CreateConstantBufferViews(pd3dDevice, 1, m_pd3dcbLights.Get(), ncbElementBytes);
 }
 
@@ -822,11 +822,11 @@ bool CScene::OnProcessingKeyboardMessage(HWND hWnd, UINT nMessageID, WPARAM wPar
 	case WM_KEYUP:
 		switch (wParam)
 		{
-		case VK_UP:
-			m_pLights[0].m_xmf3Attenuation.y -= 0.1f;
+		case VK_UP://		m_pcbMappedLights->bias	0.00119999994	float
+			m_pcbMappedLights->bias += 0.0001f;
 			break;
 		case VK_DOWN:
-			m_pLights[0].m_xmf3Attenuation.y += 0.1f;
+			m_pcbMappedLights->bias -= 0.0001f;
 			break;
 		default:
 			break;

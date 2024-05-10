@@ -50,6 +50,7 @@ struct LIGHTS
 	LIGHT								m_pLights[MAX_LIGHTS];
 	XMFLOAT4							m_xmf4GlobalAmbient;
 	int									m_nLights;
+	float bias = 0.0011f;
 };
 
 class CPlayer;

@@ -33,6 +33,7 @@ cbuffer cbLights : register(b2)
 	LIGHT					gLights[MAX_LIGHTS];
 	float4					gcGlobalAmbientLight;
 	int						gnLights;
+    float bias;
 };
 
 Texture2D<float> ShadowMapTexture[MAX_LIGHTS] : register(t20);
@@ -134,7 +135,7 @@ float Shadowdecrease(int nIndex, float3 vPosition, float3 vToCamera)
         
         float wPositionDepth = uvs.z / uvs.w; //«»ºø ±Ì¿Ã∏¶ ¿«πÃ«‘.
         //float shadow = ShadowMapTexture[1].SampleLevel(gssWrap, uvs.xy / uvs.ww, 0).r;
-        wPositionDepth -= 0.0015f;
+        wPositionDepth -= bias;// 0.0015f;
         float shadow = ShadowMapTexture[nIndex].SampleCmpLevelZero(gssComparisonPCFShadow, uvs.xy / uvs.ww, wPositionDepth).x;
         shadow += ShadowMapTexture[nIndex].SampleCmpLevelZero(gssComparisonPCFShadow, uvs.xy / uvs.ww + float2(-DELTA_X, 0.0f), wPositionDepth).x;
         shadow += ShadowMapTexture[nIndex].SampleCmpLevelZero(gssComparisonPCFShadow, uvs.xy / uvs.ww + float2(+DELTA_X, 0.0f), wPositionDepth).x;
