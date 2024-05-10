@@ -970,7 +970,7 @@ void TCPServer::InitPlayerPosition(shared_ptr<CServerPlayer>& pServerPlayer, int
 	uniform_int_distribution<int> disIntPosition(0, 15);
 
 	int nStartPosNum = disIntPosition(m_mt19937Gen);
-	bool bEmpty = true;
+	bool bEmpty = false;
 	while (!bEmpty)
 	{
 		bEmpty = true;
