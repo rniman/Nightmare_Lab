@@ -71,7 +71,6 @@ public:
 
 	bool IsInvincibility() const { return m_bInvincibility; }
 
-
 	virtual void RightClickProcess(shared_ptr<CServerCollisionManager>& pCollisionManager) {}
 	void SetRightClick(bool val) { m_bRightClick = val; }
 protected:
@@ -152,6 +151,7 @@ public:
 	RightItem GetRightItem() { return m_selectItem; }
 	virtual void RightClickProcess(shared_ptr<CServerCollisionManager>& pCollisionManager);
 
+	bool IsAttacked() { return m_fCoolTimeInvincibility > 0.0f; }
 private:
 	RightItem m_selectItem = NONE;
 

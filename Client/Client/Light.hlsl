@@ -1,5 +1,5 @@
 //--------------------------------------------------------------------------------------
-#define MAX_LIGHTS			25
+#define MAX_LIGHTS			28
 #define MAX_MATERIALS		16 
 
 #define POINT_LIGHT			1
@@ -16,13 +16,13 @@ struct LIGHT
 	float4					m_cAmbient;
     float4					m_cAlbedo;
 	float4					m_cSpecular;
-	float3					m_vPosition;
+    float3                  m_vPosition;
+    bool                    m_bEnable;
 	float 					m_fFalloff;
 	float3					m_vDirection;
 	float 					m_fTheta; //cos(m_fTheta)
 	float3					m_vAttenuation;
 	float					m_fPhi; //cos(m_fPhi)
-	bool					m_bEnable;
 	int 					m_nType;
 	float					m_fRange;
 	float					padding;
@@ -134,7 +134,7 @@ float Shadowdecrease(int nIndex, float3 vPosition, float3 vToCamera)
         
         float wPositionDepth = uvs.z / uvs.w; //ÇÈ¼¿ ±íÀÌ¸¦ ÀÇ¹ÌÇÔ.
         //float shadow = ShadowMapTexture[1].SampleLevel(gssWrap, uvs.xy / uvs.ww, 0).r;
-        wPositionDepth -= 0.01f;
+        wPositionDepth -= 0.0015f;
         float shadow = ShadowMapTexture[nIndex].SampleCmpLevelZero(gssComparisonPCFShadow, uvs.xy / uvs.ww, wPositionDepth).x;
         shadow += ShadowMapTexture[nIndex].SampleCmpLevelZero(gssComparisonPCFShadow, uvs.xy / uvs.ww + float2(-DELTA_X, 0.0f), wPositionDepth).x;
         shadow += ShadowMapTexture[nIndex].SampleCmpLevelZero(gssComparisonPCFShadow, uvs.xy / uvs.ww + float2(+DELTA_X, 0.0f), wPositionDepth).x;
@@ -145,10 +145,6 @@ float Shadowdecrease(int nIndex, float3 vPosition, float3 vToCamera)
         shadow += ShadowMapTexture[nIndex].SampleCmpLevelZero(gssComparisonPCFShadow, uvs.xy / uvs.ww + float2(+DELTA_X, -DELTA_Y), wPositionDepth).x;
         shadow += ShadowMapTexture[nIndex].SampleCmpLevelZero(gssComparisonPCFShadow, uvs.xy / uvs.ww + float2(+DELTA_X, +DELTA_Y), wPositionDepth).x;
         return shadow / 9.0f;
-        if (wPositionDepth-0.0001f > shadow)
-        {
-            return 0.0f;
-        }
     }
     return 1.0f;
 }

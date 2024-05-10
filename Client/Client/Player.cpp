@@ -918,9 +918,11 @@ XMFLOAT4X4* CBlueSuitPlayer::GetLeftHandItemFlashLightModelTransform() const
 
 void CBlueSuitPlayer::SetHitEvent()
 {
-	m_pcbMappedTime->localTime = 0.0f;
-	m_pcbMappedTime->usePattern = 1.0f;
-	m_bHitEffectBlend = true;
+	if (!m_bHitEffectBlend) {
+		m_pcbMappedTime->localTime = 0.0f;
+		m_pcbMappedTime->usePattern = 1.0f;
+		m_bHitEffectBlend = true;
+	}
 }
 
 XMFLOAT4X4 CBlueSuitPlayer::GetRightHandItemRaderModelTransform() const
@@ -992,9 +994,8 @@ XMFLOAT4X4* CBlueSuitPlayer::RaderUpdate(float fElapsedTime)
 
 float CBlueSuitPlayer::GetEscapeLength()
 {
-	XMFLOAT3 escapePos = { 0.f, 0.f, 0.f };
 	XMFLOAT3 pos = GetPosition();
-	XMFLOAT3 escapePosToPos = Vector3::Subtract(pos, escapePos);
+	XMFLOAT3 escapePosToPos = Vector3::Subtract(pos, m_fEscapePos);
 	float length = Vector3::Length(escapePosToPos);
 
 	return length;
@@ -1015,6 +1016,11 @@ void CBlueSuitPlayer::UseMine(int item_id)
 	mine->SetObtain(false); // 렌더링 O
 	mine->SetPosition(GetPosition());// 현재 플레이어 위치에 설치
 	mine->SetInstall(true);
+}
+
+void CBlueSuitPlayer::SetEscapePos(XMFLOAT3 pos)
+{
+	m_fEscapePos = pos;
 }
 
 

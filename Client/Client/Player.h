@@ -191,6 +191,8 @@ public:
 	void SelectItem(RightItem item) { m_selectItem = item; }
 	void AddEnvironmentMineItems(shared_ptr<CMineObject> object);
 	void UseMine(int item_id);
+
+	void SetEscapePos(XMFLOAT3 pos);
 private:
 	RightItem m_selectItem = NONE;
 
@@ -206,6 +208,7 @@ private:
 	bool m_bInterruption = false; // true시 안개 효과 심해짐
 	float m_fInterruption = 0.0f;
 
+	XMFLOAT3 m_fEscapePos = XMFLOAT3(0.0f, 0.0f, 0.0f);
 private: 
 	shared_ptr<CGameObject> m_pFlashlight; // 플래시라이트
 	shared_ptr<CRadarObject> m_pRader; // 레이더

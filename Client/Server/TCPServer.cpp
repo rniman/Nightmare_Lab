@@ -324,7 +324,6 @@ bool TCPServer::Init(HWND hWnd)
 	// 씬 생성
 	LoadScene();
 
-	//pGameObject = make_shared<CServerElevatorDoorObject>(pstrFrameName, xmf4x4World, voobb);
 	int ELEVATORDOORCOUNT = 16;
 	int start_door{ -1 };
 	for (int i = 0; i < m_pCollisionManager->GetNumberOfCollisionObject();++i) {
@@ -353,6 +352,9 @@ bool TCPServer::Init(HWND hWnd)
 		
 		if (i == random_escape_index) {
 			pElevaterDoor->SetEscapeDoor(true);
+			for (int pi = 0; pi < MAX_CLIENT;++pi) {
+				m_aUpdateInfo[pi].m_playerInfo.m_iEscapeDoor = start_door + i;
+			}
 		}
 		//pElevaterDoor->SetEscapeDoor(false); // 디버그를 위해서 모든 문을 잠금
 	}
@@ -556,7 +558,7 @@ void TCPServer::UpdateInformation()
 				} 
 				else {
 					if (pZombiePlayer->expDelay > 0.05f) {
-						pZombiePlayer->SetCollideMineRef(-1);// 보내고 즉시 해제
+						pZombiePlayer->SetCollideMineRef(-1);
 						m_aUpdateInfo[nPlayerId].m_playerInfo.m_iMineobjectNum = pZombiePlayer->GetCollideMineRef();
 					}
 				}
@@ -572,8 +574,9 @@ void TCPServer::UpdateInformation()
 					m_aUpdateInfo[nPlayerId].m_nSlotObjectNum[i] = pBlueSuitPlayer->GetReferenceSlotItemNum(i);
 					m_aUpdateInfo[nPlayerId].m_nFuseObjectNum[i] = pBlueSuitPlayer->GetReferenceFuseItemNum(i);
 				}
+				m_aUpdateInfo[nPlayerId].m_playerInfo.m_bAttacked = pBlueSuitPlayer->IsAttacked();
+				m_aUpdateInfo[nPlayerId].m_playerInfo.m_selectItem = pBlueSuitPlayer->GetRightItem();
 			}
-			m_aUpdateInfo[nPlayerId].m_playerInfo.m_selectItem = pBlueSuitPlayer->GetRightItem();
 			
 		}
 		// 업데이트 오브젝트는 리셋

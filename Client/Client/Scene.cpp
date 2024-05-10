@@ -105,7 +105,7 @@ void CScene::CreateGraphicsRootSignature(ID3D12Device* pd3dDevice)
 	pd3dDescriptorRanges[10].OffsetInDescriptorsFromTableStart = 0;
 
 	pd3dDescriptorRanges[11].RangeType = D3D12_DESCRIPTOR_RANGE_TYPE_SRV;
-	pd3dDescriptorRanges[11].NumDescriptors = 25;
+	pd3dDescriptorRanges[11].NumDescriptors = 30;
 	pd3dDescriptorRanges[11].BaseShaderRegister = 20; //t20~ Shadow Map
 	pd3dDescriptorRanges[11].RegisterSpace = 0;
 	pd3dDescriptorRanges[11].OffsetInDescriptorsFromTableStart = 0;
@@ -474,43 +474,46 @@ void CScene::AddDefaultObject(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandLis
 
 void CScene::BuildLights()
 {
-	m_nLights = ReadLightObjectInfo(m_xmf3lightPositions, m_xmf3lightLooks) + 1/*플레이어 조명*/;
+	m_nLights = ReadLightObjectInfo(m_xmf3lightPositions, m_xmf3lightLooks) + MAX_SURVIVOR/*플레이어 조명*/;
 	
 	m_pLights = new LIGHT[m_nLights];
 	::ZeroMemory(m_pLights, sizeof(LIGHT) * m_nLights);
 
 	m_xmf4GlobalAmbient = XMFLOAT4(0.15f, 0.15f, 0.15f, 1.0f);
 
-	for (int i = 0; i < m_xmf3lightPositions.size();++i) {
-		m_pLights[i + 1].m_bEnable = true;
-		m_pLights[i + 1].m_nType = SPOT_LIGHT;
-		m_pLights[i + 1].m_fRange = 30.0f;
-		m_pLights[i + 1].m_xmf4Ambient = XMFLOAT4(0.6f, 0.0f, 0.0f, 0.0f);
-		m_pLights[i + 1].m_xmf4Diffuse = XMFLOAT4(0.6f, 0.0f, 0.0f, 0.0f);
-		m_pLights[i + 1].m_xmf4Specular = XMFLOAT4(1.0f, 0.0f, 0.0f, 0.0f);
-		m_pLights[i + 1].m_xmf3Position = m_xmf3lightPositions[i];
-		m_pLights[i + 1].m_xmf3Direction = m_xmf3lightLooks[i];
-		m_pLights[i + 1].m_xmf3Attenuation = XMFLOAT3(1.0f, -0.1f, 0.01f);
-		m_pLights[i + 1].m_fFalloff = 1.0f;
-		m_pLights[i + 1].m_fPhi = (float)cos(XMConvertToRadians(45.0f));
-		m_pLights[i + 1].m_fTheta = (float)cos(XMConvertToRadians(35.0f));
+	for (int i = MAX_SURVIVOR; i < m_xmf3lightPositions.size() + MAX_SURVIVOR;++i) {
+		m_pLights[i].m_bEnable = true;
+		m_pLights[i].m_nType = SPOT_LIGHT;
+		m_pLights[i].m_fRange = 30.0f;
+		m_pLights[i].m_xmf4Ambient = XMFLOAT4(0.6f, 0.0f, 0.0f, 0.0f);
+		m_pLights[i].m_xmf4Diffuse = XMFLOAT4(0.6f, 0.0f, 0.0f, 0.0f);
+		m_pLights[i].m_xmf4Specular = XMFLOAT4(1.0f, 0.0f, 0.0f, 0.0f);
+		m_pLights[i].m_xmf3Position = m_xmf3lightPositions[i - MAX_SURVIVOR];
+		m_pLights[i].m_xmf3Direction = m_xmf3lightLooks[i - MAX_SURVIVOR];
+		m_pLights[i].m_xmf3Attenuation = XMFLOAT3(1.0f, -0.1f, 0.01f);
+		m_pLights[i].m_fFalloff = 1.0f;
+		m_pLights[i].m_fPhi = (float)cos(XMConvertToRadians(45.0f));
+		m_pLights[i].m_fTheta = (float)cos(XMConvertToRadians(35.0f));
 	}
 
-	m_xmf3lightPositions.insert(m_xmf3lightPositions.begin(), XMFLOAT3(0.0f, 3.0f, 0.0f));
-	m_xmf3lightLooks.insert(m_xmf3lightLooks.begin(), XMFLOAT3(0.0f, 0.0f, 1.0f));
+	for (int i = 0; i < MAX_SURVIVOR;++i) {
+		m_xmf3lightPositions.insert(m_xmf3lightPositions.begin(), XMFLOAT3(0.0f, 3.0f, 0.0f)); // m_xmf3lightPositions을 가지고 카메라를 만들것임
+		m_xmf3lightLooks.insert(m_xmf3lightLooks.begin(), XMFLOAT3(0.0f, 0.0f, 1.0f));
 
-	m_pLights[0].m_bEnable         = true;
-	m_pLights[0].m_nType           = SPOT_LIGHT;
-	m_pLights[0].m_fRange          = 30.0f;
-	m_pLights[0].m_xmf4Ambient     = XMFLOAT4(1.0f, 1.0f, 1.0f, 1.0f);
-	m_pLights[0].m_xmf4Diffuse     = XMFLOAT4(1.0f, 1.0f, 1.0f, 1.0f);
-	m_pLights[0].m_xmf4Specular    = XMFLOAT4(1.0f, 1.0f, 1.0f, 1.0f);
-	m_pLights[0].m_xmf3Position    = XMFLOAT3(0.0f, 3.0f, 0.0f);
-	m_pLights[0].m_xmf3Direction   = XMFLOAT3(0.0f, 0.0f, 1.0f);
-	m_pLights[0].m_xmf3Attenuation = XMFLOAT3(1.0f, -0.1f, 0.01f);
-	m_pLights[0].m_fFalloff        = 1.0f;
-	m_pLights[0].m_fPhi            = (float)cos(XMConvertToRadians(35.0f));
-	m_pLights[0].m_fTheta          = (float)cos(XMConvertToRadians(25.0f));	
+		m_pLights[i].m_bEnable = true;
+		m_pLights[i].m_nType = SPOT_LIGHT;
+		m_pLights[i].m_fRange = 30.0f;
+		m_pLights[i].m_xmf4Ambient = XMFLOAT4(1.0f, 1.0f, 1.0f, 1.0f);
+		m_pLights[i].m_xmf4Diffuse = XMFLOAT4(1.0f, 1.0f, 1.0f, 1.0f);
+		m_pLights[i].m_xmf4Specular = XMFLOAT4(1.0f, 1.0f, 1.0f, 1.0f);
+		m_pLights[i].m_xmf3Position = XMFLOAT3(0.0f, 3.0f, 0.0f);
+		m_pLights[i].m_xmf3Direction = XMFLOAT3(0.0f, 0.0f, 1.0f);
+		m_pLights[i].m_xmf3Attenuation = XMFLOAT3(1.0f, -0.1f, 0.01f);
+		m_pLights[i].m_fFalloff = 1.0f;
+		m_pLights[i].m_fPhi = (float)cos(XMConvertToRadians(35.0f));
+		m_pLights[i].m_fTheta = (float)cos(XMConvertToRadians(25.0f));
+	}
+	m_pLights[0].m_bEnable = true;
 }
 
 void CScene::LoadScene(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dCommandList)
@@ -680,11 +683,20 @@ void CScene::CreateShaderVariables(ID3D12Device* pd3dDevice, ID3D12GraphicsComma
 
 void CScene::UpdateShaderVariables(ID3D12GraphicsCommandList* pd3dCommandList)
 {
-	auto player = dynamic_pointer_cast<CBlueSuitPlayer>(m_pMainPlayer);
-	if (player) {
-		XMFLOAT4X4* xmf4x4playerLight = player->GetFlashLigthWorldTransform();
-		m_pLights[0].m_xmf3Position = XMFLOAT3(xmf4x4playerLight->_41, xmf4x4playerLight->_42, xmf4x4playerLight->_43);//m_pPlayer->GetCamera()->GetPosition();
-		m_pLights[0].m_xmf3Direction = XMFLOAT3(xmf4x4playerLight->_21, xmf4x4playerLight->_22, xmf4x4playerLight->_23);/*XMFLOAT3(xmf4x4playerLight._31, xmf4x4playerLight._32, xmf4x4playerLight._33);*/ //m_pPlayer->GetCamera()->GetLookVector();
+	int light_Id{};
+	for (int i = 0;i < MAX_CLIENT;++i) {
+		if (m_apPlayer[i]->GetClientId() == -1) {
+			continue;
+		}
+		auto player = dynamic_pointer_cast<CBlueSuitPlayer>(m_apPlayer[i]);
+		if (player) {
+			XMFLOAT4X4* xmf4x4playerLight = player->GetFlashLigthWorldTransform();
+			m_pLights[light_Id].m_xmf3Position = XMFLOAT3(xmf4x4playerLight->_41, xmf4x4playerLight->_42, xmf4x4playerLight->_43);//m_pPlayer->GetCamera()->GetPosition();
+			m_pLights[light_Id].m_xmf3Direction = XMFLOAT3(xmf4x4playerLight->_21, xmf4x4playerLight->_22, xmf4x4playerLight->_23);/*XMFLOAT3(xmf4x4playerLight._31, xmf4x4playerLight._32, xmf4x4playerLight._33);*/ //m_pPlayer->GetCamera()->GetLookVector();
+
+			light_Id++;
+		}
+
 	}
 	
 	::memcpy(m_pcbMappedLights->m_pLights, m_pLights, sizeof(LIGHT)* m_nLights);
