@@ -882,9 +882,7 @@ void CGameFramework::ProcessInput()
 				{
 					m_pMainPlayer->Rotate(cyDelta, cxDelta, 0.0f);
 				}
-
 			}
-
 		}
 	}
 

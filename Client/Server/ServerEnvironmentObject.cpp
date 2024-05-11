@@ -161,8 +161,8 @@ void CServerDoorObject::Update(float fElapsedTime, shared_ptr<CServerCollisionMa
 {
 	if ((m_bOpened && m_fRotationAngle < m_fDoorAngle) || (!m_bOpened && m_fRotationAngle > m_fDoorAngle))
 	{
-		m_fRotationAngle += m_bOpened ? fElapsedTime * 60.0f : -fElapsedTime * 60.0f;
-		float fRotationAngle = m_bOpened ? XMConvertToRadians(fElapsedTime * 60.0f) : -XMConvertToRadians(fElapsedTime * 60.0f);
+		m_fRotationAngle += m_bOpened ? fElapsedTime * 120.0f : -fElapsedTime * 120.0f;
+		float fRotationAngle = m_bOpened ? XMConvertToRadians(fElapsedTime * 120.0f) : -XMConvertToRadians(fElapsedTime * 120.0f);
 		if ((m_bOpened && m_fRotationAngle > m_fDoorAngle) || (!m_bOpened && m_fRotationAngle < m_fDoorAngle))
 		{
 			m_fRotationAngle = m_fDoorAngle;

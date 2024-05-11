@@ -423,6 +423,10 @@ void TCPServer::SimulationLoop()
 		}
 
 		pPlayer->SetPickedObject(m_pCollisionManager);	
+		//if (pPlayer->GetPickedObject().lock())
+		//{
+		//	printf("%s\n", pPlayer->GetPickedObject().lock()->GetFrameName());
+		//}
 
 		pPlayer->RightClickProcess(m_pCollisionManager);
 		pPlayer->UseItem(m_pCollisionManager);
@@ -435,13 +439,6 @@ void TCPServer::SimulationLoop()
 	}
 
 	m_pCollisionManager->Update(fElapsedTime);
-
-	//printf("[");
-	//for(const auto& n:m_anPlayerStartPosNum)
-	//{
-	//	printf("%d\t", n);
-	//}
-	//printf("\b\b\b\b\b]\n");
 
 	UpdateInformation();
 	CreateSendObject();
@@ -778,6 +775,10 @@ void TCPServer::CreateSceneObject(char* pstrFrameName, const XMFLOAT4X4& xmf4x4W
 		pGameObject = make_shared<CServerElevatorDoorObject>(pstrFrameName, xmf4x4World, voobb);
 	}
 	else if (!strcmp(pstrFrameName, "Laboratory_Wall_1_Corner_1") || !strcmp(pstrFrameName, "Laboratory_Wall_1_Corner_2"))
+	{
+		pGameObject = make_shared<CServerEnvironmentObject>(pstrFrameName, xmf4x4World, voobb);
+	}
+	else if (!strcmp(pstrFrameName, "BoxCollide_Wall"))
 	{
 		pGameObject = make_shared<CServerEnvironmentObject>(pstrFrameName, xmf4x4World, voobb);
 	}

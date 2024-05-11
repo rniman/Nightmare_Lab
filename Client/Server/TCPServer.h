@@ -1,7 +1,7 @@
 #pragma once
 #include "Timer.h"
 constexpr size_t MAX_CLIENT{ 5 };
-constexpr size_t MAX_SEND_OBJECT_INFO{ 20 };
+constexpr size_t MAX_SEND_OBJECT_INFO{ 30 };
 
 // 소켓 정보 저장을 위한 구조체와 변수
 class CServerGameObject;
