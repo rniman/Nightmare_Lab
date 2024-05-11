@@ -35,6 +35,7 @@ public:
 	// Interface
 	void SetRecvData(bool bRecvData) { m_bRecvData = bRecvData; }
 
+	void SetKeyBuffer(WORD wKeyBuffer) { m_wKeyBuffer = wKeyBuffer; }
 	void SetPlayerId(int nPlayerId) { m_nPlayerId = nPlayerId; }
 
 	void SetStair(bool bStair) { m_bStair = bStair; }
@@ -58,7 +59,8 @@ public:
 	void SetViewMatrix(const XMFLOAT4X4& xmf4x4View) { m_xmf4x4View = xmf4x4View; }
 
 	bool IsRecvData() const { return m_bRecvData; }
-	UCHAR* GetKeysBuffer() { return m_pKeysBuffer; }
+	//UCHAR* GetKeysBuffer() { return m_pKeysBuffer; }
+	WORD GetKeysBuffer() const { return m_wKeyBuffer; }
 	int GetPlayerId() const { return m_nPlayerId; }
 
 	bool IsStair()const { return m_bStair; }
@@ -85,7 +87,10 @@ protected:
 
 	// 통신을 통해 받는 정보
 	int m_nPlayerId = -1;	//m_vSocketInfoList인덱스 번호
-	UCHAR m_pKeysBuffer[256];
+	
+	//[0511] 이제 WORD로 다룬다
+	WORD m_wKeyBuffer;
+	//UCHAR m_pKeysBuffer[256];
 
 	bool m_bOccurredCollision = false;
 	bool m_bStair = false;		// 계단에 있는 상태
@@ -109,7 +114,7 @@ protected:
 
 	bool m_bRunning = false;
 
-	weak_ptr<CServerGameObject>		m_pPickedObject;
+	weak_ptr<CServerGameObject>	m_pPickedObject;
 	bool						m_bPressed = false;
 
 	XMFLOAT4X4					m_xmf4x4View;

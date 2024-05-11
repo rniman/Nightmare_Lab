@@ -1038,8 +1038,10 @@ void CGameFramework::FrameAdvance()
 		auto& vlightCamera = m_pPostProcessingShader->GetLightCamera();
 		int lightId{};
 		auto zombie = dynamic_pointer_cast<CZombiePlayer>(m_apPlayer[m_nMainClientId]);
-		if (zombie) {
-			for (; lightId < MAX_CLIENT - 1;++lightId) {
+		if (zombie)
+		{
+			for (; lightId < MAX_CLIENT - 1;++lightId) 
+			{
 				m_pScene->m_pLights[lightId].m_bEnable = false;
 			}
 		}

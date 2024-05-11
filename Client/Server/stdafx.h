@@ -7,6 +7,7 @@
 #include <Bit>
 #include <chrono>
 #include <random>
+#include <bitset>
 
 #include <DirectXMath.h>
 #include <DirectXCollision.h>

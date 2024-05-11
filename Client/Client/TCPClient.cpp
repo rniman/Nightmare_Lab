@@ -285,14 +285,19 @@ void CTcpClient::OnProcessingWriteMessage(HWND hWnd, UINT nMessageID, WPARAM wPa
 		nHead = 0;
 		UCHAR keysBuffer[256];
 
+		UCHAR* pKeysBuffer = CGameFramework::GetKeysBuffer();
+		WORD wKeyBuffer = 0;
+		UpdateKeyBitMask(pKeysBuffer, wKeyBuffer);
+		
 		std::chrono::time_point<std::chrono::steady_clock> now = std::chrono::steady_clock::now();
 
-		nBufferSize += sizeof(keysBuffer);
-		UCHAR* pKeysBuffer = CGameFramework::GetKeysBuffer();
-		if (pKeysBuffer != nullptr)
-		{
-			memcpy(keysBuffer, pKeysBuffer, nBufferSize - sizeof(int));
-		}
+		nBufferSize += sizeof(WORD);
+
+		//nBufferSize += sizeof(keysBuffer);
+		//if (pKeysBuffer != nullptr)
+		//{
+		//	memcpy(keysBuffer, pKeysBuffer, nBufferSize - sizeof(int));
+		//}
 		nBufferSize += sizeof(std::chrono::time_point<std::chrono::steady_clock>);
 		nBufferSize += sizeof(XMFLOAT4X4);
 		nBufferSize += sizeof(XMFLOAT3) * 3;
@@ -306,7 +311,7 @@ void CTcpClient::OnProcessingWriteMessage(HWND hWnd, UINT nMessageID, WPARAM wPa
 			nRetval = SendData(wParam, nBufferSize,
 				nHead,
 				now,
-				keysBuffer,
+				wKeyBuffer,
 				m_apPlayers[m_nMainClientId]->GetCamera()->GetViewMatrix(),
 				m_apPlayers[m_nMainClientId]->GetLook(),
 				m_apPlayers[m_nMainClientId]->GetRight(),
@@ -320,7 +325,7 @@ void CTcpClient::OnProcessingWriteMessage(HWND hWnd, UINT nMessageID, WPARAM wPa
 			nRetval = SendData(wParam, nBufferSize,
 				nHead,
 				now,
-				keysBuffer,
+				wKeyBuffer,
 				m_apPlayers[m_nMainClientId]->GetCamera()->GetViewMatrix(),
 				m_apPlayers[m_nMainClientId]->GetCamera()->GetLookVector(),
 				m_apPlayers[m_nMainClientId]->GetCamera()->GetRightVector(),
@@ -390,6 +395,22 @@ int CTcpClient::RecvData(SOCKET socket, size_t nBufferSize)
 		m_bRecvDelayed = false;
 		return 0;
 	}
+}
+
+void CTcpClient::UpdateKeyBitMask(UCHAR* pKeysBuffer, WORD& wKeyBuffer)	// 보낼 키 버퍼를 업데이트
+{
+	if (pKeysBuffer['W'] & 0xF0)wKeyBuffer |= KEY_W;
+	if (pKeysBuffer['S'] & 0xF0)wKeyBuffer |= KEY_S;
+	if (pKeysBuffer['A'] & 0xF0)wKeyBuffer |= KEY_A;
+	if (pKeysBuffer['D'] & 0xF0)wKeyBuffer |= KEY_D;
+	if (pKeysBuffer['1'] & 0xF0)wKeyBuffer |= KEY_1;
+	if (pKeysBuffer['2'] & 0xF0)wKeyBuffer |= KEY_2;
+	if (pKeysBuffer['3'] & 0xF0)wKeyBuffer |= KEY_3;
+	if (pKeysBuffer['4'] & 0xF0)wKeyBuffer |= KEY_4;
+	if (pKeysBuffer['E'] & 0xF0)wKeyBuffer |= KEY_E;
+	if (pKeysBuffer[VK_LSHIFT] & 0xF0)wKeyBuffer |= KEY_LSHIFT;
+	if (pKeysBuffer[VK_LBUTTON] & 0xF0)wKeyBuffer |= KEY_LBUTTON;
+	if (pKeysBuffer[VK_RBUTTON] & 0xF0)wKeyBuffer |= KEY_RBUTTON;
 }
 
 void CTcpClient::UpdateZombiePlayer()
@@ -561,3 +582,4 @@ void ConvertCharToLPWSTR(const char* pstr, LPWSTR dest, int destSize)
 		destSize             // 대상 버퍼의 크기
 	);
 }
+

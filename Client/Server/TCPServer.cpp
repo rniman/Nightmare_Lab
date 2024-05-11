@@ -193,8 +193,8 @@ void TCPServer::OnProcessingReadMessage(HWND hWnd, UINT nMessageID, WPARAM wPara
 		std::chrono::time_point<std::chrono::steady_clock> now = std::chrono::steady_clock::now();
 		std::chrono::time_point<std::chrono::steady_clock> client;
 
-		// Time, KeysBuffer, viewMatrix, vecLook, vecRight
-		nBufferSize = sizeof(__int64) + sizeof(UCHAR[256]) + sizeof(XMFLOAT4X4) + sizeof(XMFLOAT3) * 3 + sizeof(SC_ANIMATION_INFO) + sizeof(SC_PLAYER_INFO);
+		// Time, KeysBuffer(WORD), viewMatrix, vecLook, vecRight
+		nBufferSize = sizeof(__int64) + sizeof(WORD) + sizeof(XMFLOAT4X4) + sizeof(XMFLOAT3) * 3 + sizeof(SC_ANIMATION_INFO) + sizeof(SC_PLAYER_INFO);
 		m_vSocketInfoList[nSocketIndex].RecvNum++;
 		nRetval = RecvData(nSocketIndex, nBufferSize);
 		if (nRetval == SOCKET_ERROR)
@@ -207,8 +207,11 @@ void TCPServer::OnProcessingReadMessage(HWND hWnd, UINT nMessageID, WPARAM wPara
 		std::chrono::duration<double> deltaTime = now - client;
 		sizeOffset += sizeof(__int64);
 
-		memcpy(pPlayer->GetKeysBuffer(), m_vSocketInfoList[nSocketIndex].m_pCurrentBuffer + sizeOffset, sizeof(UCHAR[256]));
-		sizeOffset += sizeof(UCHAR[256]);
+		WORD wKeyBuffer = 0;
+		memcpy(&wKeyBuffer, m_vSocketInfoList[nSocketIndex].m_pCurrentBuffer + sizeOffset, sizeof(WORD));
+		pPlayer->SetKeyBuffer(wKeyBuffer);
+		cout << "현재 비트 상태: " << bitset<16>(wKeyBuffer) << endl;
+		sizeOffset += sizeof(WORD);
 
 		XMFLOAT4X4 xmf4x4View;
 		memcpy(&xmf4x4View, m_vSocketInfoList[nSocketIndex].m_pCurrentBuffer + sizeOffset, sizeof(XMFLOAT4X4));

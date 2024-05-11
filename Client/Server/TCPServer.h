@@ -3,6 +3,19 @@
 constexpr size_t MAX_CLIENT{ 5 };
 constexpr size_t MAX_SEND_OBJECT_INFO{ 30 };
 
+constexpr WORD KEY_W{ 0x01 };
+constexpr WORD KEY_S{ 0x02 };
+constexpr WORD KEY_A{ 0x04 };
+constexpr WORD KEY_D{ 0x08 };
+constexpr WORD KEY_1{ 0x10 };
+constexpr WORD KEY_2{ 0x20 };
+constexpr WORD KEY_3{ 0x40 };
+constexpr WORD KEY_4{ 0x80 };
+constexpr WORD KEY_E{ 0x100 };
+constexpr WORD KEY_LSHIFT{ 0x200 };
+constexpr WORD KEY_LBUTTON{ 0x400 };
+constexpr WORD KEY_RBUTTON{ 0x800 };
+
 // 소켓 정보 저장을 위한 구조체와 변수
 class CServerGameObject;
 class CServerPlayer;

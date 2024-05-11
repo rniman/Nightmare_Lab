@@ -9,6 +9,19 @@ constexpr size_t MAX_SURVIVOR{ 4 };
 constexpr size_t MAX_ZOMBIE{ 1 };
 constexpr size_t MAX_RECV_OBJECT_INFO{ 30 };
 
+constexpr WORD KEY_W{ 0x01 };
+constexpr WORD KEY_S{ 0x02 };
+constexpr WORD KEY_A{ 0x04 };
+constexpr WORD KEY_D{ 0x08 };
+constexpr WORD KEY_1{ 0x10 };
+constexpr WORD KEY_2{ 0x20 };
+constexpr WORD KEY_3{ 0x40 };
+constexpr WORD KEY_4{ 0x80 };
+constexpr WORD KEY_E{ 0x100 };
+constexpr WORD KEY_LSHIFT{ 0x200 };
+constexpr WORD KEY_LBUTTON{ 0x400 };
+constexpr WORD KEY_RBUTTON{ 0x800 };
+
 class CPlayer;
 
 enum class SOCKET_STATE
@@ -105,6 +118,8 @@ public:
 	template<class... Args>
 	int SendData(SOCKET socket, size_t nBufferSize, Args&&... args);
 	int RecvData(SOCKET socket, size_t nBufferSize);
+
+	void UpdateKeyBitMask(UCHAR* pKeysBuffer, WORD& wKeyBuffer);
 
 	void UpdateZombiePlayer();
 	void UpdatePlayer(int nIndex);

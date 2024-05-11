@@ -6,8 +6,7 @@
 CServerPlayer::CServerPlayer()
 	: CServerGameObject()
 {
-	ZeroMemory(m_pKeysBuffer, 256);
-
+	//ZeroMemory(m_pKeysBuffer, 256);
 
 	//m_xmf3Position = XMFLOAT3(9.f, 0.0f, 13.9);
 	//m_xmf3OldPosition = m_xmf3Position;
@@ -39,13 +38,13 @@ void CServerPlayer::Update(float fElapsedTime, shared_ptr<CServerCollisionManage
 	}
 
 	DWORD dwDirection = 0;
-	if (m_pKeysBuffer[VK_LBUTTON] & 0xF0) dwDirection |= PRESS_LBUTTON;
-	if (m_pKeysBuffer[VK_RBUTTON] & 0xF0) dwDirection |= PRESS_RBUTTON;
+	if (m_wKeyBuffer & KEY_W) dwDirection |= DIR_FORWARD;
+	if (m_wKeyBuffer & KEY_S) dwDirection |= DIR_BACKWARD;
+	if (m_wKeyBuffer & KEY_A) dwDirection |= DIR_LEFT;
+	if (m_wKeyBuffer & KEY_D) dwDirection |= DIR_RIGHT;
 
-	if (m_pKeysBuffer['W'] & 0xF0) dwDirection |= DIR_FORWARD;
-	if (m_pKeysBuffer['S'] & 0xF0) dwDirection |= DIR_BACKWARD;
-	if (m_pKeysBuffer['A'] & 0xF0) dwDirection |= DIR_LEFT;
-	if (m_pKeysBuffer['D'] & 0xF0) dwDirection |= DIR_RIGHT;
+	//if (m_wKeyBuffer & KEY_LBUTTON) dwDirection |= PRESS_LBUTTON;
+	//if (m_wKeyBuffer & KEY_RBUTTON) dwDirection |= PRESS_RBUTTON;
 
 	if (!m_bAlive)
 	{
@@ -386,27 +385,27 @@ void CServerBlueSuitPlayer::UseItem(shared_ptr<CServerCollisionManager>& pCollis
 	}
 
 	array<shared_ptr<CServerGameObject>,3> apObjects;
-	if (m_pKeysBuffer['1'] & 0xF0)
+	if (m_wKeyBuffer & KEY_1)
 	{
 		if (m_apSlotItems[Teleport]->IsObtained()) {
 			m_selectItem = RightItem::TELEPORT;
 		}
 	}
-	if (m_pKeysBuffer['2'] & 0xF0)
+	if (m_wKeyBuffer & KEY_2)
 	{
 		if (m_apSlotItems[Radar]->IsObtained())
 		{
 			m_selectItem = RightItem::RAIDER;
 		}
 	}
-	if (m_pKeysBuffer['3'] & 0xF0)
+	if (m_wKeyBuffer & KEY_3)
 	{
 		if (m_apSlotItems[Mine]->IsObtained())
 		{
 			m_selectItem = RightItem::LANDMINE;
 		}
 	}
-	if (m_pKeysBuffer['4'] & 0xF0)
+	if (m_wKeyBuffer & KEY_4)
 	{
 		if (m_apFuseItems[0]->IsObtained() || m_apFuseItems[1]->IsObtained() || m_apFuseItems[2]->IsObtained())
 		{
@@ -418,7 +417,7 @@ void CServerBlueSuitPlayer::UseItem(shared_ptr<CServerCollisionManager>& pCollis
 
 void CServerBlueSuitPlayer::Update(float fElapsedTime, shared_ptr<CServerCollisionManager>& pCollisionManager)
 {
-	if (m_pKeysBuffer[VK_LSHIFT] & 0xF0 && m_bAbleRun)
+	if ((m_wKeyBuffer & KEY_LSHIFT) && m_bAbleRun)
 	{
 		m_bRunning = true;
 		m_fMaxVelocityXZ = BLUESUIT_WALK_VELCOCITY * 2;
@@ -464,7 +463,7 @@ void CServerBlueSuitPlayer::UpdatePicking()
 		return;
 	}
 
-	if (!(m_pKeysBuffer['E'] & 0xF0))
+	if (!(m_wKeyBuffer & KEY_E))
 	{
 		m_bPressed = false;
 		return;
@@ -705,17 +704,17 @@ CServerZombiePlayer::CServerZombiePlayer()
 
 void CServerZombiePlayer::UseItem(shared_ptr<CServerCollisionManager>& pCollisionManager)
 {
-	if (m_pKeysBuffer['1'] & 0xF0 && m_fCoolTimeTracking <= 0.0f)	// 추적
+	if ((m_wKeyBuffer & KEY_1) && m_fCoolTimeTracking <= 0.0f)	// 추적
 	{
 		m_fCoolTimeTracking = 10.0f;
 		m_bTracking = true;
 	}
-	if (m_pKeysBuffer['2'] & 0xF0 && m_fCoolTimeInterruption <= 0.0f)	// 시야방해
+	if ((m_wKeyBuffer & KEY_2) && m_fCoolTimeInterruption <= 0.0f)	// 시야방해
 	{
 		m_fCoolTimeInterruption = 10.0f;
 		m_bInterruption = true;
 	}
-	if (m_pKeysBuffer['3'] & 0xF0 && m_fCoolTimeRunning <= 0.0f)	// 달리기
+	if ((m_wKeyBuffer & KEY_3) && m_fCoolTimeRunning <= 0.0f)	// 달리기
 	{
 		m_fCoolTimeRunning = 10.0f;
 		m_bRunning = true;
@@ -743,7 +742,7 @@ void CServerZombiePlayer::Update(float fElapsedTime, shared_ptr<CServerCollision
 	{
 		m_bAttack = false;
 	}
-	if (m_pKeysBuffer[VK_LBUTTON] & 0xF0 && m_fCoolTimeAttack <= 0.0f)	// 일반 공격
+	if ((m_wKeyBuffer & KEY_LBUTTON) & 0xF0 && m_fCoolTimeAttack <= 0.0f)	// 일반 공격
 	{
 		// 원래 클라에서는 track 2번을 enable시킴
 		m_bAttack = true;
@@ -802,7 +801,7 @@ void CServerZombiePlayer::UpdatePicking()
 		return;
 	}
 
-	if (!(m_pKeysBuffer['E'] & 0xF0))
+	if (!(m_wKeyBuffer & KEY_E))
 	{
 		m_bPressed = false;
 		return;
