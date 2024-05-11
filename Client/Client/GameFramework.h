@@ -70,6 +70,8 @@ public:
 
 	bool IsTcpClient() const { return m_bTcpClient; }
 	void OnButtonClick(HWND hWnd);
+
+	void SetMousePoint(POINT ptMouse) { m_ptOldCursorPos = ptMouse; }
 private:
 
 	D3D12_VIEWPORT m_d3dViewport;

@@ -472,7 +472,8 @@ void CGameFramework::OnProcessingMouseMessage(HWND hWnd, UINT nMessageID, WPARAM
 	{
 	case WM_LBUTTONDOWN:
 		::SetCapture(hWnd);
-		::GetCursorPos(&m_ptOldCursorPos);
+		::SetCursor(NULL);
+		//::GetCursorPos(&m_ptOldCursorPos);
 		if (!m_pMainPlayer)
 		{
 			break;
@@ -484,7 +485,6 @@ void CGameFramework::OnProcessingMouseMessage(HWND hWnd, UINT nMessageID, WPARAM
 		break;
 	case WM_LBUTTONUP:
 	case WM_RBUTTONUP:
-		::ReleaseCapture();
 		break;
 	case WM_MOUSEMOVE:
 		break;
@@ -505,6 +505,9 @@ void CGameFramework::OnProcessingKeyboardMessage(HWND hWnd, UINT nMessageID, WPA
 			case VK_ESCAPE:
 				::PostQuitMessage(0);
 				break;
+			case VK_LCONTROL:	// Ä¸ÃÄ ÇØÁ¦
+				::ReleaseCapture();
+				break;
 			default:
 				break;
 			}
@@ -513,7 +516,6 @@ void CGameFramework::OnProcessingKeyboardMessage(HWND hWnd, UINT nMessageID, WPA
 			break;
 
 		}
-
 		return;
 	}
 
@@ -852,7 +854,6 @@ void CGameFramework::ProcessInput()
 		POINT ptCursorPos;
 		if (GetCapture() == m_hWnd)
 		{
-			SetCursor(NULL);
 			GetCursorPos(&ptCursorPos);
 			cxDelta = (float)(ptCursorPos.x - m_ptOldCursorPos.x) / 3.0f;
 			cyDelta = (float)(ptCursorPos.y - m_ptOldCursorPos.y) / 3.0f;
@@ -863,11 +864,12 @@ void CGameFramework::ProcessInput()
 		{
 			if (cxDelta || cyDelta)
 			{
-				if (m_pKeysBuffer[VK_LBUTTON] & 0xF0)
+
+				if (m_pMainPlayer->m_bAlive || !m_pMainPlayer->m_pSkinnedAnimationController->IsAnimation())
 				{
-					if(m_pMainPlayer->m_bAlive || !m_pMainPlayer->m_pSkinnedAnimationController->IsAnimation())
-						m_pMainPlayer->Rotate(cyDelta, cxDelta, 0.0f);
+					m_pMainPlayer->Rotate(cyDelta, cxDelta, 0.0f);
 				}
+
 			}
 
 		}

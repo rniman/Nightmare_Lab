@@ -79,6 +79,17 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
 	}
 	gGameFramework.OnDestroyLobby();
 
+	::SetCursor(NULL);
+	::SetCapture(hWnd);
+	// 마우스를 화면 중앙으로 이동시킴 (윈도우 내부로만 이동하도록)
+	RECT rect;
+	GetClientRect(hWnd, &rect);
+	POINT center = { (rect.right - rect.left) / 2, (rect.bottom - rect.top) / 2 };
+	ClientToScreen(hWnd, &center);
+	SetCursorPos(center.x, center.y);
+	gGameFramework.SetMousePoint(center);
+	
+
 	// 기본 메시지 루프입니다:
 	while (gGameFramework.IsConnected())
 	{
@@ -212,8 +223,6 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 	}
 		break;
 	case WM_SOCKET: // 소켓 관련 윈도우 메시지
-		//gGameFramework.OnProcessingWindowMessage(hWnd, message, wParam, lParam);
-		//break;
 	case WM_CREATE_TCP:
 	case WM_COMMAND:
 	case WM_SIZE:
@@ -227,6 +236,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 		gGameFramework.OnProcessingWindowMessage(hWnd, message, wParam, lParam);
 		break;
 	case WM_DESTROY:
+		::ReleaseCapture();
 		::PostQuitMessage(0);
 		break;
 	default:
