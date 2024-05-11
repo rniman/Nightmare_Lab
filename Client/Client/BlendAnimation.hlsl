@@ -16,7 +16,7 @@ struct VS_BLEND_OUTPUT
 };
 
 
-    VS_BLEND_OUTPUT VS_Blend(VS_BLEND_INPUT input)
+VS_BLEND_OUTPUT VS_Blend(VS_BLEND_INPUT input)
 {
     VS_BLEND_OUTPUT output;
     

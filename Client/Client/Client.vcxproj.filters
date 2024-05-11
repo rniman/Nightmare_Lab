@@ -25,6 +25,9 @@
     <Filter Include="Data">
       <UniqueIdentifier>{67e44d8b-5ad6-4e04-a960-57d859c4b84f}</UniqueIdentifier>
     </Filter>
+    <Filter Include="HLSL%28cso%29">
+      <UniqueIdentifier>{3dd8ca27-e1c0-4bd3-9930-17a1f308172b}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="targetver.h">
@@ -171,6 +174,51 @@
     <FxCompile Include="Light.hlsl" />
     <FxCompile Include="BlendAnimation.hlsl">
       <Filter>TextureBlendShader</Filter>
+    </FxCompile>
+    <FxCompile Include="VSStandard.hlsl">
+      <Filter>HLSL%28cso%29</Filter>
+    </FxCompile>
+    <FxCompile Include="VSInstanceStandard.hlsl">
+      <Filter>HLSL%28cso%29</Filter>
+    </FxCompile>
+    <FxCompile Include="VSSkinnedAnimationStandard.hlsl">
+      <Filter>HLSL%28cso%29</Filter>
+    </FxCompile>
+    <FxCompile Include="VSPostProcessing.hlsl">
+      <Filter>HLSL%28cso%29</Filter>
+    </FxCompile>
+    <FxCompile Include="VSUserInterface.hlsl">
+      <Filter>HLSL%28cso%29</Filter>
+    </FxCompile>
+    <FxCompile Include="VSOutLine.hlsl">
+      <Filter>HLSL%28cso%29</Filter>
+    </FxCompile>
+    <FxCompile Include="VSOutLineMask.hlsl">
+      <Filter>HLSL%28cso%29</Filter>
+    </FxCompile>
+    <FxCompile Include="VSBlend.hlsl">
+      <Filter>HLSL%28cso%29</Filter>
+    </FxCompile>
+    <FxCompile Include="PSStandard.hlsl">
+      <Filter>HLSL%28cso%29</Filter>
+    </FxCompile>
+    <FxCompile Include="PSShadow.hlsl">
+      <Filter>HLSL%28cso%29</Filter>
+    </FxCompile>
+    <FxCompile Include="PSPostProcessing.hlsl">
+      <Filter>HLSL%28cso%29</Filter>
+    </FxCompile>
+    <FxCompile Include="PSTransparent.hlsl">
+      <Filter>HLSL%28cso%29</Filter>
+    </FxCompile>
+    <FxCompile Include="PSUserInterface.hlsl">
+      <Filter>HLSL%28cso%29</Filter>
+    </FxCompile>
+    <FxCompile Include="PSOutLine.hlsl">
+      <Filter>HLSL%28cso%29</Filter>
+    </FxCompile>
+    <FxCompile Include="PSBlend.hlsl">
+      <Filter>HLSL%28cso%29</Filter>
     </FxCompile>
   </ItemGroup>
   <ItemGroup>

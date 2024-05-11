@@ -471,8 +471,11 @@ void CGameFramework::OnProcessingMouseMessage(HWND hWnd, UINT nMessageID, WPARAM
 	switch (nMessageID)
 	{
 	case WM_LBUTTONDOWN:
-		::SetCapture(hWnd);
-		::SetCursor(NULL);
+
+		SetCapture(hWnd);
+		SetCursor(NULL);
+		SetCursorPos(m_ptOldCursorPos.x, m_ptOldCursorPos.y);
+
 		//::GetCursorPos(&m_ptOldCursorPos);
 		if (!m_pMainPlayer)
 		{
@@ -505,9 +508,6 @@ void CGameFramework::OnProcessingKeyboardMessage(HWND hWnd, UINT nMessageID, WPA
 			case VK_ESCAPE:
 				::PostQuitMessage(0);
 				break;
-			case VK_LCONTROL:	// Ä¸ÃÄ ÇØÁ¦
-				::ReleaseCapture();
-				break;
 			default:
 				break;
 			}
@@ -527,6 +527,19 @@ void CGameFramework::OnProcessingKeyboardMessage(HWND hWnd, UINT nMessageID, WPA
 		{
 		case VK_ESCAPE:
 			::PostQuitMessage(0);
+			break;
+		case VK_CONTROL:	// Ä¸ÃÄ ÇØÁ¦
+			if (GetCapture())
+			{
+				SetCursor(LoadCursor(NULL, IDC_ARROW));
+				::ReleaseCapture();
+			}
+			else
+			{
+				SetCursor(NULL);
+				SetCapture(hWnd);
+				SetCursorPos(m_ptOldCursorPos.x, m_ptOldCursorPos.y);
+			}
 			break;
 		case VK_RETURN:
 			break;

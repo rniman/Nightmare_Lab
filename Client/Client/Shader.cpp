@@ -69,45 +69,37 @@ D3D12_SHADER_BYTECODE CShader::CompileShaderFromFile(const WCHAR* pszFileName, L
 #include <sstream>
 #endif
 
-D3D12_SHADER_BYTECODE CShader::ReadCompiledShaderFromFile(WCHAR* pszFileName, ID3DBlob** ppd3dShaderBlob)
+D3D12_SHADER_BYTECODE CShader::ReadCompiledShaderFromFile(const WCHAR* pszFileName, ID3DBlob** ppd3dShaderBlob)
 {
-	UINT nReadBytes = 0;
-#ifdef _WITH_WFOPEN
-	FILE* pFile = NULL;
-	::_wfopen_s(&pFile, pszFileName, L"rb");
-	::fseek(pFile, 0, SEEK_END);
-	int nFileSize = ::ftell(pFile);
-	BYTE* pByteCode = new BYTE[nFileSize];
-	::rewind(pFile);
-	nReadBytes = (UINT)::fread(pByteCode, sizeof(BYTE), nFileSize, pFile);
-	::fclose(pFile);
-#endif
-#ifdef _WITH_STD_STREAM
-	std::ifstream ifsFile;
-	ifsFile.open(pszFileName, std::ios::in | std::ios::ate | std::ios::binary);
-	nReadBytes = (int)ifsFile.tellg();
-	BYTE* pByteCode = new BYTE[*pnReadBytes];
-	ifsFile.seekg(0);
-	ifsFile.read((char*)pByteCode, nReadBytes);
-	ifsFile.close();
-#endif
+	std::ifstream ifsFile(pszFileName, std::ios::binary | std::ios::ate);
 
-	D3D12_SHADER_BYTECODE d3dShaderByteCode;
+	if (!ifsFile)
+	{
+		assert("파일 열기 실패!");
+	}
+
+	std::streamoff llFileSize = ifsFile.tellg();
+	ifsFile.seekg(0, std::ios::beg);
+
+	std::vector<BYTE> vbyteCode;
+	vbyteCode.reserve(llFileSize);
+	ifsFile.read((char*)vbyteCode.data(), llFileSize);
+	D3D12_SHADER_BYTECODE d3dByteCode;
+
 	if (ppd3dShaderBlob)
 	{
-		*ppd3dShaderBlob = NULL;
-		HRESULT hResult = D3DCreateBlob(nReadBytes, ppd3dShaderBlob);
-		memcpy((*ppd3dShaderBlob)->GetBufferPointer(), pByteCode, nReadBytes);
-		d3dShaderByteCode.BytecodeLength = (*ppd3dShaderBlob)->GetBufferSize();
-		d3dShaderByteCode.pShaderBytecode = (*ppd3dShaderBlob)->GetBufferPointer();
-	}
+		HRESULT hResult = D3DCreateBlob(llFileSize, ppd3dShaderBlob);
+		memcpy((*ppd3dShaderBlob)->GetBufferPointer(), vbyteCode.data(), llFileSize);
+		d3dByteCode.BytecodeLength = (*ppd3dShaderBlob)->GetBufferSize();
+		d3dByteCode.pShaderBytecode = (*ppd3dShaderBlob)->GetBufferPointer();
+}
 	else
 	{
-		d3dShaderByteCode.BytecodeLength = nReadBytes;
-		d3dShaderByteCode.pShaderBytecode = pByteCode;
+		d3dByteCode.BytecodeLength = llFileSize;
+		d3dByteCode.pShaderBytecode = vbyteCode.data();
 	}
 
-	return(d3dShaderByteCode);
+	return d3dByteCode;
 }
 
 D3D12_INPUT_LAYOUT_DESC CShader::CreateInputLayout()
@@ -317,17 +309,19 @@ D3D12_RASTERIZER_DESC StandardShader::CreateRasterizerState()
 
 D3D12_SHADER_BYTECODE StandardShader::CreateVertexShader()
 {
-	//WCHAR* wstr = "Shaders.hlsl";
-	return(CShader::CompileShaderFromFile(L"Shaders.hlsl", "VSStandard", "vs_5_1", m_pd3dVertexShaderBlob.GetAddressOf()));
+	return CShader::ReadCompiledShaderFromFile(L"cso/VSStandard.cso", m_pd3dVertexShaderBlob.GetAddressOf());
+	//return(CShader::CompileShaderFromFile(L"Shaders.hlsl", "VSStandard", "vs_5_1", m_pd3dVertexShaderBlob.GetAddressOf()));
 }
 
 D3D12_SHADER_BYTECODE StandardShader::CreatePixelShader()
 {
 	if (m_PipeLineIndex == 0) { // 기본 파이프라인
-		return(CShader::CompileShaderFromFile(L"Shaders.hlsl", "PSStandard", "ps_5_1", m_pd3dPixelShaderBlob.GetAddressOf()));
+		return CShader::ReadCompiledShaderFromFile(L"cso/PSStandard.cso", m_pd3dPixelShaderBlob.GetAddressOf());
+		//return(CShader::CompileShaderFromFile(L"Shaders.hlsl", "PSStandard", "ps_5_1", m_pd3dPixelShaderBlob.GetAddressOf()));
 	}
 	else if (m_PipeLineIndex == 1) { // 그림자맵 생성 파이프 라인
-		return(CShader::CompileShaderFromFile(L"Shadow.hlsl", "PS_Shadow", "ps_5_1", m_pd3dPixelShaderBlob.GetAddressOf()));
+		return CShader::ReadCompiledShaderFromFile(L"cso/PSShadow.cso", m_pd3dPixelShaderBlob.GetAddressOf());
+		//return(CShader::CompileShaderFromFile(L"Shadow.hlsl", "PS_Shadow", "ps_5_1", m_pd3dPixelShaderBlob.GetAddressOf()));
 	}
 }
 
@@ -380,7 +374,8 @@ D3D12_INPUT_LAYOUT_DESC InstanceStandardShader::CreateInputLayout()
 
 D3D12_SHADER_BYTECODE InstanceStandardShader::CreateVertexShader()
 {
-	return(CShader::CompileShaderFromFile(L"Shaders.hlsl", "VSInstanceStandard", "vs_5_1", m_pd3dVertexShaderBlob.GetAddressOf()));
+	return CShader::ReadCompiledShaderFromFile(L"cso/VSInstanceStandard.cso", m_pd3dVertexShaderBlob.GetAddressOf());
+	//return(CShader::CompileShaderFromFile(L"Shaders.hlsl", "VSInstanceStandard", "vs_5_1", m_pd3dVertexShaderBlob.GetAddressOf()));
 }
 
 void InstanceStandardShader::Render(ID3D12GraphicsCommandList* pd3dCommandList, const shared_ptr<CCamera>& pCamera, int nPipelineState)
@@ -467,7 +462,8 @@ D3D12_DEPTH_STENCIL_DESC TransparentShader::CreateDepthStencilState()
 
 D3D12_SHADER_BYTECODE TransparentShader::CreatePixelShader()
 {
-	return(CShader::CompileShaderFromFile(L"Shaders.hlsl","PSTransparent", "ps_5_1", m_pd3dPixelShaderBlob.GetAddressOf()));
+	return CShader::ReadCompiledShaderFromFile(L"cso/PSTransparent.cso", m_pd3dPixelShaderBlob.GetAddressOf());
+	//return(CShader::CompileShaderFromFile(L"Shaders.hlsl","PSTransparent", "ps_5_1", m_pd3dPixelShaderBlob.GetAddressOf()));
 }
 
 void TransparentShader::Render(ID3D12GraphicsCommandList* pd3dCommandList, const shared_ptr<CCamera>& pCamera, int nPipelineState)
@@ -513,7 +509,8 @@ D3D12_INPUT_LAYOUT_DESC CSkinnedAnimationStandardShader::CreateInputLayout()
 
 D3D12_SHADER_BYTECODE CSkinnedAnimationStandardShader::CreateVertexShader()
 {
-	return(CShader::CompileShaderFromFile(L"Shaders.hlsl", "VSSkinnedAnimationStandard", "vs_5_1", m_pd3dVertexShaderBlob.GetAddressOf()));
+	return CShader::ReadCompiledShaderFromFile(L"cso/VSSkinnedAnimationStandard.cso", m_pd3dVertexShaderBlob.GetAddressOf());
+	//return(CShader::CompileShaderFromFile(L"Shaders.hlsl", "VSSkinnedAnimationStandard", "vs_5_1", m_pd3dVertexShaderBlob.GetAddressOf()));
 }
 
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -560,16 +557,19 @@ D3D12_DEPTH_STENCIL_DESC CPostProcessingShader::CreateDepthStencilState()
 
 D3D12_SHADER_BYTECODE CPostProcessingShader::CreateVertexShader()
 {
-	return(CShader::CompileShaderFromFile(L"Shaders.hlsl", "VSPostProcessing", "vs_5_1", m_pd3dVertexShaderBlob.GetAddressOf()));
+	return CShader::ReadCompiledShaderFromFile(L"cso/VSPostProcessing.cso", m_pd3dVertexShaderBlob.GetAddressOf());
+	//return(CShader::CompileShaderFromFile(L"Shaders.hlsl", "VSPostProcessing", "vs_5_1", m_pd3dVertexShaderBlob.GetAddressOf()));
 }
 
 D3D12_SHADER_BYTECODE CPostProcessingShader::CreatePixelShader()
 {
 	if (m_PipeLineIndex == 0) {
-		return(CShader::CompileShaderFromFile(L"Shaders.hlsl", "PSPostProcessing", "ps_5_1", m_pd3dPixelShaderBlob.GetAddressOf()));
+		return CShader::ReadCompiledShaderFromFile(L"cso/PSPostProcessing.cso", m_pd3dPixelShaderBlob.GetAddressOf());
+		//return(CShader::CompileShaderFromFile(L"Shaders.hlsl", "PSPostProcessing", "ps_5_1", m_pd3dPixelShaderBlob.GetAddressOf()));
 	}
 	else if (m_PipeLineIndex == 1) {
-		return(CShader::CompileShaderFromFile(L"Shadow.hlsl", "PS_Shadow", "ps_5_1", m_pd3dPixelShaderBlob.GetAddressOf()));
+		return CShader::ReadCompiledShaderFromFile(L"cso/PSShadow.cso", m_pd3dPixelShaderBlob.GetAddressOf());
+		//return(CShader::CompileShaderFromFile(L"Shadow.hlsl", "PS_Shadow", "ps_5_1", m_pd3dPixelShaderBlob.GetAddressOf()));
 	}
 }
 
@@ -921,12 +921,14 @@ D3D12_INPUT_LAYOUT_DESC CUserInterfaceShader::CreateInputLayout()
 
 D3D12_SHADER_BYTECODE CUserInterfaceShader::CreateVertexShader()
 {
-	return(CShader::CompileShaderFromFile(L"Shaders.hlsl", "VSUserInterface", "vs_5_1", m_pd3dVertexShaderBlob.GetAddressOf()));
+	return CShader::ReadCompiledShaderFromFile(L"cso/VSUserInterface.cso", m_pd3dVertexShaderBlob.GetAddressOf());
+	//return(CShader::CompileShaderFromFile(L"Shaders.hlsl", "VSUserInterface", "vs_5_1", m_pd3dVertexShaderBlob.GetAddressOf()));
 }
 
 D3D12_SHADER_BYTECODE CUserInterfaceShader::CreatePixelShader()
 {
-	return(CShader::CompileShaderFromFile(L"Shaders.hlsl", "PSUserInterface", "ps_5_1", m_pd3dPixelShaderBlob.GetAddressOf()));
+	return CShader::ReadCompiledShaderFromFile(L"cso/PSUserInterface.cso", m_pd3dPixelShaderBlob.GetAddressOf());
+	//return(CShader::CompileShaderFromFile(L"Shaders.hlsl", "PSUserInterface", "ps_5_1", m_pd3dPixelShaderBlob.GetAddressOf()));
 }
 
 D3D12_RASTERIZER_DESC CUserInterfaceShader::CreateRasterizerState()
@@ -1029,17 +1031,20 @@ D3D12_SHADER_BYTECODE COutLineShader::CreateVertexShader()
 {
 	if (m_PipeLineIndex == 0)
 	{
-		return(CShader::CompileShaderFromFile(L"Shaders.hlsl", "VSOutLineMask", "vs_5_1", m_pd3dVertexShaderBlob.GetAddressOf()));
+		return CShader::ReadCompiledShaderFromFile(L"cso/VSOutLineMask.cso", m_pd3dVertexShaderBlob.GetAddressOf());
+		//return(CShader::CompileShaderFromFile(L"Shaders.hlsl", "VSOutLineMask", "vs_5_1", m_pd3dVertexShaderBlob.GetAddressOf()));
 	}
 	else
 	{
-		return(CShader::CompileShaderFromFile(L"Shaders.hlsl", "VSOutLine", "vs_5_1", m_pd3dVertexShaderBlob.GetAddressOf()));
+		return CShader::ReadCompiledShaderFromFile(L"cso/VSOutLine.cso", m_pd3dVertexShaderBlob.GetAddressOf());
+		//return(CShader::CompileShaderFromFile(L"Shaders.hlsl", "VSOutLine", "vs_5_1", m_pd3dVertexShaderBlob.GetAddressOf()));
 	}
 }
 
 D3D12_SHADER_BYTECODE COutLineShader::CreatePixelShader()
 {
-	return(CShader::CompileShaderFromFile(L"Shaders.hlsl", "PSOutLine", "ps_5_1", m_pd3dPixelShaderBlob.GetAddressOf()));	
+	return CShader::ReadCompiledShaderFromFile(L"cso/PSOutLine.cso", m_pd3dPixelShaderBlob.GetAddressOf());
+	//return(CShader::CompileShaderFromFile(L"Shaders.hlsl", "PSOutLine", "ps_5_1", m_pd3dPixelShaderBlob.GetAddressOf()));	
 }
 
 D3D12_DEPTH_STENCIL_DESC COutLineShader::CreateDepthStencilState()

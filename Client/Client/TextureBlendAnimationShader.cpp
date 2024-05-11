@@ -93,10 +93,12 @@ D3D12_DEPTH_STENCIL_DESC TextureBlendAnimationShader::CreateDepthStencilState()
 
 D3D12_SHADER_BYTECODE TextureBlendAnimationShader::CreateVertexShader()
 {
-	return(CShader::CompileShaderFromFile(L"BlendAnimation.hlsl", "VS_Blend", "vs_5_1", m_pd3dVertexShaderBlob.GetAddressOf()));
+	return CShader::ReadCompiledShaderFromFile(L"cso/VSBlend.cso", m_pd3dVertexShaderBlob.GetAddressOf());
+	//return(CShader::CompileShaderFromFile(L"BlendAnimation.hlsl", "VS_Blend", "vs_5_1", m_pd3dVertexShaderBlob.GetAddressOf()));
 }
 
 D3D12_SHADER_BYTECODE TextureBlendAnimationShader::CreatePixelShader()
 {
-	return(CShader::CompileShaderFromFile(L"BlendAnimation.hlsl", "PS_Blend", "ps_5_1", m_pd3dPixelShaderBlob.GetAddressOf()));
+	return CShader::ReadCompiledShaderFromFile(L"cso/PSBlend.cso", m_pd3dPixelShaderBlob.GetAddressOf());
+	//return(CShader::CompileShaderFromFile(L"BlendAnimation.hlsl", "PS_Blend", "ps_5_1", m_pd3dPixelShaderBlob.GetAddressOf()));
 }
