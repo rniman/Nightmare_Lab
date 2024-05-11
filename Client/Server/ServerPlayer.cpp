@@ -585,22 +585,25 @@ void CServerBlueSuitPlayer::TeleportRandomPosition()
 	uniform_int_distribution<int> disFloatPosition(0, 15);
 
 	array<XMFLOAT3, 16> axmf3Positions = {
-		XMFLOAT3(9.f, 0.0f, 13.9),
-		XMFLOAT3(9.f, 0.0f, -13.9),
-		XMFLOAT3(-9.f, 0.0f, 13.9),
-		XMFLOAT3(-9.f, 0.0f, -13.9),
-		XMFLOAT3(9.f, 4.5f, 13.9),
-		XMFLOAT3(9.f, 4.5f, -13.9),
-		XMFLOAT3(-9.f, 4.5f, 13.9),
-		XMFLOAT3(-9.f, 4.5f, -13.9),
-		XMFLOAT3(-9.f, 9.0f, -13.9),
-		XMFLOAT3(9.f, 9.0f, -13.9),
-		XMFLOAT3(-9.f, 9.0f, 13.9),
-		XMFLOAT3(-9.f, 9.0f, -13.9),
-		XMFLOAT3(-9.f, 13.5f, -13.9),
-		XMFLOAT3(9.f, 13.5f, -13.9),
-		XMFLOAT3(-9.f, 13.5f, 13.9),
-		XMFLOAT3(-9.f, 13.5f, -13.9)
+		XMFLOAT3(10.0f, 0.0f, 13.5),
+		XMFLOAT3(10.0f, 0.0f, -13.5),
+		XMFLOAT3(-10.0f, 0.0f, 13.5),
+		XMFLOAT3(-10.0f, 0.0f, -13.5),
+
+		XMFLOAT3(10.0f, 4.5f, 13.5),
+		XMFLOAT3(10.0f, 4.5f, -13.5),
+		XMFLOAT3(-10.0f, 4.5f, 13.5),
+		XMFLOAT3(-10.0f, 4.5f, -13.5),
+
+		XMFLOAT3(10.0f, 9.0f, 13.5),
+		XMFLOAT3(10.0f, 9.0f, -13.5),
+		XMFLOAT3(-10.0f, 9.0f, 13.5),
+		XMFLOAT3(-10.0f, 9.0f, -13.5),
+
+		XMFLOAT3(10.0f, 13.5f, 13.5),
+		XMFLOAT3(10.0f, 13.5f, -13.5),
+		XMFLOAT3(-10.0f, 13.5f, 13.5),
+		XMFLOAT3(-10.0f, 13.5f, -13.5)
 	};
 
 	m_xmf3Position = axmf3Positions[disFloatPosition(TCPServer::m_mt19937Gen)];

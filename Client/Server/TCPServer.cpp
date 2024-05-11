@@ -28,15 +28,18 @@ TCPServer::TCPServer()
 		XMFLOAT3(10.0f, 0.0f, -13.5),
 		XMFLOAT3(-10.0f, 0.0f, 13.5),
 		XMFLOAT3(-10.0f, 0.0f, -13.5),
+
 		XMFLOAT3(10.0f, 4.5f, 13.5),
 		XMFLOAT3(10.0f, 4.5f, -13.5),
 		XMFLOAT3(-10.0f, 4.5f, 13.5),
 		XMFLOAT3(-10.0f, 4.5f, -13.5),
-		XMFLOAT3(-10.0f, 9.0f, -13.5),
+
+		XMFLOAT3(10.0f, 9.0f, 13.5),
 		XMFLOAT3(10.0f, 9.0f, -13.5),
 		XMFLOAT3(-10.0f, 9.0f, 13.5),
 		XMFLOAT3(-10.0f, 9.0f, -13.5),
-		XMFLOAT3(-10.0f, 13.5f, -13.5),
+
+		XMFLOAT3(10.0f, 13.5f, 13.5),
 		XMFLOAT3(10.0f, 13.5f, -13.5),
 		XMFLOAT3(-10.0f, 13.5f, 13.5),
 		XMFLOAT3(-10.0f, 13.5f, -13.5)
