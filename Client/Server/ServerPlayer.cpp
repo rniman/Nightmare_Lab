@@ -742,7 +742,7 @@ void CServerZombiePlayer::Update(float fElapsedTime, shared_ptr<CServerCollision
 	{
 		m_bAttack = false;
 	}
-	if ((m_wKeyBuffer & KEY_LBUTTON) & 0xF0 && m_fCoolTimeAttack <= 0.0f)	// 일반 공격
+	if ((m_wKeyBuffer & KEY_LBUTTON) && m_fCoolTimeAttack <= 0.0f)	// 일반 공격
 	{
 		// 원래 클라에서는 track 2번을 enable시킴
 		m_bAttack = true;

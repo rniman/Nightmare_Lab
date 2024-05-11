@@ -59,7 +59,7 @@ public:
 	void OnProcessingSocketMessage(HWND hWnd, UINT nMessageID, WPARAM wParam, LPARAM lParam);
 	void OnProcessingWindowMessage(HWND hWnd, UINT nMessageID, WPARAM wParam, LPARAM lParam);
 
-	int GetClientIdFromTcpClient() const { return m_pTcpClient->GetClientId(); }
+	INT8 GetClientIdFromTcpClient() const { return m_pTcpClient->GetClientId(); }
 
 	static UCHAR* GetKeysBuffer();
 	static int GetMainClientId() { return m_nMainClientId; }

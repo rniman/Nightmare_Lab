@@ -88,8 +88,8 @@ public:
 	int GetWidth() const { return m_nWidth; }
 	int GetDepth() const { return m_nDepth; }
 
-	void SetClientId(int nClientId) { m_nClientId = nClientId; }
-	int GetClientId()const { return m_nClientId; }
+	void SetClientId(INT8 nClientId) { m_nClientId = nClientId; }
+	INT8 GetClientId()const { return m_nClientId; }
 	void SetLook(const XMFLOAT3& xmf3Look) { m_xmf3Look = xmf3Look; }
 	void SetRight(const XMFLOAT3& xmf3Right) { m_xmf3Right = xmf3Right; }
 
@@ -100,7 +100,7 @@ public:
 	void SetTracking(bool bTracking) { m_bTracking = bTracking; }
 	bool IsTracking()const { return m_bTracking; }
 protected:
-	int m_nClientId = -1;
+	INT8 m_nClientId = -1;
 
 	int m_nFloor = 0;
 	int m_nWidth = 0;

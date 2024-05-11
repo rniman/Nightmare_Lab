@@ -102,13 +102,13 @@ void CTcpClient::OnProcessingSocketMessage(HWND hWnd, UINT nMessageID, WPARAM wP
 
 void CTcpClient::OnProcessingReadMessage(HWND hWnd, UINT nMessageID, WPARAM wParam, LPARAM lParam)
 {
-	static int nHead;
+	static INT8 nHead;
 	int nRetval = 1;
 	size_t nBufferSize;
 
 	if(!m_bRecvHead)
 	{
-		nBufferSize = sizeof(int);
+		nBufferSize = sizeof(INT8);
 		nRetval = RecvData(wParam, nBufferSize);
 		if (nRetval != 0)
 		{
@@ -121,14 +121,14 @@ void CTcpClient::OnProcessingReadMessage(HWND hWnd, UINT nMessageID, WPARAM wPar
 			return;
 		}
 		m_bRecvHead = true;
-		memcpy(&nHead, m_pCurrentBuffer, sizeof(int));
+		memcpy(&nHead, m_pCurrentBuffer, sizeof(INT8));
 		memset(m_pCurrentBuffer, 0, BUFSIZE);
 	}
 
 	switch (nHead)
 	{
 	case HEAD_INIT:
-		nBufferSize = sizeof(int) * 2;
+		nBufferSize = sizeof(INT8) * 2;
 		RecvNum++;
 		nRetval = RecvData(wParam, nBufferSize);
 		if (nRetval != 0)
@@ -136,8 +136,8 @@ void CTcpClient::OnProcessingReadMessage(HWND hWnd, UINT nMessageID, WPARAM wPar
 			break;
 		}
 
-		memcpy(&m_nMainClientId, m_pCurrentBuffer, sizeof(int));
-		memcpy(&m_nClient, m_pCurrentBuffer + sizeof(int), sizeof(int));
+		memcpy(&m_nMainClientId, m_pCurrentBuffer, sizeof(INT8));
+		memcpy(&m_nClient, m_pCurrentBuffer + sizeof(INT8), sizeof(INT8));
 		break;
 	case HEAD_UPDATE_DATA:
 	{
@@ -171,7 +171,10 @@ void CTcpClient::OnProcessingReadMessage(HWND hWnd, UINT nMessageID, WPARAM wPar
 				if(i != m_nMainClientId)
 				{
 					m_apPlayers[i]->SetLook(m_aClientInfo[i].m_xmf3Look);
-					m_apPlayers[i]->SetRight(m_aClientInfo[i].m_xmf3Right);
+					XMFLOAT3 xmf3Right = XMFLOAT3(0.0f, 1.0f, 0.0f);
+					xmf3Right = Vector3::CrossProduct(xmf3Right, m_aClientInfo[i].m_xmf3Look, true);
+					m_apPlayers[i]->SetRight(xmf3Right);
+					//m_apPlayers[i]->SetRight(m_aClientInfo[i].m_xmf3Right);
 				}
 
 				// 지뢰 충돌
@@ -224,7 +227,7 @@ void CTcpClient::OnProcessingReadMessage(HWND hWnd, UINT nMessageID, WPARAM wPar
 	}
 	break;
 	case HEAD_NUM_OF_CLIENT:
-		nBufferSize = sizeof(int) + sizeof(m_aClientInfo);
+		nBufferSize = sizeof(INT8) + sizeof(m_aClientInfo);
 		RecvNum++;
 		nRetval = RecvData(wParam, nBufferSize);
 		if (nRetval != 0)
@@ -232,8 +235,8 @@ void CTcpClient::OnProcessingReadMessage(HWND hWnd, UINT nMessageID, WPARAM wPar
 			break;
 		}
 
-		memcpy(&m_nClient, m_pCurrentBuffer, sizeof(int));
-		memcpy(&m_aClientInfo, m_pCurrentBuffer + sizeof(int), sizeof(m_aClientInfo));
+		memcpy(&m_nClient, m_pCurrentBuffer, sizeof(INT8));
+		memcpy(&m_aClientInfo, m_pCurrentBuffer + sizeof(INT8), sizeof(m_aClientInfo));
 		for (int i = 0;i < MAX_CLIENT;++i)
 		{
 			if (m_apPlayers[i])
@@ -265,8 +268,8 @@ void CTcpClient::OnProcessingReadMessage(HWND hWnd, UINT nMessageID, WPARAM wPar
 
 void CTcpClient::OnProcessingWriteMessage(HWND hWnd, UINT nMessageID, WPARAM wParam, LPARAM lParam)
 {
-	size_t nBufferSize = sizeof(int);
-	int nHead;
+	size_t nBufferSize = sizeof(INT8);
+	INT8 nHead;
 	int nRetval;
 	if (m_nMainClientId == -1 || m_bRecvDelayed == true || !m_apPlayers[m_nMainClientId])	// 아직 ID를 넘겨 받지 못했거나 딜레이 되었다.
 	{

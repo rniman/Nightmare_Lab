@@ -36,7 +36,7 @@ public:
 	void SetRecvData(bool bRecvData) { m_bRecvData = bRecvData; }
 
 	void SetKeyBuffer(WORD wKeyBuffer) { m_wKeyBuffer = wKeyBuffer; }
-	void SetPlayerId(int nPlayerId) { m_nPlayerId = nPlayerId; }
+	void SetPlayerId(INT8 nPlayerId) { m_nPlayerId = nPlayerId; }
 
 	void SetStair(bool bStair) { m_bStair = bStair; }
 	void SetStairY(float fMax, float fMin) { m_fStairMax = fMax; m_fStairMin = fMin; }
@@ -61,7 +61,7 @@ public:
 	bool IsRecvData() const { return m_bRecvData; }
 	//UCHAR* GetKeysBuffer() { return m_pKeysBuffer; }
 	WORD GetKeysBuffer() const { return m_wKeyBuffer; }
-	int GetPlayerId() const { return m_nPlayerId; }
+	INT8 GetPlayerId() const { return m_nPlayerId; }
 
 	bool IsStair()const { return m_bStair; }
 	float GetStairMax() const { return m_fStairMax; }
@@ -86,7 +86,7 @@ protected:
 	bool m_bRecvData = false;
 
 	// 통신을 통해 받는 정보
-	int m_nPlayerId = -1;	//m_vSocketInfoList인덱스 번호
+	INT8 m_nPlayerId = -1;	//m_vSocketInfoList인덱스 번호
 	
 	//[0511] 이제 WORD로 다룬다
 	WORD m_wKeyBuffer;

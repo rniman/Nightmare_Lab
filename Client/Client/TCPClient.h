@@ -52,13 +52,12 @@ struct CS_PLAYER_INFO {
 
 struct CS_CLIENTS_INFO
 {
-	int m_nClientId = -1;
+	INT8 m_nClientId = -1;
 	bool m_bAlive = true;
 	bool m_bRunning = false;
 	XMFLOAT3 m_xmf3Position;
 	XMFLOAT3 m_xmf3Velocity;
 	XMFLOAT3 m_xmf3Look;
-	XMFLOAT3 m_xmf3Right;
 
 	int m_nSlotObjectNum[3];	// 각 슬롯에 포함된 오브젝트 번호(없으면 -1)
 	int m_nFuseObjectNum[3];	// 퓨즈 오브젝트 번호(없으면 -1)
@@ -77,8 +76,8 @@ void ConvertCharToLPWSTR(const char* pstr, LPWSTR dest, int destSize);
 class CTcpClient
 {
 private:
-	int m_nMainClientId = -1;
-	int m_nClient = -1;				// 클라이언트 수
+	INT8 m_nMainClientId = -1;
+	INT8 m_nClient = -1;				// 클라이언트 수
 
 	bool m_bRecvDelayed = false;	// 오는 데이터를 전부 받지 못했다
 	bool m_bRecvHead = false;
@@ -125,8 +124,8 @@ public:
 	void UpdatePlayer(int nIndex);
 
 	//Interface
-	int GetClientId() const { return m_nMainClientId; }
-	int GetNumOfClient() const { return m_nClient; }
+	INT8 GetClientId() const { return m_nMainClientId; }
+	INT8 GetNumOfClient() const { return m_nClient; }
 	XMFLOAT3 GetPostion(int id);
 	std::array<CS_CLIENTS_INFO, 5>& GetArrayClientsInfo();
 	//SOCKET GetSocket() { return m_sock; }

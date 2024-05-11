@@ -6,7 +6,7 @@
 #include "ServerCollision.h"
 
 default_random_engine TCPServer::m_mt19937Gen;
-size_t TCPServer::m_nClient = 0;
+INT8 TCPServer::m_nClient = 0;
 
 void ConvertCharToLPWSTR(const char* pstr, LPWSTR dest, int destSize)
 {
@@ -98,7 +98,7 @@ void TCPServer::OnProcessingAcceptMessage(HWND hWnd, UINT nMessageID, WPARAM wPa
 	}
 
 	// 추가된 클라이언트의 정보를 추가한다.
-	int nSocketIndex = AddSocketInfo(sockClient, addrClient, nAddrlen);
+	INT8 nSocketIndex = AddSocketInfo(sockClient, addrClient, nAddrlen);
 	
 	// MAX_CLIENT보다 더 많은 접속 요구
 	if (nSocketIndex == -1)	
@@ -163,7 +163,7 @@ void TCPServer::OnProcessingReadMessage(HWND hWnd, UINT nMessageID, WPARAM wPara
 
 	if(!m_vSocketInfoList[nSocketIndex].m_bRecvHead)
 	{
-		nBufferSize = sizeof(int);
+		nBufferSize = sizeof(INT8);
 
 		nRetval = RecvData(nSocketIndex, nBufferSize);
 		if (nRetval == SOCKET_ERROR)
@@ -177,7 +177,7 @@ void TCPServer::OnProcessingReadMessage(HWND hWnd, UINT nMessageID, WPARAM wPara
 			return;
 		}
 		m_vSocketInfoList[nSocketIndex].m_bRecvHead = true;
-		memcpy(&m_vSocketInfoList[nSocketIndex].m_nHead, m_vSocketInfoList[nSocketIndex].m_pCurrentBuffer, sizeof(int));
+		memcpy(&m_vSocketInfoList[nSocketIndex].m_nHead, m_vSocketInfoList[nSocketIndex].m_pCurrentBuffer, sizeof(INT8));
 		memset(m_vSocketInfoList[nSocketIndex].m_pCurrentBuffer, 0, BUFSIZE);
 	}
 
@@ -210,7 +210,6 @@ void TCPServer::OnProcessingReadMessage(HWND hWnd, UINT nMessageID, WPARAM wPara
 		WORD wKeyBuffer = 0;
 		memcpy(&wKeyBuffer, m_vSocketInfoList[nSocketIndex].m_pCurrentBuffer + sizeOffset, sizeof(WORD));
 		pPlayer->SetKeyBuffer(wKeyBuffer);
-		cout << "현재 비트 상태: " << bitset<16>(wKeyBuffer) << endl;
 		sizeOffset += sizeof(WORD);
 
 		XMFLOAT4X4 xmf4x4View;
@@ -244,13 +243,13 @@ void TCPServer::OnProcessingReadMessage(HWND hWnd, UINT nMessageID, WPARAM wPara
 		break;
 	}
 
-	if (nRetval == SOCKET_ERROR)
+	if (nRetval != 0)
 	{
-		if (WSAGetLastError() == WSAEWOULDBLOCK)
-		{
-			m_vSocketInfoList[nSocketIndex].m_bRecvHead = true;
-			memset(m_vSocketInfoList[nSocketIndex].m_pCurrentBuffer, 0, BUFSIZE);
-		}
+		//if (WSAGetLastError() == WSAEWOULDBLOCK)
+		//{
+		//	m_vSocketInfoList[nSocketIndex].m_bRecvHead = true;
+		//	memset(m_vSocketInfoList[nSocketIndex].m_pCurrentBuffer, 0, BUFSIZE);
+		//}
 		return;
 	}
 	m_vSocketInfoList[nSocketIndex].m_nHead = -1;
@@ -262,8 +261,8 @@ void TCPServer::OnProcessingReadMessage(HWND hWnd, UINT nMessageID, WPARAM wPara
 
 void TCPServer::OnProcessingWriteMessage(HWND hWnd, UINT nMessageID, WPARAM wParam, LPARAM lParam)
 {
-	size_t nBufferSize = sizeof(int);
-	int nHead;
+	size_t nBufferSize = sizeof(INT8);
+	INT8 nHead;
 	int nRetval;
 	int nSocketIndex = GetSocketIndex(wParam);
 	if (!m_vSocketInfoList[nSocketIndex].m_bUsed)
@@ -276,10 +275,10 @@ void TCPServer::OnProcessingWriteMessage(HWND hWnd, UINT nMessageID, WPARAM wPar
 	{
 	case SOCKET_STATE::SEND_ID:
 		nHead = 0;
-		nBufferSize += sizeof(int) * 2;
+		nBufferSize += sizeof(INT8) * 2;
 
 		m_vSocketInfoList[nSocketIndex].SendNum++;
-		nRetval = SendData(m_vSocketInfoList[nSocketIndex].m_sock, nBufferSize, nHead, m_aUpdateInfo[nSocketIndex].m_nClientId, (int)m_nClient);
+		nRetval = SendData(m_vSocketInfoList[nSocketIndex].m_sock, nBufferSize, nHead, m_aUpdateInfo[nSocketIndex].m_nClientId, m_nClient);
 
 		if (nRetval == -1 && WSAGetLastError() == WSAEWOULDBLOCK)
 		{
@@ -303,9 +302,9 @@ void TCPServer::OnProcessingWriteMessage(HWND hWnd, UINT nMessageID, WPARAM wPar
 		break;
 	case SOCKET_STATE::SEND_NUM_OF_CLIENT:
 		nHead = 2;
-		nBufferSize += sizeof(int) + sizeof(m_aUpdateInfo);
+		nBufferSize += sizeof(INT8) + sizeof(m_aUpdateInfo);
 
-		nRetval = SendData(m_vSocketInfoList[nSocketIndex].m_sock, nBufferSize, nHead, (int)m_nClient, m_aUpdateInfo);
+		nRetval = SendData(m_vSocketInfoList[nSocketIndex].m_sock, nBufferSize, nHead, m_nClient, m_aUpdateInfo);
 		if (nRetval == -1 && WSAGetLastError() == WSAEWOULDBLOCK)
 		{
 		}
@@ -320,7 +319,7 @@ void TCPServer::OnProcessingWriteMessage(HWND hWnd, UINT nMessageID, WPARAM wPar
 
 void TCPServer::OnProcessingCloseMessage(HWND hWnd, UINT nMessageID, WPARAM wParam, LPARAM lParam)
 {
-	int nIndex = RemoveSocketInfo((SOCKET)wParam);
+	INT8 nIndex = RemoveSocketInfo((SOCKET)wParam);
 	m_apPlayers[nIndex].reset();
 	m_anPlayerStartPosNum[nIndex] = -1;
 	//m_apPlayers[nIndex]->SetPlayerId(-1);
@@ -448,9 +447,9 @@ void TCPServer::SimulationLoop()
 }
 
 // 소켓 정보 추가
-int TCPServer::AddSocketInfo(SOCKET sockClient, struct sockaddr_in addrClient, int nAddrLen)
+INT8 TCPServer::AddSocketInfo(SOCKET sockClient, struct sockaddr_in addrClient, int nAddrLen)
 {
-	int nSocketIndex = -1;
+	INT8 nSocketIndex = -1;
 	if (m_nClient >= MAX_CLIENT)
 	{
 		return nSocketIndex;
@@ -491,9 +490,9 @@ int TCPServer::AddSocketInfo(SOCKET sockClient, struct sockaddr_in addrClient, i
 }
 
 // 소켓 정보 얻기
-int TCPServer::GetSocketIndex(SOCKET sock)
+INT8 TCPServer::GetSocketIndex(SOCKET sock)
 {
-	int nIndex = -1;
+	INT8 nIndex = -1;
 	for (auto& sockInfo : m_vSocketInfoList)
 	{
 		nIndex++;
@@ -511,10 +510,10 @@ int TCPServer::GetSocketIndex(SOCKET sock)
 }
 
 // 소켓 정보 제거
-int TCPServer::RemoveSocketInfo(SOCKET sock)
+INT8 TCPServer::RemoveSocketInfo(SOCKET sock)
 {
-	int nIndex = -1;
-	int nListBoxIndex = -1;
+	INT8 nIndex = -1;
+	INT8 nListBoxIndex = -1;
 	// 리스트에서 정보 제거
 	for (auto& sockInfo : m_vSocketInfoList)
 	{
@@ -588,7 +587,7 @@ void TCPServer::UpdateInformation()
 
 	for (const auto& pPlayer : m_apPlayers)
 	{
-		int nPlayerId;
+		INT8 nPlayerId;
 		if (!pPlayer || pPlayer->GetPlayerId() == -1)
 		{
 			continue;
@@ -600,7 +599,6 @@ void TCPServer::UpdateInformation()
 		m_aUpdateInfo[nPlayerId].m_xmf3Position = pPlayer->GetPosition();
 		m_aUpdateInfo[nPlayerId].m_xmf3Velocity = pPlayer->GetVelocity();
 		m_aUpdateInfo[nPlayerId].m_xmf3Look = pPlayer->GetLook();
-		m_aUpdateInfo[nPlayerId].m_xmf3Right = pPlayer->GetRight();
 		// 지금은 일단 이렇게 해뒀지만 나중에는 0번이 Enemy고정일듯
 		if (nPlayerId == ZOMBIEPLAYER)	//Enemy
 		{
@@ -910,7 +908,7 @@ void TCPServer::CreateSendObject()
 			continue;
 		}
 
-		int nId = pPlayer->GetPlayerId();
+		INT8 nId = pPlayer->GetPlayerId();
 
 		// 공간 외에 업데이트가 필요한 경우의 오브젝트
 		// EX) 아이템 사용 후 다시 맵에 리젠 되어야하는 아이템 오브젝트

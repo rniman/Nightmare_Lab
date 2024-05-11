@@ -945,7 +945,7 @@ void CGameFramework::PreRenderTasks()
 {
 	//ProcessInput();
 
-	int nClientId = m_pTcpClient->GetClientId();
+	INT8 nClientId = m_pTcpClient->GetClientId();
 	if (nClientId != -1)
 	{
 		SetPlayerObjectOfClient(nClientId);
@@ -1171,7 +1171,7 @@ void CGameFramework::FrameAdvance()
 	m_GameTimer.GetFrameRate(m_pszFrameRate + 15, 37);
 	size_t nLength = _tcslen(m_pszFrameRate);
 	XMFLOAT3 xmf3Position = xmf3Position = m_pMainPlayer->GetPosition();
-	_stprintf_s(m_pszFrameRate + nLength, 200 - nLength, _T("ID:%d, NumOfClinet: %d, (%4f, %4f, %4f)"), m_pTcpClient->GetClientId(), m_pTcpClient->GetNumOfClient(), xmf3Position.x, xmf3Position.y, xmf3Position.z);
+	_stprintf_s(m_pszFrameRate + nLength, 200 - nLength, _T("ID:%d, NumOfClient: %d, (%4f, %4f, %4f)"), m_pTcpClient->GetClientId(), m_pTcpClient->GetNumOfClient(), xmf3Position.x, xmf3Position.y, xmf3Position.z);
 	::SetWindowText(m_hWnd, m_pszFrameRate);
 
 	/*char buf[256];

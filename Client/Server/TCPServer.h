@@ -26,7 +26,8 @@ struct SC_ANIMATION_INFO
 	float pitch = 1.0f;
 };
 
-struct SC_PLAYER_INFO {
+struct SC_PLAYER_INFO 
+{
 	RightItem m_selectItem;
 	bool m_bRightClick = false;
 	
@@ -38,13 +39,14 @@ struct SC_PLAYER_INFO {
 
 struct SC_UPDATE_INFO
 {
-	int m_nClientId = -1;
+	//BYTE m_boolCollection;
+
+	INT8 m_nClientId = -1;
 	bool m_bAlive = true;
 	bool m_bRunning = false;	// BLUESUIT PLAYER가 달리는 상태
 	XMFLOAT3 m_xmf3Position;
 	XMFLOAT3 m_xmf3Velocity;
 	XMFLOAT3 m_xmf3Look;
-	XMFLOAT3 m_xmf3Right;
 
 	int m_nSlotObjectNum[3] = { -1, -1, -1 };	// 각 슬롯에 포함된 오브젝트 번호(없으면 -1) /// 적 플레이어는 스킬 사용시 1로, 스킬 끝나거나 사용X시 0 (추적, 시야방해, 공격) 달리기의 경우 아직 정하지 않음(나중에 추가할꺼면 m_bShiftRun활용하면 될듯)
 	int m_nFuseObjectNum[3] = { -1, -1, -1 };	// 퓨즈 오브젝트 번호(없으면 -1)
@@ -78,12 +80,12 @@ struct SOCKETINFO
 	int m_nAddrlen;
 	char m_pAddr[INET_ADDRSTRLEN];
 
-	int m_nHead = -1;
+	INT8 m_nHead = -1;
 
 	bool m_bRecvDelayed = false;	// 오는 데이터를 전부 받지 못했다
 	bool m_bRecvHead = false;	// 오는 데이터를 전부 받지 못했다
 	int m_nCurrentRecvByte = 0;		// 현재까지 받은 데이터의 길이
-	char m_pCurrentBuffer[BUFSIZE + 1];
+	char m_pCurrentBuffer[BUFSIZE];
 
 	SOCKET_STATE m_socketState = SOCKET_STATE::SEND_ID;
 
@@ -111,9 +113,9 @@ public:
 	void SimulationLoop();
 
 	// 소켓 정보 관리 함수
-	int AddSocketInfo(SOCKET sockClient, struct sockaddr_in addrClient, int nAddrLen);
-	int GetSocketIndex(SOCKET sockClient);
-	int RemoveSocketInfo(SOCKET sock);
+	INT8 AddSocketInfo(SOCKET sockClient, struct sockaddr_in addrClient, int nAddrLen);
+	INT8 GetSocketIndex(SOCKET sockClient);
+	INT8 RemoveSocketInfo(SOCKET sock);
 
 	void UpdateInformation();
 
@@ -142,7 +144,7 @@ public:
 	static default_random_engine m_mt19937Gen;
 private:
 	CTimer m_timer;
-	static size_t m_nClient;
+	static INT8 m_nClient;
 	HWND m_hWnd;
 	bool m_bSend = true;
 
