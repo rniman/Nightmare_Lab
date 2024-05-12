@@ -1109,14 +1109,16 @@ void CZombiePlayer::Update(float fElapsedTime)
 	//	}
 	//}
 
-	CPlayer::Update(fElapsedTime);
 
 	if (m_bElectricBlend) {
 		m_pcbMappedTime->time += fElapsedTime;
-		if (m_pcbMappedTime->time > 3.0f) {
+		if (m_pcbMappedTime->time > 2.0f) {
 			m_bElectricBlend = false;
 			m_pcbMappedTime->usePattern = -1.0f;
 		}
+	}
+	else {
+		CPlayer::Update(fElapsedTime);
 	}
 
 	if (m_pSkinnedAnimationController)
@@ -1165,4 +1167,22 @@ void CZombiePlayer::Render(ID3D12GraphicsCommandList* pd3dCommandList)
 		return;
 	}
 	CPlayer::Render(pd3dCommandList);
+}
+
+void CZombiePlayer::Animate(float fElapsedTime)
+{
+	if (m_nClientId == -1)
+	{
+		//return;
+	}
+
+	OnUpdateToParent();
+	if (!m_bElectricBlend) {
+		if (m_pSkinnedAnimationController) m_pSkinnedAnimationController->AdvanceTime(fElapsedTime, this);
+	}
+
+	AnimateOOBB();
+
+	if (m_pSibling) m_pSibling->Animate(fElapsedTime);
+	if (m_pChild) m_pChild->Animate(fElapsedTime);
 }

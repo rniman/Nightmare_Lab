@@ -280,6 +280,7 @@ public:
 	virtual void LoadModelAndAnimation(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dCommandList, ID3D12RootSignature* pd3dGraphicsRootSignature, const shared_ptr<CLoadedModelInfo>& pLoadModelInfo) override;
 	
 	virtual void Update(float fElapsedTime) override;
+	virtual void Animate(float fElapsedTime);
 	virtual void Render(ID3D12GraphicsCommandList* pd3dCommandList);
 
 private:
@@ -288,4 +289,5 @@ private:
 public:
 	void SetEectricShock();
 	void SetElectiricMt(shared_ptr<CMaterial> mt) { m_pElectircaterial = mt; }
+
 };

@@ -838,8 +838,8 @@ void CServerZombiePlayer::CheckAttack(shared_ptr<CServerPlayer>& pPlayer, const 
 
 void CServerZombiePlayer::CollisionMine(int ref)
 {
-	SetStopMove(1.0f);
+	SetStopMove(2.0f);
 	m_bCollisionMine = true;
-	m_fNoStopTime = 2.0f;
+	m_fNoStopTime = 3.0f;
 	m_iCollideMineRef = ref;
 }

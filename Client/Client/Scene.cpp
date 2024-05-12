@@ -105,7 +105,7 @@ void CScene::CreateGraphicsRootSignature(ID3D12Device* pd3dDevice)
 	pd3dDescriptorRanges[10].OffsetInDescriptorsFromTableStart = 0;
 
 	pd3dDescriptorRanges[11].RangeType = D3D12_DESCRIPTOR_RANGE_TYPE_SRV;
-	pd3dDescriptorRanges[11].NumDescriptors = 30;
+	pd3dDescriptorRanges[11].NumDescriptors = 28;
 	pd3dDescriptorRanges[11].BaseShaderRegister = 20; //t20~ Shadow Map
 	pd3dDescriptorRanges[11].RegisterSpace = 0;
 	pd3dDescriptorRanges[11].OffsetInDescriptorsFromTableStart = 0;
@@ -272,6 +272,7 @@ ComPtr<ID3D12RootSignature> CScene::GetGraphicsRootSignature()
 
 void CScene::BuildObjects(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dCommandList, int mainPlayerId)
 {
+	testAngle = 0.0f;
 	BuildLights();
 	CreateGraphicsRootSignature(pd3dDevice);
 
@@ -822,10 +823,12 @@ bool CScene::OnProcessingKeyboardMessage(HWND hWnd, UINT nMessageID, WPARAM wPar
 		switch (wParam)
 		{
 		case VK_UP://		m_pcbMappedLights->bias	0.00119999994	float
-			m_pcbMappedLights->bias += 0.0001f;
+			//m_pcbMappedLights->bias += 0.0001f;
+			testAngle += 1.f;
 			break;
 		case VK_DOWN:
-			m_pcbMappedLights->bias -= 0.0001f;
+			testAngle -= 1.f;
+			//m_pcbMappedLights->bias -= 0.0001f;
 			break;
 		default:
 			break;
