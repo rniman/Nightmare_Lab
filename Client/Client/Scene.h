@@ -112,6 +112,8 @@ public:
 	shared_ptr<CMaterial> mt_Electirc;
 	// 마티리얼은 Com 객체를 가진다.텍스처가 리소스로 관리되는데 이 객체를 지역변수로 선언하고 사용하지 않으면 알아서 삭제가 되면서
 	// 디바이스에서 에러를 발생 시킨다. 
+	static float testAngle;
+
 
 	std::array<shared_ptr<CPlayer>, MAX_CLIENT> m_apPlayer;
 	std::shared_ptr<CPlayer> m_pMainPlayer;

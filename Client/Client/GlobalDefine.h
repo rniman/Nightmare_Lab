@@ -2,13 +2,17 @@
 
 #define FRAME_BUFFER_WIDTH 1600
 #define FRAME_BUFFER_HEIGHT 1024
+
+//#define SHADOW_FRAME_BUFFER_WIDTH 4096
+//#define SHADOW_FRAME_BUFFER_HEIGHT 4096
+
 #define SINGLE_PLAY // define시 싱글로 진행
 #define LOADSCENE
 
 #define ADD_RENDERTARGET_COUNT 4  
 #define ADD_DEPTH_MAP_COUNT 1
 
-#define ZOMBIEPLAYER 0
+#define ZOMBIEPLAYER -1
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 //OBJECT

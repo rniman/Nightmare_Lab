@@ -300,11 +300,11 @@ D3D12_RASTERIZER_DESC StandardShader::CreateRasterizerState()
 	else if (m_PipeLineIndex == 1) {
 		::ZeroMemory(&d3dRasterizerDesc, sizeof(D3D12_RASTERIZER_DESC));
 		d3dRasterizerDesc.FillMode = D3D12_FILL_MODE_SOLID;
-		d3dRasterizerDesc.CullMode = D3D12_CULL_MODE_BACK;
+		d3dRasterizerDesc.CullMode = D3D12_CULL_MODE_BACK;//D3D12_CULL_MODE_FRONT;//;
 		d3dRasterizerDesc.FrontCounterClockwise = FALSE;
-		d3dRasterizerDesc.DepthBias = 0;
-		d3dRasterizerDesc.DepthBiasClamp = 0.0f;
-		d3dRasterizerDesc.SlopeScaledDepthBias = 0.0f;
+		d3dRasterizerDesc.DepthBias = 15000;
+		d3dRasterizerDesc.DepthBiasClamp = 0.0014f;
+		d3dRasterizerDesc.SlopeScaledDepthBias = 1.f;
 		d3dRasterizerDesc.DepthClipEnable = TRUE;
 		d3dRasterizerDesc.MultisampleEnable = FALSE;
 		d3dRasterizerDesc.AntialiasedLineEnable = FALSE;
@@ -828,6 +828,7 @@ void CPostProcessingShader::CreateShadowMapResource(ID3D12Device* pd3dDevice, ID
 	for (UINT i = 0; i < nlight; i++)
 	{
 		m_pShadowTextures->CreateTexture(pd3dDevice, i, RESOURCE_TEXTURE2D, FRAME_BUFFER_WIDTH, FRAME_BUFFER_HEIGHT, 1, 0, pdxgiFormat, D3D12_RESOURCE_FLAG_ALLOW_RENDER_TARGET, D3D12_RESOURCE_STATE_COMMON, &d3dClearValue);
+
 	}
 
 	CreateShaderVariables(pd3dDevice, pd3dCommandList);

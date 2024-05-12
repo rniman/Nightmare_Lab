@@ -754,7 +754,7 @@ void CAnimationController::SetBlendWeight(int nBlendIndex, float fBlendWeight)
 
 void CAnimationController::AdvanceTime(float fElapsedTime, CGameObject* pRootGameObject)
 {
-	m_fTime += fElapsedTime;
+	//m_fTime += fElapsedTime;
 	if (!m_vAnimationTracks.empty())
 	{
 		for (int j = 0; j < m_pAnimationSets->m_nBoneFrames; j++) m_pAnimationSets->m_vpBoneFrameCaches[j]->m_xmf4x4ToParent = Matrix4x4::Zero();

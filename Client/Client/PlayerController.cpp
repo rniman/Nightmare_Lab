@@ -1,5 +1,8 @@
 #include "stdafx.h"
+#include "Scene.h"
 #include "PlayerController.h"
+
+float CScene::testAngle;
 
 CBlueSuitAnimationController::CBlueSuitAnimationController(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dCommandList, int nAnimationTracks, const shared_ptr<CLoadedModelInfo>& pModel)
 	:CAnimationController(pd3dDevice, pd3dCommandList, nAnimationTracks, pModel)
@@ -125,11 +128,23 @@ void CBlueSuitAnimationController::AdvanceTime(float fElapsedTime, CGameObject* 
 
 		BlendLeftArm(fElapsedTime);
 
-		//[CJI 0407] 왼쪽 팔꿈치를 중심으로 축을 회전
-		XMFLOAT3 axis = { 0.f,0.f,1.f };
-		XMMATRIX xmmtxRotate = XMMatrixRotationAxis(XMLoadFloat3(&axis), XMConvertToRadians(m_fElbowPitch));
+		/*XMFLOAT3 axis = { 0.f,0.f,1.f };
+		static float time = 0.0f;
+		time += 0.1f;
+		XMMATRIX xmmtxRotate = XMMatrixRotationAxis(XMLoadFloat3(&axis), XMConvertToRadians(-72.0f-CScene::testAngle));
 		XMStoreFloat4x4(&m_pAnimationSets->m_vpBoneFrameCaches[m_nElbow_L]->m_xmf4x4ToParent,
-			XMMatrixMultiply(xmmtxRotate, XMLoadFloat4x4(&m_pAnimationSets->m_vpBoneFrameCaches[m_nElbow_L]->m_xmf4x4ToParent)));
+			XMMatrixMultiply(xmmtxRotate, XMLoadFloat4x4(&m_pAnimationSets->m_vpBoneFrameCaches[m_nElbow_L]->m_xmf4x4ToParent)));*/
+		
+		XMFLOAT3 axis = { 0.f,0.f,1.f };
+		// 한번 계산하고 더이상 계산안함
+		static XMMATRIX L_ElbowRotate = XMMatrixRotationAxis(XMLoadFloat3(&axis), XMConvertToRadians(-72.0f)); 
+		XMStoreFloat4x4(&m_pAnimationSets->m_vpBoneFrameCaches[m_nElbow_L]->m_xmf4x4ToParent,
+			XMMatrixMultiply(L_ElbowRotate, XMLoadFloat4x4(&m_pAnimationSets->m_vpBoneFrameCaches[m_nElbow_L]->m_xmf4x4ToParent)));
+		axis = { 1.f,0.f,0.f };
+		XMMATRIX L_ArmRotate = XMMatrixRotationAxis(XMLoadFloat3(&axis), XMConvertToRadians(-m_fElbowPitch));
+		XMStoreFloat4x4(&m_pAnimationSets->m_vpBoneFrameCaches[m_nStartLArm]->m_xmf4x4ToParent,
+			XMMatrixMultiply(L_ArmRotate, XMLoadFloat4x4(&m_pAnimationSets->m_vpBoneFrameCaches[m_nStartLArm]->m_xmf4x4ToParent)));
+
 		if (m_bSelectItem) {//[CJI 0428] 선택한 아이템이 있으면 아이템을 들고 있도록 회전
 			XMStoreFloat4x4(&m_pAnimationSets->m_vpBoneFrameCaches[m_nElbow_R]->m_xmf4x4ToParent,
 				XMMatrixMultiply(XMLoadFloat4x4(&m_xmf4x4RightHandRotate), XMLoadFloat4x4(&m_pAnimationSets->m_vpBoneFrameCaches[m_nElbow_R]->m_xmf4x4ToParent)));
@@ -440,7 +455,7 @@ void CBlueSuitAnimationController::BlendLeftArm(float fElapsedTime)
 		XMFLOAT4X4 xmf4x4TrackTransform_1 = pBlendAnimationSet_1->GetSRT(j, fPos_1);
 		xmf4x4TrackTransform_1 = Matrix4x4::Scale(xmf4x4TrackTransform_1, m_vAnimationTracks[nIdleAnimationTrack].m_fWeight);
 
-		XMFLOAT4X4 xmf4x4TrackTransform = Matrix4x4::Interpolate(xmf4x4TrackTransform_0, xmf4x4TrackTransform_1, 0.65f);
+		XMFLOAT4X4 xmf4x4TrackTransform = Matrix4x4::Interpolate(xmf4x4TrackTransform_0, xmf4x4TrackTransform_1, 0.0f);
 		xmf4x4Transform = xmf4x4TrackTransform;
 		m_pAnimationSets->m_vpBoneFrameCaches[j]->m_xmf4x4ToParent = xmf4x4Transform;
 	}

@@ -800,7 +800,7 @@ void CGameFramework::BuildObjects()
 	m_pPostProcessingShader->CreateLightCamera(m_d3d12Device.Get(), m_d3dCommandList.Get(), m_pScene.get());
 
 	//[0505] COutLineShader 내부에서 m_pPostProcessingShader->GetDsvCPUDesctriptorHandle(0)을 사용하기위해서 필요
-	if(m_pTcpClient->GetClientId() == 0)
+	if(m_pTcpClient->GetClientId() == ZOMBIEPLAYER)
 	{
 		dynamic_cast<COutLineShader*>(m_pScene->m_vForwardRenderShader[OUT_LINE_SHADER].get())->SetPostProcessingShader(m_pPostProcessingShader);
 	}
@@ -826,6 +826,9 @@ void CGameFramework::BuildObjects()
 		pPlayer->Update(m_GameTimer.GetTimeElapsed());
 	}
 	m_pCamera = m_pMainPlayer->GetCamera();
+
+	int n = g_collisionManager.GetNumOfCollisionObject();
+	n += 1;
 }
 
 void CGameFramework::ReleaseObjects()
@@ -997,7 +1000,7 @@ void CGameFramework::PreRenderTasks()
 //#define _WITH_PLAYER_TOP
 void CGameFramework::FrameAdvance()
 {
-	m_GameTimer.Tick(60.0f);
+	m_GameTimer.Tick(60.f);
 
 	ProcessInput();
 
