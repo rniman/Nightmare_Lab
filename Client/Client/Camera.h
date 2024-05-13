@@ -120,6 +120,28 @@ protected:
 	//Fog
 	XMFLOAT4 m_xmf4FogColor;
 	XMFLOAT4 m_xmf4FogInfo; //START, RANGE, Density, MOD
+
+	//[0513] Frustum
+	BoundingFrustum m_xmFrustum;
+
+public:
+	void GenerateFrustum()
+	{
+		m_xmFrustum.CreateFromMatrix(m_xmFrustum, XMLoadFloat4x4(&m_xmf4x4Projection));
+		XMMATRIX xmmtxInversView = XMMatrixInverse(NULL, XMLoadFloat4x4(&m_xmf4x4View));
+		m_xmFrustum.Transform(m_xmFrustum, xmmtxInversView);
+	}
+
+	BoundingFrustum GetBoundingFrustum()const { return m_xmFrustum; }
+
+	bool IsInFrustum(const BoundingOrientedBox& xmOOBB)
+	{
+		return m_xmFrustum.Intersects(xmOOBB);
+	}
+	bool IsInFrustum(const BoundingFrustum& xmFrustum)
+	{
+		return m_xmFrustum.Intersects(xmFrustum);
+	}
 };
 
 class CFirstPersonCamera : public CCamera

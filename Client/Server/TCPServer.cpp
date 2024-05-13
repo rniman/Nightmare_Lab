@@ -30,19 +30,19 @@ TCPServer::TCPServer()
 		XMFLOAT3(-10.0f, 0.0f, -13.5),
 
 		XMFLOAT3(10.0f, 4.5f, 13.5),
-		XMFLOAT3(10.0f, 4.5f, -13.5),
-		XMFLOAT3(-10.0f, 4.5f, 13.5),
-		XMFLOAT3(-10.0f, 4.5f, -13.5),
+		//XMFLOAT3(10.0f, 4.5f, -13.5),
+		//XMFLOAT3(-10.0f, 4.5f, 13.5),
+		//XMFLOAT3(-10.0f, 4.5f, -13.5),
 
-		XMFLOAT3(10.0f, 9.0f, 13.5),
-		XMFLOAT3(10.0f, 9.0f, -13.5),
-		XMFLOAT3(-10.0f, 9.0f, 13.5),
-		XMFLOAT3(-10.0f, 9.0f, -13.5),
+		//XMFLOAT3(10.0f, 9.0f, 13.5),
+		//XMFLOAT3(10.0f, 9.0f, -13.5),
+		//XMFLOAT3(-10.0f, 9.0f, 13.5),
+		//XMFLOAT3(-10.0f, 9.0f, -13.5),
 
-		XMFLOAT3(10.0f, 13.5f, 13.5),
-		XMFLOAT3(10.0f, 13.5f, -13.5),
-		XMFLOAT3(-10.0f, 13.5f, 13.5),
-		XMFLOAT3(-10.0f, 13.5f, -13.5)
+		//XMFLOAT3(10.0f, 13.5f, 13.5),
+		//XMFLOAT3(10.0f, 13.5f, -13.5),
+		//XMFLOAT3(-10.0f, 13.5f, 13.5),
+		//XMFLOAT3(-10.0f, 13.5f, -13.5)
 	};
 
 	m_anPlayerStartPosNum = { -1, -1, -1, -1, -1 };
@@ -982,7 +982,7 @@ void TCPServer::CreateSendObject()
 void TCPServer::InitPlayerPosition(shared_ptr<CServerPlayer>& pServerPlayer, int nIndex)
 {
 	// 후보지를 두고 int 값에 따라 그곳에 가도록 해야할듯
-	uniform_int_distribution<int> disIntPosition(0, 15);
+	uniform_int_distribution<int> disIntPosition(0, 4);
 
 	int nStartPosNum = disIntPosition(m_mt19937Gen);
 	bool bEmpty = false;

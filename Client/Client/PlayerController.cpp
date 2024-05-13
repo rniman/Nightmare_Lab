@@ -145,7 +145,8 @@ void CBlueSuitAnimationController::AdvanceTime(float fElapsedTime, CGameObject* 
 		XMStoreFloat4x4(&m_pAnimationSets->m_vpBoneFrameCaches[m_nStartLArm]->m_xmf4x4ToParent,
 			XMMatrixMultiply(L_ArmRotate, XMLoadFloat4x4(&m_pAnimationSets->m_vpBoneFrameCaches[m_nStartLArm]->m_xmf4x4ToParent)));
 
-		if (m_bSelectItem) {//[CJI 0428] 선택한 아이템이 있으면 아이템을 들고 있도록 회전
+		if (m_bSelectItem) 
+		{	//[CJI 0428] 선택한 아이템이 있으면 아이템을 들고 있도록 회전
 			XMStoreFloat4x4(&m_pAnimationSets->m_vpBoneFrameCaches[m_nElbow_R]->m_xmf4x4ToParent,
 				XMMatrixMultiply(XMLoadFloat4x4(&m_xmf4x4RightHandRotate), XMLoadFloat4x4(&m_pAnimationSets->m_vpBoneFrameCaches[m_nElbow_R]->m_xmf4x4ToParent)));
 		}
@@ -169,12 +170,50 @@ void CBlueSuitAnimationController::CalculateRightHandMatrix()
 	XMStoreFloat4x4(&m_xmf4x4RightHandRotate, XMMatrixMultiply(XMMatrixMultiply(xmmtxRotate, xmmtxRotate2), xmmtxRotate3));
 }
 
-void CBlueSuitAnimationController::BlendAnimation(int nTrack1, int nTrack2, float fElapsedTime, float fBlentWeight)
+
+void CBlueSuitAnimationController::BlendAnimation(int nTrack1, int nTrack2, float fElapsedTime, float fBlendWeight)
 {
 	shared_ptr<CAnimationSet> pAnimationSet_0 = m_pAnimationSets->m_vpAnimationSets[m_vAnimationTracks[nTrack1].m_nAnimationSet];
 	shared_ptr<CAnimationSet> pAnimationSet_1 = m_pAnimationSets->m_vpAnimationSets[m_vAnimationTracks[nTrack2].m_nAnimationSet];
-	float fPosition_0 = m_vAnimationTracks[nTrack1].UpdatePosition(m_vAnimationTracks[nTrack1].m_fPosition, fElapsedTime, pAnimationSet_0->m_fLength);
-	float fPosition_1 = m_vAnimationTracks[nTrack2].UpdatePosition(m_vAnimationTracks[nTrack2].m_fPosition, fElapsedTime, pAnimationSet_1->m_fLength);
+
+	float fPosition_0; 
+	float fPosition_1;
+	if (fBlendWeight < 0.5f)	// TRACK[1]이 더 큼
+	{
+		fPosition_0 = m_vAnimationTracks[nTrack1].UpdatePosition(m_vAnimationTracks[nTrack1].m_fPosition, fElapsedTime, pAnimationSet_0->m_fLength);
+		if(m_vAnimationTracks[nTrack1].m_fSpeed > 0.0f)
+		{
+			if (m_vAnimationTracks[nTrack2].m_fSpeed > 0.0f)
+				fPosition_1 = m_vAnimationTracks[nTrack2].m_fPosition = fPosition_0;
+			else
+				fPosition_1 = m_vAnimationTracks[nTrack2].m_fPosition = pAnimationSet_0->m_fLength - fPosition_0;
+		}
+		else
+		{
+			if (m_vAnimationTracks[nTrack2].m_fSpeed > 0.0f)
+				fPosition_1 = m_vAnimationTracks[nTrack2].m_fPosition = pAnimationSet_0->m_fLength - fPosition_0;
+			else
+				fPosition_1 = m_vAnimationTracks[nTrack2].m_fPosition = fPosition_0;
+		}
+	}
+	else
+	{
+		fPosition_1 = m_vAnimationTracks[nTrack2].UpdatePosition(m_vAnimationTracks[nTrack2].m_fPosition, fElapsedTime, pAnimationSet_1->m_fLength);
+		if (m_vAnimationTracks[nTrack2].m_fSpeed > 0.0f)
+		{
+			if (m_vAnimationTracks[nTrack1].m_fSpeed > 0.0f)
+				fPosition_0 = m_vAnimationTracks[nTrack1].m_fPosition = fPosition_1;
+			else
+				fPosition_0 = m_vAnimationTracks[nTrack1].m_fPosition = pAnimationSet_1->m_fLength - fPosition_1;
+		}
+		else
+		{
+			if (m_vAnimationTracks[nTrack1].m_fSpeed > 0.0f)
+				fPosition_0 = m_vAnimationTracks[nTrack1].m_fPosition = pAnimationSet_1->m_fLength - fPosition_1;
+			else
+				fPosition_0 = m_vAnimationTracks[nTrack1].m_fPosition = fPosition_1;
+		}
+	}
 
 	for (int j = 0; j < m_pAnimationSets->m_nBoneFrames; j++)
 	{
@@ -185,7 +224,7 @@ void CBlueSuitAnimationController::BlendAnimation(int nTrack1, int nTrack2, floa
 		XMFLOAT4X4 xmf4x4TrackTransform_1 = pAnimationSet_1->GetSRT(j, fPosition_1);
 		xmf4x4TrackTransform_1 = Matrix4x4::Scale(xmf4x4TrackTransform_1, m_vAnimationTracks[2].m_fWeight);
 
-		XMFLOAT4X4 xmf4x4TrackTransform = Matrix4x4::Interpolate(xmf4x4TrackTransform_0, xmf4x4TrackTransform_1, fBlentWeight);
+		XMFLOAT4X4 xmf4x4TrackTransform = Matrix4x4::Interpolate(xmf4x4TrackTransform_0, xmf4x4TrackTransform_1, fBlendWeight);
 		xmf4x4Transform = Matrix4x4::Add(xmf4x4Transform, xmf4x4TrackTransform);
 		m_pAnimationSets->m_vpBoneFrameCaches[j]->m_xmf4x4ToParent = xmf4x4Transform;
 	}

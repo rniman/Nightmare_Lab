@@ -1031,7 +1031,6 @@ void CGameFramework::FrameAdvance()
 	hResult = m_d3dCommandList->Reset(m_d3dCommandAllocator[m_nSwapChainBufferIndex].Get(), NULL);
 
 	{
-		//-> 물어보기
 		int ndynamicShadowMap = 4;
 		// 그림자맵에 해당하는 텍스처를 렌더타겟으로 변환
 		m_pPostProcessingShader->OnShadowPrepareRenderTarget(m_d3dCommandList.Get(), ndynamicShadowMap); //플레이어의 손전등 1개 -> [0] 번째 요소에 들어있음.
@@ -1058,7 +1057,11 @@ void CGameFramework::FrameAdvance()
 
 				if (survivor) {
 					XMFLOAT4X4* xmf4x4playerLight = survivor->GetFlashLigthWorldTransform();
-					vlightCamera[lightId]->SetPosition(XMFLOAT3(xmf4x4playerLight->_41, xmf4x4playerLight->_42, xmf4x4playerLight->_43));
+					XMFLOAT3 xmf3LightPosition = XMFLOAT3(xmf4x4playerLight->_41, xmf4x4playerLight->_42, xmf4x4playerLight->_43);
+					XMFLOAT3 xmf3LightLook = XMFLOAT3(xmf4x4playerLight->_21, xmf4x4playerLight->_22, xmf4x4playerLight->_23);
+					xmf3LightLook = Vector3::ScalarProduct(xmf3LightLook, -1.0f, false);
+					xmf3LightPosition = Vector3::Add(xmf3LightPosition, xmf3LightLook);
+					vlightCamera[lightId]->SetPosition(xmf3LightPosition);
 					vlightCamera[lightId]->SetLookVector(XMFLOAT3(xmf4x4playerLight->_21, xmf4x4playerLight->_22, xmf4x4playerLight->_23));
 					vlightCamera[lightId]->RegenerateViewMatrix();
 					vlightCamera[lightId]->MultiplyViewProjection();
@@ -1079,12 +1082,24 @@ void CGameFramework::FrameAdvance()
 			}
 		}
 
-		for (int i = 0; i < ndynamicShadowMap/*m_pPostProcessingShader->GetShadowTexture()->GetTextures()*/;++i) {
+
+		for (int i = 0; i < ndynamicShadowMap/*m_pPostProcessingShader->GetShadowTexture()->GetTextures()*/;++i)
+		{
 			D3D12_CPU_DESCRIPTOR_HANDLE shadowRTVDescriptorHandle = m_pPostProcessingShader->GetShadowRtvCPUDescriptorHandle(i);
 			{
 				m_d3dCommandList->ClearDepthStencilView(d3dDsvCPUDescriptorHandle, D3D12_CLEAR_FLAG_DEPTH | D3D12_CLEAR_FLAG_STENCIL, 1.0f, 0, 0, NULL);
 
 				m_d3dCommandList->OMSetRenderTargets(1, &shadowRTVDescriptorHandle, TRUE, &d3dDsvCPUDescriptorHandle);
+
+				if (m_pCamera.lock() && m_nMainClientId != i + 1 + ZOMBIEPLAYER)
+				{
+					if (!m_pCamera.lock()->IsInFrustum(vlightCamera[i]->GetBoundingFrustum()))
+					{
+						FLOAT pfClearValue[4] = { 0.0f, 0.0f, 0.0f, 1.0f };
+						m_d3dCommandList->ClearRenderTargetView(shadowRTVDescriptorHandle, pfClearValue, 0, nullptr);
+						continue;
+					}
+				}
 
 				//1차 렌더링
 				if (m_pScene)

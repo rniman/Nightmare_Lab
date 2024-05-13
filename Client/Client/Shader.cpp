@@ -294,9 +294,9 @@ D3D12_RASTERIZER_DESC StandardShader::CreateRasterizerState()
 		d3dRasterizerDesc.FillMode = D3D12_FILL_MODE_SOLID;
 		d3dRasterizerDesc.CullMode = D3D12_CULL_MODE_BACK;//D3D12_CULL_MODE_FRONT;//;
 		d3dRasterizerDesc.FrontCounterClockwise = FALSE;
-		d3dRasterizerDesc.DepthBias = 15000;
-		d3dRasterizerDesc.DepthBiasClamp = 0.0014f;
-		d3dRasterizerDesc.SlopeScaledDepthBias = 1.f;
+		d3dRasterizerDesc.DepthBias = 0;
+		d3dRasterizerDesc.DepthBiasClamp = 0.0f;
+		d3dRasterizerDesc.SlopeScaledDepthBias = 3.f;
 		d3dRasterizerDesc.DepthClipEnable = TRUE;
 		d3dRasterizerDesc.MultisampleEnable = FALSE;
 		d3dRasterizerDesc.AntialiasedLineEnable = FALSE;
@@ -874,6 +874,9 @@ void CPostProcessingShader::CreateLightCamera(ID3D12Device* pd3dDevice, ID3D12Gr
 		XMFLOAT3 xmf3Up = Vector3::CrossProduct(looks[i], xmf3Right);
 		XMFLOAT3 lookAtPosition = Vector3::Add(positions[i], looks[i]);
 		m_pLightCamera[i]->GenerateViewMatrix(positions[i], lookAtPosition, xmf3Up);
+		if(i >= MAX_SURVIVOR)
+			m_pLightCamera[i]->GenerateProjectionMatrix(1.01f, 5.0f, ASPECT_RATIO, 90.0f);	//[0513] 근평면이 있어야  그림자를 그림
+		m_pLightCamera[i]->GenerateFrustum();
 		m_pLightCamera[i]->MultiplyViewProjection();
 
 		XMFLOAT4X4 viewProjection = m_pLightCamera[i]->GetViewProjection();

@@ -169,7 +169,7 @@ private:
 	HWND m_hClientListBox;
 
 	//[0509] CServerPlayer에서 초기화하던 시작위치를 옮김
-	array<XMFLOAT3, 16> m_axmf3Positions;
+	array<XMFLOAT3, 5> m_axmf3Positions;
 	array<int, MAX_CLIENT> m_anPlayerStartPosNum;
 };
 

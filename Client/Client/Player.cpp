@@ -643,11 +643,12 @@ void CBlueSuitPlayer::Update(float fElapsedTime)
 			XMFLOAT3 xmf3Direction = Vector3::Normalize(m_xmf3Velocity);
 			float fAngle = Vector3::Angle(m_xmf3Look, xmf3Direction);
 			float fRightWeight;
-			if (Vector3::CrossProduct(m_xmf3Look, m_xmf3Velocity, false).y < 0.0f)
+
+			if (Vector3::CrossProduct(m_xmf3Look, m_xmf3Velocity, false).y < 0.0f)	// 왼쪽이동
 			{
 				m_pSkinnedAnimationController->SetTrackSpeed(2, -1.0f);
 			}
-			else
+			else // 오른쪽 이동
 			{
 				m_pSkinnedAnimationController->SetTrackSpeed(2, 1.0f);
 			}
@@ -663,6 +664,7 @@ void CBlueSuitPlayer::Update(float fElapsedTime)
 				fRightWeight = 1 - ((fAngle - 90.0f) / 90.0f);
 			}
 
+			// RightWeight 1 이면 오른쪽 애니메이션(Track2)만 재생
 			m_pSkinnedAnimationController->SetBlendWeight(0, fRightWeight);
 		}
 	}
