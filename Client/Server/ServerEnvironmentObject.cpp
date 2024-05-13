@@ -477,6 +477,17 @@ void CServerMineObject::UpdateUsing(const shared_ptr<CServerGameObject>& pGameOb
 	m_bInstall = true;
 	XMFLOAT3 position = pBlueSuitPlayer->GetPosition();
 
+	auto iter = pCollisionManager->GetSpaceGameObjects(m_nFloor, m_nWidth, m_nDepth).begin();
+	int i = 0;
+	for (auto pGameObject : pCollisionManager->GetSpaceGameObjects(m_nFloor, m_nWidth, m_nDepth))
+	{
+		if (pGameObject->GetCollisionNum() == m_nCollisionNum)	// µ¿ÀÏÇÑ 
+		{
+			pCollisionManager->GetSpaceGameObjects(m_nFloor, m_nWidth, m_nDepth).erase(iter + i);
+			break;
+		}
+		++i;
+	}
 	SetPosition(position);
 	pCollisionManager->ReplaceCollisionObject(shared_from_this());
 }
@@ -586,7 +597,7 @@ void CServerFuseObject::SetRandomPosition(shared_ptr<CServerCollisionManager>& p
 		}
 		pCollisionManager->ReplaceCollisionObject(shared_from_this());
 
-		printf("%d New Pos: %f %f %f\n", m_nCollisionNum, m_xmf4x4World._41, m_xmf4x4World._42, m_xmf4x4World._43);
+		//printf("%d New Pos: %f %f %f\n", m_nCollisionNum, m_xmf4x4World._41, m_xmf4x4World._42, m_xmf4x4World._43);
 		break;
 	}
 }

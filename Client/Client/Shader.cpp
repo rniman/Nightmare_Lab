@@ -868,7 +868,7 @@ void CPostProcessingShader::CreateLightCamera(ID3D12Device* pd3dDevice, ID3D12Gr
 	XMMATRIX xmProjectionToTexture = XMLoadFloat4x4(&xmf4x4ToTexture);
 	XMMATRIX xmmtxViewProjection;
 
-	for (int i = 0;i < positions.size();++i) {
+	for (int i = 0; i < positions.size(); ++i) {
 		m_pLightCamera.push_back(make_shared<CCamera>());
 
 		XMFLOAT3 xmf3Up = Vector3::CrossProduct(looks[i], xmf3Right);

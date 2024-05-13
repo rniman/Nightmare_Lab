@@ -46,7 +46,7 @@ void CServerCollisionManager::AddCollisionObject(const shared_ptr<CServerGameObj
 
 void CServerCollisionManager::ReplaceCollisionObject(const shared_ptr<CServerGameObject>& pGameObject)
 {
-	printf("%d %d %d\t", pGameObject->GetFloor(), pGameObject->GetWidth(), pGameObject->GetDepth());
+	//printf("%d %d %d\t", pGameObject->GetFloor(), pGameObject->GetWidth(), pGameObject->GetDepth());
 	XMFLOAT4X4 xmf4x4World = pGameObject->GetWorldMatrix();
 	XMFLOAT3 xmf3Position = XMFLOAT3(xmf4x4World._41, xmf4x4World._42, xmf4x4World._43);
 
@@ -57,7 +57,7 @@ void CServerCollisionManager::ReplaceCollisionObject(const shared_ptr<CServerGam
 	m_collisionGridGameObjects[nHeight][nWidth][nDepth].push_back(pGameObject);
 	pGameObject->SetSpaceObject(nHeight, nWidth, nDepth);
 
-	printf("%d %d %d\n", pGameObject->GetFloor(), pGameObject->GetWidth(), pGameObject->GetDepth());
+	//printf("%d %d %d\n", pGameObject->GetFloor(), pGameObject->GetWidth(), pGameObject->GetDepth());
 
 	m_vpOutSpaceObject.push_back(pGameObject);
 }
@@ -270,7 +270,7 @@ void CServerCollisionManager::CollideWithMine(shared_ptr<CServerGameObject> pGam
 		{
 			return;
 		}
-		std::cout << "Áö·Ú Ãæµ¹" << std::endl;
+		//std::cout << "Áö·Ú Ãæµ¹" << std::endl;
 		mine->SetObtain(true);
 		mine->SetExplosionTime(2.0f);
 		zombiePlayer->CollisionMine(mine->GetCollisionNum());

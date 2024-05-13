@@ -301,7 +301,7 @@ void TCPServer::OnProcessingWriteMessage(HWND hWnd, UINT nMessageID, WPARAM wPar
 		if (nRetval == -1 && WSAGetLastError() == WSAEWOULDBLOCK)
 		{
 		}
-	}
+		}
 		break;
 	case SOCKET_STATE::SEND_NUM_OF_CLIENT:
 		nHead = 2;
@@ -394,7 +394,7 @@ bool TCPServer::Init(HWND hWnd)
 		shared_ptr<CServerGameObject> object = m_pCollisionManager->GetCollisionObjectWithNumber(start_door + i);
 		auto pElevaterDoor = dynamic_pointer_cast<CServerElevatorDoorObject>(object);
 		if (!pElevaterDoor) {
-			std::cout << "엘리베이터 문이 아닙니다.!" << std::endl;
+			//std::cout << "엘리베이터 문이 아닙니다.!" << std::endl;
 			assert(0); //반드시 CServerElevatorDoorObject 일것임. 아니면 시스템 종료 씬 오브젝트 정렬의 문제 발생
 		}
 		
@@ -410,7 +410,7 @@ bool TCPServer::Init(HWND hWnd)
 	// 아이템 생성
 	CreateItemObject();
 
-	std::cout << "생성된 충돌객체 = " << m_pCollisionManager->GetNumberOfCollisionObject() << std::endl;
+	//std::cout << "생성된 충돌객체 = " << m_pCollisionManager->GetNumberOfCollisionObject() << std::endl;
 	shared_ptr<CServerGameObject> object = m_pCollisionManager->GetCollisionObjectWithNumber(932);
 
 	return true;
@@ -421,7 +421,6 @@ void TCPServer::SimulationLoop()
 	m_timer.Tick();
 	// 실제 시뮬레이션이 일어날곳
 	float fElapsedTime = m_timer.GetTimeElapsed();
-	
 	for (auto& pPlayer : m_apPlayers)
 	{
 		if (!pPlayer || pPlayer->GetPlayerId() == -1)
@@ -449,7 +448,7 @@ void TCPServer::SimulationLoop()
 
 	UpdateInformation();
 	CreateSendObject();
-}
+		}
 
 // 소켓 정보 추가
 INT8 TCPServer::AddSocketInfo(SOCKET sockClient, struct sockaddr_in addrClient, int nAddrLen)
@@ -924,12 +923,12 @@ void TCPServer::CreateSendObject()
 				continue;
 			}
 			if (nIndex >= MAX_SEND_OBJECT_INFO) {
-				std::cout << "nIndex 가 Max 치를 넘은 오류\n";
+				//std::cout << "nIndex 가 Max 치를 넘은 오류\n";
 				assert(0);
 			}
 			m_aUpdateInfo[nId].m_anObjectNum[nIndex] = pGameObject->GetCollisionNum();
 			if (m_aUpdateInfo[nId].m_anObjectNum[nIndex] >= m_pCollisionManager->GetNumberOfCollisionObject()) {
-				std::cout << "index 범위를 넘어서는 오브젝트를 담았습니다.\n";
+				//std::cout << "index 범위를 넘어서는 오브젝트를 담았습니다.\n";
 			}
 			m_aUpdateInfo[nId].m_axmf4x4World[nIndex] = pGameObject->GetWorldMatrix();
 			nIndex++;
@@ -965,12 +964,12 @@ void TCPServer::CreateSendObject()
 					m_aUpdateInfo[nId].m_axmf4x4World[nIndex] = pGameObject->GetWorldMatrix();
 
 					nIndex++;
-					if (m_aUpdateInfo[nId].m_anObjectNum[nIndex] >= m_pCollisionManager->GetNumberOfCollisionObject()) {
-						std::cout << "index 범위를 넘어서는 오브젝트를 담았습니다.\n";
-					}
+					//if (m_aUpdateInfo[nId].m_anObjectNum[nIndex] >= m_pCollisionManager->GetNumberOfCollisionObject()) {
+					//	std::cout << "index 범위를 넘어서는 오브젝트를 담았습니다.\n";
+					//}
 					if (nIndex == MAX_SEND_OBJECT_INFO)
 					{
-						std::cout << "보내려고 하는 객체가 MAX_SEND_OBJECT_INFO 개수가 되었습니다.\n";
+						//std::cout << "보내려고 하는 객체가 MAX_SEND_OBJECT_INFO 개수가 되었습니다.\n";
 						break;
 					}
 				}

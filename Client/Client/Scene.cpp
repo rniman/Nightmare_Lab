@@ -482,7 +482,7 @@ void CScene::BuildLights()
 
 	m_xmf4GlobalAmbient = XMFLOAT4(0.15f, 0.15f, 0.15f, 1.0f);
 
-	for (int i = MAX_SURVIVOR; i < m_xmf3lightPositions.size() + MAX_SURVIVOR;++i) {
+	for (int i = MAX_SURVIVOR; i < m_xmf3lightPositions.size() + MAX_SURVIVOR; ++i) {
 		m_pLights[i].m_bEnable = true;
 		m_pLights[i].m_nType = SPOT_LIGHT;
 		m_pLights[i].m_fRange = 30.0f;
@@ -497,9 +497,10 @@ void CScene::BuildLights()
 		m_pLights[i].m_fTheta = (float)cos(XMConvertToRadians(35.0f));
 	}
 
-	for (int i = 0; i < MAX_SURVIVOR;++i) {
-		m_xmf3lightPositions.insert(m_xmf3lightPositions.begin(), XMFLOAT3(0.0f, 3.0f, 0.0f)); // m_xmf3lightPositions을 가지고 카메라를 만들것임
-		m_xmf3lightLooks.insert(m_xmf3lightLooks.begin(), XMFLOAT3(0.0f, 0.0f, 1.0f));
+	for (int i = 0; i < MAX_SURVIVOR; ++i)
+	{
+		m_xmf3lightPositions.insert(m_xmf3lightPositions.begin(), XMFLOAT3(0.0f, 0.0f, 0.0f)); // m_xmf3lightPositions을 가지고 카메라를 만들것임
+		m_xmf3lightLooks.insert(m_xmf3lightLooks.begin(), XMFLOAT3(0.0f, -1.0f, 0.0f));
 
 		m_pLights[i].m_bEnable = true;
 		m_pLights[i].m_nType = SPOT_LIGHT;

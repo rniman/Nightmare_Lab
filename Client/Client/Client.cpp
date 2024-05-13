@@ -179,6 +179,10 @@ BOOL InitInstance(HINSTANCE hInstance, int nCmdShow, HWND& hWnd)
 	gGameFramework.ChangeSwapChainState();
 #endif
 
+	WCHAR pBuffer[256];
+	_tcscpy_s(pBuffer, _T("Nightmare Lab"));
+	::SetWindowText(hWnd, pBuffer);
+
 	return TRUE;
 }
 

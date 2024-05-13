@@ -489,7 +489,7 @@ void CServerBlueSuitPlayer::Hit()
 	m_bInvincibility = true;
 	m_fCoolTimeInvincibility = 1.5f;
 
-	printf("%d의 현재 체력: %d\n", m_nPlayerId, m_nHealthPoint);
+	//printf("%d의 현재 체력: %d\n", m_nPlayerId, m_nHealthPoint);
 
 	if (m_nHealthPoint <= 0)
 	{
@@ -669,7 +669,7 @@ void CServerBlueSuitPlayer::RightClickProcess(shared_ptr<CServerCollisionManager
 				m_selectItem = RightItem::NONE;
 			}
 			else {
-				std::cout << "탈출구가 아닙니다." << std::endl;
+				//std::cout << "탈출구가 아닙니다." << std::endl;
 			}
 		}
 	}
