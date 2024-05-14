@@ -5,6 +5,7 @@
 CItemObject::CItemObject(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dCommandList, ID3D12RootSignature* pd3dGraphicsRootSignature)
 	: CGameObject(pd3dDevice, pd3dCommandList)
 {
+	SetStatic(false);
 }
 
 void CItemObject::Render(ID3D12GraphicsCommandList* pd3dCommandList) 
@@ -37,6 +38,7 @@ CEnvironmentObject::CEnvironmentObject(char* pstrFrameName, XMFLOAT4X4& xmf4x4Wo
 	: CGameObject(pstrFrameName, xmf4x4World, pMesh)
 {
 	m_nCollisionType = 1;
+	m_bStatic = true;
 }
 
 /// <CGameObject - CEnvironmentObject>

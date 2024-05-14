@@ -410,8 +410,8 @@ bool TCPServer::Init(HWND hWnd)
 	// 酒捞袍 积己
 	CreateItemObject();
 
-	//std::cout << "积己等 面倒按眉 = " << m_pCollisionManager->GetNumberOfCollisionObject() << std::endl;
-	shared_ptr<CServerGameObject> object = m_pCollisionManager->GetCollisionObjectWithNumber(932);
+	std::cout << "积己等 面倒按眉 = " << m_pCollisionManager->GetNumberOfCollisionObject() << std::endl;
+	//shared_ptr<CServerGameObject> object = m_pCollisionManager->GetCollisionObjectWithNumber(932);
 
 	return true;
 }

@@ -467,7 +467,13 @@ public:
 
 	void SetTransparentObjectInfo(vector<int> vNumbers);
 	void ObjectCopy(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dCommandList,shared_ptr<CGameObject> dobject, shared_ptr<CGameObject> sobject);
+
+	void SetStatic(bool bStatic) { m_bStatic = bStatic; }
+	bool IsStatic() const { return m_bStatic; }
 public:
+	//[0514] 스태틱 추가
+	bool m_bStatic = true;
+
 	//중복된 메쉬를 없애기 위해 최초 메쉬들을 이곳에 저장한다.
 	static vector<shared_ptr<CMesh>> m_vMeshContainer;
 
@@ -499,6 +505,7 @@ public:
 	// 투명 오브젝트 분류
 	bool m_bThisContainTransparent = false;
 	vector<int> m_vTransparentMaterialNumbers;
+
 };
 
 

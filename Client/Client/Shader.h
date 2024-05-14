@@ -30,6 +30,7 @@ public:
 	virtual void UpdateShaderVariable(ID3D12GraphicsCommandList* pd3dCommandList, XMFLOAT4X4* pxmf4x4World) { }
 
 	virtual void Render(ID3D12GraphicsCommandList* pd3dCommandList, const shared_ptr<CCamera>& pCamera, int nPipelineState = 0);
+	virtual void PrevRender(ID3D12GraphicsCommandList* pd3dCommandList, const shared_ptr<CCamera>& pCamera, int nPipelineState = 0);
 
 	virtual void UpdatePipeLineState(ID3D12GraphicsCommandList* pd3dCommandList, int nPipelineState);
 

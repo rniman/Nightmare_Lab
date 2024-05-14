@@ -219,6 +219,26 @@ void CShader::Render(ID3D12GraphicsCommandList* pd3dCommandList, const shared_pt
 	}
 }
 
+void CShader::PrevRender(ID3D12GraphicsCommandList* pd3dCommandList, const shared_ptr<CCamera>& pCamera, int nPipelineState)
+{
+	UpdatePipeLineState(pd3dCommandList, nPipelineState);
+
+	for (auto& object : m_vGameObjects)
+	{
+		if (!object->IsStatic())	// 사전 그림자맵에서 스태틱만 그린다.
+		{
+			continue;
+		}
+
+		if (!object->m_bThisContainTransparent) {
+			object->Render(pd3dCommandList);
+		}
+		else {
+			object->RenderOpaque(pd3dCommandList);
+		}
+	}
+}
+
 void CShader::UpdatePipeLineState(ID3D12GraphicsCommandList* pd3dCommandList, int nPipelineState)
 {
 	if (m_vpd3dPipelineState[nPipelineState].Get())

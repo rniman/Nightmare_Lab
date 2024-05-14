@@ -742,7 +742,11 @@ void CInstanceStandardMesh::UpdateShaderVariables(ID3D12GraphicsCommandList* pd3
 	shared_ptr<CInstanceObject> pOriginInstance = m_pOriginInstance.lock();
 	int i = 0;
 	for (auto& object : pOriginInstance->m_vInstanceObjectInfo)
-	{	 // 0312 CJI - 정적인객체들까지 계속 갱신 해줄 필요가 있을까 싶음.(최적화)
+	{	 // 0312 CJI - 정적인객체들까지 계속 갱신 해줄 필요가 있을까 싶음.(최적화) -> 완료
+		if (object->IsStatic())
+		{
+			continue;
+		}
 		m_pxmf4x4InstanceTransformMatrix[i++] = Matrix4x4::Transpose(object->m_xmf4x4World);
 	}
 
@@ -765,6 +769,7 @@ void CInstanceStandardMesh::CreateInstanceObjectInfo(char* pstrMeshName, XMFLOAT
 	if (!strcmp(pstrMeshName, "Door_1"))
 	{
 		pInstanceObjectInfo = make_shared<CDoorObject>(m_pstrMeshName, xmf4x4WorldMatrix, this);
+		pInstanceObjectInfo->SetStatic(false);
 		pOriginInstance->m_vInstanceObjectInfo.push_back(pInstanceObjectInfo);
 		size_t nLastIndex = pOriginInstance->m_vInstanceObjectInfo.size() - 1;
 		g_collisionManager.AddCollisionObject(pOriginInstance->m_vInstanceObjectInfo[nLastIndex]);
@@ -772,6 +777,7 @@ void CInstanceStandardMesh::CreateInstanceObjectInfo(char* pstrMeshName, XMFLOAT
 	else if (!strcmp(pstrMeshName, "Drawer_1") || !strcmp(pstrMeshName, "Drawer_2"))
 	{
 		pInstanceObjectInfo = make_shared<CDrawerObject>(m_pstrMeshName, xmf4x4WorldMatrix, this);
+		pInstanceObjectInfo->SetStatic(false);
 		pOriginInstance->m_vInstanceObjectInfo.push_back(pInstanceObjectInfo);
 		size_t nLastIndex = pOriginInstance->m_vInstanceObjectInfo.size() - 1;
 		g_collisionManager.AddCollisionObject(pOriginInstance->m_vInstanceObjectInfo[nLastIndex]);
@@ -779,6 +785,7 @@ void CInstanceStandardMesh::CreateInstanceObjectInfo(char* pstrMeshName, XMFLOAT
 	else if (!strcmp(pstrMeshName, "Door1"))
 	{
 		pInstanceObjectInfo = make_shared<CElevatorDoorObject>(m_pstrMeshName, xmf4x4WorldMatrix, this);
+		pInstanceObjectInfo->SetStatic(false);
 		pOriginInstance->m_vInstanceObjectInfo.push_back(pInstanceObjectInfo);
 		size_t nLastIndex = pOriginInstance->m_vInstanceObjectInfo.size() - 1;
 		g_collisionManager.AddCollisionObject(pOriginInstance->m_vInstanceObjectInfo[nLastIndex]);
@@ -786,6 +793,7 @@ void CInstanceStandardMesh::CreateInstanceObjectInfo(char* pstrMeshName, XMFLOAT
 	else if (!strcmp(pstrMeshName, "Emergency_Handle"))
 	{
 		pInstanceObjectInfo = make_shared<CElevatorDoorObject>(m_pstrMeshName, xmf4x4WorldMatrix, this);
+		pInstanceObjectInfo->SetStatic(false);
 		pOriginInstance->m_vInstanceObjectInfo.push_back(pInstanceObjectInfo);
 		size_t nLastIndex = pOriginInstance->m_vInstanceObjectInfo.size() - 1;
 		g_collisionManager.AddCollisionObject(pOriginInstance->m_vInstanceObjectInfo[nLastIndex]);

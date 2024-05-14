@@ -149,7 +149,7 @@ private:
 	ComPtr<IDWriteTextFormat> m_textFormat;
 
 	//unique_ptr<TextObject> m_pTextobject;
-	bool m_bPrevRender = false;
+	bool m_bPrepareDrawText = false;
 public:
 	// Time 
 	D3D12_GPU_DESCRIPTOR_HANDLE m_d3dTimeCbvGPUDescriptorHandle;

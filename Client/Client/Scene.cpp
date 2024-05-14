@@ -273,7 +273,6 @@ ComPtr<ID3D12RootSignature> CScene::GetGraphicsRootSignature()
 void CScene::BuildObjects(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dCommandList, int mainPlayerId)
 {
 	testAngle = 0.0f;
-	BuildLights();
 	CreateGraphicsRootSignature(pd3dDevice);
 
 	// CBV(Default) :  카메라(1), 플레이어(1) , 라이트카메라(2(임시))
@@ -281,11 +280,11 @@ void CScene::BuildObjects(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* p
 	// CBV(RootObject) : //육면체(1), 오브젝트(1), DeskObject(1), DoorObject(1), flashLight(1), 서버인원예상(20), fuse(3)
 	// CBV(Model) : Zom(72),  Zom_Controller(2 * N),// BlueSuit(85), BlueSuit_Controller(2 * N), Desk(3), Door(5), flashLight(1), Fuse(6), 레이더(5),텔레포트아이템(1),지뢰(1)
 	int nCntCbv = 1 + 1 + 2 + 66 +
-		(72 + 2) + (85 + 2) * MAX_CLIENT + 2 + 7 + 10 + 5 * MAX_CLIENT + 1 * MAX_CLIENT + 120 + 1 + 1+500;
+		(72 + 2) + (85 + 2) * MAX_CLIENT + 2 + 7 + 10 + 5 * MAX_CLIENT + 1 * MAX_CLIENT + 120 + 1 + 1+600;
 	// SRV(Default) : 디퍼드렌더링텍스처(ADD_RENDERTARGET_COUNT로 정의된 개수임)
 	// SRV(Scene Load) : 79
 	// SRV: Zombie(3), // BlueSuit(6), 육면체(1), 엘런(8(오클루젼맵제거), Desk(3), Door(9), flashLight(3) , m_nLights,지뢰(4),Electiric
-	int nCntSrv = ADD_RENDERTARGET_COUNT + 6 * MAX_CLIENT + 79 + 3 + 3 + 3 * MAX_CLIENT + m_nLights + 4 * MAX_CLIENT + 1 + 10*4+10+200;
+	int nCntSrv = ADD_RENDERTARGET_COUNT + 6 * MAX_CLIENT + 79 + 3 + 3 + 3 * MAX_CLIENT + m_nLights + 4 * MAX_CLIENT + 1 + 10*4+10+250;
 	
 	CreateCbvSrvDescriptorHeaps(pd3dDevice, nCntCbv, nCntSrv);
 
@@ -387,8 +386,8 @@ void CScene::BuildObjects(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* p
 		}
 	}
 	
-	auto surviveMainPlayer = dynamic_pointer_cast<CBlueSuitPlayer>(m_apPlayer[mainPlayerId]);
-	auto zombieMainPlayer = dynamic_pointer_cast<CZombiePlayer>(m_apPlayer[mainPlayerId]);
+	/*auto surviveMainPlayer = dynamic_pointer_cast<CBlueSuitPlayer>(m_apPlayer[mainPlayerId]);
+	auto zombieMainPlayer = dynamic_pointer_cast<CZombiePlayer>(m_apPlayer[mainPlayerId]);*/
 	//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 	///////////////////////////// 아이템
 	//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -449,6 +448,7 @@ void CScene::BuildObjects(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* p
 	// [0504] UserInterface
 	m_vForwardRenderShader[USER_INTERFACE_SHADER]->BuildObjects(pd3dDevice, pd3dCommandList, m_pd3dGraphicsRootSignature.Get());
 
+	BuildLights();
 	CreateShaderVariables(pd3dDevice, pd3dCommandList);
 }
 
@@ -482,7 +482,10 @@ void CScene::BuildLights()
 
 	m_xmf4GlobalAmbient = XMFLOAT4(0.15f, 0.15f, 0.15f, 1.0f);
 
-	for (int i = MAX_SURVIVOR; i < m_xmf3lightPositions.size() + MAX_SURVIVOR; ++i) {
+	for (int i = MAX_SURVIVOR; i < m_xmf3lightPositions.size() + MAX_SURVIVOR; ++i) 
+	{
+		Vector3::Add(m_xmf3lightPositions[i - MAX_SURVIVOR], XMFLOAT3(0.0f, -3.0f, 0.0f));
+
 		m_pLights[i].m_bEnable = true;
 		m_pLights[i].m_nType = SPOT_LIGHT;
 		m_pLights[i].m_fRange = 5.0f;
@@ -558,11 +561,7 @@ void CScene::LoadScene(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3d
 					pLoadedModel->m_pModelRootObject = CGameObject::LoadInstanceFrameHierarchyFromFile(pd3dDevice, pd3dCommandList, m_pd3dGraphicsRootSignature.Get(), NULL, pInFile, &pLoadedModel->m_nSkinnedMeshes);
 					::ReadStringFromFile(pInFile, pstrToken); //"</Hierarchy>"
 					pLoadedModel->m_pModelRootObject->Rotate(0.0f, 0.0f, 0.0f);
-					if (!strcmp(pLoadedModel->m_pModelRootObject->m_pstrFrameName, "Zom_1"))
-					{ // 씬을 바이너리로 쓸때 스키닝 정보는 넣지 않음(그러므로 이 객체는 정보 x)
-						m_vShader[SKINNEDANIMATION_STANDARD_SHADER]->AddGameObject(pLoadedModel->m_pModelRootObject);
-					}
-					else if (!transparentObjects[pLoadedModel->m_pModelRootObject->m_pstrFrameName].empty()) {
+					if (!transparentObjects[pLoadedModel->m_pModelRootObject->m_pstrFrameName].empty()) {
 						pLoadedModel->m_pModelRootObject->SetTransparentObjectInfo(transparentObjects[pLoadedModel->m_pModelRootObject->m_pstrFrameName]);
 						m_vShader[INSTANCE_STANDARD_SHADER]->AddGameObject((pLoadedModel->m_pModelRootObject));
 						m_vForwardRenderShader[TRANSPARENT_SHADER]->AddGameObject((pLoadedModel->m_pModelRootObject));
@@ -880,5 +879,15 @@ void CScene::Render(ID3D12GraphicsCommandList* pd3dCommandList, const shared_ptr
 	for (auto& shader : m_vShader) 
 	{
 		shader->Render(pd3dCommandList, pCamera, nPipelineState);
+	}
+}
+
+void CScene::PrevRender(ID3D12GraphicsCommandList* pd3dCommandList, const shared_ptr<CCamera>& pCamera, int nPipelineState)
+{
+	PrepareRender(pd3dCommandList, pCamera);
+
+	for (auto& shader : m_vShader)
+	{
+		shader->PrevRender(pd3dCommandList, pCamera, nPipelineState);
 	}
 }

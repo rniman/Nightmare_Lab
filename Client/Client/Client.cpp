@@ -175,10 +175,6 @@ BOOL InitInstance(HINSTANCE hInstance, int nCmdShow, HWND& hWnd)
 	ShowWindow(hWnd, nCmdShow);
 	UpdateWindow(hWnd);
 
-#ifdef _WITH_SWAPCHAIN_FULLSCREEN_STATE
-	gGameFramework.ChangeSwapChainState();
-#endif
-
 	WCHAR pBuffer[256];
 	_tcscpy_s(pBuffer, _T("Nightmare Lab"));
 	::SetWindowText(hWnd, pBuffer);
