@@ -204,13 +204,15 @@ public:
 
 /// <CShader - CPostProcessingShader>
 ////// /// /// /// /// /// /// /// /// /// /// /// /// /// /// /// /// /// /// /// /// /// /// /// /// /// /// /// ///  
-/// <CShader - CUserInterfaceShader>
+/// <CShader - CBlueSuitUserInterfaceShader>
+
+class CBlueSuitPlayer;
+class CZombiePlayer;
 
 // [0504] UI SHADER
-class CUserInterfaceShader : public CShader
+class CBlueSuitUserInterfaceShader : public CShader
 {
 public:
-
 	virtual D3D12_INPUT_LAYOUT_DESC CreateInputLayout();
 	virtual D3D12_SHADER_BYTECODE CreateVertexShader();
 	virtual D3D12_SHADER_BYTECODE CreatePixelShader();
@@ -219,17 +221,66 @@ public:
 	
 	void CreateShader(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dCommandList, ID3D12RootSignature* pd3dGraphicsRootSignature, UINT nRenderTargets, DXGI_FORMAT* pdxgiRtvFormats, DXGI_FORMAT dxgiDsvFormat);
 
-	virtual void BuildObjects(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dCommandList, ID3D12RootSignature* pd3dGraphicsRootSignature) override;
+	virtual void BuildObjects(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dCommandList, ID3D12RootSignature* pd3dGraphicsRootSignature);
+	virtual void AnimateObjects(float fElapsedTime) override;
+	virtual void Render(ID3D12GraphicsCommandList* pd3dCommandList, const shared_ptr<CCamera>& pCamera, int nPipelineState = 0) override;
 
+	void AnimateObjectBlueSuit();
+
+	virtual void AddGameObject(const shared_ptr<CGameObject>& pGameObject) override;
 private:
+	shared_ptr<CBlueSuitPlayer> m_pBlueSuitPlayer;
+
+	shared_ptr<CGameObject> m_pTeleport;
+	shared_ptr<CGameObject> m_pRadar;
+	shared_ptr<CGameObject> m_pMine;
+	shared_ptr<CGameObject> m_pFuse;
+
+	array<shared_ptr<CMaterial>, 2> m_vpmatTeleport;
+	array<shared_ptr<CMaterial>, 2> m_vpmatRadar;
+	array<shared_ptr<CMaterial>, 2> m_vpmatMine;
+	array<shared_ptr<CMaterial>, 4> m_vpmatFuse;
+
+	array<shared_ptr<CGameObject>, 2> m_vpStamina;
+	array<shared_ptr<CMaterial>, 2> m_vpmatStamina;
+	shared_ptr<CUserInterfaceRectMesh> m_pmeshStaminaRect;
+};
+
+/// <CShader - CBlueSuitUserInterfaceShader>
+////// /// /// /// /// /// /// /// /// /// /// /// /// /// /// /// /// /// /// /// /// /// /// /// /// /// /// /// ///  
+/// <CShader - CZombieUserInterfaceShader>
+
+class CZombieUserInterfaceShader : public CShader
+{
+public:
+	virtual D3D12_INPUT_LAYOUT_DESC CreateInputLayout();
+	virtual D3D12_SHADER_BYTECODE CreateVertexShader();
+	virtual D3D12_SHADER_BYTECODE CreatePixelShader();
+	virtual D3D12_RASTERIZER_DESC CreateRasterizerState();
+	virtual D3D12_BLEND_DESC CreateBlendState();
+
+	void CreateShader(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dCommandList, ID3D12RootSignature* pd3dGraphicsRootSignature, UINT nRenderTargets, DXGI_FORMAT* pdxgiRtvFormats, DXGI_FORMAT dxgiDsvFormat);
+	virtual void BuildObjects(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dCommandList, ID3D12RootSignature* pd3dGraphicsRootSignature);
+	virtual void AnimateObjects(float fElapsedTime) override;
+
+	void AnimateObjectZombie();
+
+	virtual void AddGameObject(const shared_ptr<CGameObject>& pGameObject) override;
+private:
+	shared_ptr<CZombiePlayer> m_pZombiePlayer;
+
+	array<shared_ptr<CMaterial>, 3> m_vpmatTracking;
+	array<shared_ptr<CMaterial>, 3> m_vpmatInterruption;
+	array<shared_ptr<CMaterial>, 3> m_vpmatRunning;
+
+	shared_ptr<CGameObject> m_pTracking;
+	shared_ptr<CGameObject> m_pInterruption;
+	shared_ptr<CGameObject> m_pRunning;
 };
 
 /// <CShader - UserInterfaceShader>
 ////// /// /// /// /// /// /// /// /// /// /// /// /// /// /// /// /// /// /// /// /// /// /// /// /// /// /// /// ///  
 /// <CShader - StandardShader - OutLineShader>
-
-class CBlueSuitPlayer;
-class CZombiePlayer;
 
 //[0505] OutLine
 class COutLineShader : public CShader

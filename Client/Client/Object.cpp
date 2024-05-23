@@ -274,7 +274,6 @@ void CMaterial::UpdateShaderVariable(ID3D12GraphicsCommandList* pd3dCommandList,
 	for (int i = 0; i < m_nTextures; i++)
 	{
 		if (m_vpTextures[i]) m_vpTextures[i]->UpdateShaderVariables(pd3dCommandList);
-		//		if (m_vpTextures[subMeshIndex]) m_vpTextures[subMeshIndex]->UpdateShaderVariable(pd3dCommandList, 0, 0);
 	}
 }
 
@@ -1703,7 +1702,7 @@ shared_ptr<CGameObject> CGameObject::LoadInstanceFrameHierarchyFromFile(ID3D12De
 void CGameObject::PrintFrameInfo(const shared_ptr<CGameObject>& pGameObject, const shared_ptr<CGameObject>& pParent)
 {
 	TCHAR pstrDebug[256] = { 0 };
-
+	
 	_stprintf_s(pstrDebug, 256, _T("(Frame: %p) (Parent: %p)\n"), pGameObject, pParent);
 	OutputDebugString(pstrDebug);
 

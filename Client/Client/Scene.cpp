@@ -307,8 +307,16 @@ void CScene::BuildObjects(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* p
 	m_vForwardRenderShader[TEXTUREBLEND_SHADER]->CreateShader(pd3dDevice, pd3dCommandList, m_pd3dGraphicsRootSignature.Get(), 1, nullptr, DXGI_FORMAT_D24_UNORM_S8_UINT);
 
 	//[0505] UI
-	m_vForwardRenderShader.push_back(make_unique<CUserInterfaceShader>());
-	m_vForwardRenderShader[USER_INTERFACE_SHADER]->CreateShader(pd3dDevice, pd3dCommandList, m_pd3dGraphicsRootSignature.Get(), 1, nullptr, DXGI_FORMAT_D24_UNORM_S8_UINT);
+	if (mainPlayerId == ZOMBIEPLAYER)
+	{
+		m_vForwardRenderShader.push_back(make_unique<CZombieUserInterfaceShader>());
+		m_vForwardRenderShader[USER_INTERFACE_SHADER]->CreateShader(pd3dDevice, pd3dCommandList, m_pd3dGraphicsRootSignature.Get(), 1, nullptr, DXGI_FORMAT_D24_UNORM_S8_UINT);
+	}
+	else
+	{
+		m_vForwardRenderShader.push_back(make_unique<CBlueSuitUserInterfaceShader>());
+		m_vForwardRenderShader[USER_INTERFACE_SHADER]->CreateShader(pd3dDevice, pd3dCommandList, m_pd3dGraphicsRootSignature.Get(), 1, nullptr, DXGI_FORMAT_D24_UNORM_S8_UINT);
+	}
 
 	LoadScene(pd3dDevice, pd3dCommandList);
 
@@ -446,6 +454,7 @@ void CScene::BuildObjects(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* p
 	}
 	
 	// [0504] UserInterface
+	m_vForwardRenderShader[USER_INTERFACE_SHADER]->AddGameObject(m_apPlayer[mainPlayerId]);
 	m_vForwardRenderShader[USER_INTERFACE_SHADER]->BuildObjects(pd3dDevice, pd3dCommandList, m_pd3dGraphicsRootSignature.Get());
 
 	BuildLights();

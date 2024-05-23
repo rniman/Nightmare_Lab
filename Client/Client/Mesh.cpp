@@ -89,13 +89,13 @@ CUserInterfaceRectMesh::CUserInterfaceRectMesh(ID3D12Device* pd3dDevice, ID3D12G
 	m_pxmf3ModelPositions[4] = XMFLOAT3(-fx, +fy, fz); m_pxmf2UV0[4] = XMFLOAT2(fMinU, fMinV);
 	m_pxmf3ModelPositions[5] = XMFLOAT3(+fx, +fy, fz); m_pxmf2UV0[5] = XMFLOAT2(fMaxU, fMinV);
 
-	m_pd3dVertexBuffer = ::CreateBufferResource(pd3dDevice, pd3dCommandList, m_pxmf3ModelPositions, sizeof(XMFLOAT3) * m_nVertices, D3D12_HEAP_TYPE_DEFAULT, D3D12_RESOURCE_STATE_VERTEX_AND_CONSTANT_BUFFER, &m_pd3dVertexUploadBuffer);
+	m_pd3dVertexBuffer = ::CreateBufferResource(pd3dDevice, pd3dCommandList, m_pxmf3ModelPositions, sizeof(XMFLOAT3) * m_nVertices, D3D12_HEAP_TYPE_UPLOAD, D3D12_RESOURCE_STATE_VERTEX_AND_CONSTANT_BUFFER, &m_pd3dVertexUploadBuffer);
 
 	m_d3dVertexBufferView.BufferLocation = m_pd3dVertexBuffer->GetGPUVirtualAddress();
 	m_d3dVertexBufferView.StrideInBytes = sizeof(XMFLOAT3);
 	m_d3dVertexBufferView.SizeInBytes = sizeof(XMFLOAT3) * m_nVertices;
 
-	m_pd3dUV0Buffer = ::CreateBufferResource(pd3dDevice, pd3dCommandList, m_pxmf2UV0, sizeof(XMFLOAT2) * m_nVertices, D3D12_HEAP_TYPE_DEFAULT, D3D12_RESOURCE_STATE_VERTEX_AND_CONSTANT_BUFFER, &m_pd3dUV0UploadBuffer);
+	m_pd3dUV0Buffer = ::CreateBufferResource(pd3dDevice, pd3dCommandList, m_pxmf2UV0, sizeof(XMFLOAT2) * m_nVertices, D3D12_HEAP_TYPE_UPLOAD, D3D12_RESOURCE_STATE_VERTEX_AND_CONSTANT_BUFFER, &m_pd3dUV0Buffer);
 
 	m_d3dUV0BufferView.BufferLocation = m_pd3dUV0Buffer->GetGPUVirtualAddress();
 	m_d3dUV0BufferView.StrideInBytes = sizeof(XMFLOAT2);
@@ -110,7 +110,7 @@ void CUserInterfaceRectMesh::ReleaseUploadBuffers()
 {
 	CMesh::ReleaseUploadBuffers();
 
-	if (m_pd3dUV0UploadBuffer.Get()) m_pd3dUV0UploadBuffer.Reset();
+	//if (m_pd3dUV0UploadBuffer.Get()) m_pd3dUV0UploadBuffer.Reset();
 }
 
 void CUserInterfaceRectMesh::OnPreRender(ID3D12GraphicsCommandList* pd3dCommandList)
@@ -122,6 +122,29 @@ void CUserInterfaceRectMesh::OnPreRender(ID3D12GraphicsCommandList* pd3dCommandL
 void CUserInterfaceRectMesh::Render(ID3D12GraphicsCommandList* pd3dCommandList, int nSubSet)
 {
 	CMesh::Render(pd3dCommandList, nSubSet);
+}
+
+inline void CUserInterfaceRectMesh::UpdateShaderVariables(ID3D12GraphicsCommandList* pd3dCommandList)
+{
+	UINT8* pBufferDataBegin = NULL;
+	m_pd3dVertexBuffer->Map(0, NULL, (void**)&pBufferDataBegin);
+	memcpy(pBufferDataBegin, m_pxmf3ModelPositions, sizeof(XMFLOAT3) * m_nVertices);
+	m_pd3dVertexBuffer->Unmap(0, NULL);
+
+	m_pd3dUV0Buffer->Map(0, NULL, (void**)&pBufferDataBegin);
+	memcpy(pBufferDataBegin, m_pxmf2UV0, sizeof(XMFLOAT2) * m_nVertices);
+	m_pd3dUV0Buffer->Unmap(0, NULL);
+}
+
+void CUserInterfaceRectMesh::SetVertexData(float fWidth, float fHeight, float fMaxU, float fMaxV, float fMinU, float fMinV)
+{
+	float fx = (fWidth * 0.5f), fy = (fHeight * 0.5f), fz = (0.0f * 0.5f);
+	m_pxmf3ModelPositions[0] = XMFLOAT3(+fx, +fy, fz); m_pxmf2UV0[0] = XMFLOAT2(fMaxU, fMinV);
+	m_pxmf3ModelPositions[1] = XMFLOAT3(+fx, -fy, fz); m_pxmf2UV0[1] = XMFLOAT2(fMaxU, fMaxV);
+	m_pxmf3ModelPositions[2] = XMFLOAT3(-fx, -fy, fz); m_pxmf2UV0[2] = XMFLOAT2(fMinU, fMaxV);
+	m_pxmf3ModelPositions[3] = XMFLOAT3(-fx, -fy, fz); m_pxmf2UV0[3] = XMFLOAT2(fMinU, fMaxV);
+	m_pxmf3ModelPositions[4] = XMFLOAT3(-fx, +fy, fz); m_pxmf2UV0[4] = XMFLOAT2(fMinU, fMinV);
+	m_pxmf3ModelPositions[5] = XMFLOAT3(+fx, +fy, fz); m_pxmf2UV0[5] = XMFLOAT2(fMaxU, fMinV);
 }
 
 

@@ -14,7 +14,7 @@
 #pragma comment(lib, "ws2_32") // ws2_32.lib ¸µÅ©
 
 #define SERVERPORT 9000
-#define BUFSIZE    10000
+#define BUFSIZE    12000
 #define WM_SOCKET  (WM_USER+1)
 
 #include <vector>

@@ -213,6 +213,7 @@ void TCPServer::OnProcessingReadMessage(HWND hWnd, UINT nMessageID, WPARAM wPara
 		WORD wKeyBuffer = 0;
 		memcpy(&wKeyBuffer, m_vSocketInfoList[nSocketIndex].m_pCurrentBuffer + sizeOffset, sizeof(WORD));
 		pPlayer->SetKeyBuffer(wKeyBuffer);
+
 		sizeOffset += sizeof(WORD);
 
 		XMFLOAT4X4 xmf4x4View;

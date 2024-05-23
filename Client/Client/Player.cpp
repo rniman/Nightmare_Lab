@@ -558,6 +558,25 @@ void CBlueSuitPlayer::Update(float fElapsedTime)
 	}
 	m_pCamera->SetFogInfo(XMFLOAT4(0.0f, 10.0f, 0.05f + m_fInterruption / 8, 1.0f));
 
+	if (m_bRunning)
+	{
+		m_fStamina -= fElapsedTime;
+		m_fFullStaminaTime = 0.0f;
+	}
+	else if (m_fStamina < BLUESUIT_STAMINA_MAX)
+	{
+		m_fStamina += fElapsedTime;
+		if (m_fStamina > BLUESUIT_STAMINA_MAX)
+		{
+			m_fStamina = BLUESUIT_STAMINA_MAX;
+		}
+	}
+	else
+	{
+		m_fFullStaminaTime += fElapsedTime;
+	}
+
+
 	//if (m_bShiftRun)
 	//{
 	//	m_fStamina -= fElapsedTime;
@@ -1093,25 +1112,9 @@ void CZombiePlayer::LoadModelAndAnimation(ID3D12Device* pd3dDevice, ID3D12Graphi
 }
 
 void CZombiePlayer::Update(float fElapsedTime)
-{
-	// 
-	//if(m_bTracking)
-	//{
-	//	m_fTrackingTime += fElapsedTime;
-	//	if (m_fTrackingTime > 2.0f)
-	//	{
-	//		m_fTrackingTime = 2.0f;
-	//	}
-	//}
-	//else
-	//{
-	//	m_fTrackingTime -= fElapsedTime;
-	//	if (m_fTrackingTime < 0.0f)
-	//	{
-	//		m_fTrackingTime = 0.0f;
-	//	}
-	//}
-
+{	
+	//[0519] 스킬 UI를 위해서 필요
+	UpdateSkill(fElapsedTime);
 
 	if (m_bElectricBlend) {
 		m_pcbMappedTime->time += fElapsedTime;
@@ -1188,4 +1191,69 @@ void CZombiePlayer::Animate(float fElapsedTime)
 
 	if (m_pSibling) m_pSibling->Animate(fElapsedTime);
 	if (m_pChild) m_pChild->Animate(fElapsedTime);
+}
+
+void CZombiePlayer::UpdateSkill(float fElapsedTime)
+{
+	if (!m_bAbleTracking)
+	{
+		m_fTrackingTime += fElapsedTime;
+		if (m_fTrackingTime > TRACKING_COOLTIME)
+		{
+			m_bAbleTracking = true;
+		}
+	}
+
+	if (!m_bAbleInterruption)
+	{
+		m_fInterruptionTime += fElapsedTime;
+		if (m_fInterruptionTime > INTERRUPTION_COOLTIME)
+		{
+			m_bAbleInterruption = true;
+		}
+	}
+
+	if (!m_bAbleRunning)
+	{
+		m_fRunningTime += fElapsedTime;
+		if (m_fRunningTime > ZOM_RUNNING_COOLTIME)
+		{
+			m_bAbleRunning = true;
+		}
+	}
+}
+
+void CZombiePlayer::SetTracking(bool bTracking)
+{
+	m_bTracking = bTracking;
+	if (m_bTracking && m_bAbleTracking)
+	{
+		m_bAbleTracking = false;
+		m_fTrackingTime = 0.0f;
+	}
+}
+
+void CZombiePlayer::SetInterruption(bool bInterruption)
+{
+	m_bInterruption = bInterruption;
+	if (m_bInterruption && m_bAbleInterruption)
+	{
+		m_bAbleInterruption = false;
+		m_fInterruptionTime = 0.0f;
+	}
+}
+
+void CZombiePlayer::SetRunning(bool bRunning)
+{
+	m_bRunning = bRunning;
+	if (m_bRunning)
+	{
+		int x = 0;
+		x++;
+	}
+	if (m_bRunning && m_bAbleRunning)
+	{
+		m_bAbleRunning = false;
+		m_fRunningTime = 0.0f;
+	}
 }

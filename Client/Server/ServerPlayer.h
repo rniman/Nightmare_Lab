@@ -1,18 +1,21 @@
 #pragma once
 #include "ServerObject.h"
 
-//constexpr WORD DIR_FORWARD = 0x01;
-//constexpr WORD DIR_BACKWARD = 0x02;
-//constexpr WORD DIR_LEFT = 0x04;
-//constexpr WORD DIR_RIGHT = 0x08;
 constexpr WORD PRESS_LBUTTON = 0x10;
 constexpr WORD PRESS_RBUTTON = 0x20;
-//constexpr WORD DIR_UP = 0x40;
-//constexpr WORD DIR_DOWN = 0x80;
 constexpr FLOAT ASPECT_RATIO = 1600.0f / 1024.0f;
 
 constexpr float BLUESUIT_WALK_VELCOCITY{ 6.0f };
 constexpr float ZOMBIE_WALK_VELOCITY{ 7.0f };
+constexpr float BLUESUIT_STAMINA_MAX{ 5.0f };
+constexpr float BLUESUIT_STAMINA_EXHAUSTION{ 3.0f };
+
+constexpr float TRACKING_DURATION{ 5.0f };
+constexpr float TRACKING_COOLTIME{ 10.0f };
+constexpr float INTERRUPTION_DURATION{ 5.0f };
+constexpr float INTERRUPTION_COOLTIME{ 10.0f };
+constexpr float ZOM_RUNNING_DURATION{ 6.0f };
+constexpr float ZOM_RUNNING_COOLTIME{ 10.0f };
 
 class CServerPlayer : public CServerGameObject
 {
@@ -89,8 +92,7 @@ protected:
 	INT8 m_nPlayerId = -1;	//m_vSocketInfoList인덱스 번호
 	
 	//[0511] 이제 WORD로 다룬다
-	WORD m_wKeyBuffer;
-	//UCHAR m_pKeysBuffer[256];
+	WORD m_wKeyBuffer = 0;
 
 	bool m_bOccurredCollision = false;
 	bool m_bStair = false;		// 계단에 있는 상태
@@ -177,8 +179,6 @@ private:
 	float m_fStamina = 5.0f;
 
 	int m_nHealthPoint = 3;
-
-
 };
 
 ///
@@ -199,20 +199,18 @@ public:
 
 	bool IsTracking() const { return m_bTracking; }
 	bool IsInterruption() const { return m_bInterruption; }
-	bool IsRunning() const { return m_bRunning; }
 	bool IsAttack() const { return m_bAttack; }
 
 private:
 	BoundingOrientedBox m_oobbAttackBox;
 
-	float m_fCoolTimeTracking = 0.0f;
-	float m_fCoolTimeInterruption = 0.0f;
-	float m_fCoolTimeRunning = 0.0f;
-	float m_fCoolTimeAttack = 0.0f;
+	float m_fCoolTimeTracking = -1.0f;
+	float m_fCoolTimeInterruption = -1.0f;
+	float m_fCoolTimeRunning = -1.0f;
+	float m_fCoolTimeAttack = -1.0f;
 
 	bool m_bTracking = false;
 	bool m_bInterruption = false;
-	bool m_bRunning = false;
 	bool m_bAttack = false;	// true면 클라에서 track을 enable시킴
 
 	// 좀비 지뢰 관련

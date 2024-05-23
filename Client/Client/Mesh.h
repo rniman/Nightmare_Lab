@@ -68,21 +68,21 @@ protected:
 class CUserInterfaceRectMesh : public CMesh
 {
 public:
-	//CTexturedRectMesh(ID3D12Device *pd3dDevice, ID3D12GraphicsCommandList *pd3dCommandList, float fWidth=20.0f, float fHeight=20.0f, float fDepth=20.0f, float fxPosition=0.0f, float fyPosition=0.0f, float fzPosition=0.0f);
 	CUserInterfaceRectMesh(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dCommandList, float fWidth, float fHeight, float fDepth, float fMaxU, float fMaxV, float fMinU, float fMinV);
 	virtual ~CUserInterfaceRectMesh();
 
 	virtual void ReleaseUploadBuffers();
 	virtual void OnPreRender(ID3D12GraphicsCommandList* pd3dCommandList);
 	virtual void Render(ID3D12GraphicsCommandList* pd3dCommandList, int nSubSet);
-	//virtual void RenderInstance(ID3D12GraphicsCommandList* pd3dCommandList, int nInstances, D3D12_VERTEX_BUFFER_VIEW d3dInstancingBufferView, int nStartInstance);
-	//virtual void RenderInstance(ID3D12GraphicsCommandList* pd3dCommandList, int nInstances, int nStartInstance);
 
+	virtual void UpdateShaderVariables(ID3D12GraphicsCommandList* pd3dCommandList) override;;
+
+	void SetVertexData(float fWidth, float fHeight, float fMaxU, float fMaxV, float fMinU, float fMinV);
 protected:
 	XMFLOAT2* m_pxmf2UV0 = nullptr;
 
 	ComPtr<ID3D12Resource>			m_pd3dUV0Buffer;
-	ComPtr<ID3D12Resource>			m_pd3dUV0UploadBuffer;
+	//ComPtr<ID3D12Resource>			m_pd3dUV0UploadBuffer;
 	D3D12_VERTEX_BUFFER_VIEW		m_d3dUV0BufferView;
 };
 

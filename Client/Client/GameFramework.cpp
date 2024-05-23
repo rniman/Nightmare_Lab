@@ -1025,7 +1025,7 @@ void CGameFramework::PreRenderTasks()
 //#define _WITH_PLAYER_TOP
 void CGameFramework::FrameAdvance()
 {
-	m_GameTimer.Tick(60.f);
+	m_GameTimer.Tick(144.f);
 
 	ProcessInput();
 
@@ -1095,12 +1095,13 @@ void CGameFramework::FrameAdvance()
 
 				m_d3dCommandList->OMSetRenderTargets(1, &shadowRTVDescriptorHandle, TRUE, &d3dDsvCPUDescriptorHandle);
 
-				if (m_pCamera.lock() && m_nMainClientId != i + 1 + ZOMBIEPLAYER)
+				if (m_pCamera.lock())
 				{
 					if (!m_pCamera.lock()->IsInFrustum(vlightCamera[i]->GetBoundingFrustum()))
 					{
-						FLOAT pfClearValue[4] = { 0.0f, 0.0f, 0.0f, 1.0f };
-						m_d3dCommandList->ClearRenderTargetView(shadowRTVDescriptorHandle, pfClearValue, 0, nullptr);
+						//[0519]CreateCommittedResource에서 정했던 클리어 값하고 달라서 경고떠서 일단 수정
+						//FLOAT pfClearValue[4] = { 0.0f, 0.0f, 0.0f, 1.0f };
+						//m_d3dCommandList->ClearRenderTargetView(shadowRTVDescriptorHandle, pfClearValue, 0, nullptr);
 						continue;
 					}
 				}
@@ -1131,7 +1132,7 @@ void CGameFramework::FrameAdvance()
 		//1차 렌더링
 		if (m_pScene)
 		{
-			m_d3dCommandList->SetGraphicsRootDescriptorTable(12, m_d3dTimeCbvGPUDescriptorHandle);
+			//m_d3dCommandList->SetGraphicsRootDescriptorTable(12, m_d3dTimeCbvGPUDescriptorHandle);
 			m_pScene->Render(m_d3dCommandList.Get(), m_pCamera.lock(), 0);
 		}
 		
@@ -1150,7 +1151,8 @@ void CGameFramework::FrameAdvance()
 		// 투명 객체 렌더링
 		if (m_pScene)
 		{
-			for (auto& s : m_pScene->m_vForwardRenderShader) {
+			for (auto& s : m_pScene->m_vForwardRenderShader)
+			{
 				s->Render(m_d3dCommandList.Get(), m_pCamera.lock());
 			}
 		}

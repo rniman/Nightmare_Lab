@@ -77,8 +77,6 @@ public:
 	shared_ptr<CCamera> GetCamera() { return m_pCamera; }
 	void SetCamera(shared_ptr<CCamera> pCamera) { m_pCamera = pCamera; }
 
-	void SetRunning(bool bRunning) { m_bRunning = bRunning; }
-	bool IsRunning() const { return m_bRunning; }
 	// Picking
 	weak_ptr<CGameObject> GetPickedObject() { return m_pPickedObject; }
 	virtual void UpdatePicking() override {};
@@ -97,8 +95,12 @@ public:
 	bool IsRightClick() { return m_bRightClick; }
 	void SetRightClick(bool val) { m_bRightClick = val; }
 
-	void SetTracking(bool bTracking) { m_bTracking = bTracking; }
+	virtual void SetTracking(bool bTracking) { m_bTracking = bTracking; }
+	virtual void SetInterruption(bool bInterruption) { m_bInterruption = bInterruption; }
+	virtual void SetRunning(bool bRunning) { m_bRunning = bRunning; }
 	bool IsTracking()const { return m_bTracking; }
+	bool IsInterruption() const { return m_bInterruption; }
+	bool IsRunning() const { return m_bRunning; }
 protected:
 	INT8 m_nClientId = -1;
 
@@ -125,7 +127,6 @@ protected:
 	float           			m_fMaxVelocityY = 0.0f;
 	float           			m_fFriction = 0.0f;
 
-	bool						m_bRunning = false;
 
 	LPVOID						m_pPlayerUpdatedContext = NULL;
 	LPVOID						m_pCameraUpdatedContext = NULL;
@@ -137,8 +138,16 @@ protected:
 	bool m_bRightClick = false;
 
 	bool m_bTracking = false;
-	//float m_fTrackingTime = 0.0f;
+	float m_fTrackingTime = 0.0f;
+	bool m_bInterruption = false; // true시 안개 효과 심해짐
+	float m_fInterruptionTime = 0.0f;
+	float m_fInterruption = 0.0f;
+	bool m_bRunning = false;
+	float m_fRunningTime = 0.0f;
 };
+
+constexpr float BLUESUIT_STAMINA_MAX{ 5.0f };
+constexpr float BLUESUIT_STAMINA_EXHAUSTION{ 3.0f };
 
 class CBlueSuitPlayer : public CPlayer
 {
@@ -187,14 +196,15 @@ public:
 		m_apFuseItems[nIndex]->SetReferenceNumber(-1);
 	}
 
-	void SetInterruption(bool bInterruption) { m_bInterruption = bInterruption; }
-
 	int GetReferenceSlotItemNum(int nIndex) { return m_apSlotItems[nIndex]->GetReferenceNumber(); }
 	int GetReferenceFuseItemNum(int nIndex) { return m_apFuseItems[nIndex]->GetReferenceNumber(); }
 
 	void SelectItem(RightItem item) { m_selectItem = item; }
 	void AddEnvironmentMineItems(shared_ptr<CMineObject> object);
 	void UseMine(int item_id);
+
+	float GetStamina() const { return m_fStamina; }
+	float GetFullStaminaTime() const { return m_fFullStaminaTime; }
 
 	void SetEscapePos(XMFLOAT3 pos);
 private:
@@ -205,11 +215,8 @@ private:
 	int m_nFuseNum = 0;
 	std::array<shared_ptr<CItemObject>, 3> m_apFuseItems;
 
-	bool m_bAbleRun = true;
-	float m_fStamina = 5.0f;
-
-	bool m_bInterruption = false; // true시 안개 효과 심해짐
-	float m_fInterruption = 0.0f;
+	float m_fStamina = BLUESUIT_STAMINA_MAX;
+	float m_fFullStaminaTime = 0.0f;
 
 	XMFLOAT3 m_fEscapePos = XMFLOAT3(0.0f, 0.0f, 0.0f);
 private: 
@@ -263,6 +270,13 @@ public:
 
 struct FrameTimeInfo;
 
+constexpr float TRACKING_DURATION{ 5.0f };
+constexpr float TRACKING_COOLTIME{ 10.0f };
+constexpr float INTERRUPTION_DURATION{ 5.0f };
+constexpr float INTERRUPTION_COOLTIME{ 10.0f };
+constexpr float ZOM_RUNNING_DURATION{ 6.0f };
+constexpr float ZOM_RUNNING_COOLTIME{ 10.0f };
+
 class CZombiePlayer : public CPlayer
 {
 private:
@@ -278,14 +292,26 @@ public:
 	virtual ~CZombiePlayer();
 
 	virtual void LoadModelAndAnimation(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dCommandList, ID3D12RootSignature* pd3dGraphicsRootSignature, const shared_ptr<CLoadedModelInfo>& pLoadModelInfo) override;
-	
+
 	virtual void Update(float fElapsedTime) override;
 	virtual void Animate(float fElapsedTime);
 	virtual void Render(ID3D12GraphicsCommandList* pd3dCommandList);
 
+	void UpdateSkill(float fElapsedTime);
+
+	virtual void SetTracking(bool bTracking) override;
+	virtual void SetInterruption(bool bInterruption) override;
+	virtual void SetRunning(bool bRunning) override;
+	bool IsAbleTracking() const { return m_bAbleTracking; }
+	bool IsAbleInterruption() const { return m_bAbleInterruption; }
+	bool IsAbleRunning() const { return m_bAbleRunning; }
 private:
 	bool m_bElectricBlend = false;
 	shared_ptr<CMaterial> m_pElectircaterial;
+
+	bool m_bAbleTracking = true;
+	bool m_bAbleInterruption = true;
+	bool m_bAbleRunning = true;
 public:
 	void SetEectricShock();
 	void SetElectiricMt(shared_ptr<CMaterial> mt) { m_pElectircaterial = mt; }

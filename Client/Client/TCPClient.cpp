@@ -421,11 +421,9 @@ void CTcpClient::UpdateZombiePlayer()
 		return;
 	}
 
-
-	// 시야 방해
 	for (int i = 0; i < MAX_CLIENT; ++i)
 	{
-		if (m_nMainClientId == 0)	// 추적
+		if (m_nMainClientId == ZOMBIEPLAYER)	// 추적
 		{
 			if (m_aClientInfo[0].m_nSlotObjectNum[0] == 1)
 			{
@@ -437,46 +435,32 @@ void CTcpClient::UpdateZombiePlayer()
 			}
 		}
 
-		if (m_apPlayers[i]->GetClientId() != m_nMainClientId || i == 0)
+		if (m_apPlayers[i]->GetClientId() != m_nMainClientId || i == ZOMBIEPLAYER)
 		{
 			continue;
 		}
 		if (m_aClientInfo[0].m_nSlotObjectNum[1] == 1)
 		{
-			dynamic_pointer_cast<CBlueSuitPlayer>(m_apPlayers[i])->SetInterruption(true);
+			m_apPlayers[i]->SetInterruption(true);
 		}
 		else
 		{
-			dynamic_pointer_cast<CBlueSuitPlayer>(m_apPlayers[i])->SetInterruption(false);
+			m_apPlayers[i]->SetInterruption(false);
 		}
-
 	}
-	//if (m_aClientInfo[0].m_nSlotObjectNum[1] == 1)	// 시야방해
-	//{
-	//	// 모든 플레이어의 안개효과 심화됨 ( 내 플레이어 안개만 조정하면 됨 )
-	//	for (int i = 1; i < MAX_CLIENT; ++i)
-	//	{
-	//		if (m_apPlayers[i]->GetClientId() != m_nMainClientId)
-	//		{
-	//			continue;
-	//		}
-	//		dynamic_pointer_cast<CBlueSuitPlayer>(m_apPlayers[i])->SetInterruption(true);
-	//	}
-	//}
-	//else
-	//{
-		//for (int i = 1; i < MAX_CLIENT; ++i)
-		//{
-		//	if (m_apPlayers[i]->GetClientId() != m_nMainClientId)
-		//	{
-		//		continue;
-		//	}
-		//	if (m_aClientInfo[0].m_nSlotObjectNum[1] == 1)
-		//		dynamic_pointer_cast<CBlueSuitPlayer>(m_apPlayers[i])->SetInterruption(true);
-		//	else
-		//		dynamic_pointer_cast<CBlueSuitPlayer>(m_apPlayers[i])->SetInterruption(false);
-		//}
-	//}
+
+	// 시야 방해(zombie 플레이어)
+	if (m_nMainClientId == ZOMBIEPLAYER)
+	{
+		if (m_aClientInfo[0].m_nSlotObjectNum[1] == 1)
+		{
+			m_apPlayers[0]->SetInterruption(true);
+		}
+		else
+		{
+			m_apPlayers[0]->SetInterruption(false);
+		}
+	}
 
 	if (m_aClientInfo[0].m_nSlotObjectNum[2] == 1)	// 공격을 시도
 	{

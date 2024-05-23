@@ -895,7 +895,9 @@ void CPostProcessingShader::CreateLightCamera(ID3D12Device* pd3dDevice, ID3D12Gr
 		XMFLOAT3 lookAtPosition = Vector3::Add(positions[i], looks[i]);
 		m_pLightCamera[i]->GenerateViewMatrix(positions[i], lookAtPosition, xmf3Up);
 		if(i >= MAX_SURVIVOR)
+		{
 			m_pLightCamera[i]->GenerateProjectionMatrix(1.01f, 5.0f, ASPECT_RATIO, 90.0f);	//[0513] 근평면이 있어야  그림자를 그림
+		}
 		m_pLightCamera[i]->GenerateFrustum();
 		m_pLightCamera[i]->MultiplyViewProjection();
 
@@ -925,16 +927,17 @@ void CPostProcessingShader::OnShadowPrepareRenderTarget(ID3D12GraphicsCommandLis
 	}
 }
 
-D3D12_INPUT_LAYOUT_DESC CUserInterfaceShader::CreateInputLayout()
+/// <CShader - CPostProcessingShader>
+////// /// /// /// /// /// /// /// /// /// /// /// /// /// /// /// /// /// /// /// /// /// /// /// /// /// /// /// ///  
+/// <CShader - CBlueSuitUserInterfaceShader>
+
+D3D12_INPUT_LAYOUT_DESC CBlueSuitUserInterfaceShader::CreateInputLayout()
 {
 	UINT nInputElementDescs = 2;
 	D3D12_INPUT_ELEMENT_DESC* pd3dInputElementDescs = new D3D12_INPUT_ELEMENT_DESC[nInputElementDescs];
 
 	pd3dInputElementDescs[0] = { "POSITION", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, 0, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0 };
 	pd3dInputElementDescs[1] = { "TEXCOORD", 0, DXGI_FORMAT_R32G32_FLOAT, 1, 0, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0 };
-	//pd3dInputElementDescs[2] = { "NORMAL", 0, DXGI_FORMAT_R32G32B32_FLOAT, 2, 0, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0 };
-	//pd3dInputElementDescs[3] = { "TANGENT", 0, DXGI_FORMAT_R32G32B32_FLOAT, 3, 0, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0 };
-	//pd3dInputElementDescs[4] = { "BITANGENT", 0, DXGI_FORMAT_R32G32B32_FLOAT, 4, 0, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0 };
 
 	D3D12_INPUT_LAYOUT_DESC d3dInputLayoutDesc;
 	d3dInputLayoutDesc.pInputElementDescs = pd3dInputElementDescs;
@@ -943,19 +946,19 @@ D3D12_INPUT_LAYOUT_DESC CUserInterfaceShader::CreateInputLayout()
 	return(d3dInputLayoutDesc);
 }
 
-D3D12_SHADER_BYTECODE CUserInterfaceShader::CreateVertexShader()
+D3D12_SHADER_BYTECODE CBlueSuitUserInterfaceShader::CreateVertexShader()
 {
 	return CShader::ReadCompiledShaderFromFile(L"cso/VSUserInterface.cso", m_pd3dVertexShaderBlob.GetAddressOf());
 	//return(CShader::CompileShaderFromFile(L"Shaders.hlsl", "VSUserInterface", "vs_5_1", m_pd3dVertexShaderBlob.GetAddressOf()));
 }
 
-D3D12_SHADER_BYTECODE CUserInterfaceShader::CreatePixelShader()
+D3D12_SHADER_BYTECODE CBlueSuitUserInterfaceShader::CreatePixelShader()
 {
 	return CShader::ReadCompiledShaderFromFile(L"cso/PSUserInterface.cso", m_pd3dPixelShaderBlob.GetAddressOf());
 	//return(CShader::CompileShaderFromFile(L"Shaders.hlsl", "PSUserInterface", "ps_5_1", m_pd3dPixelShaderBlob.GetAddressOf()));
 }
 
-D3D12_RASTERIZER_DESC CUserInterfaceShader::CreateRasterizerState()
+D3D12_RASTERIZER_DESC CBlueSuitUserInterfaceShader::CreateRasterizerState()
 {
 	D3D12_RASTERIZER_DESC d3dRasterizerDesc;
 	::ZeroMemory(&d3dRasterizerDesc, sizeof(D3D12_RASTERIZER_DESC));
@@ -974,11 +977,11 @@ D3D12_RASTERIZER_DESC CUserInterfaceShader::CreateRasterizerState()
 	return(d3dRasterizerDesc);
 }
 
-D3D12_BLEND_DESC CUserInterfaceShader::CreateBlendState()
+D3D12_BLEND_DESC CBlueSuitUserInterfaceShader::CreateBlendState()
 {
 	D3D12_BLEND_DESC d3dBlendDesc;
 	::ZeroMemory(&d3dBlendDesc, sizeof(D3D12_BLEND_DESC));
-	d3dBlendDesc.AlphaToCoverageEnable = TRUE;
+	d3dBlendDesc.AlphaToCoverageEnable = FALSE;
 	d3dBlendDesc.IndependentBlendEnable = FALSE;
 	d3dBlendDesc.RenderTarget[0].BlendEnable = TRUE;
 	d3dBlendDesc.RenderTarget[0].LogicOpEnable = FALSE;
@@ -994,7 +997,7 @@ D3D12_BLEND_DESC CUserInterfaceShader::CreateBlendState()
 	return(d3dBlendDesc);
 }
 
-void CUserInterfaceShader::CreateShader(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dCommandList, ID3D12RootSignature* pd3dGraphicsRootSignature, UINT nRenderTargets, DXGI_FORMAT* pdxgiRtvFormats, DXGI_FORMAT dxgiDsvFormat)
+void CBlueSuitUserInterfaceShader::CreateShader(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dCommandList, ID3D12RootSignature* pd3dGraphicsRootSignature, UINT nRenderTargets, DXGI_FORMAT* pdxgiRtvFormats, DXGI_FORMAT dxgiDsvFormat)
 {
 	m_nPipelineState = 1;
 	m_vpd3dPipelineState.reserve(m_nPipelineState);
@@ -1006,28 +1009,462 @@ void CUserInterfaceShader::CreateShader(ID3D12Device* pd3dDevice, ID3D12Graphics
 	CShader::CreateShader(pd3dDevice, pd3dCommandList, pd3dGraphicsRootSignature, nRenderTargets, pdxgiRtvFormats, dxgiDsvFormat); //m_ppd3dPipelineStates[0] 생성
 }
 
-void CUserInterfaceShader::BuildObjects(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dCommandList, ID3D12RootSignature* pd3dGraphicsRootSignature) 
+void CBlueSuitUserInterfaceShader::BuildObjects(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dCommandList, ID3D12RootSignature* pd3dGraphicsRootSignature)
 {
+	shared_ptr<CMesh> pmeshRect = make_shared<CUserInterfaceRectMesh>(pd3dDevice, pd3dCommandList, 1.f, 1.f, 0.0f, 1.0f, 1.0f, 0.0f, 0.0f);
+
+	//CROSSHAIR
 	shared_ptr<CTexture> ptexCrosshair = make_shared<CTexture>(1, RESOURCE_TEXTURE2D, 0, 1);
-	ptexCrosshair->LoadTextureFromDDSFile(pd3dDevice, pd3dCommandList, (wchar_t*)L"Asset/Textures/crosshair.dds", RESOURCE_TEXTURE2D, 0);
+	ptexCrosshair->LoadTextureFromDDSFile(pd3dDevice, pd3dCommandList, (wchar_t*)L"Asset/UI/crosshair.dds", RESOURCE_TEXTURE2D, 0);
 	CScene::CreateShaderResourceViews(pd3dDevice, ptexCrosshair, 0, 3);
 
 	shared_ptr<CMaterial> pmatCrosshair = make_shared<CMaterial>(1);
 	pmatCrosshair->SetMaterialType(MATERIAL_ALBEDO_MAP);
 	pmatCrosshair->SetTexture(ptexCrosshair);
 
-	
 	float fxScale = float(FRAME_BUFFER_HEIGHT) / FRAME_BUFFER_WIDTH;
-	shared_ptr<CMesh> pmeshCrosshair = make_shared<CUserInterfaceRectMesh>(pd3dDevice, pd3dCommandList, 0.02f * fxScale, 0.02f, 0.0f, 1.0f, 1.0f, 0.0f, 0.0f);
-
 	shared_ptr<CGameObject> pCrosshair = make_shared<CGameObject>(pd3dDevice, pd3dCommandList, 1);
 	pCrosshair->SetMaterial(0, pmatCrosshair);
-	pCrosshair->SetMesh(pmeshCrosshair);
+	pCrosshair->SetMesh(pmeshRect);
+	pCrosshair->SetScale(0.02f * fxScale, 0.02f, 1.0f);
+
+	//TeleportUI
+	shared_ptr<CTexture> ptexMaskTeleport = make_shared<CTexture>(1, RESOURCE_TEXTURE2D, 0, 1);
+	ptexMaskTeleport->LoadTextureFromDDSFile(pd3dDevice, pd3dCommandList, (wchar_t*)L"Asset/UI/teleportMaskUI.dds", RESOURCE_TEXTURE2D, 0);
+	CScene::CreateShaderResourceViews(pd3dDevice, ptexMaskTeleport, 0, 3);
+	m_vpmatTeleport[0] = make_shared<CMaterial>(1);
+	m_vpmatTeleport[0]->SetMaterialType(MATERIAL_ALBEDO_MAP);
+	m_vpmatTeleport[0]->SetTexture(ptexMaskTeleport);
+
+	shared_ptr<CTexture> ptexTeleport = make_shared<CTexture>(1, RESOURCE_TEXTURE2D, 0, 1);
+	ptexTeleport->LoadTextureFromDDSFile(pd3dDevice, pd3dCommandList, (wchar_t*)L"Asset/UI/teleportUI.dds", RESOURCE_TEXTURE2D, 0);
+	CScene::CreateShaderResourceViews(pd3dDevice, ptexTeleport, 0, 3);
+	m_vpmatTeleport[1] = make_shared<CMaterial>(1);
+	m_vpmatTeleport[1]->SetMaterialType(MATERIAL_ALBEDO_MAP);
+	m_vpmatTeleport[1]->SetTexture(ptexTeleport);
+
+	m_pTeleport = make_shared<CGameObject>(pd3dDevice, pd3dCommandList, 1);
+	m_pTeleport->SetMaterial(0, m_vpmatTeleport[0]);
+	m_pTeleport->SetMesh(pmeshRect);
+	m_pTeleport->SetScale(0.2f * fxScale, 0.2f, 1.0f);
+	m_pTeleport->SetPosition(-0.9f, 0.85f, 0.0f);
+
+	//RadarUI
+	shared_ptr<CTexture> ptexMaskRadar = make_shared<CTexture>(1, RESOURCE_TEXTURE2D, 0, 1);
+	ptexMaskRadar->LoadTextureFromDDSFile(pd3dDevice, pd3dCommandList, (wchar_t*)L"Asset/UI/radarMaskUI.dds", RESOURCE_TEXTURE2D, 0);
+	CScene::CreateShaderResourceViews(pd3dDevice, ptexMaskRadar, 0, 3);
+	m_vpmatRadar[0] = make_shared<CMaterial>(1);
+	m_vpmatRadar[0]->SetMaterialType(MATERIAL_ALBEDO_MAP);
+	m_vpmatRadar[0]->SetTexture(ptexMaskRadar);
+
+	shared_ptr<CTexture> ptexRadar = make_shared<CTexture>(1, RESOURCE_TEXTURE2D, 0, 1);
+	ptexRadar->LoadTextureFromDDSFile(pd3dDevice, pd3dCommandList, (wchar_t*)L"Asset/UI/radarUI.dds", RESOURCE_TEXTURE2D, 0);
+	CScene::CreateShaderResourceViews(pd3dDevice, ptexRadar, 0, 3);
+	m_vpmatRadar[1] = make_shared<CMaterial>(1);
+	m_vpmatRadar[1]->SetMaterialType(MATERIAL_ALBEDO_MAP);
+	m_vpmatRadar[1]->SetTexture(ptexRadar);
+
+	m_pRadar = make_shared<CGameObject>(pd3dDevice, pd3dCommandList, 1);
+	m_pRadar->SetMaterial(0, m_vpmatRadar[0]);
+	m_pRadar->SetMesh(pmeshRect);
+	m_pRadar->SetScale(0.2f * fxScale, 0.2f, 1.0f);
+	m_pRadar->SetPosition(-0.9f + 0.21f * fxScale * 1, 0.85f, 0.0f);
+
+	//MineUI
+	shared_ptr<CTexture> ptexMaskMine = make_shared<CTexture>(1, RESOURCE_TEXTURE2D, 0, 1);
+	ptexMaskMine->LoadTextureFromDDSFile(pd3dDevice, pd3dCommandList, (wchar_t*)L"Asset/UI/mineMaskUI.dds", RESOURCE_TEXTURE2D, 0);
+	CScene::CreateShaderResourceViews(pd3dDevice, ptexMaskMine, 0, 3);
+	m_vpmatMine[0] = make_shared<CMaterial>(1);
+	m_vpmatMine[0]->SetMaterialType(MATERIAL_ALBEDO_MAP);
+	m_vpmatMine[0]->SetTexture(ptexMaskMine);
+
+	shared_ptr<CTexture> ptexMine = make_shared<CTexture>(1, RESOURCE_TEXTURE2D, 0, 1);
+	ptexMine->LoadTextureFromDDSFile(pd3dDevice, pd3dCommandList, (wchar_t*)L"Asset/UI/mineUI.dds", RESOURCE_TEXTURE2D, 0);
+	CScene::CreateShaderResourceViews(pd3dDevice, ptexMine, 0, 3);
+	m_vpmatMine[1] = make_shared<CMaterial>(1);
+	m_vpmatMine[1]->SetMaterialType(MATERIAL_ALBEDO_MAP);
+	m_vpmatMine[1]->SetTexture(ptexMine);
+
+	m_pMine = make_shared<CGameObject>(pd3dDevice, pd3dCommandList, 1);
+	m_pMine->SetMaterial(0, m_vpmatMine[0]);
+	m_pMine->SetMesh(pmeshRect);
+	m_pMine->SetScale(0.2f * fxScale, 0.2f, 1.0f);
+	m_pMine->SetPosition(-0.9f + 0.21f * fxScale * 2, 0.85f, 0.0f);
+
+	//FuseUI
+	shared_ptr<CTexture> ptexMaskFuseOne = make_shared<CTexture>(1, RESOURCE_TEXTURE2D, 0, 1);
+	ptexMaskFuseOne->LoadTextureFromDDSFile(pd3dDevice, pd3dCommandList, (wchar_t*)L"Asset/UI/fuseOneMaskUI.dds", RESOURCE_TEXTURE2D, 0);
+	m_vpmatFuse[0] = make_shared<CMaterial>(1);
+	m_vpmatFuse[0]->SetMaterialType(MATERIAL_ALBEDO_MAP);
+	m_vpmatFuse[0]->SetTexture(ptexMaskFuseOne, 0);
+	CScene::CreateShaderResourceViews(pd3dDevice, ptexMaskFuseOne, 0, 3);
+
+	shared_ptr<CTexture> ptexFuseOne = make_shared<CTexture>(1, RESOURCE_TEXTURE2D, 0, 1);
+	ptexFuseOne->LoadTextureFromDDSFile(pd3dDevice, pd3dCommandList, (wchar_t*)L"Asset/UI/fuseOneUI.dds", RESOURCE_TEXTURE2D, 0);
+	m_vpmatFuse[1] = make_shared<CMaterial>(1);
+	m_vpmatFuse[1]->SetMaterialType(MATERIAL_ALBEDO_MAP);
+	m_vpmatFuse[1]->SetTexture(ptexFuseOne, 0);
+	CScene::CreateShaderResourceViews(pd3dDevice, ptexFuseOne, 0, 3);
+	shared_ptr<CTexture> ptexFuseTwo = make_shared<CTexture>(1, RESOURCE_TEXTURE2D, 0, 1);
+
+	ptexFuseTwo->LoadTextureFromDDSFile(pd3dDevice, pd3dCommandList, (wchar_t*)L"Asset/UI/fuseTwoUI.dds", RESOURCE_TEXTURE2D, 0);
+	m_vpmatFuse[2] = make_shared<CMaterial>(1);
+	m_vpmatFuse[2]->SetMaterialType(MATERIAL_ALBEDO_MAP);
+	m_vpmatFuse[2]->SetTexture(ptexFuseTwo, 0);
+	CScene::CreateShaderResourceViews(pd3dDevice, ptexFuseTwo, 0, 3);
+
+	shared_ptr<CTexture> ptexFuseThree = make_shared<CTexture>(1, RESOURCE_TEXTURE2D, 0, 1);
+	ptexFuseThree->LoadTextureFromDDSFile(pd3dDevice, pd3dCommandList, (wchar_t*)L"Asset/UI/fuseThreeUI.dds", RESOURCE_TEXTURE2D, 0);
+	CScene::CreateShaderResourceViews(pd3dDevice, ptexFuseThree, 0, 3);
+	m_vpmatFuse[3] = make_shared<CMaterial>(1);
+	m_vpmatFuse[3]->SetMaterialType(MATERIAL_ALBEDO_MAP);
+	m_vpmatFuse[3]->SetTexture(ptexFuseThree, 0);
+
+	m_pFuse = make_shared<CGameObject>(pd3dDevice, pd3dCommandList, 1);
+	m_pFuse->SetMaterial(0, m_vpmatFuse[0]);
+	m_pFuse->SetMesh(pmeshRect);
+	m_pFuse->SetScale(0.2f * fxScale, 0.2f, 1.0f);
+	m_pFuse->SetPosition(-0.9f + 0.21f * fxScale * 3, 0.85f, 0.0f);
+
+	//STAMINA BAR
+	shared_ptr<CTexture> ptexStaminaBG = make_shared<CTexture>(1, RESOURCE_TEXTURE2D, 0, 1);
+	ptexStaminaBG->LoadTextureFromDDSFile(pd3dDevice, pd3dCommandList, (wchar_t*)L"Asset/UI/staminaBarBG.dds", RESOURCE_TEXTURE2D, 0);
+	CScene::CreateShaderResourceViews(pd3dDevice, ptexStaminaBG, 0, 3);
+	m_vpmatStamina[0] = make_shared<CMaterial>(1);
+	m_vpmatStamina[0]->SetMaterialType(MATERIAL_ALBEDO_MAP);
+	m_vpmatStamina[0]->SetTexture(ptexStaminaBG);
+
+	shared_ptr<CTexture> ptexStamina = make_shared<CTexture>(1, RESOURCE_TEXTURE2D, 0, 1);
+	ptexStamina->LoadTextureFromDDSFile(pd3dDevice, pd3dCommandList, (wchar_t*)L"Asset/UI/staminaBar.dds", RESOURCE_TEXTURE2D, 0);
+	CScene::CreateShaderResourceViews(pd3dDevice, ptexStamina, 0, 3);
+	m_vpmatStamina[1] = make_shared<CMaterial>(1);
+	m_vpmatStamina[1]->SetMaterialType(MATERIAL_ALBEDO_MAP);
+	m_vpmatStamina[1]->SetTexture(ptexStamina);
+
+	m_vpStamina[0] = make_shared<CGameObject>(pd3dDevice, pd3dCommandList, 1);
+	m_vpStamina[0]->SetMaterial(0, m_vpmatStamina[0]);
+	m_vpStamina[0]->SetMesh(pmeshRect);
+	m_vpStamina[0]->SetScale(fxScale, 0.1f, 1.0f);
+	m_vpStamina[0]->SetPosition(0.0f, -0.75f, 0.01f);
+	m_vpStamina[0]->SetAlive(false);
+
+	m_pmeshStaminaRect = make_shared<CUserInterfaceRectMesh>(pd3dDevice, pd3dCommandList, 1.f, 1.f, 0.0f, 1.0f, 1.0f, 0.0f, 0.0f);
+	m_pmeshStaminaRect->UpdateShaderVariables(pd3dCommandList);
+	m_vpStamina[1] = make_shared<CGameObject>(pd3dDevice, pd3dCommandList, 1);
+	m_vpStamina[1]->SetMaterial(0, m_vpmatStamina[1]);
+	m_vpStamina[1]->SetMesh(m_pmeshStaminaRect);
+	m_vpStamina[1]->SetScale(fxScale* (844.0f / 860.0f), 0.1f, 1.0f);	//  (844.0f / 860.0f) -> 이미지 크기
+	m_vpStamina[1]->SetPosition(0.0f, -0.75f, 0.0f);
+	m_vpStamina[1]->SetAlive(false);
 
 	AddGameObject(pCrosshair);
+	AddGameObject(m_pTeleport);
+	AddGameObject(m_pRadar);
+	AddGameObject(m_pMine);
+	AddGameObject(m_pFuse);
+	AddGameObject(m_vpStamina[0]);
+	AddGameObject(m_vpStamina[1]);
 }
 
-/// <CShader - UserInterfaceShader>
+void CBlueSuitUserInterfaceShader::AnimateObjects(float fElapsedTime)
+{
+	if (m_pBlueSuitPlayer)
+	{
+		AnimateObjectBlueSuit();
+	}
+
+	CShader::AnimateObjects(fElapsedTime);
+}
+
+void CBlueSuitUserInterfaceShader::Render(ID3D12GraphicsCommandList* pd3dCommandList, const shared_ptr<CCamera>& pCamera, int nPipelineState)
+{
+	UpdatePipeLineState(pd3dCommandList, nPipelineState);
+
+	for (auto& object : m_vGameObjects)
+	{
+		if (!object->IsAlive())
+		{
+			continue;
+		}
+		object->Render(pd3dCommandList);
+	}
+}
+
+void CBlueSuitUserInterfaceShader::AnimateObjectBlueSuit()
+{
+	if (m_pBlueSuitPlayer->GetReferenceSlotItemNum(0) >= 0) m_pTeleport->SetMaterial(0, m_vpmatTeleport[1]);
+	else m_pTeleport->SetMaterial(0, m_vpmatTeleport[0]);
+
+	if (m_pBlueSuitPlayer->GetReferenceSlotItemNum(1) >= 0) m_pRadar->SetMaterial(0, m_vpmatRadar[1]);
+	else  m_pRadar->SetMaterial(0, m_vpmatRadar[0]);
+
+	if (m_pBlueSuitPlayer->GetReferenceSlotItemNum(2) >= 0) m_pMine->SetMaterial(0, m_vpmatMine[1]);
+	else  m_pMine->SetMaterial(0, m_vpmatMine[0]);
+
+	int nFuseNum = 0;
+	for (int i = 0; i < 3; ++i)
+	{
+		if (m_pBlueSuitPlayer->GetReferenceFuseItemNum(i) >= 0)
+		{
+			++nFuseNum;
+		}
+	}
+	if (nFuseNum < 4) m_pFuse->SetMaterial(0, m_vpmatFuse[nFuseNum]);
+
+	if (m_pBlueSuitPlayer->GetFullStaminaTime() > 2.0f)
+	{
+		m_vpStamina[0]->SetAlive(false);
+		m_vpStamina[1]->SetAlive(false);
+	}
+	else
+	{
+		m_vpStamina[0]->SetAlive(true);
+		m_vpStamina[1]->SetAlive(true);
+
+		float fxScale = float(FRAME_BUFFER_HEIGHT) / FRAME_BUFFER_WIDTH;
+		float fStamina = m_pBlueSuitPlayer->GetStamina();
+		fStamina = fStamina / BLUESUIT_STAMINA_MAX;
+		m_pmeshStaminaRect->SetVertexData(1.0f * fStamina, 1.0f, 0.5f + fStamina * 0.5f, 1.0f, 0.5f - fStamina * 0.5f, 0.0f);
+	}
+}
+
+void CBlueSuitUserInterfaceShader::AddGameObject(const shared_ptr<CGameObject>& pGameObject)
+{
+	if (dynamic_pointer_cast<CBlueSuitPlayer>(pGameObject))
+	{
+		m_pBlueSuitPlayer = dynamic_pointer_cast<CBlueSuitPlayer>(pGameObject);
+	}
+	else
+	{
+		m_vGameObjects.push_back(pGameObject);
+	}
+}
+
+/// <CShader - CBlueSuitUserInterfaceShader>
+////// /// /// /// /// /// /// /// /// /// /// /// /// /// /// /// /// /// /// /// /// /// /// /// /// /// /// /// ///  
+/// <CShader - CZombieUserInterfaceShader>
+
+
+D3D12_INPUT_LAYOUT_DESC CZombieUserInterfaceShader::CreateInputLayout()
+{
+	UINT nInputElementDescs = 2;
+	D3D12_INPUT_ELEMENT_DESC* pd3dInputElementDescs = new D3D12_INPUT_ELEMENT_DESC[nInputElementDescs];
+
+	pd3dInputElementDescs[0] = { "POSITION", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, 0, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0 };
+	pd3dInputElementDescs[1] = { "TEXCOORD", 0, DXGI_FORMAT_R32G32_FLOAT, 1, 0, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0 };
+
+	D3D12_INPUT_LAYOUT_DESC d3dInputLayoutDesc;
+	d3dInputLayoutDesc.pInputElementDescs = pd3dInputElementDescs;
+	d3dInputLayoutDesc.NumElements = nInputElementDescs;
+
+	return(d3dInputLayoutDesc);
+}
+
+D3D12_SHADER_BYTECODE CZombieUserInterfaceShader::CreateVertexShader()
+{
+	return CShader::ReadCompiledShaderFromFile(L"cso/VSUserInterface.cso", m_pd3dVertexShaderBlob.GetAddressOf());
+}
+
+D3D12_SHADER_BYTECODE CZombieUserInterfaceShader::CreatePixelShader()
+{
+	return CShader::ReadCompiledShaderFromFile(L"cso/PSUserInterface.cso", m_pd3dPixelShaderBlob.GetAddressOf());
+}
+
+D3D12_RASTERIZER_DESC CZombieUserInterfaceShader::CreateRasterizerState()
+{
+	D3D12_RASTERIZER_DESC d3dRasterizerDesc;
+	::ZeroMemory(&d3dRasterizerDesc, sizeof(D3D12_RASTERIZER_DESC));
+	d3dRasterizerDesc.FillMode = D3D12_FILL_MODE_SOLID;
+	d3dRasterizerDesc.CullMode = D3D12_CULL_MODE_BACK;
+	d3dRasterizerDesc.FrontCounterClockwise = FALSE;
+	d3dRasterizerDesc.DepthBias = 0;
+	d3dRasterizerDesc.DepthBiasClamp = 0.0f;
+	d3dRasterizerDesc.SlopeScaledDepthBias = 0.0f;
+	d3dRasterizerDesc.DepthClipEnable = TRUE;
+	d3dRasterizerDesc.MultisampleEnable = FALSE;
+	d3dRasterizerDesc.AntialiasedLineEnable = FALSE;
+	d3dRasterizerDesc.ForcedSampleCount = 0;
+	d3dRasterizerDesc.ConservativeRaster = D3D12_CONSERVATIVE_RASTERIZATION_MODE_OFF;
+
+	return(d3dRasterizerDesc);
+}
+
+D3D12_BLEND_DESC CZombieUserInterfaceShader::CreateBlendState()
+{
+	D3D12_BLEND_DESC d3dBlendDesc;
+	::ZeroMemory(&d3dBlendDesc, sizeof(D3D12_BLEND_DESC));
+	d3dBlendDesc.AlphaToCoverageEnable = FALSE;
+	d3dBlendDesc.IndependentBlendEnable = FALSE;
+	d3dBlendDesc.RenderTarget[0].BlendEnable = TRUE;
+	d3dBlendDesc.RenderTarget[0].LogicOpEnable = FALSE;
+	d3dBlendDesc.RenderTarget[0].SrcBlend = D3D12_BLEND_SRC_ALPHA;
+	d3dBlendDesc.RenderTarget[0].DestBlend = D3D12_BLEND_INV_SRC_ALPHA;
+	d3dBlendDesc.RenderTarget[0].BlendOp = D3D12_BLEND_OP_ADD;
+	d3dBlendDesc.RenderTarget[0].SrcBlendAlpha = D3D12_BLEND_ONE;
+	d3dBlendDesc.RenderTarget[0].DestBlendAlpha = D3D12_BLEND_ZERO;
+	d3dBlendDesc.RenderTarget[0].BlendOpAlpha = D3D12_BLEND_OP_ADD;
+	d3dBlendDesc.RenderTarget[0].LogicOp = D3D12_LOGIC_OP_NOOP;
+	d3dBlendDesc.RenderTarget[0].RenderTargetWriteMask = D3D12_COLOR_WRITE_ENABLE_ALL;
+
+	return(d3dBlendDesc);
+}
+
+void CZombieUserInterfaceShader::CreateShader(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dCommandList, ID3D12RootSignature* pd3dGraphicsRootSignature, UINT nRenderTargets, DXGI_FORMAT* pdxgiRtvFormats, DXGI_FORMAT dxgiDsvFormat)
+{
+	m_nPipelineState = 1;
+	m_vpd3dPipelineState.reserve(m_nPipelineState);
+	for (int i = 0; i < m_nPipelineState; ++i)
+	{
+		m_vpd3dPipelineState.emplace_back();
+	}
+
+	CShader::CreateShader(pd3dDevice, pd3dCommandList, pd3dGraphicsRootSignature, nRenderTargets, pdxgiRtvFormats, dxgiDsvFormat); //m_ppd3dPipelineStates[0] 생성
+}
+
+void CZombieUserInterfaceShader::BuildObjects(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dCommandList, ID3D12RootSignature* pd3dGraphicsRootSignature)
+{
+	shared_ptr<CMesh> pmeshRect = make_shared<CUserInterfaceRectMesh>(pd3dDevice, pd3dCommandList, 1.f, 1.f, 0.0f, 1.0f, 1.0f, 0.0f, 0.0f);
+
+	//CROSSHAIR
+	shared_ptr<CTexture> ptexCrosshair = make_shared<CTexture>(1, RESOURCE_TEXTURE2D, 0, 1);
+	ptexCrosshair->LoadTextureFromDDSFile(pd3dDevice, pd3dCommandList, (wchar_t*)L"Asset/UI/crosshair.dds", RESOURCE_TEXTURE2D, 0);
+	CScene::CreateShaderResourceViews(pd3dDevice, ptexCrosshair, 0, 3);
+
+	shared_ptr<CMaterial> pmatCrosshair = make_shared<CMaterial>(1);
+	pmatCrosshair->SetMaterialType(MATERIAL_ALBEDO_MAP);
+	pmatCrosshair->SetTexture(ptexCrosshair);
+
+	float fxScale = float(FRAME_BUFFER_HEIGHT) / FRAME_BUFFER_WIDTH;
+	shared_ptr<CGameObject> pCrosshair = make_shared<CGameObject>(pd3dDevice, pd3dCommandList, 1);
+	pCrosshair->SetMaterial(0, pmatCrosshair);
+	pCrosshair->SetMesh(pmeshRect);
+	pCrosshair->SetScale(0.02f * fxScale, 0.02f, 1.0f);
+
+	//TrackingUI
+	shared_ptr<CTexture> ptexTrackingOn = make_shared<CTexture>(1, RESOURCE_TEXTURE2D, 0, 1);
+	ptexTrackingOn->LoadTextureFromDDSFile(pd3dDevice, pd3dCommandList, (wchar_t*)L"Asset/UI/zomTrackingUI0.dds", RESOURCE_TEXTURE2D, 0);
+	CScene::CreateShaderResourceViews(pd3dDevice, ptexTrackingOn, 0, 3);
+	m_vpmatTracking[0] = make_shared<CMaterial>(1);
+	m_vpmatTracking[0]->SetMaterialType(MATERIAL_ALBEDO_MAP);
+	m_vpmatTracking[0]->SetTexture(ptexTrackingOn);
+
+	shared_ptr<CTexture> ptexTrackingUsing = make_shared<CTexture>(1, RESOURCE_TEXTURE2D, 0, 1);
+	ptexTrackingUsing->LoadTextureFromDDSFile(pd3dDevice, pd3dCommandList, (wchar_t*)L"Asset/UI/zomTrackingUI1.dds", RESOURCE_TEXTURE2D, 0);
+	CScene::CreateShaderResourceViews(pd3dDevice, ptexTrackingUsing, 0, 3);
+	m_vpmatTracking[1] = make_shared<CMaterial>(1);
+	m_vpmatTracking[1]->SetMaterialType(MATERIAL_ALBEDO_MAP);
+	m_vpmatTracking[1]->SetTexture(ptexTrackingUsing);
+
+	shared_ptr<CTexture> ptexTrackingCoolTime = make_shared<CTexture>(1, RESOURCE_TEXTURE2D, 0, 1);
+	ptexTrackingCoolTime->LoadTextureFromDDSFile(pd3dDevice, pd3dCommandList, (wchar_t*)L"Asset/UI/zomTrackingUI2.dds", RESOURCE_TEXTURE2D, 0);
+	CScene::CreateShaderResourceViews(pd3dDevice, ptexTrackingCoolTime, 0, 3);
+	m_vpmatTracking[2] = make_shared<CMaterial>(1);
+	m_vpmatTracking[2]->SetMaterialType(MATERIAL_ALBEDO_MAP);
+	m_vpmatTracking[2]->SetTexture(ptexTrackingCoolTime);
+
+	m_pTracking = make_shared<CGameObject>(pd3dDevice, pd3dCommandList, 1);
+	m_pTracking->SetMaterial(0, m_vpmatTracking[0]);
+	m_pTracking->SetMesh(pmeshRect);
+	m_pTracking->SetScale(0.2f * fxScale, 0.2f, 1.0f);
+	m_pTracking->SetPosition(-0.9f, 0.85f, 0.0f);
+
+	//Interruption
+	shared_ptr<CTexture> ptexInterruptionOn = make_shared<CTexture>(1, RESOURCE_TEXTURE2D, 0, 1);
+	ptexInterruptionOn->LoadTextureFromDDSFile(pd3dDevice, pd3dCommandList, (wchar_t*)L"Asset/UI/zomInterruptionUI0.dds", RESOURCE_TEXTURE2D, 0);
+	CScene::CreateShaderResourceViews(pd3dDevice, ptexInterruptionOn, 0, 3);
+	m_vpmatInterruption[0] = make_shared<CMaterial>(1);
+	m_vpmatInterruption[0]->SetMaterialType(MATERIAL_ALBEDO_MAP);
+	m_vpmatInterruption[0]->SetTexture(ptexInterruptionOn);
+
+	shared_ptr<CTexture> ptexInterruptionUsing = make_shared<CTexture>(1, RESOURCE_TEXTURE2D, 0, 1);
+	ptexInterruptionUsing->LoadTextureFromDDSFile(pd3dDevice, pd3dCommandList, (wchar_t*)L"Asset/UI/zomInterruptionUI1.dds", RESOURCE_TEXTURE2D, 0);
+	CScene::CreateShaderResourceViews(pd3dDevice, ptexInterruptionUsing, 0, 3);
+	m_vpmatInterruption[1] = make_shared<CMaterial>(1);
+	m_vpmatInterruption[1]->SetMaterialType(MATERIAL_ALBEDO_MAP);
+	m_vpmatInterruption[1]->SetTexture(ptexInterruptionUsing);
+
+	shared_ptr<CTexture> ptexInterruptionCool = make_shared<CTexture>(1, RESOURCE_TEXTURE2D, 0, 1);
+	ptexInterruptionCool->LoadTextureFromDDSFile(pd3dDevice, pd3dCommandList, (wchar_t*)L"Asset/UI/zomInterruptionUI2.dds", RESOURCE_TEXTURE2D, 0);
+	CScene::CreateShaderResourceViews(pd3dDevice, ptexInterruptionCool, 0, 3);
+	m_vpmatInterruption[2] = make_shared<CMaterial>(1);
+	m_vpmatInterruption[2]->SetMaterialType(MATERIAL_ALBEDO_MAP);
+	m_vpmatInterruption[2]->SetTexture(ptexInterruptionCool);
+
+	m_pInterruption = make_shared<CGameObject>(pd3dDevice, pd3dCommandList, 1);
+	m_pInterruption->SetMaterial(0, m_vpmatInterruption[0]);
+	m_pInterruption->SetMesh(pmeshRect);
+	m_pInterruption->SetScale(0.2f * fxScale, 0.2f, 1.0f);
+	m_pInterruption->SetPosition(-0.9f + 0.21f * fxScale * 1, 0.85f, 0.0f);
+
+	//Running
+	shared_ptr<CTexture> ptexRunningOn = make_shared<CTexture>(1, RESOURCE_TEXTURE2D, 0, 1);
+	ptexRunningOn->LoadTextureFromDDSFile(pd3dDevice, pd3dCommandList, (wchar_t*)L"Asset/UI/zomRunningUI0.dds", RESOURCE_TEXTURE2D, 0);
+	CScene::CreateShaderResourceViews(pd3dDevice, ptexRunningOn, 0, 3);
+	m_vpmatRunning[0] = make_shared<CMaterial>(1);
+	m_vpmatRunning[0]->SetMaterialType(MATERIAL_ALBEDO_MAP);
+	m_vpmatRunning[0]->SetTexture(ptexRunningOn);
+
+	shared_ptr<CTexture> ptexRunningUsing = make_shared<CTexture>(1, RESOURCE_TEXTURE2D, 0, 1);
+	ptexRunningUsing->LoadTextureFromDDSFile(pd3dDevice, pd3dCommandList, (wchar_t*)L"Asset/UI/zomRunningUI1.dds", RESOURCE_TEXTURE2D, 0);
+	CScene::CreateShaderResourceViews(pd3dDevice, ptexRunningUsing, 0, 3);
+	m_vpmatRunning[1] = make_shared<CMaterial>(1);
+	m_vpmatRunning[1]->SetMaterialType(MATERIAL_ALBEDO_MAP);
+	m_vpmatRunning[1]->SetTexture(ptexRunningUsing);
+
+	shared_ptr<CTexture> ptexRunningCool = make_shared<CTexture>(1, RESOURCE_TEXTURE2D, 0, 1);
+	ptexRunningCool->LoadTextureFromDDSFile(pd3dDevice, pd3dCommandList, (wchar_t*)L"Asset/UI/zomRunningUI2.dds", RESOURCE_TEXTURE2D, 0);
+	CScene::CreateShaderResourceViews(pd3dDevice, ptexRunningCool, 0, 3);
+	m_vpmatRunning[2] = make_shared<CMaterial>(1);
+	m_vpmatRunning[2]->SetMaterialType(MATERIAL_ALBEDO_MAP);
+	m_vpmatRunning[2]->SetTexture(ptexRunningCool);
+
+	m_pRunning = make_shared<CGameObject>(pd3dDevice, pd3dCommandList, 1);
+	m_pRunning->SetMaterial(0, m_vpmatRunning[0]);
+	m_pRunning->SetMesh(pmeshRect);
+	m_pRunning->SetScale(0.2f * fxScale, 0.2f, 1.0f);
+	m_pRunning->SetPosition(-0.9f + 0.21f * fxScale * 2, 0.85f, 0.0f);
+
+	AddGameObject(pCrosshair);
+	AddGameObject(m_pTracking);
+	AddGameObject(m_pInterruption);
+	AddGameObject(m_pRunning);
+}
+
+void CZombieUserInterfaceShader::AnimateObjects(float fElapsedTime)
+{
+	AnimateObjectZombie();
+
+	CShader::AnimateObjects(fElapsedTime);
+}
+
+void CZombieUserInterfaceShader::AnimateObjectZombie()
+{
+	if (m_pZombiePlayer->IsAbleTracking()) m_pTracking->SetMaterial(0, m_vpmatTracking[0]);
+	else if(m_pZombiePlayer->IsTracking()) m_pTracking->SetMaterial(0, m_vpmatTracking[1]);
+	else if(!m_pZombiePlayer->IsAbleTracking()) m_pTracking->SetMaterial(0, m_vpmatTracking[2]);
+
+	if (m_pZombiePlayer->IsAbleInterruption()) m_pInterruption->SetMaterial(0, m_vpmatInterruption[0]);
+	else if (m_pZombiePlayer->IsInterruption()) m_pInterruption->SetMaterial(0, m_vpmatInterruption[1]);
+	else if (!m_pZombiePlayer->IsAbleInterruption()) m_pInterruption->SetMaterial(0, m_vpmatInterruption[2]);
+
+	if (m_pZombiePlayer->IsAbleRunning()) m_pRunning->SetMaterial(0, m_vpmatRunning[0]);
+	else if (m_pZombiePlayer->IsRunning()) m_pRunning->SetMaterial(0, m_vpmatRunning[1]);
+	else if (!m_pZombiePlayer->IsAbleRunning()) m_pRunning->SetMaterial(0, m_vpmatRunning[2]);
+}
+
+void CZombieUserInterfaceShader::AddGameObject(const shared_ptr<CGameObject>& pGameObject)
+{
+	if (dynamic_pointer_cast<CZombiePlayer>(pGameObject))
+	{
+		m_pZombiePlayer = dynamic_pointer_cast<CZombiePlayer>(pGameObject);
+	}
+	else
+	{
+		m_vGameObjects.push_back(pGameObject);
+	}
+}
+
+/// <CShader - CZombieUserInterfaceShader>
 ////// /// /// /// /// /// /// /// /// /// /// /// /// /// /// /// /// /// /// /// /// /// /// /// /// /// /// /// ///  
 /// <CShader - StandardShader - OutLineShader>
 

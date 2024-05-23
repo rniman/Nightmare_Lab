@@ -438,12 +438,13 @@ void CServerBlueSuitPlayer::Update(float fElapsedTime, shared_ptr<CServerCollisi
 			m_fMaxVelocityXZ = BLUESUIT_WALK_VELCOCITY;
 		}
 	}
-	else if (m_fStamina < 5.0f)
+	else if (m_fStamina < BLUESUIT_STAMINA_MAX)
 	{
 		m_fStamina += fElapsedTime;
-		if (!m_bAbleRun && m_fStamina > 3.0f)
+		if (!m_bAbleRun && m_fStamina > BLUESUIT_STAMINA_EXHAUSTION)
 		{
 			m_bAbleRun = true;
+			m_fStamina = BLUESUIT_STAMINA_EXHAUSTION;
 		}
 	}
 
@@ -707,19 +708,21 @@ CServerZombiePlayer::CServerZombiePlayer()
 
 void CServerZombiePlayer::UseItem(shared_ptr<CServerCollisionManager>& pCollisionManager)
 {
+	//else printf("%f \n", m_fCoolTimeRunning);
+
 	if ((m_wKeyBuffer & KEY_1) && m_fCoolTimeTracking <= 0.0f)	// 추적
 	{
-		m_fCoolTimeTracking = 10.0f;
+		m_fCoolTimeTracking = TRACKING_COOLTIME;
 		m_bTracking = true;
 	}
 	if ((m_wKeyBuffer & KEY_2) && m_fCoolTimeInterruption <= 0.0f)	// 시야방해
 	{
-		m_fCoolTimeInterruption = 10.0f;
+		m_fCoolTimeInterruption = INTERRUPTION_COOLTIME;
 		m_bInterruption = true;
 	}
 	if ((m_wKeyBuffer & KEY_3) && m_fCoolTimeRunning <= 0.0f)	// 달리기
 	{
-		m_fCoolTimeRunning = 10.0f;
+		m_fCoolTimeRunning = ZOM_RUNNING_COOLTIME;
 		m_bRunning = true;
 		m_fMaxVelocityXZ = ZOMBIE_WALK_VELOCITY * 2 - 1.0f;
 	}
@@ -765,21 +768,21 @@ void CServerZombiePlayer::Update(float fElapsedTime, shared_ptr<CServerCollision
 		m_oobbAttackBox.Center.z += xmf3Offset.z;
 	}
 
-	if (m_fCoolTimeTracking < 5.0f)
+	if (m_fCoolTimeTracking < TRACKING_COOLTIME - TRACKING_DURATION)
 	{
 		m_bTracking = false;
 	}
 
-	if (m_fCoolTimeInterruption < 5.0f)
+	if (m_fCoolTimeInterruption < INTERRUPTION_COOLTIME - INTERRUPTION_DURATION)
 	{
 		m_bInterruption = false;
 	}
 
-	if (m_bRunning && m_fCoolTimeRunning < 7.0f)
+	if (m_bRunning && m_fCoolTimeRunning < ZOM_RUNNING_COOLTIME - ZOM_RUNNING_DURATION / 2.0f)
 	{
 		m_fMaxVelocityXZ -= fElapsedTime * 2;
 
-		if (m_fCoolTimeRunning < 4.0f)
+		if (m_fCoolTimeRunning < ZOM_RUNNING_COOLTIME - ZOM_RUNNING_DURATION)
 		{
 			m_fMaxVelocityXZ = ZOMBIE_WALK_VELOCITY;
 			m_bRunning = false;
