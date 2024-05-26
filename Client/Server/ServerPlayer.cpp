@@ -663,13 +663,17 @@ void CServerBlueSuitPlayer::RightClickProcess(shared_ptr<CServerCollisionManager
 		auto pPickedObject = m_pPickedObject.lock();
 
 		auto door = dynamic_pointer_cast<CServerElevatorDoorObject>(pPickedObject);
-		if (door) {
-			if (door->IsEscape()) {
+		if (door) 
+		{
+			if (door->IsEscape())
+			{
 				door->EscapeDoorOpen();
 				UseFuse(pCollisionManager);
 				m_selectItem = RightItem::NONE;
+				m_bWinner = true;
 			}
-			else {
+			else 
+			{
 				//std::cout << "Å»Ãâ±¸°¡ ¾Æ´Õ´Ï´Ù." << std::endl;
 			}
 		}

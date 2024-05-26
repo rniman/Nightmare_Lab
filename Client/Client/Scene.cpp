@@ -337,6 +337,7 @@ void CScene::BuildObjects(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* p
 			// [0506] OutLine Shader
 			if (mainPlayerId == ZOMBIEPLAYER)
 			{
+				// ZOMBIE PLAYER일 경우 ZOMBIE 추가
 				m_vForwardRenderShader[OUT_LINE_SHADER]->AddGameObject(m_apPlayer[i]);
 			}
 
@@ -353,11 +354,12 @@ void CScene::BuildObjects(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* p
 			// Zombie 플레이어여야만 필요하다
 			if(mainPlayerId == ZOMBIEPLAYER)
 			{
+				// ZOMBIE PLAYER일 경우 나머지 플레이어 추가
 				m_vForwardRenderShader[OUT_LINE_SHADER]->AddGameObject(m_apPlayer[i]);
 			}
-			
-			if (mainPlayerId == i)
+			else if (mainPlayerId == i)
 			{
+				// ZOMBIE PLAYER가 아닐 경우 자신을 MainPlayer 설정
 				m_vForwardRenderShader[OUT_LINE_SHADER]->AddGameObject(m_apPlayer[i]);
 			}
 		}

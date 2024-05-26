@@ -84,6 +84,9 @@ public:
 
 	virtual void RightClickProcess(shared_ptr<CServerCollisionManager>& pCollisionManager) {}
 	void SetRightClick(bool val) { m_bRightClick = val; }
+
+	//void SetWinner(bool bWinner) { m_bWinner = bWinner; }
+	bool IsWinner() const { return m_bWinner; }
 protected:
 	// 첫 데이터를 받기 시작
 	bool m_bRecvData = false;
@@ -127,6 +130,7 @@ protected:
 	float						m_fDeathTime = 0.0f;
 
 	bool m_bRightClick = false;
+	bool m_bWinner = false;;
 };
 
 ///

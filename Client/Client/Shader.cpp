@@ -1694,8 +1694,10 @@ void COutLineShader::AddGameObject(const shared_ptr<CGameObject>& pGameObject)
 	else if (dynamic_pointer_cast<CBlueSuitPlayer>(pGameObject))
 	{
 		m_vpBlueSuitPlayer.push_back(dynamic_pointer_cast<CBlueSuitPlayer>(pGameObject));
-		if (m_vpBlueSuitPlayer.size() == m_nMainPlayer - ZOMBIEPLAYER)
-			m_pMainPlayer = m_vpBlueSuitPlayer[m_vpBlueSuitPlayer.size() - 1];
+		if(m_nMainPlayer != ZOMBIEPLAYER)	// 셰이더의 메인 플레이어 설정필요
+		{
+			m_pMainPlayer = m_vpBlueSuitPlayer[0]; // 0~3
+		}
 	}
 	else
 	{

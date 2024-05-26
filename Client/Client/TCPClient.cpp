@@ -260,6 +260,13 @@ void CTcpClient::OnProcessingReadMessage(HWND hWnd, UINT nMessageID, WPARAM wPar
 			}
 		}
 		break;
+	case HEAD_BLUE_SUIT_WIN:
+		// ¸Þ½ÃÁö?
+		PostMessage(hWnd, WM_END_GAME, 0, 0);
+		break;
+	case HEAD_ZOMBIE_WIN:
+		PostMessage(hWnd, WM_END_GAME, 1, 0);
+		break;
 	default:
 		break;
 	}

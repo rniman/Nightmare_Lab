@@ -667,6 +667,16 @@ void CGameFramework::OnProcessingWindowMessage(HWND hWnd, UINT nMessageID, WPARA
 	case WM_CREATE_TCP:
 		m_bTcpClient = true;
 		break;
+	case WM_END_GAME:
+		if (LOWORD(wParam) == 0)	// BLUESUIT WIN
+		{
+			m_nGameState = GAME_STATE::BLUE_SUIT_WIN;
+		}
+		else if (LOWORD(wParam) == 1)	// ZOMBIE WIN
+		{
+			m_nGameState = GAME_STATE::ZOMBIE_WIN;
+		}
+		break;
 	case WM_SOCKET:
 		OnProcessingSocketMessage(hWnd, nMessageID, wParam, lParam);
 		break;
@@ -1022,9 +1032,12 @@ void CGameFramework::PreRenderTasks()
 //#define _WITH_PLAYER_TOP
 void CGameFramework::FrameAdvance()
 {
-	m_GameTimer.Tick(144.f);
+	m_GameTimer.Tick(60.0f);
 
-	ProcessInput();
+	if(m_nGameState == GAME_STATE::IN_GAME)
+	{
+		ProcessInput();
+	}
 
 	AnimateObjects();
 

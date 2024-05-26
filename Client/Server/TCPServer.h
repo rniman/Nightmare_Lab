@@ -21,6 +21,13 @@ class CServerGameObject;
 class CServerPlayer;
 class CServerCollisionManager;
 
+enum GAME_STATE
+{
+	IN_GAME = 0,
+	BLUE_SUIT_WIN,
+	ZOMBIE_WIN
+};
+
 struct SC_ANIMATION_INFO
 {
 	float pitch = 1.0f;
@@ -65,6 +72,8 @@ enum class SOCKET_STATE
 	SEND_ID,
 	SEND_UPDATE_DATA,			 // 클라이언트에 보내는 응답
 	SEND_NUM_OF_CLIENT,
+	SEND_BLUE_SUIT_WIN,
+	SEND_ZOMBIE_WIN
 };
 
 enum RECV_HEAD
@@ -112,6 +121,7 @@ public:
 
 	bool Init(HWND hWnd);
 	void SimulationLoop();
+	int CheckEndGame();
 
 	// 소켓 정보 관리 함수
 	INT8 AddSocketInfo(SOCKET sockClient, struct sockaddr_in addrClient, int nAddrLen);

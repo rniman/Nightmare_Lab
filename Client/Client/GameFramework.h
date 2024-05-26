@@ -7,8 +7,16 @@
 //class TextObject;
 
 constexpr UINT WM_CREATE_TCP{ WM_USER + 2 };
+constexpr UINT WM_END_GAME{ WM_USER + 3 };
 constexpr UINT BUTTON_CREATE_TCP_ID{ 1 };
 constexpr UINT EDIT_INPUT_ADDRESS_ID{ 2 };
+
+enum GAME_STATE
+{
+	IN_GAME = 0,
+	BLUE_SUIT_WIN,
+	ZOMBIE_WIN
+};
 
 struct FrameTimeInfo {
 	float time = 0.0f;
@@ -167,5 +175,8 @@ private:
 	HWND m_hIPAddressEdit;
 
 	_TCHAR m_pszIPAddress[16];
+
+	// 일단 로비가 없으니 IN_GAME으로 시작
+	int m_nGameState = GAME_STATE::IN_GAME;
 };
 

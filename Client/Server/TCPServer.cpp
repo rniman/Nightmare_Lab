@@ -315,6 +315,22 @@ void TCPServer::OnProcessingWriteMessage(HWND hWnd, UINT nMessageID, WPARAM wPar
 		
 		m_vSocketInfoList[nSocketIndex].m_socketState = SOCKET_STATE::SEND_UPDATE_DATA;
 		break;
+	case SOCKET_STATE::SEND_BLUE_SUIT_WIN:
+		nHead = 3;
+		nRetval = SendData(m_vSocketInfoList[nSocketIndex].m_sock, nBufferSize, nHead);
+		if (nRetval == -1 && WSAGetLastError() == WSAEWOULDBLOCK)
+		{
+		}
+		cout << "BLUE SUIT WIN" << endl;
+		break;
+	case SOCKET_STATE::SEND_ZOMBIE_WIN:
+		nHead = 4;
+		nRetval = SendData(m_vSocketInfoList[nSocketIndex].m_sock, nBufferSize, nHead);
+		if (nRetval == -1 && WSAGetLastError() == WSAEWOULDBLOCK)
+		{
+		}
+		cout << "ZOMBIE WIN" << endl;
+		break;
 	default:
 		break;
 	}
@@ -447,9 +463,58 @@ void TCPServer::SimulationLoop()
 
 	m_pCollisionManager->Update(fElapsedTime);
 
-	UpdateInformation();
-	CreateSendObject();
+	int nEndGame = CheckEndGame();
+	if (nEndGame != GAME_STATE::IN_GAME)
+	{
+		for (auto& sockInfo : m_vSocketInfoList)
+		{
+			if (sockInfo.m_bUsed)
+			{
+				if (nEndGame == GAME_STATE::BLUE_SUIT_WIN) // BLUE SUIT WIN
+				{
+					sockInfo.m_socketState = SOCKET_STATE::SEND_BLUE_SUIT_WIN;
+				}
+				else // ZOMBIE WIN
+				{
+					sockInfo.m_socketState = SOCKET_STATE::SEND_ZOMBIE_WIN;
+				}
+			}
 		}
+	}
+	else
+	{
+		UpdateInformation();
+		CreateSendObject();
+	}
+}
+
+int TCPServer::CheckEndGame()
+{
+	int nEndGame = GAME_STATE::IN_GAME;
+
+	for (const auto& pPlayer : m_apPlayers)
+	{
+		if (!pPlayer || pPlayer->GetPlayerId() == -1)
+		{
+			continue;
+		}
+
+		if (pPlayer->IsWinner())
+		{
+			if (dynamic_pointer_cast<CServerBlueSuitPlayer>(pPlayer))
+			{
+				nEndGame = GAME_STATE::BLUE_SUIT_WIN;
+			}
+			else
+			{
+				nEndGame = GAME_STATE::ZOMBIE_WIN;
+			}
+			break;
+		}
+	}
+
+	return nEndGame;
+}
 
 // 소켓 정보 추가
 INT8 TCPServer::AddSocketInfo(SOCKET sockClient, struct sockaddr_in addrClient, int nAddrLen)
