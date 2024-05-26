@@ -292,6 +292,7 @@ CStandardMesh::CStandardMesh(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList
 CStandardMesh::~CStandardMesh()
 {
 	if (m_pd3dUV0Buffer) m_pd3dUV0Buffer->Release();
+	if (m_pd3dUV1Buffer) m_pd3dUV1Buffer->Release();
 	if (m_pd3dNormalBuffer) m_pd3dNormalBuffer->Release();
 	if (m_pd3dTangentBuffer) m_pd3dTangentBuffer->Release();
 	if (m_pd3dBiTangentBuffer) m_pd3dBiTangentBuffer->Release();
@@ -791,7 +792,7 @@ void CInstanceStandardMesh::CreateInstanceObjectInfo(char* pstrMeshName, XMFLOAT
 
 	if (!strcmp(pstrMeshName, "Door_1"))
 	{
-		pInstanceObjectInfo = make_shared<CDoorObject>(m_pstrMeshName, xmf4x4WorldMatrix, this);
+		pInstanceObjectInfo = make_shared<CDoorObject>(m_pstrMeshName, xmf4x4WorldMatrix, this, pOriginInstance);
 		pInstanceObjectInfo->SetStatic(false);
 		pOriginInstance->m_vInstanceObjectInfo.push_back(pInstanceObjectInfo);
 		size_t nLastIndex = pOriginInstance->m_vInstanceObjectInfo.size() - 1;
@@ -799,7 +800,7 @@ void CInstanceStandardMesh::CreateInstanceObjectInfo(char* pstrMeshName, XMFLOAT
 	}
 	else if (!strcmp(pstrMeshName, "Drawer_1") || !strcmp(pstrMeshName, "Drawer_2"))
 	{
-		pInstanceObjectInfo = make_shared<CDrawerObject>(m_pstrMeshName, xmf4x4WorldMatrix, this);
+		pInstanceObjectInfo = make_shared<CDrawerObject>(m_pstrMeshName, xmf4x4WorldMatrix, this, pOriginInstance);
 		pInstanceObjectInfo->SetStatic(false);
 		pOriginInstance->m_vInstanceObjectInfo.push_back(pInstanceObjectInfo);
 		size_t nLastIndex = pOriginInstance->m_vInstanceObjectInfo.size() - 1;
@@ -807,20 +808,20 @@ void CInstanceStandardMesh::CreateInstanceObjectInfo(char* pstrMeshName, XMFLOAT
 	}
 	else if (!strcmp(pstrMeshName, "Door1"))
 	{
-		pInstanceObjectInfo = make_shared<CElevatorDoorObject>(m_pstrMeshName, xmf4x4WorldMatrix, this);
+		pInstanceObjectInfo = make_shared<CElevatorDoorObject>(m_pstrMeshName, xmf4x4WorldMatrix, this, pOriginInstance);
 		pInstanceObjectInfo->SetStatic(false);
 		pOriginInstance->m_vInstanceObjectInfo.push_back(pInstanceObjectInfo);
 		size_t nLastIndex = pOriginInstance->m_vInstanceObjectInfo.size() - 1;
 		g_collisionManager.AddCollisionObject(pOriginInstance->m_vInstanceObjectInfo[nLastIndex]);
 	}
-	else if (!strcmp(pstrMeshName, "Emergency_Handle"))
-	{
-		pInstanceObjectInfo = make_shared<CElevatorDoorObject>(m_pstrMeshName, xmf4x4WorldMatrix, this);
-		pInstanceObjectInfo->SetStatic(false);
-		pOriginInstance->m_vInstanceObjectInfo.push_back(pInstanceObjectInfo);
-		size_t nLastIndex = pOriginInstance->m_vInstanceObjectInfo.size() - 1;
-		g_collisionManager.AddCollisionObject(pOriginInstance->m_vInstanceObjectInfo[nLastIndex]);
-	}
+	//else if (!strcmp(pstrMeshName, "Emergency_Handle"))
+	//{
+	//	pInstanceObjectInfo = make_shared<CElevatorDoorObject>(m_pstrMeshName, xmf4x4WorldMatrix, this);
+	//	pInstanceObjectInfo->SetStatic(false);
+	//	pOriginInstance->m_vInstanceObjectInfo.push_back(pInstanceObjectInfo);
+	//	size_t nLastIndex = pOriginInstance->m_vInstanceObjectInfo.size() - 1;
+	//	g_collisionManager.AddCollisionObject(pOriginInstance->m_vInstanceObjectInfo[nLastIndex]);
+	//}
 	else if (!strcmp(pstrMeshName, "Laboratory_Wall_1_Corner_1") || !strcmp(pstrMeshName, "Laboratory_Wall_1_Corner_2"))
 	{
 		pInstanceObjectInfo = make_shared<CEnvironmentObject>(m_pstrMeshName, xmf4x4WorldMatrix, this);
@@ -864,6 +865,7 @@ void CInstanceStandardMesh::CreateInstanceObjectInfo(char* pstrMeshName, XMFLOAT
 		pOriginInstance->m_vInstanceObjectInfo.push_back(pInstanceObjectInfo);
 		//pGameObject->m_vInstanceObjectInfo.push_back(CGameObject(m_pstrMeshName, xmf4x4WorldMatrix, this));
 	}
+	pInstanceObjectInfo->SetInstance(true);
 }
 
 /////////////////////////////////////////////////////////////////////////////////////////////////

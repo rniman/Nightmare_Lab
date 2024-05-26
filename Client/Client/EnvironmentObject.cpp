@@ -45,7 +45,7 @@ CEnvironmentObject::CEnvironmentObject(char* pstrFrameName, XMFLOAT4X4& xmf4x4Wo
 ////// /// /// /// /// /// /// /// /// /// /// /// /// /// /// /// /// /// /// /// /// /// /// /// /// /// /// /// ///  
 /// <CGameObject - CDoorObject>
 
-CDrawerObject::CDrawerObject(char* pstrFrameName, XMFLOAT4X4& xmf4x4World, CMesh* pMesh)
+CDrawerObject::CDrawerObject(char* pstrFrameName, XMFLOAT4X4& xmf4x4World, CMesh* pMesh, const shared_ptr<CGameObject>& pGameObject)
 	: CGameObject(pstrFrameName, xmf4x4World, pMesh)
 {
 	m_nCollisionType = 2;
@@ -54,10 +54,45 @@ CDrawerObject::CDrawerObject(char* pstrFrameName, XMFLOAT4X4& xmf4x4World, CMesh
 	m_xmf3Forward = XMFLOAT3(1.0f, 0.0f, 0.0f);
 	XMMATRIX mtxWorld = XMLoadFloat4x4(&m_xmf4x4World);
 	m_xmf3Forward = Vector3::TransformNormal(m_xmf3Forward, mtxWorld);
+
+	m_pInstanceObject = pGameObject;
 }
 
 CDrawerObject::~CDrawerObject()
 {
+}
+
+void CDrawerObject::Render(ID3D12GraphicsCommandList* pd3dCommandList)
+{
+	shared_ptr<CGameObject> pGameObject = m_pInstanceObject.lock();
+	
+	if (m_pSkinnedAnimationController) m_pSkinnedAnimationController->UpdateShaderVariables(pd3dCommandList);
+
+	if (pGameObject->GetMesh())
+	{
+		for (int subMeshIndex = 0; subMeshIndex < 1; subMeshIndex++)
+		{
+			shared_ptr<CInstanceStandardMesh> pInstanceMesh = dynamic_pointer_cast<CInstanceStandardMesh>(pGameObject->GetMesh());
+			pInstanceMesh->GetInstanceTransformMatrix()[0] = Matrix4x4::Transpose(m_xmf4x4World);
+			UINT8* pBufferDataBegin = NULL;
+			pInstanceMesh->GetInstanceTransformMatrixBuffer()->Map(0, NULL, (void**)&pBufferDataBegin);
+			memcpy(pBufferDataBegin, pInstanceMesh->GetInstanceTransformMatrix(), sizeof(XMFLOAT4X4) * 1);
+			pInstanceMesh->GetInstanceTransformMatrixBuffer()->Unmap(0, NULL);
+
+			D3D12_VERTEX_BUFFER_VIEW pVertexBufferViews[6] = { pInstanceMesh->GetVertexBufferView(),  pInstanceMesh->GetUV0BufferView(),  pInstanceMesh->GetNormalBufferView(),
+				 pInstanceMesh->GetTangentBufferView(), pInstanceMesh->GetBiTangentBufferView(), pInstanceMesh->GetInstanceTransformMatrixBufferView() };
+			pd3dCommandList->IASetVertexBuffers(pInstanceMesh->GetSlot(), 6, pVertexBufferViews);
+
+			pd3dCommandList->IASetPrimitiveTopology(pInstanceMesh->GetPrimitiveTopology());
+
+			if ((pInstanceMesh->GetNumOfSubMesh() > 0) && (subMeshIndex < pInstanceMesh->GetNumOfSubMesh()))
+			{
+				D3D12_INDEX_BUFFER_VIEW dSubSetIndexBufferViews = pInstanceMesh->GetIndexBufferView(subMeshIndex);
+				pd3dCommandList->IASetIndexBuffer(&dSubSetIndexBufferViews);
+				pd3dCommandList->DrawIndexedInstanced(pInstanceMesh->GetNumOfSubSetIndices(subMeshIndex), 1, 0, 0, 0);
+			}
+		}
+	}
 }
 
 void CDrawerObject::Animate(float fElapsedTime)
@@ -83,17 +118,49 @@ void CDrawerObject::UpdatePicking()
 ////// /// /// /// /// /// /// /// /// /// /// /// /// /// /// /// /// /// /// /// /// /// /// /// /// /// /// /// ///  
 /// <CGameObject - CDoorObject>
 
-CDoorObject::CDoorObject(char* pstrFrameName, XMFLOAT4X4& xmf4x4World, CMesh* pMesh)
+CDoorObject::CDoorObject(char* pstrFrameName, XMFLOAT4X4& xmf4x4World, CMesh* pMesh, const shared_ptr<CGameObject>& pGameObject)
 	: CGameObject(pstrFrameName, xmf4x4World, pMesh)
 {
 	m_nCollisionType = 2;
-	m_xmf4Quaternion = Vector4::Quaternion(m_xmf4x4World);
-	//Rotate(&m_xmf4Quaternion);
+	m_pInstanceObject = pGameObject;
 }
 
 CDoorObject::~CDoorObject()
 {
 
+}
+
+void CDoorObject::Render(ID3D12GraphicsCommandList* pd3dCommandList)
+{
+	shared_ptr<CGameObject> pGameObject = m_pInstanceObject.lock();
+
+	if (m_pSkinnedAnimationController) m_pSkinnedAnimationController->UpdateShaderVariables(pd3dCommandList);
+
+	if (pGameObject->GetMesh())
+	{
+		for (int subMeshIndex = 0; subMeshIndex < 1; subMeshIndex++)
+		{
+			shared_ptr<CInstanceStandardMesh> pInstanceMesh = dynamic_pointer_cast<CInstanceStandardMesh>(pGameObject->GetMesh());
+			pInstanceMesh->GetInstanceTransformMatrix()[0] = Matrix4x4::Transpose(m_xmf4x4World);
+			UINT8* pBufferDataBegin = NULL;
+			pInstanceMesh->GetInstanceTransformMatrixBuffer()->Map(0, NULL, (void**)&pBufferDataBegin);
+			memcpy(pBufferDataBegin, pInstanceMesh->GetInstanceTransformMatrix(), sizeof(XMFLOAT4X4) * 1);
+			pInstanceMesh->GetInstanceTransformMatrixBuffer()->Unmap(0, NULL);
+
+			D3D12_VERTEX_BUFFER_VIEW pVertexBufferViews[6] = { pInstanceMesh->GetVertexBufferView(),  pInstanceMesh->GetUV0BufferView(),  pInstanceMesh->GetNormalBufferView(),
+				 pInstanceMesh->GetTangentBufferView(), pInstanceMesh->GetBiTangentBufferView(), pInstanceMesh->GetInstanceTransformMatrixBufferView() };
+			pd3dCommandList->IASetVertexBuffers(pInstanceMesh->GetSlot(), 6, pVertexBufferViews);
+
+			pd3dCommandList->IASetPrimitiveTopology(pInstanceMesh->GetPrimitiveTopology());
+
+			if ((pInstanceMesh->GetNumOfSubMesh() > 0) && (subMeshIndex < pInstanceMesh->GetNumOfSubMesh()))
+			{
+				D3D12_INDEX_BUFFER_VIEW dSubSetIndexBufferViews = pInstanceMesh->GetIndexBufferView(subMeshIndex);
+				pd3dCommandList->IASetIndexBuffer(&dSubSetIndexBufferViews);
+				pd3dCommandList->DrawIndexedInstanced(pInstanceMesh->GetNumOfSubSetIndices(subMeshIndex), 1, 0, 0, 0);
+			}
+		}
+	}
 }
 
 void CDoorObject::Animate(float fElapsedTime)
@@ -143,7 +210,7 @@ void CDoorObject::UpdatePicking()
 ////// /// /// /// /// /// /// /// /// /// /// /// /// /// /// /// /// /// /// /// /// /// /// /// /// /// /// /// ///  
 /// <CGameObject - CElevatorDoorObject>
 
-CElevatorDoorObject::CElevatorDoorObject(char* pstrFrameName, XMFLOAT4X4& xmf4x4World, CMesh* pMesh)
+CElevatorDoorObject::CElevatorDoorObject(char* pstrFrameName, XMFLOAT4X4& xmf4x4World, CMesh* pMesh, const shared_ptr<CGameObject>& pGameObject)
 	: CGameObject(pstrFrameName, xmf4x4World, pMesh)
 {
 	m_nCollisionType = 2;
@@ -152,6 +219,41 @@ CElevatorDoorObject::CElevatorDoorObject(char* pstrFrameName, XMFLOAT4X4& xmf4x4
 	m_xmf3Right = XMFLOAT3(0.0f, 1.0f, 0.0f);
 	XMMATRIX mtxWorld = XMLoadFloat4x4(&m_xmf4x4World);
 	m_xmf3Right = Vector3::TransformNormal(m_xmf3Right, mtxWorld);
+
+	m_pInstanceObject = pGameObject;
+}
+
+void CElevatorDoorObject::Render(ID3D12GraphicsCommandList* pd3dCommandList)
+{
+	shared_ptr<CGameObject> pGameObject = m_pInstanceObject.lock();
+
+	if (m_pSkinnedAnimationController) m_pSkinnedAnimationController->UpdateShaderVariables(pd3dCommandList);
+
+	if (pGameObject->GetMesh())
+	{
+		for (int subMeshIndex = 0; subMeshIndex < 1; subMeshIndex++)
+		{
+			shared_ptr<CInstanceStandardMesh> pInstanceMesh = dynamic_pointer_cast<CInstanceStandardMesh>(pGameObject->GetMesh());
+			pInstanceMesh->GetInstanceTransformMatrix()[0] = Matrix4x4::Transpose(m_xmf4x4World);
+			UINT8* pBufferDataBegin = NULL;
+			pInstanceMesh->GetInstanceTransformMatrixBuffer()->Map(0, NULL, (void**)&pBufferDataBegin);
+			memcpy(pBufferDataBegin, pInstanceMesh->GetInstanceTransformMatrix(), sizeof(XMFLOAT4X4) * 1);
+			pInstanceMesh->GetInstanceTransformMatrixBuffer()->Unmap(0, NULL);
+
+			D3D12_VERTEX_BUFFER_VIEW pVertexBufferViews[6] = { pInstanceMesh->GetVertexBufferView(),  pInstanceMesh->GetUV0BufferView(),  pInstanceMesh->GetNormalBufferView(),
+				 pInstanceMesh->GetTangentBufferView(), pInstanceMesh->GetBiTangentBufferView(), pInstanceMesh->GetInstanceTransformMatrixBufferView()};
+			pd3dCommandList->IASetVertexBuffers(pInstanceMesh->GetSlot(), 6, pVertexBufferViews);
+
+			pd3dCommandList->IASetPrimitiveTopology(pInstanceMesh->GetPrimitiveTopology());
+
+			if ((pInstanceMesh->GetNumOfSubMesh() > 0) && (subMeshIndex < pInstanceMesh->GetNumOfSubMesh()))
+			{
+				D3D12_INDEX_BUFFER_VIEW dSubSetIndexBufferViews = pInstanceMesh->GetIndexBufferView(subMeshIndex);
+				pd3dCommandList->IASetIndexBuffer(&dSubSetIndexBufferViews);
+				pd3dCommandList->DrawIndexedInstanced(pInstanceMesh->GetNumOfSubSetIndices(subMeshIndex), 1, 0, 0, 0);
+			}
+		}
+	}
 }
 
 void CElevatorDoorObject::Animate(float fElapsedTime)

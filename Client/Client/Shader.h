@@ -282,11 +282,18 @@ private:
 ////// /// /// /// /// /// /// /// /// /// /// /// /// /// /// /// /// /// /// /// /// /// /// /// /// /// /// /// ///  
 /// <CShader - StandardShader - OutLineShader>
 
+constexpr int STANDARD_OUT_LINE_MASK{ 0 };
+constexpr int INSTANCE_OUT_LINE_MASK{ 1 };
+constexpr int SKINNING_OUT_LINE_MASK{ 2 };
+constexpr int STANDARD_OUT_LINE{ 3 };
+constexpr int INSTANCE_OUT_LINE{ 4 };
+constexpr int SKINNING_OUT_LINE{ 5 };
+
 //[0505] OutLine
 class COutLineShader : public CShader
 {
 public:
-	COutLineShader() {};
+	COutLineShader(int nMainPlayer);;
 	virtual ~COutLineShader() {};
 
 	virtual D3D12_INPUT_LAYOUT_DESC CreateInputLayout();
@@ -304,7 +311,12 @@ public:
 
 	void SetPostProcessingShader(CPostProcessingShader* pPostProcessingShader) { m_pPostProcessingShader = pPostProcessingShader; }
 private:
+	int m_nMainPlayer;
+	shared_ptr<CGameObject> m_pPickedObject;
+
+	shared_ptr<CPlayer> m_pMainPlayer;
 	shared_ptr<CZombiePlayer> m_pZombiePlayer;
+	vector<shared_ptr<CBlueSuitPlayer>> m_vpBlueSuitPlayer;
 
 	bool m_bOutLine = false;
 	CPostProcessingShader* m_pPostProcessingShader = nullptr;

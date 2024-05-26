@@ -34,6 +34,14 @@ public:
 	virtual void OnPreRender(ID3D12GraphicsCommandList* pd3dCommandList);
 	virtual void Render(ID3D12GraphicsCommandList* pd3dCommandList, int nSubSet);
 
+	// interface
+	D3D12_PRIMITIVE_TOPOLOGY GetPrimitiveTopology() const { return m_d3dPrimitiveTopology; }
+	UINT GetSlot() const { return m_nSlot; }
+	D3D12_VERTEX_BUFFER_VIEW GetVertexBufferView() const { return m_d3dVertexBufferView; }
+
+	int GetNumOfSubMesh() const { return m_nSubMeshes; }
+	int GetNumOfSubSetIndices(int nIndex) const { return m_pnSubSetIndices[nIndex]; }
+	D3D12_INDEX_BUFFER_VIEW GetIndexBufferView(int nIndex) const { return m_vd3dSubSetIndexBufferViews[nIndex]; }
 protected:
 	UINT m_nType = 0x00;
 
@@ -109,6 +117,12 @@ public:
 	CStandardMesh(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dCommandList);
 	virtual ~CStandardMesh();
 
+	D3D12_VERTEX_BUFFER_VIEW GetUV0BufferView() const { return m_d3dUV0BufferView; }
+	D3D12_VERTEX_BUFFER_VIEW GetUV1BufferView() const { return m_d3dUV1BufferView; }
+	D3D12_VERTEX_BUFFER_VIEW GetNormalBufferView() const { return m_d3dNormalBufferView; }
+	D3D12_VERTEX_BUFFER_VIEW GetTangentBufferView() const { return m_d3dTangentBufferView; }
+	D3D12_VERTEX_BUFFER_VIEW GetBiTangentBufferView() const { return m_d3dBiTangentBufferView; }
+
 protected:
 	XMFLOAT4* m_pxmf4Colors = NULL;
 	XMFLOAT3* m_pxmf3Normals = NULL;
@@ -163,6 +177,9 @@ public:
 	// 여기서 하드코딩으로 충돌체에 따른 게임 오브젝트를 만드는 작업을 하게 해둠
 	void CreateInstanceObjectInfo(char* pstrMeshName, XMFLOAT4X4& xmf4x4WorldMatrix);
 
+	XMFLOAT4X4* GetInstanceTransformMatrix() { return m_pxmf4x4InstanceTransformMatrix; }
+	ComPtr<ID3D12Resource> GetInstanceTransformMatrixBuffer() { return m_pd3dInstanceTransformMatrixBuffer; }
+	D3D12_VERTEX_BUFFER_VIEW GetInstanceTransformMatrixBufferView() const { return m_d3dInstanceTransformMatrixBufferView; }
 protected:
 	//XMFLOAT4X4						m_xmf4x4ToParent;
 	XMFLOAT4X4* m_pxmf4x4InstanceTransformMatrix = NULL;

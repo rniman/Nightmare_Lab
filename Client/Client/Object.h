@@ -365,7 +365,8 @@ public:
 class CGameObject : public std::enable_shared_from_this<CGameObject>
 {
 public:
-	CGameObject(char* pstrFrameName, XMFLOAT4X4& xmf4x4World, CMesh* pMesh);
+	CGameObject(char* pstrFrameName, XMFLOAT4X4& xmf4x4World, CMesh* pMesh); 
+	CGameObject(char* pstrFrameName, XMFLOAT4X4& xmf4x4World, const shared_ptr<CMesh>& pMesh);
 	CGameObject(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dCommandList);
 	CGameObject(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dCommandList, int nMaterials);
 	virtual ~CGameObject();
@@ -470,6 +471,15 @@ public:
 
 	void SetStatic(bool bStatic) { m_bStatic = bStatic; }
 	bool IsStatic() const { return m_bStatic; }
+
+	//[0524]
+	void SetWorldTransform(const XMFLOAT4X4& xmf4x4World) { m_xmf4x4World = xmf4x4World; }
+	XMFLOAT4X4 GetWorldTransform() const { return m_xmf4x4World; }
+	shared_ptr<CMesh> GetMesh() const { return m_pMesh; }
+	void SetCollisionType(int nType) { m_nCollisionType = nType; }
+
+	void SetInstance(int bInstance) { m_bInstance = bInstance; }
+	bool IsInstance() const { return m_bInstance; }
 public:
 	//[0514] 스태틱 추가
 	bool m_bStatic = true;
@@ -506,6 +516,8 @@ public:
 	bool m_bThisContainTransparent = false;
 	vector<int> m_vTransparentMaterialNumbers;
 
+	//[0524] 인스턴스 오브젝트인지
+	bool m_bInstance = false;
 };
 
 

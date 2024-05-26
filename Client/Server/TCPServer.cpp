@@ -604,6 +604,12 @@ void TCPServer::UpdateInformation()
 		m_aUpdateInfo[nPlayerId].m_xmf3Position = pPlayer->GetPosition();
 		m_aUpdateInfo[nPlayerId].m_xmf3Velocity = pPlayer->GetVelocity();
 		m_aUpdateInfo[nPlayerId].m_xmf3Look = pPlayer->GetLook();
+
+		if (pPlayer->GetPickedObject().lock())
+			m_aUpdateInfo[nPlayerId].m_nPickedObjectNum = pPlayer->GetPickedObject().lock()->GetCollisionNum();
+		else
+			m_aUpdateInfo[nPlayerId].m_nPickedObjectNum = -1;
+
 		// 지금은 일단 이렇게 해뒀지만 나중에는 0번이 Enemy고정일듯
 		if (nPlayerId == ZOMBIEPLAYER)	//Enemy
 		{

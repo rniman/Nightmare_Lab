@@ -266,6 +266,12 @@ shared_ptr<CCamera> CPlayer::ChangeCamera(DWORD nNewCameraMode, float fElapsedTi
 	return(m_pCamera);
 }
 
+// Picking
+void CPlayer::SetPickedObject(const shared_ptr<CGameObject> pGameObject)
+{
+	m_pPickedObject = pGameObject;
+}
+
 void CPlayer::OnUpdateToParent()
 {
 	m_xmf4x4ToParent._11 = m_xmf3Right.x; m_xmf4x4ToParent._12 = m_xmf3Right.y; m_xmf4x4ToParent._13 = m_xmf3Right.z;
@@ -799,12 +805,12 @@ void CBlueSuitPlayer::Render(ID3D12GraphicsCommandList* pd3dCommandList)
 
 void CBlueSuitPlayer::UpdatePicking() 
 {
-	shared_ptr<CGameObject> pPickedObject = m_pPickedObject.lock();
+	//shared_ptr<CGameObject> pPickedObject = m_pPickedObject.lock();
 
-	if(AddItem(pPickedObject) != -2)
-	{
-		pPickedObject->UpdatePicking();
-	}
+	//if(AddItem(pPickedObject) != -2)
+	//{
+	//	pPickedObject->UpdatePicking();
+	//}
 }
 
 void CBlueSuitPlayer::RightClickProcess()

@@ -850,12 +850,32 @@ CGameObject::CGameObject(char* pstrFrameName, XMFLOAT4X4& xmf4x4World, CMesh* pM
 	{
 		return;
 	}
+	//m_pMesh = make_shared<CMesh>(pMesh);
 
 	for (const auto& oobb : pMesh->GetVectorOOBB())
 	{
 		m_voobbOrigin.push_back(oobb);
 	}
 }
+
+CGameObject::CGameObject(char* pstrFrameName, XMFLOAT4X4& xmf4x4World, const shared_ptr<CMesh>& pMesh)
+{
+	m_xmf4x4ToParent = xmf4x4World;
+	m_xmf4x4World = xmf4x4World;
+	strcpy(m_pstrFrameName, pstrFrameName);
+
+	if (!pMesh)
+	{
+		return;
+	}
+	//m_pMesh = pMesh;
+
+	for (const auto& oobb : pMesh->GetVectorOOBB())
+	{
+		m_voobbOrigin.push_back(oobb);
+	}
+}
+
 
 CGameObject::CGameObject(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dCommandList)
 {
@@ -909,10 +929,6 @@ void CGameObject::SetChild(const shared_ptr<CGameObject>& pChild, bool bReferenc
 
 void CGameObject::SetMesh(const shared_ptr<CMesh>& pMesh)
 {
-	if (m_pMesh)
-	{
-		m_pMesh.reset();
-	}
 	m_pMesh = pMesh;
 }
 

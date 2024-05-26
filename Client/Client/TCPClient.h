@@ -58,6 +58,7 @@ struct CS_CLIENTS_INFO
 	XMFLOAT3 m_xmf3Position;
 	XMFLOAT3 m_xmf3Velocity;
 	XMFLOAT3 m_xmf3Look;
+	int m_nPickedObjectNum = -1;
 
 	int m_nSlotObjectNum[3];	// 각 슬롯에 포함된 오브젝트 번호(없으면 -1)
 	int m_nFuseObjectNum[3];	// 퓨즈 오브젝트 번호(없으면 -1)

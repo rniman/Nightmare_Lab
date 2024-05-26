@@ -320,6 +320,10 @@ void CScene::BuildObjects(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* p
 
 	LoadScene(pd3dDevice, pd3dCommandList);
 
+	// [0523] 좀비 플레이어가 아니어도 OutLineShader를 가지게 수정
+	m_vForwardRenderShader.push_back(make_unique<COutLineShader>(mainPlayerId));
+	m_vForwardRenderShader[OUT_LINE_SHADER]->CreateShader(pd3dDevice, pd3dCommandList, m_pd3dGraphicsRootSignature.Get(), 1, nullptr, DXGI_FORMAT_D24_UNORM_S8_UINT);
+
 	//Player 생성 + 아이템
 	for (int i = 0; i < MAX_CLIENT; ++i)
 	{
@@ -333,9 +337,6 @@ void CScene::BuildObjects(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* p
 			// [0506] OutLine Shader
 			if (mainPlayerId == ZOMBIEPLAYER)
 			{
-				m_vForwardRenderShader.push_back(make_unique<COutLineShader>());
-				m_vForwardRenderShader[OUT_LINE_SHADER]->CreateShader(pd3dDevice, pd3dCommandList, m_pd3dGraphicsRootSignature.Get(), 1, nullptr, DXGI_FORMAT_D24_UNORM_S8_UINT);
-
 				m_vForwardRenderShader[OUT_LINE_SHADER]->AddGameObject(m_apPlayer[i]);
 			}
 
@@ -351,6 +352,11 @@ void CScene::BuildObjects(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* p
 			//[0505] BLUE SUIT 플레이어의 외곽선을 그리기 위해
 			// Zombie 플레이어여야만 필요하다
 			if(mainPlayerId == ZOMBIEPLAYER)
+			{
+				m_vForwardRenderShader[OUT_LINE_SHADER]->AddGameObject(m_apPlayer[i]);
+			}
+			
+			if (mainPlayerId == i)
 			{
 				m_vForwardRenderShader[OUT_LINE_SHADER]->AddGameObject(m_apPlayer[i]);
 			}

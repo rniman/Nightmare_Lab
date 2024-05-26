@@ -174,6 +174,24 @@ void CTcpClient::OnProcessingReadMessage(HWND hWnd, UINT nMessageID, WPARAM wPar
 					//m_apPlayers[i]->SetRight(m_aClientInfo[i].m_xmf3Right);
 				}
 
+				//[0523] 피킹 오브젝트 설정(외곽선 작업에 필요)
+				if(i == m_nMainClientId)
+				{
+					if (m_aClientInfo[i].m_nPickedObjectNum == -1)
+					{
+						m_apPlayers[i]->SetPickedObject(nullptr);
+					}
+					else
+					{
+						int nObjectNum = m_aClientInfo[i].m_nPickedObjectNum;
+						shared_ptr<CGameObject> pGameObject = g_collisionManager.GetCollisionObjectWithNumber(nObjectNum).lock();
+						if (pGameObject)
+						{
+							m_apPlayers[i]->SetPickedObject(pGameObject);
+						}
+					}
+				}
+
 				// 지뢰 충돌
 				int nObjectNum = m_aClientInfo[i].m_playerInfo.m_iMineobjectNum;
 				if (nObjectNum != -1) {

@@ -78,7 +78,8 @@ public:
 	void SetCamera(shared_ptr<CCamera> pCamera) { m_pCamera = pCamera; }
 
 	// Picking
-	weak_ptr<CGameObject> GetPickedObject() { return m_pPickedObject; }
+	void SetPickedObject(const shared_ptr<CGameObject> pGameObject);
+	shared_ptr<CGameObject> GetPickedObject() { return m_pPickedObject; }
 	virtual void UpdatePicking() override {};
 	virtual void UseItem(int nSlot) {};
 
@@ -133,7 +134,7 @@ protected:
 
 	// 카메라 실체는 플레이어가 다룬다
 	shared_ptr<CCamera> m_pCamera;
-	weak_ptr<CGameObject> m_pPickedObject;
+	shared_ptr<CGameObject> m_pPickedObject;
 
 	bool m_bRightClick = false;
 

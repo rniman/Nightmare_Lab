@@ -1468,51 +1468,111 @@ void CZombieUserInterfaceShader::AddGameObject(const shared_ptr<CGameObject>& pG
 ////// /// /// /// /// /// /// /// /// /// /// /// /// /// /// /// /// /// /// /// /// /// /// /// /// /// /// /// ///  
 /// <CShader - StandardShader - OutLineShader>
 
+COutLineShader::COutLineShader(int nMainPlayer) 
+{
+	m_nMainPlayer = nMainPlayer;
+}
+
 D3D12_INPUT_LAYOUT_DESC COutLineShader::CreateInputLayout()
 {
-	UINT nInputElementDescs = 7;
-	D3D12_INPUT_ELEMENT_DESC* pd3dInputElementDescs = new D3D12_INPUT_ELEMENT_DESC[nInputElementDescs];
+	if (m_PipeLineIndex == STANDARD_OUT_LINE || m_PipeLineIndex == STANDARD_OUT_LINE_MASK)
+	{
+		UINT nInputElementDescs = 5;
+		D3D12_INPUT_ELEMENT_DESC* pd3dInputElementDescs = new D3D12_INPUT_ELEMENT_DESC[nInputElementDescs];
 
-	pd3dInputElementDescs[0] = { "POSITION", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, 0, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0 };
-	pd3dInputElementDescs[1] = { "TEXCOORD", 0, DXGI_FORMAT_R32G32_FLOAT, 1, 0, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0 };
-	pd3dInputElementDescs[2] = { "NORMAL", 0, DXGI_FORMAT_R32G32B32_FLOAT, 2, 0, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0 };
-	pd3dInputElementDescs[3] = { "TANGENT", 0, DXGI_FORMAT_R32G32B32_FLOAT, 3, 0, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0 };
-	pd3dInputElementDescs[4] = { "BITANGENT", 0, DXGI_FORMAT_R32G32B32_FLOAT, 4, 0, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0 };
-	pd3dInputElementDescs[5] = { "BONEINDEX", 0, DXGI_FORMAT_R32G32B32A32_SINT, 5, 0, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0 };
-	pd3dInputElementDescs[6] = { "BONEWEIGHT", 0, DXGI_FORMAT_R32G32B32A32_FLOAT, 6, 0, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0 };
+		pd3dInputElementDescs[0] = { "POSITION", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, 0, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0 };
+		pd3dInputElementDescs[1] = { "TEXCOORD", 0, DXGI_FORMAT_R32G32_FLOAT, 1, 0, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0 };
+		pd3dInputElementDescs[2] = { "NORMAL", 0, DXGI_FORMAT_R32G32B32_FLOAT, 2, 0, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0 };
+		pd3dInputElementDescs[3] = { "TANGENT", 0, DXGI_FORMAT_R32G32B32_FLOAT, 3, 0, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0 };
+		pd3dInputElementDescs[4] = { "BITANGENT", 0, DXGI_FORMAT_R32G32B32_FLOAT, 4, 0, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0 };
 
-	D3D12_INPUT_LAYOUT_DESC d3dInputLayoutDesc;
-	d3dInputLayoutDesc.pInputElementDescs = pd3dInputElementDescs;
-	d3dInputLayoutDesc.NumElements = nInputElementDescs;
+		D3D12_INPUT_LAYOUT_DESC d3dInputLayoutDesc;
+		d3dInputLayoutDesc.pInputElementDescs = pd3dInputElementDescs;
+		d3dInputLayoutDesc.NumElements = nInputElementDescs;
 
-	return(d3dInputLayoutDesc);
+		return(d3dInputLayoutDesc);
+	}
+	else if(m_PipeLineIndex == INSTANCE_OUT_LINE || m_PipeLineIndex == INSTANCE_OUT_LINE_MASK)
+	{
+		UINT nInputElementDescs = 9;
+		D3D12_INPUT_ELEMENT_DESC* pd3dInputElementDescs = new D3D12_INPUT_ELEMENT_DESC[nInputElementDescs];
+
+		pd3dInputElementDescs[0] = { "POSITION", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, 0, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0 };
+		pd3dInputElementDescs[1] = { "TEXCOORD", 0, DXGI_FORMAT_R32G32_FLOAT, 1, 0, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0 };
+		pd3dInputElementDescs[2] = { "NORMAL", 0, DXGI_FORMAT_R32G32B32_FLOAT, 2, 0, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0 };
+		pd3dInputElementDescs[3] = { "TANGENT", 0, DXGI_FORMAT_R32G32B32_FLOAT, 3, 0, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0 };
+		pd3dInputElementDescs[4] = { "BITANGENT", 0, DXGI_FORMAT_R32G32B32_FLOAT, 4, 0, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0 };
+
+		pd3dInputElementDescs[5] = { "INSMATRIX", 0, DXGI_FORMAT_R32G32B32A32_FLOAT, 5, 0, D3D12_INPUT_CLASSIFICATION_PER_INSTANCE_DATA, 1 };
+		pd3dInputElementDescs[6] = { "INSMATRIX", 1, DXGI_FORMAT_R32G32B32A32_FLOAT, 5, 16, D3D12_INPUT_CLASSIFICATION_PER_INSTANCE_DATA, 1 };
+		pd3dInputElementDescs[7] = { "INSMATRIX", 2, DXGI_FORMAT_R32G32B32A32_FLOAT, 5, 32, D3D12_INPUT_CLASSIFICATION_PER_INSTANCE_DATA, 1 };
+		pd3dInputElementDescs[8] = { "INSMATRIX", 3, DXGI_FORMAT_R32G32B32A32_FLOAT, 5, 48, D3D12_INPUT_CLASSIFICATION_PER_INSTANCE_DATA, 1 };
+
+		D3D12_INPUT_LAYOUT_DESC d3dInputLayoutDesc;
+		d3dInputLayoutDesc.pInputElementDescs = pd3dInputElementDescs;
+		d3dInputLayoutDesc.NumElements = nInputElementDescs;
+
+		return(d3dInputLayoutDesc);
+	}
+	else if(m_PipeLineIndex == SKINNING_OUT_LINE || m_PipeLineIndex == SKINNING_OUT_LINE_MASK)
+	{
+		UINT nInputElementDescs = 7;
+		D3D12_INPUT_ELEMENT_DESC* pd3dInputElementDescs = new D3D12_INPUT_ELEMENT_DESC[nInputElementDescs];
+
+		pd3dInputElementDescs[0] = { "POSITION", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, 0, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0 };
+		pd3dInputElementDescs[1] = { "TEXCOORD", 0, DXGI_FORMAT_R32G32_FLOAT, 1, 0, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0 };
+		pd3dInputElementDescs[2] = { "NORMAL", 0, DXGI_FORMAT_R32G32B32_FLOAT, 2, 0, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0 };
+		pd3dInputElementDescs[3] = { "TANGENT", 0, DXGI_FORMAT_R32G32B32_FLOAT, 3, 0, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0 };
+		pd3dInputElementDescs[4] = { "BITANGENT", 0, DXGI_FORMAT_R32G32B32_FLOAT, 4, 0, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0 };
+		pd3dInputElementDescs[5] = { "BONEINDEX", 0, DXGI_FORMAT_R32G32B32A32_SINT, 5, 0, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0 };
+		pd3dInputElementDescs[6] = { "BONEWEIGHT", 0, DXGI_FORMAT_R32G32B32A32_FLOAT, 6, 0, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0 };
+
+		D3D12_INPUT_LAYOUT_DESC d3dInputLayoutDesc;
+		d3dInputLayoutDesc.pInputElementDescs = pd3dInputElementDescs;
+		d3dInputLayoutDesc.NumElements = nInputElementDescs;
+
+		return(d3dInputLayoutDesc);
+	}
 }
 
 D3D12_SHADER_BYTECODE COutLineShader::CreateVertexShader()
 {
-	if (m_PipeLineIndex == 0)
+	if (m_PipeLineIndex == STANDARD_OUT_LINE_MASK)
+	{
+		return CShader::ReadCompiledShaderFromFile(L"cso/VSStandardOutLineMask.cso", m_pd3dVertexShaderBlob.GetAddressOf());
+	}
+	else if (m_PipeLineIndex == INSTANCE_OUT_LINE_MASK)
+	{
+		return CShader::ReadCompiledShaderFromFile(L"cso/VSInstanceOutLineMask.cso", m_pd3dVertexShaderBlob.GetAddressOf());
+	}
+	else if(m_PipeLineIndex == SKINNING_OUT_LINE_MASK)
 	{
 		return CShader::ReadCompiledShaderFromFile(L"cso/VSOutLineMask.cso", m_pd3dVertexShaderBlob.GetAddressOf());
-		//return(CShader::CompileShaderFromFile(L"Shaders.hlsl", "VSOutLineMask", "vs_5_1", m_pd3dVertexShaderBlob.GetAddressOf()));
 	}
-	else
+	else if (m_PipeLineIndex == STANDARD_OUT_LINE)
+	{
+		return CShader::ReadCompiledShaderFromFile(L"cso/VSStandardOutLine.cso", m_pd3dVertexShaderBlob.GetAddressOf());
+	}
+	else if (m_PipeLineIndex == INSTANCE_OUT_LINE)
+	{
+		return CShader::ReadCompiledShaderFromFile(L"cso/VSInstanceOutLine.cso", m_pd3dVertexShaderBlob.GetAddressOf());
+	}
+	else if(m_PipeLineIndex == SKINNING_OUT_LINE)
 	{
 		return CShader::ReadCompiledShaderFromFile(L"cso/VSOutLine.cso", m_pd3dVertexShaderBlob.GetAddressOf());
-		//return(CShader::CompileShaderFromFile(L"Shaders.hlsl", "VSOutLine", "vs_5_1", m_pd3dVertexShaderBlob.GetAddressOf()));
 	}
 }
 
 D3D12_SHADER_BYTECODE COutLineShader::CreatePixelShader()
 {
 	return CShader::ReadCompiledShaderFromFile(L"cso/PSOutLine.cso", m_pd3dPixelShaderBlob.GetAddressOf());
-	//return(CShader::CompileShaderFromFile(L"Shaders.hlsl", "PSOutLine", "ps_5_1", m_pd3dPixelShaderBlob.GetAddressOf()));	
 }
 
 D3D12_DEPTH_STENCIL_DESC COutLineShader::CreateDepthStencilState()
 {
 	D3D12_DEPTH_STENCIL_DESC d3dDepthStencilDesc;
 	::ZeroMemory(&d3dDepthStencilDesc, sizeof(D3D12_DEPTH_STENCIL_DESC));
-	if(m_PipeLineIndex ==0)
+	if(m_PipeLineIndex == STANDARD_OUT_LINE_MASK || m_PipeLineIndex == SKINNING_OUT_LINE_MASK || m_PipeLineIndex == INSTANCE_OUT_LINE_MASK)
 	{
 		d3dDepthStencilDesc.DepthEnable = TRUE;
 		d3dDepthStencilDesc.DepthWriteMask = D3D12_DEPTH_WRITE_MASK_ALL;//D3D12_DEPTH_WRITE_MASK_ALL
@@ -1565,7 +1625,7 @@ D3D12_RASTERIZER_DESC COutLineShader::CreateRasterizerState()
 
 void COutLineShader::CreateShader(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dCommandList, ID3D12RootSignature* pd3dGraphicsRootSignature, UINT nRenderTargets, DXGI_FORMAT* pdxgiRtvFormats, DXGI_FORMAT dxgiDsvFormat)
 {
-	m_nPipelineState = 2;
+	m_nPipelineState = 6;
 	m_vpd3dPipelineState.reserve(m_nPipelineState);
 	for (int i = 0; i < m_nPipelineState; ++i)
 	{
@@ -1576,16 +1636,50 @@ void COutLineShader::CreateShader(ID3D12Device* pd3dDevice, ID3D12GraphicsComman
 
 void COutLineShader::Render(ID3D12GraphicsCommandList* pd3dCommandList, const shared_ptr<CCamera>& pCamera, int nPipelineState)
 {
-	if (!m_pZombiePlayer->IsTracking())
-	{
-		return;
-	}
-
 	pd3dCommandList->ClearDepthStencilView(m_pPostProcessingShader->GetDsvCPUDesctriptorHandle(0), D3D12_CLEAR_FLAG_DEPTH | D3D12_CLEAR_FLAG_STENCIL, 1.0f, 0, 0, NULL);
 	pd3dCommandList->OMSetStencilRef(1);
+
 	for (int i = 0; i < m_nPipelineState; ++i)
 	{
-		CShader::Render(pd3dCommandList, pCamera, i);
+		UpdatePipeLineState(pd3dCommandList, i);
+
+		if (i == INSTANCE_OUT_LINE || i == INSTANCE_OUT_LINE_MASK)
+		{	
+			// 픽킹 오브젝트 렌더링
+			shared_ptr<CGameObject> pPickedObject = m_pMainPlayer->GetPickedObject();
+			if (pPickedObject && pPickedObject->GetCollisionType() == 2 && pPickedObject->IsInstance())
+			{
+				pPickedObject->Render(pd3dCommandList);
+			}
+		}
+
+		if (i == STANDARD_OUT_LINE || i == STANDARD_OUT_LINE_MASK)
+		{
+			shared_ptr<CGameObject> pPickedObject = m_pMainPlayer->GetPickedObject();
+			if (pPickedObject && pPickedObject->GetCollisionType() == 2 && !pPickedObject->IsInstance())
+			{
+				pPickedObject->Render(pd3dCommandList);
+			}
+		}
+
+		if (i == SKINNING_OUT_LINE || i == SKINNING_OUT_LINE_MASK)
+		{
+			if (!m_pZombiePlayer)
+			{
+				continue;
+			}
+			// 좀비 외곽선 스킬
+			if (!m_pZombiePlayer->IsTracking())
+			{
+				continue;
+			}
+
+			m_pZombiePlayer->Render(pd3dCommandList);
+			for (const auto& pBlueSuitPlayer : m_vpBlueSuitPlayer)
+			{
+				pBlueSuitPlayer->Render(pd3dCommandList);
+			}
+		}
 	}
 }
 
@@ -1594,6 +1688,14 @@ void COutLineShader::AddGameObject(const shared_ptr<CGameObject>& pGameObject)
 	if (dynamic_pointer_cast<CZombiePlayer>(pGameObject))
 	{
 		m_pZombiePlayer = dynamic_pointer_cast<CZombiePlayer>(pGameObject);
+		if (m_nMainPlayer == ZOMBIEPLAYER)
+			m_pMainPlayer = m_pZombiePlayer;
+	}
+	else if (dynamic_pointer_cast<CBlueSuitPlayer>(pGameObject))
+	{
+		m_vpBlueSuitPlayer.push_back(dynamic_pointer_cast<CBlueSuitPlayer>(pGameObject));
+		if (m_vpBlueSuitPlayer.size() == m_nMainPlayer - ZOMBIEPLAYER)
+			m_pMainPlayer = m_vpBlueSuitPlayer[m_vpBlueSuitPlayer.size() - 1];
 	}
 	else
 	{

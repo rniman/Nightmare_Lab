@@ -43,12 +43,15 @@ private:
 class CDrawerObject : public CGameObject
 {
 public:
-	CDrawerObject(char* pstrFrameName, XMFLOAT4X4& xmf4x4World, CMesh* pMesh);
+	CDrawerObject(char* pstrFrameName, XMFLOAT4X4& xmf4x4World, CMesh* pMesh, const shared_ptr<CGameObject>& pGameObject);
 	virtual ~CDrawerObject();
 
+	virtual void Render(ID3D12GraphicsCommandList* pd3dCommandList) override;
 	virtual void Animate(float fElapsedTime) override;
 	virtual void UpdatePicking() override;
 private:
+	weak_ptr<CGameObject> m_pInstanceObject;
+
 	bool m_bOpened = false;
 	bool m_bAnimate = false;
 	XMFLOAT3 m_xmf3OriginPosition;
@@ -62,18 +65,19 @@ private:
 class CDoorObject : public CGameObject
 {
 public:
-	CDoorObject(char* pstrFrameName, XMFLOAT4X4& xmf4x4World, CMesh* pMesh);
+	CDoorObject(char* pstrFrameName, XMFLOAT4X4& xmf4x4World, CMesh* pMesh, const shared_ptr<CGameObject>& pGameObject);
 	virtual ~CDoorObject();
 
+	virtual void Render(ID3D12GraphicsCommandList* pd3dCommandList) override;
 	virtual void Animate(float fElapsedTime) override;
 	virtual void UpdatePicking() override;
 
 private:
+	weak_ptr<CGameObject> m_pInstanceObject;
+
 	bool m_bOpened = false;
 	float m_fDoorAngle = 0.0f;
 	float m_fRotationAngle = 0.0f;
-
-	XMFLOAT4 m_xmf4Quaternion = { 0.0f, 0.0f, 0.0f, 1.0f };
 };
 
 /// <CGameObject - CDrawerObject>
@@ -83,12 +87,15 @@ private:
 class CElevatorDoorObject : public CGameObject
 {
 public:
-	CElevatorDoorObject(char* pstrFrameName, XMFLOAT4X4& xmf4x4World, CMesh* pMesh);
+	CElevatorDoorObject(char* pstrFrameName, XMFLOAT4X4& xmf4x4World, CMesh* pMesh, const shared_ptr<CGameObject>& pGameObject);
 	virtual ~CElevatorDoorObject() {};
 
+	virtual void Render(ID3D12GraphicsCommandList* pd3dCommandList) override;
 	virtual void Animate(float fElapsedTime) override;
 	virtual void UpdatePicking() override;
 private:
+	weak_ptr<CGameObject> m_pInstanceObject;
+
 	bool m_bOpened = false;
 	bool m_bAnimate = false;
 	XMFLOAT3 m_xmf3OriginPosition;

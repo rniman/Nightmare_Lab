@@ -28,6 +28,9 @@
     <Filter Include="HLSL%28cso%29">
       <UniqueIdentifier>{3dd8ca27-e1c0-4bd3-9930-17a1f308172b}</UniqueIdentifier>
     </Filter>
+    <Filter Include="HLSL%28cso%29\OutLine">
+      <UniqueIdentifier>{0e288363-9c9e-4027-a136-273d128fc452}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="targetver.h">
@@ -190,12 +193,6 @@
     <FxCompile Include="VSUserInterface.hlsl">
       <Filter>HLSL%28cso%29</Filter>
     </FxCompile>
-    <FxCompile Include="VSOutLine.hlsl">
-      <Filter>HLSL%28cso%29</Filter>
-    </FxCompile>
-    <FxCompile Include="VSOutLineMask.hlsl">
-      <Filter>HLSL%28cso%29</Filter>
-    </FxCompile>
     <FxCompile Include="VSBlend.hlsl">
       <Filter>HLSL%28cso%29</Filter>
     </FxCompile>
@@ -214,11 +211,29 @@
     <FxCompile Include="PSUserInterface.hlsl">
       <Filter>HLSL%28cso%29</Filter>
     </FxCompile>
-    <FxCompile Include="PSOutLine.hlsl">
-      <Filter>HLSL%28cso%29</Filter>
-    </FxCompile>
     <FxCompile Include="PSBlend.hlsl">
       <Filter>HLSL%28cso%29</Filter>
+    </FxCompile>
+    <FxCompile Include="VSOutLine.hlsl">
+      <Filter>HLSL%28cso%29\OutLine</Filter>
+    </FxCompile>
+    <FxCompile Include="VSOutLineMask.hlsl">
+      <Filter>HLSL%28cso%29\OutLine</Filter>
+    </FxCompile>
+    <FxCompile Include="PSOutLine.hlsl">
+      <Filter>HLSL%28cso%29\OutLine</Filter>
+    </FxCompile>
+    <FxCompile Include="VSStandardOutLine.hlsl">
+      <Filter>HLSL%28cso%29\OutLine</Filter>
+    </FxCompile>
+    <FxCompile Include="VSStandardOutLineMask.hlsl">
+      <Filter>HLSL%28cso%29\OutLine</Filter>
+    </FxCompile>
+    <FxCompile Include="VSInstanceOutLineMask.hlsl">
+      <Filter>HLSL%28cso%29\OutLine</Filter>
+    </FxCompile>
+    <FxCompile Include="VSInstanceOutLine.hlsl">
+      <Filter>HLSL%28cso%29\OutLine</Filter>
     </FxCompile>
   </ItemGroup>
   <ItemGroup>

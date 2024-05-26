@@ -840,11 +840,8 @@ void CGameFramework::BuildObjects()
 	//D3D12_GPU_DESCRIPTOR_HANDLE d3dDsvGPUDescriptorHandle = CScene::CreateShaderResourceView(m_d3d12Device.Get(), m_d3dDepthStencilBuffer.Get(), DXGI_FORMAT_R32_FLOAT);
 	m_pPostProcessingShader->CreateLightCamera(m_d3d12Device.Get(), m_d3dCommandList.Get(), m_pScene.get());
 
-	//[0505] COutLineShader 내부에서 m_pPostProcessingShader->GetDsvCPUDesctriptorHandle(0)을 사용하기위해서 필요
-	if(m_pTcpClient->GetClientId() == ZOMBIEPLAYER)
-	{
-		dynamic_cast<COutLineShader*>(m_pScene->m_vForwardRenderShader[OUT_LINE_SHADER].get())->SetPostProcessingShader(m_pPostProcessingShader);
-	}
+	//[0523] 이제 좀비 플레이어 외에도 사용, COutLineShader 내부에서 m_pPostProcessingShader->GetDsvCPUDesctriptorHandle(0)을 사용하기위해서 필요
+	dynamic_cast<COutLineShader*>(m_pScene->m_vForwardRenderShader[OUT_LINE_SHADER].get())->SetPostProcessingShader(m_pPostProcessingShader);
 
 	m_d3dCommandList->Close();
 	ID3D12CommandList* ppd3dCommandLists[] = { m_d3dCommandList.Get()};
