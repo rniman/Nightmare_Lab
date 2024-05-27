@@ -114,6 +114,9 @@ protected:
 class CStandardMesh : public CMesh
 {
 public:
+	// 인스턴스 메쉬를 저장할 컨테이너
+	static vector<shared_ptr<CStandardMesh>> g_vAllstandardMesh;
+
 	CStandardMesh(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dCommandList);
 	virtual ~CStandardMesh();
 
@@ -160,6 +163,7 @@ public:
 	virtual void OnPreRender(ID3D12GraphicsCommandList* pd3dCommandList);
 	virtual void UpdateShaderVariables(ID3D12GraphicsCommandList* pd3dCommandList) {};
 
+	static void SaveStandardMesh(shared_ptr<CStandardMesh> pMesh);
 };
 
 class CInstanceStandardMesh : public CStandardMesh

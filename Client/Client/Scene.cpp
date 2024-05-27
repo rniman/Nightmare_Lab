@@ -23,6 +23,8 @@ D3D12_GPU_DESCRIPTOR_HANDLE	CScene::m_d3dSrvGPUDescriptorNextHandle;
 vector<unique_ptr<CShader>> CScene::m_vShader;
 //CShader* CScene::m_pRefShader;
 
+extern bool g_InstanceMeshNotAddCollision;
+
 int ReadLightObjectInfo(vector<XMFLOAT3>& positions, vector<XMFLOAT3>& looks);
 
 CScene::CScene()
@@ -280,7 +282,7 @@ void CScene::BuildObjects(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* p
 	// CBV(RootObject) : //육면체(1), 오브젝트(1), DeskObject(1), DoorObject(1), flashLight(1), 서버인원예상(20), fuse(3)
 	// CBV(Model) : Zom(72),  Zom_Controller(2 * N),// BlueSuit(85), BlueSuit_Controller(2 * N), Desk(3), Door(5), flashLight(1), Fuse(6), 레이더(5),텔레포트아이템(1),지뢰(1)
 	int nCntCbv = 1 + 1 + 2 + 66 +
-		(72 + 2) + (85 + 2) * MAX_CLIENT + 2 + 7 + 10 + 5 * MAX_CLIENT + 1 * MAX_CLIENT + 120 + 1 + 1+600;
+		(72 + 2) + (85 + 2) * MAX_CLIENT + 2 + 7 + 10 + 5 * MAX_CLIENT + 1 * MAX_CLIENT + 120 + 1 + 1+1000;
 	// SRV(Default) : 디퍼드렌더링텍스처(ADD_RENDERTARGET_COUNT로 정의된 개수임)
 	// SRV(Scene Load) : 79
 	// SRV: Zombie(3), // BlueSuit(6), 육면체(1), 엘런(8(오클루젼맵제거), Desk(3), Door(9), flashLight(3) , m_nLights,지뢰(4),Electiric
@@ -317,6 +319,9 @@ void CScene::BuildObjects(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* p
 		m_vForwardRenderShader.push_back(make_unique<CBlueSuitUserInterfaceShader>());
 		m_vForwardRenderShader[USER_INTERFACE_SHADER]->CreateShader(pd3dDevice, pd3dCommandList, m_pd3dGraphicsRootSignature.Get(), 1, nullptr, DXGI_FORMAT_D24_UNORM_S8_UINT);
 	}
+
+	m_vPreRenderShader.push_back(make_unique<PartitionInsStandardShader>());
+	m_vPreRenderShader[PARTITION_SHADER]->CreateShader(pd3dDevice, pd3dCommandList, m_pd3dGraphicsRootSignature.Get(), 4, pdxgiRtvFormats, DXGI_FORMAT_D24_UNORM_S8_UINT);
 
 	LoadScene(pd3dDevice, pd3dCommandList);
 
@@ -408,6 +413,7 @@ void CScene::BuildObjects(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* p
 	///////////////////////////// 아이템
 	//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
+	
 	// 아이템 개수를 고정할지는 상의해봐야할듯? 일단 고정으로 간다치고 만듬
 	for (int i = 0; i < 10; ++i)
 	{
@@ -428,7 +434,7 @@ void CScene::BuildObjects(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* p
 		m_vShader[STANDARD_SHADER]->AddGameObject(pTeleportObject);
 	}
 
-	for (int i = 0; i < 10; ++i)
+	for (int i = 0; i < 0; ++i)
 	{
 		//레이더모델 로드
 		shared_ptr<CRadarObject> pRaderObject = make_shared<CRadarObject>(pd3dDevice, pd3dCommandList, m_pd3dGraphicsRootSignature.Get());
@@ -441,7 +447,7 @@ void CScene::BuildObjects(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* p
 
 	shared_ptr<CLoadedModelInfo> pElectricBlendModel = CGameObject::LoadGeometryAndAnimationFromFile(pd3dDevice, pd3dCommandList, m_pd3dGraphicsRootSignature.Get(), "Asset/Model/electricBlend.bin", MeshType::Blend);
 	shared_ptr<CLoadedModelInfo> pMineModel = CGameObject::LoadGeometryAndAnimationFromFile(pd3dDevice, pd3dCommandList, m_pd3dGraphicsRootSignature.Get(), (char*)"Asset/Model/Item_Mine.bin", MeshType::Standard);
-	for (int i = 0; i < 50; ++i)
+	for (int i = 0; i < 0; ++i)
 	{	//CJI [0422] : 지뢰아이템 이펙트는 동적할당을 줄이기위해서 미리 만들어둔 블렌드 객체를 이용해 렌더링한다.
 		shared_ptr<TextureBlendObject> mineExplosionObject = make_shared<TextureBlendObject>(pd3dDevice, pd3dCommandList, pElectricBlendModel->m_pModelRootObject, m_apPlayer[mainPlayerId]);
 		m_vTextureBlendObjects.push_back(mineExplosionObject);
@@ -493,32 +499,31 @@ void CScene::AddDefaultObject(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandLis
 void CScene::BuildLights()
 {
 	m_nLights = ReadLightObjectInfo(m_xmf3lightPositions, m_xmf3lightLooks) + MAX_SURVIVOR/*플레이어 조명*/;
-	
+	if (m_nLights > MAX_LIGHTS) {
+		m_nLights = MAX_LIGHTS;
+	}
 	m_pLights = new LIGHT[m_nLights];
 	::ZeroMemory(m_pLights, sizeof(LIGHT) * m_nLights);
 
 	m_xmf4GlobalAmbient = XMFLOAT4(0.15f, 0.15f, 0.15f, 1.0f);
 
-	for (int i = MAX_SURVIVOR; i < m_xmf3lightPositions.size() + MAX_SURVIVOR; ++i) 
-	{
-		Vector3::Add(m_xmf3lightPositions[i - MAX_SURVIVOR], XMFLOAT3(0.0f, -3.0f, 0.0f));
-
+	for (int i = MAX_SURVIVOR; i < m_nLights;++i) {
 		m_pLights[i].m_bEnable = true;
 		m_pLights[i].m_nType = SPOT_LIGHT;
-		m_pLights[i].m_fRange = 5.0f;
+		m_pLights[i].m_fRange = 30.0f;
 		m_pLights[i].m_xmf4Ambient = XMFLOAT4(0.6f, 0.0f, 0.0f, 0.0f);
 		m_pLights[i].m_xmf4Diffuse = XMFLOAT4(0.6f, 0.0f, 0.0f, 0.0f);
 		m_pLights[i].m_xmf4Specular = XMFLOAT4(1.0f, 0.0f, 0.0f, 0.0f);
 		m_pLights[i].m_xmf3Position = m_xmf3lightPositions[i - MAX_SURVIVOR];
 		m_pLights[i].m_xmf3Direction = m_xmf3lightLooks[i - MAX_SURVIVOR];
-		m_pLights[i].m_xmf3Attenuation = XMFLOAT3(0.0f, 0.1f, 0.01f);
+		m_pLights[i].m_xmf3Attenuation = XMFLOAT3(1.0f, -0.1f, 0.01f);
+
 		m_pLights[i].m_fFalloff = 1.0f;
 		m_pLights[i].m_fPhi = (float)cos(XMConvertToRadians(45.0f));
 		m_pLights[i].m_fTheta = (float)cos(XMConvertToRadians(35.0f));
 	}
 
-	for (int i = 0; i < MAX_SURVIVOR; ++i)
-	{
+	for (int i = 0; i < MAX_SURVIVOR;++i) {
 		m_xmf3lightPositions.insert(m_xmf3lightPositions.begin(), XMFLOAT3(0.0f, -100.0f, 0.0f)); // m_xmf3lightPositions을 가지고 카메라를 만들것임
 		m_xmf3lightLooks.insert(m_xmf3lightLooks.begin(), XMFLOAT3(0.0f, -1.0f, 0.0f));
 
@@ -528,9 +533,9 @@ void CScene::BuildLights()
 		m_pLights[i].m_xmf4Ambient = XMFLOAT4(1.0f, 1.0f, 1.0f, 1.0f);
 		m_pLights[i].m_xmf4Diffuse = XMFLOAT4(1.0f, 1.0f, 1.0f, 1.0f);
 		m_pLights[i].m_xmf4Specular = XMFLOAT4(1.0f, 1.0f, 1.0f, 1.0f);
-		m_pLights[i].m_xmf3Position = XMFLOAT3(0.0f, 3.0f, 0.0f);
-		m_pLights[i].m_xmf3Direction = XMFLOAT3(0.0f, 0.0f, 1.0f);
-		m_pLights[i].m_xmf3Attenuation = XMFLOAT3(1.0f, 0.1f, 0.01f);
+		m_pLights[i].m_xmf3Position = XMFLOAT3(0.0f, 0.0f, 0.0f);
+		m_pLights[i].m_xmf3Direction = XMFLOAT3(0.0f, -1.0f, 0.0f);
+		m_pLights[i].m_xmf3Attenuation = XMFLOAT3(1.0f, -0.1f, 0.01f);
 		m_pLights[i].m_fFalloff = 1.0f;
 		m_pLights[i].m_fPhi = (float)cos(XMConvertToRadians(35.0f));
 		m_pLights[i].m_fTheta = (float)cos(XMConvertToRadians(25.0f));
@@ -540,58 +545,64 @@ void CScene::BuildLights()
 
 void CScene::LoadScene(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dCommandList)
 {
-	ifstream is("Asset/Data/투명객체.txt");
+	ifstream tpobFile("Asset/Data/투명객체.txt");
 	// 이름 , 재질개수 , 재질인덱스
-	if (!is) {
+	if (!tpobFile) {
 		assert(0);
 	}
 	unordered_map<string, vector<int>> transparentObjects;
 
 	string name;
-	while (is >> name)
+	while (tpobFile >> name)
 	{
 		int count{};
-		is >> count;
+		tpobFile >> count;
 		for (int i = 0; i < count; ++i) {
 			int mtNum;
-			is >> mtNum;
+			tpobFile >> mtNum;
 			transparentObjects[name].push_back(mtNum);
 		}
 	}
 
-	FILE* pInFile = NULL;
-	::fopen_s(&pInFile, (char*)"Asset/Model/Scene.bin", "rb");
-	::rewind(pInFile);
+	FILE* pSceneFile = NULL;
+	::fopen_s(&pSceneFile, (char*)"Asset/Model/Scene.bin", "rb");
+	::rewind(pSceneFile);
 	int fileEnd{};
+	
+	unique_ptr<InstanceStandardShader> InsStShader(static_cast<InstanceStandardShader*>(m_vShader[INSTANCE_STANDARD_SHADER].release()));
+	int n_curfloor = -1;
 	while (true)
 	{
 		shared_ptr<CLoadedModelInfo> pLoadedModel = make_shared<CLoadedModelInfo>();
 
 		char pstrToken[128] = { '\0' };
-
 		for (; ; )
 		{
-			if (::ReadStringFromFile(pInFile, pstrToken))
+			if (::ReadStringFromFile(pSceneFile, pstrToken))
 			{
-				if (!strcmp(pstrToken, "<Hierarchy>:"))
+				if (!strcmp(pstrToken, "<Floor>:")) {
+					InsStShader->m_vFloorObjects.push_back(vector<shared_ptr<CGameObject>>());
+					n_curfloor += 1;
+				}
+				else if (!strcmp(pstrToken, "<Hierarchy>:"))
 				{
-					pLoadedModel->m_pModelRootObject = CGameObject::LoadInstanceFrameHierarchyFromFile(pd3dDevice, pd3dCommandList, m_pd3dGraphicsRootSignature.Get(), NULL, pInFile, &pLoadedModel->m_nSkinnedMeshes);
-					::ReadStringFromFile(pInFile, pstrToken); //"</Hierarchy>"
+					pLoadedModel->m_pModelRootObject = CGameObject::LoadInstanceFrameHierarchyFromFile(pd3dDevice, pd3dCommandList, m_pd3dGraphicsRootSignature.Get(), NULL, pSceneFile, &pLoadedModel->m_nSkinnedMeshes);
+					::ReadStringFromFile(pSceneFile, pstrToken); //"</Hierarchy>"
 					pLoadedModel->m_pModelRootObject->Rotate(0.0f, 0.0f, 0.0f);
 					if (!transparentObjects[pLoadedModel->m_pModelRootObject->m_pstrFrameName].empty()) {
 						pLoadedModel->m_pModelRootObject->SetTransparentObjectInfo(transparentObjects[pLoadedModel->m_pModelRootObject->m_pstrFrameName]);
-						m_vShader[INSTANCE_STANDARD_SHADER]->AddGameObject((pLoadedModel->m_pModelRootObject));
+						InsStShader->m_vFloorObjects[n_curfloor].push_back(pLoadedModel->m_pModelRootObject);
 						m_vForwardRenderShader[TRANSPARENT_SHADER]->AddGameObject((pLoadedModel->m_pModelRootObject));
 						// 첫번째 쉐이더는 불투명한 재질들만 렌더링, 두번째 쉐이더는 투명한 재질들만 렌더링 분류를 위함이고 마지막에 렌더링해야하기 떄문에 두 쉐이더에 모두 포함한다. 
 					}
 					else
 					{
-						m_vShader[INSTANCE_STANDARD_SHADER]->AddGameObject((pLoadedModel->m_pModelRootObject));
+						InsStShader->m_vFloorObjects[n_curfloor].push_back(pLoadedModel->m_pModelRootObject);
 					}
 				}
 				else if (!strcmp(pstrToken, "<Animation>:"))
 				{
-					CGameObject::LoadAnimationFromFile(pInFile, pLoadedModel);
+					CGameObject::LoadAnimationFromFile(pSceneFile, pLoadedModel);
 					pLoadedModel->PrepareSkinning();
 				}
 				else if (!strcmp(pstrToken, "</Animation>:"))
@@ -612,8 +623,93 @@ void CScene::LoadScene(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3d
 		if (fileEnd) {
 			break;
 		}
-
 	}
+
+	m_vShader[INSTANCE_STANDARD_SHADER].reset(InsStShader.release());
+
+	// 파티션 분할한 씬 로드
+	FILE* pPartitionFile = NULL;
+	::fopen_s(&pPartitionFile, (char*)"Asset/Model/PartisionScene.bin", "rb");
+	::rewind(pPartitionFile);
+	fileEnd = 0;
+
+	unique_ptr<PartitionInsStandardShader> PtShader(static_cast<PartitionInsStandardShader*>(m_vPreRenderShader[PARTITION_SHADER].release()));
+	int nPartition = -1;
+	g_InstanceMeshNotAddCollision = true; // 이 오브젝트들은 Collision 체크를 할 필요 없는 객체들이다.(단순히 쉐도우맵을 만드는곳에만 쓰는 객체들)
+	while (true)
+	{
+		shared_ptr<CLoadedModelInfo> pLoadedModel = make_shared<CLoadedModelInfo>();
+
+		char pstrToken[128] = { '\0' };
+
+		for (; ; )
+		{
+			if (::ReadStringFromFile(pPartitionFile, pstrToken))
+			{
+				if (!strcmp(pstrToken, "<Partition>:")) {
+					PtShader->AddPartition(); // 파티션 추가
+					nPartition++;
+					//WriteInteger("<BoxColliders>:", boxColliders.Length);
+					//WriteBoxCollider("<Bound>:", boxColliders);
+				}
+				else if (!strcmp(pstrToken, "<Bound>:")) {
+					shared_ptr<BoundingBox> bb = make_shared<BoundingBox>();
+					int nIndex = 0;
+					XMFLOAT3 xmf3bbCenter, xmf3bbExtents;
+					fread(&nIndex, sizeof(int), 1, pPartitionFile);
+					(UINT)::fread(&xmf3bbCenter, sizeof(XMFLOAT3), 1, pPartitionFile);
+					(UINT)::fread(&xmf3bbExtents, sizeof(XMFLOAT3), 1, pPartitionFile);
+
+					bb->Center = xmf3bbCenter;
+					bb->Extents = xmf3bbExtents;
+
+					PtShader->AddPartitionBB(bb);
+				}
+				else if (!strcmp(pstrToken, "<Hierarchy>:"))
+				{
+					pLoadedModel->m_pModelRootObject = CGameObject::LoadInstanceFrameHierarchyFromFile(pd3dDevice, pd3dCommandList, m_pd3dGraphicsRootSignature.Get(), NULL, pPartitionFile, &pLoadedModel->m_nSkinnedMeshes);
+					::ReadStringFromFile(pPartitionFile, pstrToken); //"</Hierarchy>"
+					pLoadedModel->m_pModelRootObject->Rotate(0.0f, 0.0f, 0.0f);
+					if (!strcmp(pLoadedModel->m_pModelRootObject->m_pstrFrameName, "Zom_1"))
+					{ 
+					}
+					else if (!transparentObjects[pLoadedModel->m_pModelRootObject->m_pstrFrameName].empty()) 
+					{
+						pLoadedModel->m_pModelRootObject->SetTransparentObjectInfo(transparentObjects[pLoadedModel->m_pModelRootObject->m_pstrFrameName]);
+						PtShader->AddPartitionGameObject((pLoadedModel->m_pModelRootObject), nPartition);
+						// 첫번째 쉐이더는 불투명한 재질들만 렌더링, 두번째 쉐이더는 투명한 재질들만 렌더링 분류를 위함이고 마지막에 렌더링해야하기 떄문에 두 쉐이더에 모두 포함한다. 
+					}
+					else
+					{
+						PtShader->AddPartitionGameObject((pLoadedModel->m_pModelRootObject), nPartition);
+					}
+				}
+				else if (!strcmp(pstrToken, "<Animation>:"))
+				{
+					CGameObject::LoadAnimationFromFile(pPartitionFile, pLoadedModel);
+					pLoadedModel->PrepareSkinning();
+				}
+				else if (!strcmp(pstrToken, "</Animation>:"))
+				{
+					break;
+				}
+				else if (!strcmp(pstrToken, "</Scene>:"))
+				{
+					fileEnd = 1;
+					break;
+				}
+			}
+			else
+			{
+				break;
+			}
+		}
+		if (fileEnd) {
+			break;
+		}
+	}
+	// 메모리 누수를 방지하기 위해 다시 변환
+	m_vPreRenderShader[PARTITION_SHADER].reset(PtShader.release());
 }
 
 bool StreamReadString(ifstream& in, string& str)
@@ -895,8 +991,19 @@ void CScene::Render(ID3D12GraphicsCommandList* pd3dCommandList, const shared_ptr
 
 	for (auto& shader : m_vShader) 
 	{
-		shader->Render(pd3dCommandList, pCamera, nPipelineState);
+		shader->Render(pd3dCommandList, pCamera, m_pMainPlayer, nPipelineState);
 	}
+}
+
+void CScene::ShadowPreRender(ID3D12GraphicsCommandList* pd3dCommandList, const shared_ptr<CCamera>& pCamera, int nPipelineState)
+{
+	PrepareRender(pd3dCommandList, pCamera);
+
+	for (auto& shader : m_vPreRenderShader)
+	{
+		shader->PartitionRender(pd3dCommandList, pCamera, nPipelineState);
+	}
+	m_vShader[SKINNEDANIMATION_STANDARD_SHADER]->Render(pd3dCommandList, pCamera, m_pMainPlayer, nPipelineState);
 }
 
 void CScene::PrevRender(ID3D12GraphicsCommandList* pd3dCommandList, const shared_ptr<CCamera>& pCamera, int nPipelineState)

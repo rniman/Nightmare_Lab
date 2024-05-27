@@ -16,12 +16,16 @@
 #define USER_INTERFACE_SHADER 2
 #define OUT_LINE_SHADER 3
 
+// m_vPartitionShader
+#define PARTITION_SHADER 0
+
+
 //#define NOTRENDERING_SHADER 3
 
 // m_vMesh 메쉬에 접근할 각 인덱스를 의미
 #define HEXAHEDRONMESH 0
 
-#define MAX_LIGHTS						28
+#define MAX_LIGHTS						24 + MAX_SURVIVOR
 
 #define POINT_LIGHT						1
 #define SPOT_LIGHT						2
@@ -86,6 +90,7 @@ public:
 	void UpdateShaderVariables(ID3D12GraphicsCommandList* pd3dCommandList);
 	void PrepareRender(ID3D12GraphicsCommandList* pd3dCommandList, const shared_ptr<CCamera>& pCamera);
 	void Render(ID3D12GraphicsCommandList* pd3dCommandList, const shared_ptr<CCamera>& pCamera,int nPipelineState);
+	void ShadowPreRender(ID3D12GraphicsCommandList* pd3dCommandList, const shared_ptr<CCamera>& pCamera, int nPipelineState);
 	void PrevRender(ID3D12GraphicsCommandList* pd3dCommandList, const shared_ptr<CCamera>& pCamera,int nPipelineState);
 
 	void AddDefaultObject(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dCommandList, ObjectType type, XMFLOAT3 position,int shader, int mesh);
@@ -114,6 +119,7 @@ public:
 	// 마티리얼은 Com 객체를 가진다.텍스처가 리소스로 관리되는데 이 객체를 지역변수로 선언하고 사용하지 않으면 알아서 삭제가 되면서
 	// 디바이스에서 에러를 발생 시킨다. 
 	static float testAngle;
+	vector<unique_ptr<CShader>> m_vPreRenderShader;
 
 
 	std::array<shared_ptr<CPlayer>, MAX_CLIENT> m_apPlayer;

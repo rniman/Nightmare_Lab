@@ -194,7 +194,7 @@ void CTcpClient::OnProcessingReadMessage(HWND hWnd, UINT nMessageID, WPARAM wPar
 
 				// Áö·Ú Ãæµ¹
 				int nObjectNum = m_aClientInfo[i].m_playerInfo.m_iMineobjectNum;
-				if (nObjectNum != -1) {
+				if (nObjectNum >= 0) {
 					shared_ptr<CGameObject> pGameObject = g_collisionManager.GetCollisionObjectWithNumber(nObjectNum).lock();
 					auto mine = dynamic_pointer_cast<CMineObject>(pGameObject);
 					if (mine)
@@ -224,7 +224,7 @@ void CTcpClient::OnProcessingReadMessage(HWND hWnd, UINT nMessageID, WPARAM wPar
 				int nObjectNum = m_aClientInfo[i].m_anObjectNum[j];
 
 
-				if (nObjectNum == -1 || nObjectNum >= g_collisionManager.GetNumOfCollisionObject())
+				if (nObjectNum <= -1 || nObjectNum >= g_collisionManager.GetNumOfCollisionObject())
 				{
 					continue;
 				}

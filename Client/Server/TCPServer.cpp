@@ -389,12 +389,16 @@ bool TCPServer::Init(HWND hWnd)
 
 	// 씬 생성
 	LoadScene();
-	int ELEVATORDOORCOUNT = 16;
 	int start_door{ -1 };
+	int end_door{ -1 };
 	for (int i = 0; i < m_pCollisionManager->GetNumberOfCollisionObject();++i) {
 		shared_ptr<CServerGameObject> object = m_pCollisionManager->GetCollisionObjectWithNumber(i);
 		auto pElevaterDoor = dynamic_pointer_cast<CServerElevatorDoorObject>(object);
 		if (!pElevaterDoor) {
+			if (start_door != -1) {
+				end_door = i;
+				break;
+			}
 			continue;
 		}
 		if (strcmp(pElevaterDoor->m_pstrFrameName, "Door1")) {
@@ -402,9 +406,10 @@ bool TCPServer::Init(HWND hWnd)
 		}
 		if (pElevaterDoor) {
 			start_door = i;
-			break;
+			//break;
 		}
 	}
+	int ELEVATORDOORCOUNT = end_door - start_door;
 
 	int random_escape_index = rand() % ELEVATORDOORCOUNT;
 	for (int i = 0; i < ELEVATORDOORCOUNT;++i) {
@@ -424,15 +429,14 @@ bool TCPServer::Init(HWND hWnd)
 		//pElevaterDoor->SetEscapeDoor(false); // 디버그를 위해서 모든 문을 잠금
 	}
 
+	std::cout << "생성된 충돌객체 = " << m_pCollisionManager->GetNumberOfCollisionObject() << std::endl;
 	// 아이템 생성
 	CreateItemObject();
+	std::cout << "아이템 생성후 생성된 충돌객체 = " << m_pCollisionManager->GetNumberOfCollisionObject() << std::endl;
 
-	std::cout << "생성된 충돌객체 = " << m_pCollisionManager->GetNumberOfCollisionObject() << std::endl;
-	//shared_ptr<CServerGameObject> object = m_pCollisionManager->GetCollisionObjectWithNumber(932);
 
 	return true;
 }
-
 void TCPServer::SimulationLoop()
 {
 	m_timer.Tick();
@@ -444,7 +448,6 @@ void TCPServer::SimulationLoop()
 		{
 			continue;
 		}
-
 		pPlayer->SetPickedObject(m_pCollisionManager);	
 		//if (pPlayer->GetPickedObject().lock())
 		//{
@@ -831,6 +834,7 @@ void TCPServer::CreateSceneObject(char* pstrFrameName, const XMFLOAT4X4& xmf4x4W
 			m_nEndDrawer1 = nServerObjectNum - 1;
 		}
 		m_nEndDrawer1++;
+		m_vDrawerId.push_back(nServerObjectNum);
 		pGameObject = make_shared<CServerDrawerObject>(pstrFrameName, xmf4x4World, voobb);
 	}
 	else if (!strcmp(pstrFrameName, "Drawer_2"))
@@ -841,6 +845,7 @@ void TCPServer::CreateSceneObject(char* pstrFrameName, const XMFLOAT4X4& xmf4x4W
 			m_nEndDrawer2 = nServerObjectNum - 1;
 		}
 		m_nEndDrawer2++;
+		m_vDrawerId.push_back(nServerObjectNum);
 		pGameObject = make_shared<CServerDrawerObject>(pstrFrameName, xmf4x4World, voobb);
 	}
 	else if (!strcmp(pstrFrameName, "Door1"))
@@ -895,14 +900,14 @@ void TCPServer::CreateItemObject()
 {
 	CServerItemObject::SetDrawerStartEnd(m_nStartDrawer1, m_nEndDrawer1, m_nStartDrawer2, m_nEndDrawer2);
 	// 확률: fus 30, mine 30, tp 30, radar 10
-	uniform_int_distribution<int> dis(m_nStartDrawer1, m_nEndDrawer2);
+	uniform_int_distribution<int> dis(0, m_vDrawerId.size()-1); //[CJI 0525] m_vDrawerId 에 번호를 저장하는 방식으로 변경하여 랜덤으로 뽑아 사용
 	uniform_int_distribution<int> item_dis(0, 99);
 	uniform_int_distribution<int> rotation_dis(1, 360);
 	uniform_real_distribution<float> pos_dis(-0.2f, 0.2f);
-	for(int i = 0; i < 80;++i)
+	for(int i = 0; i < ITEM_COUNT;++i)
 	{
 		int nDrawerNum = dis(m_mt19937Gen);
-		shared_ptr<CServerDrawerObject> pDrawerObject = dynamic_pointer_cast<CServerDrawerObject>(m_pCollisionManager->GetCollisionObjectWithNumber(nDrawerNum));
+		shared_ptr<CServerDrawerObject> pDrawerObject = dynamic_pointer_cast<CServerDrawerObject>(m_pCollisionManager->GetCollisionObjectWithNumber(m_vDrawerId[nDrawerNum]));
 		if (!pDrawerObject) //error
 			exit(1);
 
@@ -1054,7 +1059,7 @@ void TCPServer::CreateSendObject()
 void TCPServer::InitPlayerPosition(shared_ptr<CServerPlayer>& pServerPlayer, int nIndex)
 {
 	// 후보지를 두고 int 값에 따라 그곳에 가도록 해야할듯
-	uniform_int_distribution<int> disIntPosition(0, 4);
+	uniform_int_distribution<int> disIntPosition(0, DEBUGFLOOR - 1);
 
 	int nStartPosNum = disIntPosition(m_mt19937Gen);
 	bool bEmpty = false;

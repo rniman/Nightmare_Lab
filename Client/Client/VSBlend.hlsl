@@ -1,27 +1,4 @@
-struct MATERIAL
-{
-    float4 m_cAmbient;
-    float4 m_cAlbedo;
-    float4 m_cSpecular; //a = power
-    float4 m_cEmissive;
-};
-
-cbuffer cbCameraInfo : register(b0)
-{
-    matrix gmtxView : packoffset(c0);
-    matrix gmtxProjection : packoffset(c4);
-    matrix gmtxInverseViewProjection : packoffset(c8);
-    float4 gvCameraPosition : packoffset(c12); // 16바이트를 맞추기 위해 w값: 더미 추가
-    float4 gvFogColor : packoffset(c13);
-    float4 gvfFogInfo : packoffset(c14); // START, RANGE, Density, MOD
-};
-
-cbuffer cbGameObjectInfo : register(b1)
-{
-    matrix gmtxGameObject : packoffset(c0);
-    MATERIAL gMaterial : packoffset(c4);
-    uint gnTexturesMask : packoffset(c8);
-};
+#include "Common.hlsl"
 
 struct VS_BLEND_INPUT
 {

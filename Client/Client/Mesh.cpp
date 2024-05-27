@@ -20,12 +20,14 @@ CMesh::~CMesh()
 	{
 		for (int i = 0; i < m_nSubMeshes; i++)
 		{
+			if (m_vpd3dSubSetIndexBuffers.size() == 0) break;
 			if (m_vpd3dSubSetIndexBuffers[i].Get()) m_vpd3dSubSetIndexBuffers[i].Reset();
 			if (m_ppnSubSetIndices[i]) delete[] m_ppnSubSetIndices[i];
 		}
-		
-		if (m_pnSubSetIndices) delete[] m_pnSubSetIndices;
-		if (m_ppnSubSetIndices) delete[] m_ppnSubSetIndices;
+		if (m_vpd3dSubSetIndexBuffers.size() != 0) {
+			if (m_pnSubSetIndices) delete[] m_pnSubSetIndices;
+			if (m_ppnSubSetIndices) delete[] m_ppnSubSetIndices;
+		}
 	}
 
 	if (m_pxmf3ModelPositions) delete[] m_pxmf3ModelPositions;
@@ -39,6 +41,9 @@ void CMesh::ReleaseUploadBuffers()
 	{
 		for (int i = 0; i < m_nSubMeshes; i++)
 		{
+			if (m_vpd3dSubSetIndexUploadBuffers.size() == 0) {
+				break;
+			}
 			if (m_vpd3dSubSetIndexUploadBuffers[i].Get()) m_vpd3dSubSetIndexUploadBuffers[i].Reset();
 		}
 	}
@@ -318,6 +323,31 @@ void CStandardMesh::ReleaseUploadBuffers()
 	if (m_pd3dBiTangentUploadBuffer.Get()) m_pd3dBiTangentUploadBuffer.Reset();
 	
 }
+void CStandardMesh::SaveStandardMesh(shared_ptr<CStandardMesh> pMesh )
+{
+	for (auto& mesh : CStandardMesh::g_vAllstandardMesh) {
+		if (!strcmp(mesh->m_pstrMeshName, pMesh->m_pstrMeshName/*@제외 비교*/)) {
+			pMesh->m_d3dVertexBufferView = mesh->m_d3dVertexBufferView;
+			pMesh->m_vd3dSubSetIndexBufferViews = mesh->m_vd3dSubSetIndexBufferViews;
+			pMesh->m_nSubMeshes = mesh->m_nSubMeshes;
+			pMesh->m_pnSubSetIndices = mesh->m_pnSubSetIndices;
+			pMesh->m_ppnSubSetIndices = mesh->m_ppnSubSetIndices;
+			pMesh->m_d3dUV0BufferView = mesh->m_d3dUV0BufferView;
+			pMesh->m_d3dUV1BufferView = mesh->m_d3dUV1BufferView;
+			pMesh->m_d3dNormalBufferView = mesh->m_d3dNormalBufferView;
+			pMesh->m_d3dTangentBufferView = mesh->m_d3dTangentBufferView;
+			pMesh->m_d3dBiTangentBufferView = mesh->m_d3dBiTangentBufferView;
+			pMesh->m_nSlot = mesh->m_nSlot;
+			pMesh->m_nType = mesh->m_nType;
+			pMesh->m_vOOBBs = mesh->m_vOOBBs;
+
+			return; // 찾았다면 로직을 수행하고 리턴
+		}
+	}
+
+	// 컨테이너에 메쉬가 없다면 처음 만들어진 메쉬
+	CStandardMesh::g_vAllstandardMesh.push_back(pMesh);
+}
 
 bool CStandardMesh::LoadMeshFromFile(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dCommandList, FILE* pInFile)
 {
@@ -542,8 +572,8 @@ bool CInstanceStandardMesh::LoadMeshFromFile(ID3D12Device* pd3dDevice, ID3D12Gra
 	UINT nReads = (UINT)::fread(&m_nVertices, sizeof(int), 1, pInFile);
 
 	::ReadStringFromFile(pInFile, m_pstrMeshName);
-	if (m_pstrMeshName[0] == '@') {
-		return false;
+	if (m_pstrMeshName[0] != '@') {
+		//return false;
 	}
 	for (; ; )
 	{
@@ -729,6 +759,8 @@ bool CInstanceStandardMesh::LoadMeshFromFile(ID3D12Device* pd3dDevice, ID3D12Gra
 	return true;
 }
 
+bool g_InstanceMeshNotAddCollision = false;
+
 void CInstanceStandardMesh::LoadInstanceData(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dCommandList, FILE* pInFile/*, CInstanceObject* pGameObject*/)
 {
 	int nReads = (UINT)::fread(&m_nCntInstance, sizeof(int), 1, pInFile);
@@ -744,6 +776,9 @@ void CInstanceStandardMesh::LoadInstanceData(ID3D12Device* pd3dDevice, ID3D12Gra
 		m_d3dInstanceTransformMatrixBufferView.StrideInBytes = sizeof(XMFLOAT4X4);
 		m_d3dInstanceTransformMatrixBufferView.SizeInBytes = sizeof(XMFLOAT4X4) * m_nCntInstance;
 
+		if (g_InstanceMeshNotAddCollision) {
+			return;
+		}
 		//오브젝트를 만들어서 넘겨준다? -> 인스터싱 오브젝트들
 		for (int i = 0; i < m_nCntInstance; ++i)
 		{
@@ -861,6 +896,7 @@ void CInstanceStandardMesh::CreateInstanceObjectInfo(char* pstrMeshName, XMFLOAT
 	}
 	else
 	{
+		static int noneboxCount = 0;
 		pInstanceObjectInfo = make_shared<CGameObject>(m_pstrMeshName, xmf4x4WorldMatrix, this);
 		pOriginInstance->m_vInstanceObjectInfo.push_back(pInstanceObjectInfo);
 		//pGameObject->m_vInstanceObjectInfo.push_back(CGameObject(m_pstrMeshName, xmf4x4WorldMatrix, this));

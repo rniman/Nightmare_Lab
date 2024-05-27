@@ -1,17 +1,4 @@
-struct MATERIAL
-{
-    float4 m_cAmbient;
-    float4 m_cAlbedo;
-    float4 m_cSpecular; //a = power
-    float4 m_cEmissive;
-};
-
-cbuffer cbGameObjectInfo : register(b1)
-{
-    matrix gmtxGameObject : packoffset(c0);
-    MATERIAL gMaterial : packoffset(c4);
-    uint gnTexturesMask : packoffset(c8);
-};
+#include "Common.hlsl"
 
 struct VS_USER_INTERFACE_INPUT
 {
