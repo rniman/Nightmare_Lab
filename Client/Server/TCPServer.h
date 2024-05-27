@@ -168,12 +168,12 @@ private:
 	std::shared_ptr<CServerCollisionManager> m_pCollisionManager;
 
 	//Test
-	int m_nStartItemNumber = -1;	// 아이템 오브젝트의 시작 인덱스
-	int m_nStartDrawer1 = -1;
-	int m_nEndDrawer1 = -1;
-	int m_nStartDrawer2 = -1;
-	int m_nEndDrawer2 = -1;
-	vector<int> m_vDrawerId;
+	//int m_nStartItemNumber = -1;	// 아이템 오브젝트의 시작 인덱스
+	//int m_nStartDrawer1 = -1;
+	//int m_nEndDrawer1 = -1;
+	//int m_nStartDrawer2 = -1;
+	//int m_nEndDrawer2 = -1;
+	vector<pair<int, int>> m_vDrawerId; // <ObjectCount,type>
 
 	bool m_bDataSend[MAX_CLIENT] = { false };
 	// 송수신 , 데이터 업데이트는 싱글스레드로 이루어짐. 데이터를 send한 이후에 업데이트된 데이터가 send이전에 덮어씌어버리면 올바른 동기화가 이뤄지지 않음

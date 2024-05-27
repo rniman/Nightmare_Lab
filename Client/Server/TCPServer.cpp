@@ -389,31 +389,23 @@ bool TCPServer::Init(HWND hWnd)
 
 	// 씬 생성
 	LoadScene();
-	int start_door{ -1 };
-	int end_door{ -1 };
+	vector<int> vDoor;
 	for (int i = 0; i < m_pCollisionManager->GetNumberOfCollisionObject();++i) {
 		shared_ptr<CServerGameObject> object = m_pCollisionManager->GetCollisionObjectWithNumber(i);
 		auto pElevaterDoor = dynamic_pointer_cast<CServerElevatorDoorObject>(object);
-		if (!pElevaterDoor) {
-			if (start_door != -1) {
-				end_door = i;
-				break;
-			}
-			continue;
-		}
-		if (strcmp(pElevaterDoor->m_pstrFrameName, "Door1")) {
-			continue;
-		}
+
 		if (pElevaterDoor) {
-			start_door = i;
-			//break;
+			if (strcmp(pElevaterDoor->m_pstrFrameName, "Door1")) {
+				continue;
+			}
+			vDoor.push_back(i);
 		}
 	}
-	int ELEVATORDOORCOUNT = end_door - start_door;
+	int ELEVATORDOORCOUNT = vDoor.size();
 
 	int random_escape_index = rand() % ELEVATORDOORCOUNT;
 	for (int i = 0; i < ELEVATORDOORCOUNT;++i) {
-		shared_ptr<CServerGameObject> object = m_pCollisionManager->GetCollisionObjectWithNumber(start_door + i);
+		shared_ptr<CServerGameObject> object = m_pCollisionManager->GetCollisionObjectWithNumber(vDoor[i]);
 		auto pElevaterDoor = dynamic_pointer_cast<CServerElevatorDoorObject>(object);
 		if (!pElevaterDoor) {
 			//std::cout << "엘리베이터 문이 아닙니다.!" << std::endl;
@@ -423,7 +415,7 @@ bool TCPServer::Init(HWND hWnd)
 		if (i == random_escape_index) {
 			pElevaterDoor->SetEscapeDoor(true);
 			for (int pi = 0; pi < MAX_CLIENT;++pi) {
-				m_aUpdateInfo[pi].m_playerInfo.m_iEscapeDoor = start_door + i;
+				m_aUpdateInfo[pi].m_playerInfo.m_iEscapeDoor = vDoor[i];
 			}
 		}
 		//pElevaterDoor->SetEscapeDoor(false); // 디버그를 위해서 모든 문을 잠금
@@ -828,24 +820,24 @@ void TCPServer::CreateSceneObject(char* pstrFrameName, const XMFLOAT4X4& xmf4x4W
 	}
 	else if (!strcmp(pstrFrameName, "Drawer_1"))
 	{
-		if (m_nStartDrawer1 == -1)
+		/*if (m_nStartDrawer1 == -1)
 		{
 			m_nStartDrawer1 = nServerObjectNum;
 			m_nEndDrawer1 = nServerObjectNum - 1;
 		}
-		m_nEndDrawer1++;
-		m_vDrawerId.push_back(nServerObjectNum);
+		m_nEndDrawer1++;*/
+		m_vDrawerId.push_back(pair<int, int>(nServerObjectNum, 1));
 		pGameObject = make_shared<CServerDrawerObject>(pstrFrameName, xmf4x4World, voobb);
 	}
 	else if (!strcmp(pstrFrameName, "Drawer_2"))
 	{
-		if (m_nStartDrawer2 == -1)
+		/*if (m_nStartDrawer2 == -1)
 		{
 			m_nStartDrawer2 = nServerObjectNum;
 			m_nEndDrawer2 = nServerObjectNum - 1;
 		}
-		m_nEndDrawer2++;
-		m_vDrawerId.push_back(nServerObjectNum);
+		m_nEndDrawer2++;*/
+		m_vDrawerId.push_back(pair<int, int>(nServerObjectNum, 2));
 		pGameObject = make_shared<CServerDrawerObject>(pstrFrameName, xmf4x4World, voobb);
 	}
 	else if (!strcmp(pstrFrameName, "Door1"))
@@ -898,18 +890,22 @@ void TCPServer::CreateSceneObject(char* pstrFrameName, const XMFLOAT4X4& xmf4x4W
 
 void TCPServer::CreateItemObject()
 {
-	CServerItemObject::SetDrawerStartEnd(m_nStartDrawer1, m_nEndDrawer1, m_nStartDrawer2, m_nEndDrawer2);
+	//CServerItemObject::SetDrawerStartEnd(m_nStartDrawer1, m_nEndDrawer1, m_nStartDrawer2, m_nEndDrawer2);
 	// 확률: fus 30, mine 30, tp 30, radar 10
 	uniform_int_distribution<int> dis(0, m_vDrawerId.size()-1); //[CJI 0525] m_vDrawerId 에 번호를 저장하는 방식으로 변경하여 랜덤으로 뽑아 사용
 	uniform_int_distribution<int> item_dis(0, 99);
 	uniform_int_distribution<int> rotation_dis(1, 360);
 	uniform_real_distribution<float> pos_dis(-0.2f, 0.2f);
+	CServerItemObject::SetDrawerIdContainer(m_vDrawerId);
+
 	for(int i = 0; i < ITEM_COUNT;++i)
 	{
-		int nDrawerNum = dis(m_mt19937Gen);
-		shared_ptr<CServerDrawerObject> pDrawerObject = dynamic_pointer_cast<CServerDrawerObject>(m_pCollisionManager->GetCollisionObjectWithNumber(m_vDrawerId[nDrawerNum]));
+		int rd_Num = dis(m_mt19937Gen);
+		int nDrawerNum = m_vDrawerId[rd_Num].first;
+		shared_ptr<CServerDrawerObject> pDrawerObject = dynamic_pointer_cast<CServerDrawerObject>(m_pCollisionManager->GetCollisionObjectWithNumber(nDrawerNum));
 		if (!pDrawerObject) //error
-			exit(1);
+			assert(0);
+			//exit(1);
 
 		if (pDrawerObject->m_pStoredItem)	// 이미 다른 아이템이 들어왔음
 		{
@@ -921,13 +917,15 @@ void TCPServer::CreateItemObject()
 		int nCreateItem = item_dis(m_mt19937Gen);
 		shared_ptr<CServerItemObject> pItemObject;
 
-		XMFLOAT3 xmf3RandOffset = XMFLOAT3(pos_dis(m_mt19937Gen), 0.0f, pos_dis(m_mt19937Gen));
-		XMFLOAT3 xmf3RandRotation = XMFLOAT3(0.0f, 0.0f, (float)rotation_dis(m_mt19937Gen));
+		XMFLOAT3 xmf3RandOffset =  XMFLOAT3(pos_dis(m_mt19937Gen), 0.0f, pos_dis(m_mt19937Gen));
+		XMFLOAT3 xmf3RandRotation = XMFLOAT3(0.0f, 0.0f,(float)rotation_dis(m_mt19937Gen));
+
 		if(i < 10)		// Fuse
 		{
 			pItemObject = make_shared<CServerFuseObject>();
 			pItemObject->SetDrawerNumber(nDrawerNum);
 			pItemObject->SetDrawer(pDrawerObject);
+			pItemObject->SetDrawerType(m_vDrawerId[rd_Num].second);
 			pDrawerObject->m_pStoredItem = pItemObject;
 
 			pItemObject->SetRandomRotation(xmf3RandRotation);
@@ -941,6 +939,7 @@ void TCPServer::CreateItemObject()
 			pItemObject = make_shared<CServerTeleportObject>();
 			pItemObject->SetDrawerNumber(nDrawerNum);
 			pItemObject->SetDrawer(pDrawerObject);
+			pItemObject->SetDrawerType(m_vDrawerId[rd_Num].second);
 			pDrawerObject->m_pStoredItem = pItemObject;
 
 			pItemObject->SetRandomRotation(xmf3RandRotation);
@@ -954,6 +953,7 @@ void TCPServer::CreateItemObject()
 			pItemObject = make_shared<CServerRadarObject>();
 			pItemObject->SetDrawerNumber(nDrawerNum);
 			pItemObject->SetDrawer(pDrawerObject);
+			pItemObject->SetDrawerType(m_vDrawerId[rd_Num].second);
 			pDrawerObject->m_pStoredItem = pItemObject;
 
 			pItemObject->SetRandomRotation(xmf3RandRotation);
@@ -968,6 +968,7 @@ void TCPServer::CreateItemObject()
 			pItemObject = make_shared<CServerMineObject>();
 			pItemObject->SetDrawerNumber(nDrawerNum);
 			pItemObject->SetDrawer(pDrawerObject);
+			pItemObject->SetDrawerType(m_vDrawerId[rd_Num].second);
 			pDrawerObject->m_pStoredItem = pItemObject;
 
 			pItemObject->SetRandomRotation(xmf3RandRotation);

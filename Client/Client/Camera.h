@@ -118,6 +118,8 @@ protected:
 
 	weak_ptr<CPlayer> m_pPlayer;
 
+	int m_iPartitionPos;
+
 	//Fog
 	XMFLOAT4 m_xmf4FogColor;
 	XMFLOAT4 m_xmf4FogInfo; //START, RANGE, Density, MOD

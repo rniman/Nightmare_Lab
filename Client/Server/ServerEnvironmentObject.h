@@ -13,11 +13,12 @@ public:
 	virtual void Update(float fElapsedTime, shared_ptr<CServerCollisionManager>& pCollisionManager);
 	virtual void UpdateUsing(const shared_ptr<CServerGameObject>& pGameObject, shared_ptr<CServerCollisionManager>& pCollisionManager) {};
 
-	static void SetDrawerStartEnd(int nDrawer1Start, int nDrawer1End, int nDrawer2Start, int nDrawer2End);
+	static void SetDrawerIdContainer(vector<pair<int, int>> vDrawerId);
 
 	void SetObtain(bool bObtained) { m_bObtained = bObtained; }
 	void SetDrawerNumber(int nDrawerNumber) { m_nDrawerNumber = nDrawerNumber; }
 	void SetDrawer(const shared_ptr<CServerDrawerObject>& pDrawerObject) { m_pDrawerObject = pDrawerObject; }
+	void SetDrawerType(int nDrawerNumber) { m_nDrawerType = nDrawerNumber; }
 	//void SetReferencePlayerId(int nPlayerId) { m_nReferencePlayerId = nPlayerId; }
 	void SetReferenceNumber(int nObjectNumber) { m_nReferenceNumber = nObjectNumber; }
 
@@ -31,10 +32,11 @@ public:
 	int GetDrawerNumber() const { return m_nReferenceNumber; }
 	int GetReferenceNumber() const { return m_nReferenceNumber; }
 protected:
-	static int m_nStartDrawer1;
+	/*static int m_nStartDrawer1;
 	static int m_nEndDrawer1;
 	static int m_nStartDrawer2;
-	static int m_nEndDrawer2;
+	static int m_nEndDrawer2;*/
+	static vector<pair<int, int>> m_vDrawerId; // <ObjectCount,type>
 
 	// Drawer1 2에 따라 다르게 offset을 준다
 	static float m_fDrawer1OffsetY;
@@ -45,6 +47,7 @@ protected:
 
 	bool m_bObtained = false;
 	int m_nDrawerNumber = -1;		// CollisionManager에 있는 Drawer중 자기가 속한 인덱스 값
+	int m_nDrawerType = -1;
 	shared_ptr<CServerDrawerObject> m_pDrawerObject;
 
 	int m_nReferenceNumber = -1;	// 플레이어가 가진 아이템 오브젝트가 현재 어떤 오브젝트를 가졌는지(플레이어 내부 오브젝트 전용)

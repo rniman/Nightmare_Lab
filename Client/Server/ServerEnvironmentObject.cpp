@@ -4,10 +4,7 @@
 #include "TCPServer.h"
 #include "ServerCollision.h"
 
-int CServerItemObject::m_nStartDrawer1;
-int CServerItemObject::m_nEndDrawer1;
-int CServerItemObject::m_nStartDrawer2;
-int CServerItemObject::m_nEndDrawer2;
+vector<pair<int, int>> CServerItemObject::m_vDrawerId;
 
 // Drawer1 2에 따라 다르게 offset을 준다
 float CServerItemObject::m_fDrawer1OffsetY{ 0.5f };
@@ -26,19 +23,16 @@ void CServerItemObject::Update(float fElapsedTime, shared_ptr<CServerCollisionMa
 	m_xmf4x4ToParent = m_pDrawerObject->GetWorldMatrix();
 }
 
-void CServerItemObject::SetDrawerStartEnd(int nStartDrawer1, int nEndDrawer1, int nStartDrawer2, int nEndDrawer2)
+void CServerItemObject::SetDrawerIdContainer(vector<pair<int, int>> vDrawerId)
 {
-	m_nStartDrawer1 = nStartDrawer1;
-	m_nEndDrawer1 = nEndDrawer1;
-	m_nStartDrawer2 = nStartDrawer2;
-	m_nEndDrawer2 = nEndDrawer2;
+	m_vDrawerId = vDrawerId;
 }
 
 
 void CServerItemObject::SetWorldMatrix(const XMFLOAT4X4& xmf4x4World)
 {
 	XMFLOAT4X4 m_xmf4x4FinalWorld = xmf4x4World;
-	if (m_nDrawerNumber >= m_nStartDrawer1 && m_nDrawerNumber <= m_nEndDrawer1)
+	if (m_nDrawerType == 1) // 1 == Drawer1
 	{
 		m_xmf4x4FinalWorld._42 += m_fDrawer1OffsetY;
 	}
@@ -344,17 +338,19 @@ void CServerTeleportObject::SetRandomPosition(shared_ptr<CServerCollisionManager
 {
 	dynamic_pointer_cast<CServerDrawerObject>(pCollisionManager->GetCollisionObjectWithNumber(m_nDrawerNumber))->m_pStoredItem.reset();
 
-	uniform_int_distribution<int> dis(m_nStartDrawer1, m_nEndDrawer2);
+	uniform_int_distribution<int> dis(0, m_vDrawerId.size() - 1);
 	uniform_int_distribution<int> rotation_dis(1, 360);
 	uniform_real_distribution<float> pos_dis(-0.2f, 0.2f);
 	while (true)
 	{
-		int nDrawerNum = dis(TCPServer::m_mt19937Gen);
+		int rd_num = dis(TCPServer::m_mt19937Gen);
+		int nDrawerNum = m_vDrawerId[rd_num].first;
 		shared_ptr<CServerDrawerObject> pDrawerObject = dynamic_pointer_cast<CServerDrawerObject>(
 			pCollisionManager->GetCollisionObjectWithNumber(nDrawerNum));
 
 		if (!pDrawerObject) //error
-			exit(1);
+			assert(0);
+			//exit(1);
 
 		if (pDrawerObject->m_pStoredItem)	// 이미 다른 아이템이 들어왔음
 		{
@@ -368,6 +364,7 @@ void CServerTeleportObject::SetRandomPosition(shared_ptr<CServerCollisionManager
 
 		SetDrawerNumber(nDrawerNum);
 		SetDrawer(pDrawerObject);
+		SetDrawerType(m_vDrawerId[rd_num].second);
 		pDrawerObject->m_pStoredItem = dynamic_pointer_cast<CServerTeleportObject>(shared_from_this());
 
 		m_bObtained = false;
@@ -553,12 +550,13 @@ void CServerFuseObject::SetRandomPosition(shared_ptr<CServerCollisionManager>& p
 {
 	dynamic_pointer_cast<CServerDrawerObject>(pCollisionManager->GetCollisionObjectWithNumber(m_nDrawerNumber))->m_pStoredItem.reset();
 
-	uniform_int_distribution<int> dis(m_nStartDrawer1, m_nEndDrawer2);
+	uniform_int_distribution<int> dis(0, m_vDrawerId.size() - 1);
 	uniform_int_distribution<int> rotation_dis(1, 360);
 	uniform_real_distribution<float> pos_dis(-0.2f, 0.2f);
 	while (true)
 	{
-		int nDrawerNum = dis(TCPServer::m_mt19937Gen);
+		int rd_num = dis(TCPServer::m_mt19937Gen);
+		int nDrawerNum = m_vDrawerId[rd_num].first;
 		shared_ptr<CServerDrawerObject> pDrawerObject = dynamic_pointer_cast<CServerDrawerObject>(pCollisionManager->GetCollisionObjectWithNumber(nDrawerNum));
 
 		if (!pDrawerObject) //error
@@ -576,6 +574,7 @@ void CServerFuseObject::SetRandomPosition(shared_ptr<CServerCollisionManager>& p
 
 		SetDrawerNumber(nDrawerNum);
 		SetDrawer(pDrawerObject);
+		SetDrawerType(m_vDrawerId[rd_num].second);
 		pDrawerObject->m_pStoredItem = dynamic_pointer_cast<CServerFuseObject>(shared_from_this());
 
 		SetRandomRotation(xmf3RandRotation);

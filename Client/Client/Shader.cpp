@@ -1223,7 +1223,7 @@ void CBlueSuitUserInterfaceShader::AnimateObjects(float fElapsedTime)
 	CShader::AnimateObjects(fElapsedTime);
 }
 
-void CBlueSuitUserInterfaceShader::Render(ID3D12GraphicsCommandList* pd3dCommandList, const shared_ptr<CCamera>& pCamera, int nPipelineState)
+void CBlueSuitUserInterfaceShader::Render(ID3D12GraphicsCommandList* pd3dCommandList, const shared_ptr<CCamera>& pCamera, const shared_ptr<CPlayer>& pPlayer, int nPipelineState)
 {
 	UpdatePipeLineState(pd3dCommandList, nPipelineState);
 
