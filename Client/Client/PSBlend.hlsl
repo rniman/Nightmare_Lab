@@ -1,17 +1,6 @@
+#include "Common.hlsl"
+
 #define offset 3
-
-cbuffer cbFrameInfo : register(b5)
-{
-    float time : packoffset(c0.x);
-    float localTime : packoffset(c0.y);
-    float usePattern : packoffset(c0.z);
-    
-    // [0506] 플레이어 외곽선
-    float gfTrackingTime : packoffset(c0.w);
-}
-
-SamplerState gssWrap : register(s0);
-Texture2D AlbedoTexture : register(t0);
 
 struct VS_BLEND_OUTPUT
 {

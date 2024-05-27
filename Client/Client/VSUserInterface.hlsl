@@ -1,3 +1,5 @@
+#include "Common.hlsl"
+
 struct VS_USER_INTERFACE_INPUT
 {
     float3 position : POSITION;

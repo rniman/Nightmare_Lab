@@ -1,5 +1,5 @@
 //--------------------------------------------------------------------------------------
-#define MAX_LIGHTS			28
+
 #define MAX_MATERIALS		16 
 
 #define POINT_LIGHT			1
@@ -135,7 +135,7 @@ float Shadowdecrease(int nIndex, float3 vPosition, float3 vToCamera)
         
         float wPositionDepth = uvs.z / uvs.w; //«»ºø ±Ì¿Ã∏¶ ¿«πÃ«‘.
         //float shadow = ShadowMapTexture[1].SampleLevel(gssWrap, uvs.xy / uvs.ww, 0).r;
-        //wPositionDepth -= bias;// 0.0015f;
+        wPositionDepth -= bias;// 0.0015f;
         float shadow = ShadowMapTexture[nIndex].SampleCmpLevelZero(gssComparisonPCFShadow, uvs.xy / uvs.ww, wPositionDepth).x;
         shadow += ShadowMapTexture[nIndex].SampleCmpLevelZero(gssComparisonPCFShadow, uvs.xy / uvs.ww + float2(-DELTA_X, 0.0f), wPositionDepth).x;
         shadow += ShadowMapTexture[nIndex].SampleCmpLevelZero(gssComparisonPCFShadow, uvs.xy / uvs.ww + float2(+DELTA_X, 0.0f), wPositionDepth).x;
@@ -186,7 +186,7 @@ float4 Lighting(float3 vPosition, float3 vNormal)
 	float3 vCameraPosition = float3(gvCameraPosition.x, gvCameraPosition.y, gvCameraPosition.z);
 	float3 vToCamera = normalize(vCameraPosition - vPosition);
     
-    float4 cColor = float4(0.05f, 0.05f, 0.05f, 0.0f);
+    float4 cColor = float4(0.15f, 0.15f, 0.15f, 0.0f);
 	[unroll(MAX_LIGHTS)] for (int i = 0; i < gnLights; i++)
 	{
 		if (gLights[i].m_bEnable)

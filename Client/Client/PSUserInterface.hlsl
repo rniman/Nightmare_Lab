@@ -1,5 +1,4 @@
-SamplerState gssWrap : register(s0);
-Texture2D AlbedoTexture : register(t0);
+#include "Common.hlsl"
 
 struct VS_USER_INTERFACE_OUTPUT
 {
