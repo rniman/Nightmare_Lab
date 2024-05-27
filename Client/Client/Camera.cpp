@@ -20,7 +20,7 @@ CCamera::CCamera()
 	m_fTimeLag = 0.0f;
 	m_xmf3LookAtWorld = XMFLOAT3(0.0f, 0.0f, 0.0f);
 	m_nMode = 0x00;
-
+	m_iPartitionPos = -1;
 }
 
 CCamera::CCamera(const shared_ptr<CCamera>& pCamera)
@@ -49,6 +49,8 @@ CCamera::CCamera(const shared_ptr<CCamera>& pCamera)
 
 		m_xmf4FogColor = XMFLOAT4(0.1f, 0.1f, 0.1f, 1.0f);
 		m_xmf4FogInfo = XMFLOAT4(1.0f, 10.0f, 0.1f, 1.0f);
+
+		m_iPartitionPos = -1;
 	}
 }
 

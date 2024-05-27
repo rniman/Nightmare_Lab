@@ -85,7 +85,8 @@ public:
 
 	void SetFogColor(const XMFLOAT4& xmf4FogColor) { m_xmf4FogColor = xmf4FogColor; }
 	void SetFogInfo(const XMFLOAT4& xmf4FogInfo) { m_xmf4FogInfo = xmf4FogInfo; }
-
+	void SetPartition(int p) { m_iPartitionPos = p; }
+	int GetPartitionPos() { return m_iPartitionPos; }
 protected:
 	XMFLOAT3						m_xmf3Position;
 	XMFLOAT3						m_xmf3Right;
@@ -120,6 +121,8 @@ protected:
 	//Fog
 	XMFLOAT4 m_xmf4FogColor;
 	XMFLOAT4 m_xmf4FogInfo; //START, RANGE, Density, MOD
+
+	int m_iPartitionPos;
 };
 
 class CFirstPersonCamera : public CCamera

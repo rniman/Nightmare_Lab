@@ -150,6 +150,7 @@
     <ClCompile Include="Timer.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="..\Client\GlobalDefine.h" />
     <ClInclude Include="ServerEnvironmentObject.h" />
     <ClInclude Include="ServerCollision.h" />
     <ClInclude Include="ServerObject.h" />

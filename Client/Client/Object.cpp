@@ -4,6 +4,9 @@
 #include "Scene.h"
 #include "TextureBlendMesh.h"
 
+
+vector<shared_ptr<CStandardMesh>> CStandardMesh::g_vAllstandardMesh;
+
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 //
 CTexture::CTexture(int nTextures, UINT nTextureType, int nSamplers, int nRootParameters)
@@ -44,7 +47,7 @@ CTexture::CTexture(int nTextures, UINT nTextureType, int nSamplers, int nRootPar
 	}
 
 	m_nSamplers = nSamplers;
-	if (m_nSamplers > 0) 
+	if (m_nSamplers > 0)
 	{
 		m_vd3dSamplerGpuDescriptorHandles.reserve(m_nSamplers);
 		for (int i = 0; i < m_nSamplers; ++i)
@@ -58,7 +61,7 @@ CTexture::~CTexture()
 {
 	if (!m_vpd3dTextures.empty())
 	{
-		for (int i = 0; i < m_nTextures; i++) 
+		for (int i = 0; i < m_nTextures; i++)
 		{
 			if (m_vpd3dTextures[i].Get()) m_vpd3dTextures[i].Reset();
 		}
@@ -116,11 +119,11 @@ void CTexture::ReleaseUploadBuffers()
 {
 	if (!m_vpd3dTextureUploadBuffers.empty())
 	{
-		for (int i = 0; i < m_nTextures; i++) 
+		for (int i = 0; i < m_nTextures; i++)
 		{
 			if (m_vpd3dTextureUploadBuffers[i].Get()) m_vpd3dTextureUploadBuffers[i].Reset();
 		}
-		
+
 	}
 }
 
@@ -223,7 +226,7 @@ CMaterial::CMaterial(int nTextures)
 
 	m_vpTextures.reserve(m_nTextures);
 	m_ppstrTextureNames = new _TCHAR[m_nTextures][128];
-	for (int i = 0; i < m_nTextures; i++) 
+	for (int i = 0; i < m_nTextures; i++)
 	{
 		m_vpTextures.push_back(nullptr);
 	}
@@ -242,7 +245,7 @@ CMaterial::~CMaterial()
 
 void CMaterial::SetTexture(const shared_ptr<CTexture>& pTexture, UINT nTexture)
 {
-	if(m_vpTextures.size() > nTexture)
+	if (m_vpTextures.size() > nTexture)
 	{
 		if (m_vpTextures[nTexture])
 		{
@@ -319,6 +322,21 @@ void CMaterial::LoadTextureFromFile(ID3D12Device* pd3dDevice, ID3D12GraphicsComm
 		_stprintf_s(pstrDebug, 256, _T("Texture Name: %d %c %s\n"), (pstrTextureName[0] == '@') ? nRepeatedTextures++ : nTextures++, (pstrTextureName[0] == '@') ? '@' : ' ', pwstrTextureName);
 		OutputDebugString(pstrDebug);
 #endif
+		
+		for (auto& pStoredTexture : m_vTextureContainer)
+		{
+			if (_tcscmp(pwstrTextureName, pStoredTexture->GetName()))
+			{ // 이름이 같지 않으면 계속
+				continue;
+			}
+			if (pTexture)
+			{
+				pTexture.reset();
+			}
+			pTexture = pStoredTexture;
+			return;
+		}
+
 		if (!bDuplicated)
 		{
 			if (pTexture)
@@ -327,7 +345,7 @@ void CMaterial::LoadTextureFromFile(ID3D12Device* pd3dDevice, ID3D12GraphicsComm
 			}
 			pTexture = make_shared<CTexture>(1, RESOURCE_TEXTURE2D, 0, 1);
 			pTexture->LoadTextureFromDDSFile(pd3dDevice, pd3dCommandList, pwstrTextureName, RESOURCE_TEXTURE2D, 0);
-		
+
 			CScene::CreateShaderResourceViews(pd3dDevice, pTexture, 0, nRootParameter);
 
 			pTexture->SetName(pwstrTextureName);
@@ -347,19 +365,19 @@ void CMaterial::LoadTextureFromFile(ID3D12Device* pd3dDevice, ID3D12GraphicsComm
 				if (*vpTexture) (*vpTexture)->AddRef();
 			}*/
 			//else { // parent가 없다면 컨테이너에서 텍스처가 있는지 찾아본다.(로딩시간 증가)
-				for (auto& pStoredTexture : m_vTextureContainer)
-				{
-					if (_tcscmp(pwstrTextureName, pStoredTexture->GetName()))
-					{ // 이름이 같지 않으면 계속
-						continue;
-					}
-					if (pTexture)
-					{
-						pTexture.reset();
-					}
-					pTexture = pStoredTexture;
-					break;
+			for (auto& pStoredTexture : m_vTextureContainer)
+			{
+				if (_tcscmp(pwstrTextureName, pStoredTexture->GetName()))
+				{ // 이름이 같지 않으면 계속
+					continue;
 				}
+				if (pTexture)
+				{
+					pTexture.reset();
+				}
+				pTexture = pStoredTexture;
+				break;
+			}
 			//}
 		}
 	}
@@ -476,7 +494,7 @@ XMFLOAT4X4 CAnimationSet::GetSRT(int nBone, float fPosition)
 			break;
 		}
 	}
-	if (fPosition >= m_vfKeyFrameTimes[m_nKeyFrames - 1]) 
+	if (fPosition >= m_vfKeyFrameTimes[m_nKeyFrames - 1])
 	{
 		xmf4x4Transform = m_vvxmf4x4KeyFrameTransforms[m_nKeyFrames - 1][nBone];
 	}
@@ -611,7 +629,7 @@ CAnimationController::CAnimationController(ID3D12Device* pd3dDevice, ID3D12Graph
 	m_vd3dCbvSkinningBoneTransformsGPUDescriptorHandle.reserve(m_nSkinnedMeshes);
 
 	//m_vpSkinnedMeshes = new CSkinnedMesh * [m_nSkinnedMeshes];
-	for (int i = 0; i < m_nSkinnedMeshes; i++) 
+	for (int i = 0; i < m_nSkinnedMeshes; i++)
 	{
 		m_vpSkinnedMeshes.emplace_back();
 		m_vpSkinnedMeshes[i] = pModel->m_vpSkinnedMeshes[i];
@@ -651,7 +669,7 @@ CAnimationController::~CAnimationController()
 void CAnimationController::SetCallbackKeys(int nAnimationTrack, int nCallbackKeys)
 {
 #ifdef _DEBUG
-	if(m_vAnimationTracks.size() > nAnimationTrack)
+	if (m_vAnimationTracks.size() > nAnimationTrack)
 		m_vAnimationTracks[nAnimationTrack].SetCallbackKeys(nCallbackKeys);
 #else
 	m_vAnimationTracks[nAnimationTrack].SetCallbackKeys(nCallbackKeys);
@@ -688,7 +706,7 @@ void CAnimationController::SetTrackAnimationSet(int nAnimationTrack, int nAnimat
 #else
 	m_vAnimationTracks[nAnimationTrack].m_nAnimationSet = nAnimationSet;
 #endif	
-	
+
 }
 
 void CAnimationController::SetTrackEnable(int nAnimationTrack, bool bEnable)
@@ -699,7 +717,7 @@ void CAnimationController::SetTrackEnable(int nAnimationTrack, bool bEnable)
 #else
 	m_vAnimationTracks[nAnimationTrack].SetEnable(bEnable);
 #endif	
- 
+
 }
 
 void CAnimationController::SetTrackPosition(int nAnimationTrack, float fPosition)
@@ -820,7 +838,7 @@ XMFLOAT3 CAnimationController::GetBoneFrameRightVector(int index)
 
 CLoadedModelInfo::~CLoadedModelInfo()
 {
-//	if (m_ppSkinnedMeshes) delete[] m_ppSkinnedMeshes;
+	//	if (m_ppSkinnedMeshes) delete[] m_ppSkinnedMeshes;
 }
 
 void CLoadedModelInfo::PrepareSkinning()
@@ -841,12 +859,12 @@ void CLoadedModelInfo::PrepareSkinning()
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-CGameObject::CGameObject(char* pstrFrameName, XMFLOAT4X4& xmf4x4World, CMesh* pMesh) 
+CGameObject::CGameObject(char* pstrFrameName, XMFLOAT4X4& xmf4x4World, CMesh* pMesh)
 {
 	m_xmf4x4ToParent = xmf4x4World;
 	m_xmf4x4World = xmf4x4World;
 	strcpy(m_pstrFrameName, pstrFrameName);
-	
+
 	if (!pMesh)
 	{
 		return;
@@ -866,7 +884,7 @@ CGameObject::CGameObject(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd
 	CreateShaderVariables(pd3dDevice, pd3dCommandList);
 }
 
-CGameObject::CGameObject(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dCommandList,int nMaterials) 
+CGameObject::CGameObject(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dCommandList, int nMaterials)
 	: CGameObject(pd3dDevice, pd3dCommandList)
 {
 	m_nMaterials = nMaterials;
@@ -943,7 +961,7 @@ shared_ptr<CSkinnedMesh> CGameObject::FindSkinnedMesh(char* pstrSkinnedMeshName)
 
 void CGameObject::FindAndSetSkinnedMesh(vector<shared_ptr<CSkinnedMesh>>& vpSkinnedMeshes, int* pnSkinnedMesh)
 {
-	if (m_pMesh && (m_pMesh->GetType() & VERTEXT_BONE_INDEX_WEIGHT)) 
+	if (m_pMesh && (m_pMesh->GetType() & VERTEXT_BONE_INDEX_WEIGHT))
 	{
 		vpSkinnedMeshes[(*pnSkinnedMesh)++] = dynamic_pointer_cast<CSkinnedMesh>(m_pMesh);
 	}
@@ -955,7 +973,7 @@ void CGameObject::FindAndSetSkinnedMesh(vector<shared_ptr<CSkinnedMesh>>& vpSkin
 shared_ptr<CGameObject> CGameObject::FindFrame(const char* pstrFrameName)
 {
 	shared_ptr<CGameObject> pFrameObject;
-	
+
 	if (!strncmp(m_pstrFrameName, pstrFrameName, strlen(pstrFrameName))) return shared_from_this();
 
 	if (m_pSibling) if (pFrameObject = m_pSibling->FindFrame(pstrFrameName)) return(pFrameObject);
@@ -1019,7 +1037,7 @@ void CGameObject::AddOOBB(const vector<XMFLOAT3>& vxmf3Center, const vector<XMFL
 	}
 }
 
-void CGameObject::Collide(float fElapsedTime, const shared_ptr<CGameObject>& pGameObject) 
+void CGameObject::Collide(float fElapsedTime, const shared_ptr<CGameObject>& pGameObject)
 {
 
 }
@@ -1116,7 +1134,7 @@ void CGameObject::CreateShaderVariables(ID3D12Device* pd3dDevice, ID3D12Graphics
 	m_d3dcbvObject = ::CreateBufferResource(pd3dDevice, pd3dCommandList, NULL, ncbElementBytes, D3D12_HEAP_TYPE_UPLOAD, D3D12_RESOURCE_STATE_VERTEX_AND_CONSTANT_BUFFER, NULL);
 
 	m_d3dcbvObject->Map(0, NULL, (void**)&m_cbMappedObject);
-	
+
 	m_d3dCbvGPUDescriptorHandle = CScene::CreateConstantBufferViews(pd3dDevice, 1, m_d3dcbvObject.Get(), ncbElementBytes);
 }
 
@@ -1275,7 +1293,7 @@ shared_ptr<CTexture> CGameObject::FindReplicatedTexture(_TCHAR* pstrTextureName)
 			{
 				if (m_vpMaterials[i]->m_vpTextures[j])
 				{
-					if (!_tcsncmp(m_vpMaterials[i]->m_ppstrTextureNames[j], pstrTextureName, _tcslen(pstrTextureName))) 
+					if (!_tcsncmp(m_vpMaterials[i]->m_ppstrTextureNames[j], pstrTextureName, _tcslen(pstrTextureName)))
 					{
 						return(m_vpMaterials[i]->m_vpTextures[j]);
 					}
@@ -1466,7 +1484,7 @@ shared_ptr<CGameObject> CGameObject::LoadFrameHierarchyFromFile(ID3D12Device* pd
 		if (!strcmp(pstrToken, "<Frame>:"))
 		{
 			nFrame = ::ReadIntegerFromFile(pInFile);
-			
+
 			nTextures = ::ReadIntegerFromFile(pInFile);
 
 			::ReadStringFromFile(pInFile, pGameObject->m_pstrFrameName);
@@ -1500,9 +1518,9 @@ shared_ptr<CGameObject> CGameObject::LoadFrameHierarchyFromFile(ID3D12Device* pd
 				break;
 			}
 
-			if (!pMesh->LoadMeshFromFile(pd3dDevice, pd3dCommandList, pInFile)) 
+			if (!pMesh->LoadMeshFromFile(pd3dDevice, pd3dCommandList, pInFile))
 			{
-				for (auto pStoredMesh : m_vMeshContainer) 
+				for (auto pStoredMesh : m_vMeshContainer)
 				{
 					if (!strcmp(pStoredMesh->m_pstrMeshName, pMesh->m_pstrMeshName + 1))
 					{
@@ -1510,9 +1528,9 @@ shared_ptr<CGameObject> CGameObject::LoadFrameHierarchyFromFile(ID3D12Device* pd
 						break;
 					}
 				}
-				
+
 			}
-			else 
+			else
 			{
 				m_vMeshContainer.push_back(pMesh);
 			}
@@ -1604,7 +1622,7 @@ shared_ptr<CGameObject> CGameObject::LoadInstanceFrameHierarchyFromFile(ID3D12De
 		else if (!strcmp(pstrToken, "<Mesh>:"))
 		{
 			shared_ptr<CStandardMesh> pMesh = make_shared<CStandardMesh>(pd3dDevice, pd3dCommandList);
-			if (!pMesh->LoadMeshFromFile(pd3dDevice, pd3dCommandList, pInFile)) 
+			if (!pMesh->LoadMeshFromFile(pd3dDevice, pd3dCommandList, pInFile))
 			{
 				for (auto pStoredMesh : m_vMeshContainer)
 				{
@@ -1625,6 +1643,7 @@ shared_ptr<CGameObject> CGameObject::LoadInstanceFrameHierarchyFromFile(ID3D12De
 		{
 			shared_ptr<CInstanceStandardMesh> pMesh = make_shared<CInstanceStandardMesh>(pd3dDevice, pd3dCommandList);
 			pMesh->LoadMeshFromFile(pd3dDevice, pd3dCommandList, pInFile, pGameObject);
+			CStandardMesh::SaveStandardMesh(pMesh);
 			//pMesh->m_pOriginInstance = pGameObject;
 			pGameObject->SetMesh(pMesh);
 		}

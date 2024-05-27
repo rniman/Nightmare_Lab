@@ -89,7 +89,7 @@ protected:
 	INT8 m_nPlayerId = -1;	//m_vSocketInfoList인덱스 번호
 	
 	//[0511] 이제 WORD로 다룬다
-	WORD m_wKeyBuffer;
+	WORD m_wKeyBuffer = 0;
 	//UCHAR m_pKeysBuffer[256];
 
 	bool m_bOccurredCollision = false;

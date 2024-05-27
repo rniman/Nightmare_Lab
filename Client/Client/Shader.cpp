@@ -204,7 +204,7 @@ void CShader::CreateShader(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* 
 	if (m_d3dPipelineStateDesc.InputLayout.pInputElementDescs) delete[] m_d3dPipelineStateDesc.InputLayout.pInputElementDescs;
 }
 
-void CShader::Render(ID3D12GraphicsCommandList* pd3dCommandList, const shared_ptr<CCamera>& pCamera, int nPipelineState)
+void CShader::Render(ID3D12GraphicsCommandList* pd3dCommandList, const shared_ptr<CCamera>& pCamera, const shared_ptr<CPlayer>& pPlayer, int nPipelineState)
 {
 	UpdatePipeLineState(pd3dCommandList, nPipelineState);
 
@@ -294,9 +294,9 @@ D3D12_RASTERIZER_DESC StandardShader::CreateRasterizerState()
 		d3dRasterizerDesc.FillMode = D3D12_FILL_MODE_SOLID;
 		d3dRasterizerDesc.CullMode = D3D12_CULL_MODE_BACK;//D3D12_CULL_MODE_FRONT;//;
 		d3dRasterizerDesc.FrontCounterClockwise = FALSE;
-		d3dRasterizerDesc.DepthBias = 15000;
-		d3dRasterizerDesc.DepthBiasClamp = 0.0014f;
-		d3dRasterizerDesc.SlopeScaledDepthBias = 1.f;
+		d3dRasterizerDesc.DepthBias = 0;
+		d3dRasterizerDesc.DepthBiasClamp = 0.0f;
+		d3dRasterizerDesc.SlopeScaledDepthBias = 3.f;
 		d3dRasterizerDesc.DepthClipEnable = TRUE;
 		d3dRasterizerDesc.MultisampleEnable = FALSE;
 		d3dRasterizerDesc.AntialiasedLineEnable = FALSE;
@@ -378,10 +378,39 @@ D3D12_SHADER_BYTECODE InstanceStandardShader::CreateVertexShader()
 	//return(CShader::CompileShaderFromFile(L"Shaders.hlsl", "VSInstanceStandard", "vs_5_1", m_pd3dVertexShaderBlob.GetAddressOf()));
 }
 
-void InstanceStandardShader::Render(ID3D12GraphicsCommandList* pd3dCommandList, const shared_ptr<CCamera>& pCamera, int nPipelineState)
+void InstanceStandardShader::Render(ID3D12GraphicsCommandList* pd3dCommandList, const shared_ptr<CCamera>& pCamera, const shared_ptr<CPlayer>& pPlayer, int nPipelineState)
 {
-	CShader::Render(pd3dCommandList, pCamera, nPipelineState);
+	UpdatePipeLineState(pd3dCommandList, nPipelineState);
+	auto pos = pPlayer->GetPosition();
+	int curFloor = static_cast<int>(std::floor(pos.y / 4.5))-1;
+		
+	for (int i = curFloor; i < curFloor + 3;++i) {
+		if (i > 3) break;
+		if (i < 0) continue;
+		for (const auto& object : m_vFloorObjects[i]) {
+			if (!object->m_bThisContainTransparent) {
+				object->Render(pd3dCommandList);
+			}
+			else {
+				object->RenderOpaque(pd3dCommandList);
+			}
+		}
+	}
 }
+
+//void InstanceStandardShader::FloorRender(ID3D12GraphicsCommandList* pd3dCommandList, const shared_ptr<CCamera>& pCamera, const shared_ptr<CPlayer>& pPlayer, int nPipelineState)
+//{
+//	UpdatePipeLineState(pd3dCommandList, nPipelineState);
+//	auto& pos = pPlayer->GetPosition();
+//	int curFloor = static_cast<int>(std::floor(pos.y / 4.5));
+//	
+//	for (int i = curFloor; i < curFloor + 2;++i) {
+//		if (i > 3) break;
+//		for (const auto& object : m_vFloorObjects[i]) {
+//			object->Render(pd3dCommandList);
+//		}
+//	}
+//}
 
 void InstanceStandardShader::AnimateObjects(float fElapsedTime)
 {
@@ -466,7 +495,7 @@ D3D12_SHADER_BYTECODE TransparentShader::CreatePixelShader()
 	//return(CShader::CompileShaderFromFile(L"Shaders.hlsl","PSTransparent", "ps_5_1", m_pd3dPixelShaderBlob.GetAddressOf()));
 }
 
-void TransparentShader::Render(ID3D12GraphicsCommandList* pd3dCommandList, const shared_ptr<CCamera>& pCamera, int nPipelineState)
+void TransparentShader::Render(ID3D12GraphicsCommandList* pd3dCommandList, const shared_ptr<CCamera>& pCamera, const shared_ptr<CPlayer>& pPlayer, int nPipelineState)
 {
 	UpdatePipeLineState(pd3dCommandList, nPipelineState);
 
@@ -786,9 +815,9 @@ void CPostProcessingShader::TransitionCommonToRenderTarget(ID3D12GraphicsCommand
 	}
 }
 
-void CPostProcessingShader::Render(ID3D12GraphicsCommandList* pd3dCommandList, const shared_ptr<CCamera>& pCamera)
+void CPostProcessingShader::Render(ID3D12GraphicsCommandList* pd3dCommandList, const shared_ptr<CCamera>& pCamera,const shared_ptr<CPlayer>& pPlayer )
 {
-	CShader::Render(pd3dCommandList, pCamera);
+	CShader::Render(pd3dCommandList, pCamera, pPlayer);
 
 	if (m_pTexture) m_pTexture->UpdateShaderVariables(pd3dCommandList);
 	if (m_pShadowTextures) m_pShadowTextures->UpdateShaderVariables(pd3dCommandList);
@@ -797,9 +826,9 @@ void CPostProcessingShader::Render(ID3D12GraphicsCommandList* pd3dCommandList, c
 	pd3dCommandList->DrawInstanced(6, 1, 0, 0);
 }
 
-void CPostProcessingShader::ShadowTextureWriteRender(ID3D12GraphicsCommandList* pd3dCommandList, const shared_ptr<CCamera>& pCamera)
+void CPostProcessingShader::ShadowTextureWriteRender(ID3D12GraphicsCommandList* pd3dCommandList, const shared_ptr<CCamera>& pCamera, const shared_ptr<CPlayer>& pPlayer)
 {
-	CShader::Render(pd3dCommandList, pCamera, m_iShadowPipeLineIndex);
+	CShader::Render(pd3dCommandList, pCamera, pPlayer, m_iShadowPipeLineIndex);
 
 	if (m_pTexture) m_pTexture->UpdateShaderVariables(pd3dCommandList);
 	if (m_pShadowTextures) m_pShadowTextures->UpdateShaderVariables(pd3dCommandList);
@@ -868,7 +897,7 @@ void CPostProcessingShader::CreateLightCamera(ID3D12Device* pd3dDevice, ID3D12Gr
 	XMMATRIX xmProjectionToTexture = XMLoadFloat4x4(&xmf4x4ToTexture);
 	XMMATRIX xmmtxViewProjection;
 
-	for (int i = 0;i < positions.size();++i) {
+	for (int i = 0;i < scene->m_nLights;++i) {
 		m_pLightCamera.push_back(make_shared<CCamera>());
 
 		XMFLOAT3 xmf3Up = Vector3::CrossProduct(looks[i], xmf3Right);
@@ -879,10 +908,28 @@ void CPostProcessingShader::CreateLightCamera(ID3D12Device* pd3dDevice, ID3D12Gr
 		XMFLOAT4X4 viewProjection = m_pLightCamera[i]->GetViewProjection();
 		xmmtxViewProjection = XMLoadFloat4x4(&viewProjection);
 		XMStoreFloat4x4(&scene->m_pLights[i].m_xmf4x4ViewProjection, XMMatrixTranspose(xmmtxViewProjection * xmProjectionToTexture));
-		//[CJI 0404] i+1인 이유 : 맨처음 light는 플레이어의 라이트이므로. 나중에 플래시 아이템으로 비출경우 i로 수정하고 깊이맵만들어서 처리해야함.
 
 		m_pLightCamera[i]->CreateShaderVariables(pd3dDevice, pd3dCommandList);
 	}
+
+	// 빛의 카메라 파티션 설정
+	unique_ptr<PartitionInsStandardShader> PtShader(static_cast<PartitionInsStandardShader*>(scene->m_vPreRenderShader[PARTITION_SHADER].release()));
+	auto vBB = PtShader->GetPartitionBB();
+
+	for (int i = 0; i < scene->m_nLights;++i) {
+		BoundingBox camerabb;
+		camerabb.Center = m_pLightCamera[i]->GetPosition();
+		camerabb.Extents = XMFLOAT3(0.1f, 0.1f, 0.1f);
+
+		for (int bbIdx = 0; bbIdx < vBB.size();++bbIdx) {
+			if (vBB[bbIdx]->Intersects(camerabb)) {
+				m_pLightCamera[i]->SetPartition(bbIdx);
+				break;
+			}
+		}
+	}
+
+	scene->m_vPreRenderShader[PARTITION_SHADER].reset(PtShader.release());
 }
 
 
@@ -1114,7 +1161,7 @@ void COutLineShader::CreateShader(ID3D12Device* pd3dDevice, ID3D12GraphicsComman
 	}
 }
 
-void COutLineShader::Render(ID3D12GraphicsCommandList* pd3dCommandList, const shared_ptr<CCamera>& pCamera, int nPipelineState)
+void COutLineShader::Render(ID3D12GraphicsCommandList* pd3dCommandList, const shared_ptr<CCamera>& pCamera, const shared_ptr<CPlayer>& pPlayer, int nPipelineState)
 {
 	if (!m_pZombiePlayer->IsTracking())
 	{
@@ -1125,7 +1172,7 @@ void COutLineShader::Render(ID3D12GraphicsCommandList* pd3dCommandList, const sh
 	pd3dCommandList->OMSetStencilRef(1);
 	for (int i = 0; i < m_nPipelineState; ++i)
 	{
-		CShader::Render(pd3dCommandList, pCamera, i);
+		CShader::Render(pd3dCommandList, pCamera,pPlayer, i);
 	}
 }
 
@@ -1160,3 +1207,70 @@ void COutLineShader::AddGameObject(const shared_ptr<CGameObject>& pGameObject)
 //	return d3dBlendDesc;
 //}
 
+PartitionInsStandardShader::PartitionInsStandardShader()
+{
+
+}
+
+PartitionInsStandardShader::~PartitionInsStandardShader()
+{
+
+}
+
+void PartitionInsStandardShader::AddPartitionGameObject(const shared_ptr<CGameObject>& pGameObject, int nPartition)
+{
+	m_vPartitionObject[nPartition].push_back(pGameObject);
+}
+
+void PartitionInsStandardShader::Render(ID3D12GraphicsCommandList* pd3dCommandList, const shared_ptr<CCamera>& pCamera, const shared_ptr<CPlayer>& pPlayer, int nPipelineState)
+{
+	if (pCamera->GetPartitionPos() == -1) {
+		//assert(0); // 파티션이 없으면 종료. 테스트 후 잘 되면 주석 처리 해도 ok
+		return;
+	}
+	UpdatePipeLineState(pd3dCommandList, nPipelineState);
+
+	auto& ptObjects = m_vPartitionObject[pCamera->GetPartitionPos()];
+
+	for (auto& object : ptObjects)
+	{
+		if (!object->m_bThisContainTransparent) {
+			object->Render(pd3dCommandList);
+		}
+		else {
+			object->RenderOpaque(pd3dCommandList);
+		}
+	}
+}
+
+void PartitionInsStandardShader::PartitionRender(ID3D12GraphicsCommandList* pd3dCommandList, const shared_ptr<CCamera>& pCamera, int nPipelineState)
+{
+	if (pCamera->GetPartitionPos() == -1) {
+		//assert(0); // 파티션이 없으면 종료. 테스트 후 잘 되면 주석 처리 해도 ok
+		return;
+	}
+	UpdatePipeLineState(pd3dCommandList, nPipelineState);
+
+	auto& ptObjects = m_vPartitionObject[pCamera->GetPartitionPos()];
+
+	for (auto& object : ptObjects)
+	{
+		if (!object->m_bThisContainTransparent) {
+			object->Render(pd3dCommandList);
+		}
+		else {
+			object->RenderOpaque(pd3dCommandList);
+		}
+	}
+}
+
+
+void PartitionInsStandardShader::AddPartition()
+{
+	m_vPartitionObject.emplace_back(vector<shared_ptr<CGameObject>>());
+}
+
+void PartitionInsStandardShader::AddPartitionBB(shared_ptr<BoundingBox>& bb)
+{
+	m_vPartitionBB.push_back(bb);
+}

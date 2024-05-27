@@ -1013,7 +1013,7 @@ void CGameFramework::PreRenderTasks()
 //#define _WITH_PLAYER_TOP
 void CGameFramework::FrameAdvance()
 {
-	m_GameTimer.Tick(60.f);
+	m_GameTimer.Tick(0.0f);
 
 	ProcessInput();
 
@@ -1032,7 +1032,7 @@ void CGameFramework::FrameAdvance()
 
 	{
 		//-> 물어보기
-		int ndynamicShadowMap = 4;
+		int ndynamicShadowMap = m_pScene->m_nLights;
 		// 그림자맵에 해당하는 텍스처를 렌더타겟으로 변환
 		m_pPostProcessingShader->OnShadowPrepareRenderTarget(m_d3dCommandList.Get(), ndynamicShadowMap); //플레이어의 손전등 1개 -> [0] 번째 요소에 들어있음.
 
@@ -1089,7 +1089,8 @@ void CGameFramework::FrameAdvance()
 				//1차 렌더링
 				if (m_pScene)
 				{
-					m_pScene->Render(m_d3dCommandList.Get(), vlightCamera[i], 1/*nPipelinestate*/); // 카메라만 빛의 위치대로 설정해서 렌더링함.
+					//m_pScene->Render(m_d3dCommandList.Get(), vlightCamera[i], 1/*nPipelinestate*/); // 카메라만 빛의 위치대로 설정해서 렌더링함.
+					m_pScene->ShadowPreRender(m_d3dCommandList.Get(), vlightCamera[i], 1/*nPipelinestate*/); // 카메라만 빛의 위치대로 설정해서 렌더링함.
 				}
 			}
 		}
@@ -1132,13 +1133,13 @@ void CGameFramework::FrameAdvance()
 		//OM 최종타겟으로 재설정
 		m_d3dCommandList->OMSetRenderTargets(1, &d3dRtvCPUDescriptorHandle, TRUE, &d3dDsvCPUDescriptorHandle);
 		//불투명 객체 최종 렌더링
-		m_pPostProcessingShader->Render(m_d3dCommandList.Get(), m_pCamera.lock());
+		m_pPostProcessingShader->Render(m_d3dCommandList.Get(), m_pCamera.lock(), m_pMainPlayer);
 
 		// 투명 객체 렌더링
 		if (m_pScene)
 		{
 			for (auto& s : m_pScene->m_vForwardRenderShader) {
-				s->Render(m_d3dCommandList.Get(), m_pCamera.lock());
+				s->Render(m_d3dCommandList.Get(), m_pCamera.lock(),m_pMainPlayer);
 			}
 		}
 	}

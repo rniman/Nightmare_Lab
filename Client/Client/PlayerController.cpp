@@ -65,6 +65,11 @@ CBlueSuitAnimationController::CBlueSuitAnimationController(ID3D12Device* pd3dDev
 		if (strncmp(frameName, "Head_M", strlen(frameName)) == 0) m_nHead_M = i;
 		if (strncmp(frameName, "Item_Raider", strlen(frameName)) == 0) m_nRaderItem = i;
 		if (strncmp(frameName, "Item_Teleport", strlen(frameName)) == 0) m_nTeleportItem = i;
+		if (strncmp(frameName, "Wrist_L", strlen(frameName)) == 0) m_nWrist_L = i;
+		if (strncmp(frameName, "Shoulder_L", strlen(frameName)) == 0) m_nShoulder_L = i;
+		if (strncmp(frameName, "Chest_M", strlen(frameName)) == 0) m_nChest_M = i;
+		
+		
 	}
 
 	m_xmf4x4RightHandRotate = Matrix4x4::Identity();
@@ -85,7 +90,7 @@ void CBlueSuitAnimationController::AdvanceTime(float fElapsedTime, CGameObject* 
 		}
 		else if (m_vAnimationTracks[1].m_bEnable || m_vAnimationTracks[2].m_bEnable) //애니메이션 블렌딩
 		{
-			BlendAnimation(1, 2, fElapsedTime, m_vfBlendWeight[0]);
+			BlendAnimation(1, 2, fElapsedTime*1.5f, m_vfBlendWeight[0]);
 			if(m_vAnimationTracks[1].m_bEnable)
 			{
 				m_vAnimationTracks[1].HandleCallback();
@@ -102,7 +107,7 @@ void CBlueSuitAnimationController::AdvanceTime(float fElapsedTime, CGameObject* 
 				if (m_vAnimationTracks[k].m_bEnable)
 				{
 					shared_ptr<CAnimationSet>  pAnimationSet = m_pAnimationSets->m_vpAnimationSets[m_vAnimationTracks[k].m_nAnimationSet];	//애니메이션 트랙에 해당하는 애니메이션 sets을 가져온다
-					float fPosition = m_vAnimationTracks[k].UpdatePosition(m_vAnimationTracks[k].m_fPosition, fElapsedTime, pAnimationSet->m_fLength);	// 현재 애니메이션 트랙을 재생(현재 재생중인 위치와 흐른 시간, 애니메이션 총 길이)
+					float fPosition = m_vAnimationTracks[k].UpdatePosition(m_vAnimationTracks[k].m_fPosition, fElapsedTime*1.5f, pAnimationSet->m_fLength);	// 현재 애니메이션 트랙을 재생(현재 재생중인 위치와 흐른 시간, 애니메이션 총 길이)
 					for (int j = 0; j < m_pAnimationSets->m_nBoneFrames; j++)
 					{
 						XMFLOAT4X4 xmf4x4Transform = m_pAnimationSets->m_vpBoneFrameCaches[j]->m_xmf4x4ToParent;
@@ -126,7 +131,7 @@ void CBlueSuitAnimationController::AdvanceTime(float fElapsedTime, CGameObject* 
 			return;
 		}
 
-		BlendLeftArm(fElapsedTime);
+		//BlendLeftArm(fElapsedTime);
 
 		/*XMFLOAT3 axis = { 0.f,0.f,1.f };
 		static float time = 0.0f;
@@ -136,14 +141,28 @@ void CBlueSuitAnimationController::AdvanceTime(float fElapsedTime, CGameObject* 
 			XMMatrixMultiply(xmmtxRotate, XMLoadFloat4x4(&m_pAnimationSets->m_vpBoneFrameCaches[m_nElbow_L]->m_xmf4x4ToParent)));*/
 		
 		XMFLOAT3 axis = { 0.f,0.f,1.f };
-		// 한번 계산하고 더이상 계산안함
-		static XMMATRIX L_ElbowRotate = XMMatrixRotationAxis(XMLoadFloat3(&axis), XMConvertToRadians(-72.0f)); 
+		//// 한번 계산하고 더이상 계산안함
+		//static XMMATRIX L_ElbowRotate = XMMatrixRotationAxis(XMLoadFloat3(&axis), XMConvertToRadians(-72.0f)); 
+		//XMStoreFloat4x4(&m_pAnimationSets->m_vpBoneFrameCaches[m_nElbow_L]->m_xmf4x4ToParent,
+		//	XMMatrixMultiply(L_ElbowRotate, XMLoadFloat4x4(&m_pAnimationSets->m_vpBoneFrameCaches[m_nElbow_L]->m_xmf4x4ToParent)));
+		static float time = 0.0f;
+		time += 0.1f;
+		XMMATRIX L_ElbowRotate = XMMatrixRotationAxis(XMLoadFloat3(&axis), XMConvertToRadians(-88.0f));
 		XMStoreFloat4x4(&m_pAnimationSets->m_vpBoneFrameCaches[m_nElbow_L]->m_xmf4x4ToParent,
 			XMMatrixMultiply(L_ElbowRotate, XMLoadFloat4x4(&m_pAnimationSets->m_vpBoneFrameCaches[m_nElbow_L]->m_xmf4x4ToParent)));
-		axis = { 1.f,0.f,0.f };
-		XMMATRIX L_ArmRotate = XMMatrixRotationAxis(XMLoadFloat3(&axis), XMConvertToRadians(-m_fElbowPitch));
+		XMMATRIX L_ArmRotate = XMMatrixRotationAxis(XMLoadFloat3(&axis), XMConvertToRadians(-340.0f));
 		XMStoreFloat4x4(&m_pAnimationSets->m_vpBoneFrameCaches[m_nStartLArm]->m_xmf4x4ToParent,
 			XMMatrixMultiply(L_ArmRotate, XMLoadFloat4x4(&m_pAnimationSets->m_vpBoneFrameCaches[m_nStartLArm]->m_xmf4x4ToParent)));
+
+		axis = { 0.f,0.f,1.f };
+		XMMATRIX L_ElbowRotate2 = XMMatrixRotationAxis(XMLoadFloat3(&axis), XMConvertToRadians(m_fLElbowPitch));
+		XMStoreFloat4x4(&m_pAnimationSets->m_vpBoneFrameCaches[m_nElbow_L]->m_xmf4x4ToParent,
+			XMMatrixMultiply(L_ElbowRotate2, XMLoadFloat4x4(&m_pAnimationSets->m_vpBoneFrameCaches[m_nElbow_L]->m_xmf4x4ToParent)));
+
+		axis = { 0.f,0.f,1.f };
+		XMMATRIX L_ShoulderRotate = XMMatrixRotationAxis(XMLoadFloat3(&axis), XMConvertToRadians(-m_fLShoulderPitch));
+		XMStoreFloat4x4(&m_pAnimationSets->m_vpBoneFrameCaches[m_nChest_M]->m_xmf4x4ToParent,
+			XMMatrixMultiply(L_ShoulderRotate, XMLoadFloat4x4(&m_pAnimationSets->m_vpBoneFrameCaches[m_nChest_M]->m_xmf4x4ToParent)));
 
 		if (m_bSelectItem) {//[CJI 0428] 선택한 아이템이 있으면 아이템을 들고 있도록 회전
 			XMStoreFloat4x4(&m_pAnimationSets->m_vpBoneFrameCaches[m_nElbow_R]->m_xmf4x4ToParent,
@@ -463,12 +482,20 @@ void CBlueSuitAnimationController::BlendLeftArm(float fElapsedTime)
 
 void CBlueSuitAnimationController::SetElbowPitch(float value)
 {
-	float fOld_pitch = m_fElbowPitch;
-	m_fElbowPitch = value;
+	float fOld_pitch = m_fLElbowPitch;
+	m_fLElbowPitch = value;
 
-	if (m_fElbowPitch > 30.0f || m_fElbowPitch < -45.0f) {
-		m_fElbowPitch = fOld_pitch;
+	if (m_fLElbowPitch > 80.0f || m_fLElbowPitch < -5.0f) {
+		m_fLElbowPitch = fOld_pitch;
+		if (value < -5.0f) {
+			m_fLShoulderPitch = value - fOld_pitch;
+			if (m_fLShoulderPitch < -30.0f) {
+				m_fLShoulderPitch = -30.0f;
+			}
+		}
 	}
+
+	
 }
 
 int CBlueSuitAnimationController::GetBoneFrameIndex(char* frameName)
@@ -487,6 +514,9 @@ int CBlueSuitAnimationController::GetBoneFrameIndex(char* frameName)
 	if (strncmp(frameName, "Head_M", strlen(frameName)) == 0) i = m_nHead_M ;
 	if (strncmp(frameName, "Item_Raider", strlen(frameName)) == 0) i = m_nRaderItem;
 	if (strncmp(frameName, "Item_Teleport", strlen(frameName)) == 0) i = m_nTeleportItem;
+	if (strncmp(frameName, "Wrist_L", strlen(frameName)) == 0) i = m_nWrist_L;
+	if (strncmp(frameName, "Shoulder_L", strlen(frameName)) == 0) i = m_nShoulder_L;
+	if (strncmp(frameName, "Chest_M", strlen(frameName)) == 0) i = m_nChest_M;
 
 	if (i == -1) {
 		assert(0);

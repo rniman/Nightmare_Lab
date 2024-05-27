@@ -43,6 +43,11 @@ public:
 
 	XMFLOAT4X4 m_xmf4x4RightHandRotate;
 private:
+	int m_nWrist_L = -1;
+	int m_nShoulder_L = -1;
+
+	int m_nChest_M = -1;
+
 	int m_nStartLArm = -1;
 	int m_nEndLArm = -1;
 
@@ -62,7 +67,8 @@ private:
 	int m_nHead_M = -1;
 
 	// ∆»¿« ∞¢µµ
-	float m_fElbowPitch = 0.0f;
+	float m_fLElbowPitch = 0.0f;
+	float m_fLShoulderPitch = 0.0f;
 	
 	bool m_bSelectItem = false;
 };

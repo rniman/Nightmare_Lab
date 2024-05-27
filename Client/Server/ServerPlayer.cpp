@@ -38,6 +38,7 @@ void CServerPlayer::Update(float fElapsedTime, shared_ptr<CServerCollisionManage
 	}
 
 	DWORD dwDirection = 0;
+
 	if (m_wKeyBuffer & KEY_W) dwDirection |= DIR_FORWARD;
 	if (m_wKeyBuffer & KEY_S) dwDirection |= DIR_BACKWARD;
 	if (m_wKeyBuffer & KEY_A) dwDirection |= DIR_LEFT;
@@ -237,6 +238,7 @@ void CServerPlayer::CollideWithPlayer(const shared_ptr<CServerCollisionManager>&
 
 void CServerPlayer::Move(const XMFLOAT3& xmf3Shift, bool bUpdateVelocity)
 {
+	//cout << GetPosition().x << "," << GetPosition().y << "," << GetPosition().z << endl;
 	if (bUpdateVelocity)
 	{
 		m_xmf3Velocity = Vector3::Add(m_xmf3Velocity, xmf3Shift);

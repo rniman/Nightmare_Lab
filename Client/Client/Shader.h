@@ -29,7 +29,9 @@ public:
 
 	virtual void UpdateShaderVariable(ID3D12GraphicsCommandList* pd3dCommandList, XMFLOAT4X4* pxmf4x4World) { }
 
-	virtual void Render(ID3D12GraphicsCommandList* pd3dCommandList, const shared_ptr<CCamera>& pCamera, int nPipelineState = 0);
+	virtual void Render(ID3D12GraphicsCommandList* pd3dCommandList, const shared_ptr<CCamera>& pCamera, const shared_ptr<CPlayer>& pPlayer, int nPipelineState = 0);
+	virtual void PartitionRender(ID3D12GraphicsCommandList* pd3dCommandList, const shared_ptr<CCamera>& pCamera, int nPipelineState = 0) {}//그림자렌더링용
+	//virtual void FloorRender(ID3D12GraphicsCommandList* pd3dCommandList, const shared_ptr<CCamera>& pCamera, const shared_ptr<CPlayer>& pPlayer, int nPipelineState = 0) {}//인스턴싱전용
 
 	virtual void UpdatePipeLineState(ID3D12GraphicsCommandList* pd3dCommandList, int nPipelineState);
 
@@ -92,9 +94,35 @@ public:
 	virtual D3D12_INPUT_LAYOUT_DESC CreateInputLayout();
 	virtual D3D12_SHADER_BYTECODE CreateVertexShader();
 
-	virtual void Render(ID3D12GraphicsCommandList* pd3dCommandList, const shared_ptr<CCamera>& pCamera, int nPipelineState = 0);
+	virtual void Render(ID3D12GraphicsCommandList* pd3dCommandList, const shared_ptr<CCamera>& pCamera, const shared_ptr<CPlayer>& pPlayer, int nPipelineState = 0);
+	//virtual void FloorRender(ID3D12GraphicsCommandList* pd3dCommandList, const shared_ptr<CCamera>& pCamera,const shared_ptr<CPlayer>& pPlayer, int nPipelineState = 0);
 	virtual void AnimateObjects(float fElapsedTime);
+
+	vector<vector<shared_ptr<CGameObject>>> m_vFloorObjects;
 };
+
+////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+class PartitionInsStandardShader : public InstanceStandardShader {
+public:
+	PartitionInsStandardShader();
+	virtual ~PartitionInsStandardShader();
+
+	virtual void AddPartitionGameObject(const shared_ptr<CGameObject>& pGameObject,int nPartition);
+	virtual void Render(ID3D12GraphicsCommandList* pd3dCommandList, const shared_ptr<CCamera>& pCamera, const shared_ptr<CPlayer>& pPlayer, int nPipelineState = 0);
+	// 렌더링하는 오브젝트를 담은 컨테이너가 다르므로 함수 분리
+	virtual void PartitionRender(ID3D12GraphicsCommandList* pd3dCommandList, const shared_ptr<CCamera>& pCamera, int nPipelineState = 0);
+	//virtual void AnimateObjects(float fElapsedTime);
+
+	void AddPartition();
+	void AddPartitionBB(shared_ptr<BoundingBox>& bb);
+
+	vector<shared_ptr<BoundingBox>> GetPartitionBB() { return m_vPartitionBB; }
+protected:
+	vector<vector<shared_ptr<CGameObject>>> m_vPartitionObject;//index == partitionNumber
+	vector<shared_ptr<BoundingBox>> m_vPartitionBB; //index == partitionNumber
+};
+
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 class TransparentShader : public InstanceStandardShader {
@@ -108,7 +136,7 @@ public:
 
 	virtual D3D12_SHADER_BYTECODE CreatePixelShader();
 
-	virtual void Render(ID3D12GraphicsCommandList* pd3dCommandList, const shared_ptr<CCamera>& pCamera, int nPipelineState = 0);
+	virtual void Render(ID3D12GraphicsCommandList* pd3dCommandList, const shared_ptr<CCamera>& pCamera, const shared_ptr<CPlayer>& pPlayer, int nPipelineState = 0);
 };
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -151,7 +179,7 @@ public:
 	virtual void TransitionRenderTargetToCommon(ID3D12GraphicsCommandList* pd3dCommandList);
 	virtual void TransitionCommonToRenderTarget(ID3D12GraphicsCommandList* pd3dCommandList);
 
-	virtual void Render(ID3D12GraphicsCommandList* pd3dCommandList, const shared_ptr<CCamera>& pCamera);
+	virtual void Render(ID3D12GraphicsCommandList* pd3dCommandList, const shared_ptr<CCamera>& pCamera, const shared_ptr<CPlayer>& pPlayer);
 
 protected:
 	shared_ptr<CTexture> m_pTexture;
@@ -193,7 +221,7 @@ public:
 
 	void CreateShadowMapResource(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dCommandList, UINT nlight, D3D12_CPU_DESCRIPTOR_HANDLE d3dRtvCPUDescriptorHandle);
 	void OnShadowPrepareRenderTarget(ID3D12GraphicsCommandList* pd3dCommandList, int nclearcount = 0);
-	void ShadowTextureWriteRender(ID3D12GraphicsCommandList* pd3dCommandList, const shared_ptr<CCamera>& pCamera);
+	void ShadowTextureWriteRender(ID3D12GraphicsCommandList* pd3dCommandList, const shared_ptr<CCamera>& pCamera, const shared_ptr<CPlayer>& pPlayer);
 
 	void TransitionShadowMapRenderTargetToCommon(ID3D12GraphicsCommandList* pd3dCommandList, int nTransition=0);
 
@@ -246,7 +274,7 @@ public:
 
 	virtual void CreateShader(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dCommandList, ID3D12RootSignature* pd3dGraphicsRootSignature, UINT nRenderTargets, DXGI_FORMAT* pdxgiRtvFormats, DXGI_FORMAT dxgiDsvFormat);
 
-	virtual void Render(ID3D12GraphicsCommandList* pd3dCommandList, const shared_ptr<CCamera>& pCamera, int nPipelineState = 0);
+	virtual void Render(ID3D12GraphicsCommandList* pd3dCommandList, const shared_ptr<CCamera>& pCamera,const shared_ptr<CPlayer>& pPlayer, int nPipelineState = 0);
 
 	virtual void AddGameObject(const shared_ptr<CGameObject>& pGameObject);
 
