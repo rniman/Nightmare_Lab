@@ -675,6 +675,18 @@ void CGameFramework::OnProcessingWindowMessage(HWND hWnd, UINT nMessageID, WPARA
 		else if (LOWORD(wParam) == 1)	// ZOMBIE WIN
 		{
 			m_nGameState = GAME_STATE::ZOMBIE_WIN;
+			for (int i = ZOMBIEPLAYER + 1; i < ZOMBIEPLAYER + 1 + 4; ++i)
+			{
+				m_apPlayer[i]->SetAlive(false);
+			}
+		}
+		if (m_nMainClientId != ZOMBIEPLAYER)
+		{
+			dynamic_cast<CBlueSuitUserInterfaceShader*>(m_pScene->m_vForwardRenderShader[USER_INTERFACE_SHADER].get())->SetGameState(m_nGameState);
+		}
+		else if (m_nMainClientId == ZOMBIEPLAYER)
+		{
+			dynamic_cast<CZombieUserInterfaceShader*>(m_pScene->m_vForwardRenderShader[USER_INTERFACE_SHADER].get())->SetGameState(m_nGameState);
 		}
 		break;
 	case WM_SOCKET:
@@ -1032,14 +1044,20 @@ void CGameFramework::PreRenderTasks()
 //#define _WITH_PLAYER_TOP
 void CGameFramework::FrameAdvance()
 {
-	m_GameTimer.Tick(0.0f);
+	m_GameTimer.Tick(60.0f);
 
 	if(m_nGameState == GAME_STATE::IN_GAME)
 	{
-		ProcessInput();
+		ProcessInput(); 
+		AnimateObjects();
 	}
+	else
+	{
+		AnimateObjects();
+		m_fEndingElapsedTime += m_GameTimer.GetTimeElapsed();
 
-	AnimateObjects();
+		m_pMainPlayer->UpdateEnding(m_fEndingElapsedTime, m_nGameState);
+	}
 
 	HRESULT hResult = m_d3dCommandAllocator[m_nSwapChainBufferIndex]->Reset();
 	hResult = m_d3dCommandList->Reset(m_d3dCommandAllocator[m_nSwapChainBufferIndex].Get(), NULL);

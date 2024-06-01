@@ -151,94 +151,7 @@ void CTcpClient::OnProcessingReadMessage(HWND hWnd, UINT nMessageID, WPARAM wPar
 		
 		memcpy(m_aClientInfo.data(), m_pCurrentBuffer, sizeof(m_aClientInfo));
 
-		for (int i = 0; i < MAX_CLIENT; ++i)
-		{
-			if (m_apPlayers[i])
-			{
-				m_apPlayers[i]->SetAlive(m_aClientInfo[i].m_bAlive);
-				m_apPlayers[i]->SetRunning(m_aClientInfo[i].m_bRunning);
-				m_apPlayers[i]->SetClientId(m_aClientInfo[i].m_nClientId);
-				m_apPlayers[i]->SetPosition(m_aClientInfo[i].m_xmf3Position);
-				m_apPlayers[i]->SetVelocity(m_aClientInfo[i].m_xmf3Velocity);
-				if (i != m_nMainClientId) {
-					m_apPlayers[i]->SetPitch(m_aClientInfo[i].m_animationInfo.pitch);
-				}
-
-
-				if(i != m_nMainClientId)
-				{
-					m_apPlayers[i]->SetLook(m_aClientInfo[i].m_xmf3Look);
-					XMFLOAT3 xmf3Right = XMFLOAT3(0.0f, 1.0f, 0.0f);
-					xmf3Right = Vector3::CrossProduct(xmf3Right, m_aClientInfo[i].m_xmf3Look, true);
-					m_apPlayers[i]->SetRight(xmf3Right);
-					//m_apPlayers[i]->SetRight(m_aClientInfo[i].m_xmf3Right);
-				}
-
-				//[0523] 피킹 오브젝트 설정(외곽선 작업에 필요)
-				if(i == m_nMainClientId)
-				{
-					if (m_aClientInfo[i].m_nPickedObjectNum == -1)
-					{
-						m_apPlayers[i]->SetPickedObject(nullptr);
-					}
-					else
-					{
-						int nObjectNum = m_aClientInfo[i].m_nPickedObjectNum;
-						shared_ptr<CGameObject> pGameObject = g_collisionManager.GetCollisionObjectWithNumber(nObjectNum).lock();
-						if (pGameObject)
-						{
-							m_apPlayers[i]->SetPickedObject(pGameObject);
-						}
-					}
-				}
-
-				// 지뢰 충돌
-				int nObjectNum = m_aClientInfo[i].m_playerInfo.m_iMineobjectNum;
-				if (nObjectNum >= 0) {
-					shared_ptr<CGameObject> pGameObject = g_collisionManager.GetCollisionObjectWithNumber(nObjectNum).lock();
-					auto mine = dynamic_pointer_cast<CMineObject>(pGameObject);
-					if (mine)
-					{
-						mine->SetCollide(true);
-						shared_ptr<CZombiePlayer> pZombiePlayer = dynamic_pointer_cast<CZombiePlayer>(m_apPlayers[i]);
-						if (pZombiePlayer) 
-						{
-							pZombiePlayer->SetEectricShock();
-						}
-					}
-				}
-			}
-
-			if (i == ZOMBIEPLAYER)
-			{
-				UpdateZombiePlayer();
-			}
-			else
-			{
-				UpdatePlayer(i);
-			}
-
-			int nNumOfGameObject = m_aClientInfo[i].m_nNumOfObject;
-			for (int j = 0; j < nNumOfGameObject; ++j)
-			{
-				int nObjectNum = m_aClientInfo[i].m_anObjectNum[j];
-
-
-				if (nObjectNum <= -1 || nObjectNum >= g_collisionManager.GetNumOfCollisionObject())
-				{
-					continue;
-				}
-#ifdef LOADSCENE
-				shared_ptr<CGameObject> pGameObject = g_collisionManager.GetCollisionObjectWithNumber(nObjectNum).lock();
-				if (pGameObject)
-				{
-					pGameObject->m_xmf4x4World = m_aClientInfo[i].m_axmf4x4World[j];
-					pGameObject->m_xmf4x4ToParent = m_aClientInfo[i].m_axmf4x4World[j];
-				}
-#endif LOADSCENE
-			}
-			
-		}
+		UpdateDataFromServer();
 	}
 	break;
 	case HEAD_NUM_OF_CLIENT:
@@ -286,6 +199,102 @@ void CTcpClient::OnProcessingReadMessage(HWND hWnd, UINT nMessageID, WPARAM wPar
 	memset(m_pCurrentBuffer, 0, BUFSIZE);
 
 	return;
+}
+
+void CTcpClient::UpdateDataFromServer()
+{
+	for (int i = 0; i < MAX_CLIENT; ++i)
+	{
+		if (m_apPlayers[i])
+		{
+			m_apPlayers[i]->SetAlive(m_aClientInfo[i].m_bAlive);
+			m_apPlayers[i]->SetRunning(m_aClientInfo[i].m_bRunning);
+			m_apPlayers[i]->SetClientId(m_aClientInfo[i].m_nClientId);
+			m_apPlayers[i]->SetPosition(m_aClientInfo[i].m_xmf3Position);
+			m_apPlayers[i]->SetVelocity(m_aClientInfo[i].m_xmf3Velocity);
+			if (i != m_nMainClientId) {
+				m_apPlayers[i]->SetPitch(m_aClientInfo[i].m_animationInfo.pitch);
+			}
+
+
+			if (i != m_nMainClientId)
+			{
+				m_apPlayers[i]->SetLook(m_aClientInfo[i].m_xmf3Look);
+				XMFLOAT3 xmf3Right = XMFLOAT3(0.0f, 1.0f, 0.0f);
+				xmf3Right = Vector3::CrossProduct(xmf3Right, m_aClientInfo[i].m_xmf3Look, true);
+				m_apPlayers[i]->SetRight(xmf3Right);
+				//m_apPlayers[i]->SetRight(m_aClientInfo[i].m_xmf3Right);
+			}
+
+			//[0523] 피킹 오브젝트 설정(외곽선 작업에 필요)
+			UpdatePickedObject(i);
+
+				// 지뢰 충돌
+				int nObjectNum = m_aClientInfo[i].m_playerInfo.m_iMineobjectNum;
+				if (nObjectNum >= 0) {
+					shared_ptr<CGameObject> pGameObject = g_collisionManager.GetCollisionObjectWithNumber(nObjectNum).lock();
+					auto mine = dynamic_pointer_cast<CMineObject>(pGameObject);
+					if (mine)
+					{
+						mine->SetCollide(true);
+						shared_ptr<CZombiePlayer> pZombiePlayer = dynamic_pointer_cast<CZombiePlayer>(m_apPlayers[i]);
+						if (pZombiePlayer) 
+						{
+							pZombiePlayer->SetEectricShock();
+						}
+					}
+				}
+			}
+
+		if (i == ZOMBIEPLAYER)
+		{
+			UpdateZombiePlayer();
+		}
+		else
+		{
+			UpdatePlayer(i);
+		}
+
+		int nNumOfGameObject = m_aClientInfo[i].m_nNumOfObject;
+		for (int j = 0; j < nNumOfGameObject; ++j)
+		{
+			int nObjectNum = m_aClientInfo[i].m_anObjectNum[j];
+
+
+				if (nObjectNum <= -1 || nObjectNum >= g_collisionManager.GetNumOfCollisionObject())
+				{
+					continue;
+				}
+#ifdef LOADSCENE
+			shared_ptr<CGameObject> pGameObject = g_collisionManager.GetCollisionObjectWithNumber(nObjectNum).lock();
+			if (pGameObject)
+			{
+				pGameObject->m_xmf4x4World = m_aClientInfo[i].m_axmf4x4World[j];
+				pGameObject->m_xmf4x4ToParent = m_aClientInfo[i].m_axmf4x4World[j];
+			}
+#endif LOADSCENE
+		}
+	}
+}
+
+void CTcpClient::UpdatePickedObject(int i)
+{
+	if (i == m_nMainClientId)
+	{
+		if (m_aClientInfo[i].m_nPickedObjectNum == -1)
+		{
+			m_apPlayers[i]->SetPickedObject(nullptr);
+		}
+		else
+		{
+			int nObjectNum = m_aClientInfo[i].m_nPickedObjectNum;
+			shared_ptr<CGameObject> pGameObject = g_collisionManager.GetCollisionObjectWithNumber(nObjectNum).lock();
+			if (pGameObject)
+			{
+				m_apPlayers[i]->SetPickedObject(pGameObject);
+			}
+		}
+	}
 }
 
 void CTcpClient::OnProcessingWriteMessage(HWND hWnd, UINT nMessageID, WPARAM wParam, LPARAM lParam)

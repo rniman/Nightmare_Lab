@@ -1094,7 +1094,7 @@ void CBlueSuitUserInterfaceShader::BuildObjects(ID3D12Device* pd3dDevice, ID3D12
 	m_pTeleport->SetMaterial(0, m_vpmatTeleport[0]);
 	m_pTeleport->SetMesh(pmeshRect);
 	m_pTeleport->SetScale(0.2f * fxScale, 0.2f, 1.0f);
-	m_pTeleport->SetPosition(-0.9f, 0.85f, 0.0f);
+	m_pTeleport->SetPosition(-0.9f, 0.85f, 0.1f);
 
 	//RadarUI
 	shared_ptr<CTexture> ptexMaskRadar = make_shared<CTexture>(1, RESOURCE_TEXTURE2D, 0, 1);
@@ -1115,7 +1115,7 @@ void CBlueSuitUserInterfaceShader::BuildObjects(ID3D12Device* pd3dDevice, ID3D12
 	m_pRadar->SetMaterial(0, m_vpmatRadar[0]);
 	m_pRadar->SetMesh(pmeshRect);
 	m_pRadar->SetScale(0.2f * fxScale, 0.2f, 1.0f);
-	m_pRadar->SetPosition(-0.9f + 0.21f * fxScale * 1, 0.85f, 0.0f);
+	m_pRadar->SetPosition(-0.9f + 0.21f * fxScale * 1, 0.85f, 0.1f);
 
 	//MineUI
 	shared_ptr<CTexture> ptexMaskMine = make_shared<CTexture>(1, RESOURCE_TEXTURE2D, 0, 1);
@@ -1136,7 +1136,7 @@ void CBlueSuitUserInterfaceShader::BuildObjects(ID3D12Device* pd3dDevice, ID3D12
 	m_pMine->SetMaterial(0, m_vpmatMine[0]);
 	m_pMine->SetMesh(pmeshRect);
 	m_pMine->SetScale(0.2f * fxScale, 0.2f, 1.0f);
-	m_pMine->SetPosition(-0.9f + 0.21f * fxScale * 2, 0.85f, 0.0f);
+	m_pMine->SetPosition(-0.9f + 0.21f * fxScale * 2, 0.85f, 0.1f);
 
 	//FuseUI
 	shared_ptr<CTexture> ptexMaskFuseOne = make_shared<CTexture>(1, RESOURCE_TEXTURE2D, 0, 1);
@@ -1171,7 +1171,21 @@ void CBlueSuitUserInterfaceShader::BuildObjects(ID3D12Device* pd3dDevice, ID3D12
 	m_pFuse->SetMaterial(0, m_vpmatFuse[0]);
 	m_pFuse->SetMesh(pmeshRect);
 	m_pFuse->SetScale(0.2f * fxScale, 0.2f, 1.0f);
-	m_pFuse->SetPosition(-0.9f + 0.21f * fxScale * 3, 0.85f, 0.0f);
+	m_pFuse->SetPosition(-0.9f + 0.21f * fxScale * 3, 0.85f, 0.1f);
+
+	//selectRoundedRectangle.dds
+	shared_ptr<CTexture> ptexSelect = make_shared<CTexture>(1, RESOURCE_TEXTURE2D, 0, 1);
+	ptexSelect->LoadTextureFromDDSFile(pd3dDevice, pd3dCommandList, (wchar_t*)L"Asset/UI/selectRoundedRectangle.dds", RESOURCE_TEXTURE2D, 0);
+	m_pmatSelect = make_shared<CMaterial>(1);
+	m_pmatSelect->SetMaterialType(MATERIAL_ALBEDO_MAP);
+	m_pmatSelect->SetTexture(ptexSelect, 0);
+	CScene::CreateShaderResourceViews(pd3dDevice, ptexSelect, 0, 3);
+
+	m_pSelectRect = make_shared<CGameObject>(pd3dDevice, pd3dCommandList, 1);
+	m_pSelectRect->SetMaterial(0, m_pmatSelect);
+	m_pSelectRect->SetMesh(pmeshRect);
+	m_pSelectRect->SetScale(0.2f * fxScale, 0.2f, 1.0f);
+	m_pSelectRect->SetAlive(false);
 
 	//STAMINA BAR
 	shared_ptr<CTexture> ptexStaminaBG = make_shared<CTexture>(1, RESOURCE_TEXTURE2D, 0, 1);
@@ -1204,20 +1218,43 @@ void CBlueSuitUserInterfaceShader::BuildObjects(ID3D12Device* pd3dDevice, ID3D12
 	m_vpStamina[1]->SetPosition(0.0f, -0.75f, 0.0f);
 	m_vpStamina[1]->SetAlive(false);
 
+	shared_ptr<CTexture> ptexGameWin = make_shared<CTexture>(1, RESOURCE_TEXTURE2D, 0, 1);
+	ptexGameWin->LoadTextureFromDDSFile(pd3dDevice, pd3dCommandList, (wchar_t*)L"Asset/UI/GameWin.dds", RESOURCE_TEXTURE2D, 0);
+	CScene::CreateShaderResourceViews(pd3dDevice, ptexGameWin, 0, 3);
+	m_vpmatGameEnding[PLAYER_RESULT::WIN] = make_shared<CMaterial>(1);
+	m_vpmatGameEnding[PLAYER_RESULT::WIN]->SetMaterialType(MATERIAL_ALBEDO_MAP);
+	m_vpmatGameEnding[PLAYER_RESULT::WIN]->SetTexture(ptexGameWin);
+
+	shared_ptr<CTexture> ptexGameOver = make_shared<CTexture>(1, RESOURCE_TEXTURE2D, 0, 1);
+	ptexGameOver->LoadTextureFromDDSFile(pd3dDevice, pd3dCommandList, (wchar_t*)L"Asset/UI/GameOver.dds", RESOURCE_TEXTURE2D, 0);
+	CScene::CreateShaderResourceViews(pd3dDevice, ptexGameOver, 0, 3);
+	m_vpmatGameEnding[PLAYER_RESULT::OVER] = make_shared<CMaterial>(1);
+	m_vpmatGameEnding[PLAYER_RESULT::OVER]->SetMaterialType(MATERIAL_ALBEDO_MAP);
+	m_vpmatGameEnding[PLAYER_RESULT::OVER]->SetTexture(ptexGameOver);
+
+	m_pGameEnding = make_shared<CGameObject>(pd3dDevice, pd3dCommandList, 1);
+	m_pGameEnding->SetMaterial(0, nullptr);
+	m_pGameEnding->SetMesh(pmeshRect);
+	m_pGameEnding->SetScale(1.0f, 1.0f, 1.0f);
+	m_pGameEnding->SetPosition(0.0f, 0.0f, 0.01f);
+	m_pGameEnding->SetAlive(false);
+
 	AddGameObject(pCrosshair);
 	AddGameObject(m_pTeleport);
 	AddGameObject(m_pRadar);
 	AddGameObject(m_pMine);
 	AddGameObject(m_pFuse);
+	AddGameObject(m_pSelectRect);
 	AddGameObject(m_vpStamina[0]);
 	AddGameObject(m_vpStamina[1]);
+	AddGameObject(m_pGameEnding);
 }
 
 void CBlueSuitUserInterfaceShader::AnimateObjects(float fElapsedTime)
 {
 	if (m_pBlueSuitPlayer)
 	{
-		AnimateObjectBlueSuit();
+		AnimateObjectBlueSuit(fElapsedTime);
 	}
 
 	CShader::AnimateObjects(fElapsedTime);
@@ -1237,7 +1274,40 @@ void CBlueSuitUserInterfaceShader::Render(ID3D12GraphicsCommandList* pd3dCommand
 	}
 }
 
-void CBlueSuitUserInterfaceShader::AnimateObjectBlueSuit()
+void CBlueSuitUserInterfaceShader::AnimateObjectBlueSuit(float fElapsedTime)
+{
+	switch (m_nGameState)
+	{
+	case GAME_STATE::IN_GAME:
+		AnimateInGame();
+		break;
+	case GAME_STATE::ZOMBIE_WIN:
+		m_fEndingElapsedTime += fElapsedTime;
+		if (m_fEndingElapsedTime > 3.0) m_fEndingElapsedTime = 3.0f;
+		m_pGameEnding->SetAlive(true);
+		m_pGameEnding->SetMaterial(0, m_vpmatGameEnding[PLAYER_RESULT::OVER]);
+		m_pGameEnding->m_vpMaterials[0]->m_xmf4AlbedoColor = XMFLOAT4(0.0f, 0.0f, 0.0f, 2.0f - m_fEndingElapsedTime / 3.0f);
+		break;
+	case GAME_STATE::BLUE_SUIT_WIN:
+		m_pGameEnding->SetAlive(true);
+		if (m_pBlueSuitPlayer->IsAlive())
+		{
+			m_pGameEnding->SetMaterial(0, m_vpmatGameEnding[PLAYER_RESULT::WIN]);
+		}
+		else
+		{
+			m_fEndingElapsedTime += fElapsedTime;
+			if (m_fEndingElapsedTime > 3.0) m_fEndingElapsedTime = 3.0f;
+			m_pGameEnding->SetMaterial(0, m_vpmatGameEnding[PLAYER_RESULT::OVER]);
+			m_pGameEnding->m_vpMaterials[0]->m_xmf4AlbedoColor = XMFLOAT4(0.0f, 0.0f, 0.0f, 2.0f - m_fEndingElapsedTime / 3.0f);
+		}
+		break;
+	default:
+		break;
+	}
+}
+
+void CBlueSuitUserInterfaceShader::AnimateInGame()
 {
 	if (m_pBlueSuitPlayer->GetReferenceSlotItemNum(0) >= 0) m_pTeleport->SetMaterial(0, m_vpmatTeleport[1]);
 	else m_pTeleport->SetMaterial(0, m_vpmatTeleport[0]);
@@ -1257,6 +1327,18 @@ void CBlueSuitUserInterfaceShader::AnimateObjectBlueSuit()
 		}
 	}
 	if (nFuseNum < 4) m_pFuse->SetMaterial(0, m_vpmatFuse[nFuseNum]);
+
+	int nSelectItem = m_pBlueSuitPlayer->GetSelectItem();
+	if (nSelectItem != 0)
+	{
+		m_pSelectRect->SetAlive(true);
+		float fxScale = float(FRAME_BUFFER_HEIGHT) / FRAME_BUFFER_WIDTH;
+		m_pSelectRect->SetPosition(-0.9f + 0.21f * fxScale * (nSelectItem - 1), 0.85f, 0.01f);
+	}
+	else
+	{
+		m_pSelectRect->SetAlive(false);
+	}
 
 	if (m_pBlueSuitPlayer->GetFullStaminaTime() > 2.0f)
 	{
@@ -1471,32 +1553,87 @@ void CZombieUserInterfaceShader::BuildObjects(ID3D12Device* pd3dDevice, ID3D12Gr
 	m_pRunning->SetScale(0.2f * fxScale, 0.2f, 1.0f);
 	m_pRunning->SetPosition(-0.9f + 0.21f * fxScale * 2, 0.85f, 0.0f);
 
+	shared_ptr<CTexture> ptexGameWin = make_shared<CTexture>(1, RESOURCE_TEXTURE2D, 0, 1);
+	ptexGameWin->LoadTextureFromDDSFile(pd3dDevice, pd3dCommandList, (wchar_t*)L"Asset/UI/GameWin.dds", RESOURCE_TEXTURE2D, 0);
+	CScene::CreateShaderResourceViews(pd3dDevice, ptexGameWin, 0, 3);
+	m_vpmatGameEnding[PLAYER_RESULT::WIN] = make_shared<CMaterial>(1);
+	m_vpmatGameEnding[PLAYER_RESULT::WIN]->SetMaterialType(MATERIAL_ALBEDO_MAP);
+	m_vpmatGameEnding[PLAYER_RESULT::WIN]->SetTexture(ptexGameWin);
+
+	shared_ptr<CTexture> ptexGameOver = make_shared<CTexture>(1, RESOURCE_TEXTURE2D, 0, 1);
+	ptexGameOver->LoadTextureFromDDSFile(pd3dDevice, pd3dCommandList, (wchar_t*)L"Asset/UI/GameOver.dds", RESOURCE_TEXTURE2D, 0);
+	CScene::CreateShaderResourceViews(pd3dDevice, ptexGameOver, 0, 3);
+	m_vpmatGameEnding[PLAYER_RESULT::OVER] = make_shared<CMaterial>(1);
+	m_vpmatGameEnding[PLAYER_RESULT::OVER]->SetMaterialType(MATERIAL_ALBEDO_MAP);
+	m_vpmatGameEnding[PLAYER_RESULT::OVER]->SetTexture(ptexGameOver);
+
+	m_pGameEnding = make_shared<CGameObject>(pd3dDevice, pd3dCommandList, 1);
+	m_pGameEnding->SetMaterial(0, nullptr);
+	m_pGameEnding->SetMesh(pmeshRect);
+	m_pGameEnding->SetScale(1.0f, 1.0f, 1.0f);
+	m_pGameEnding->SetPosition(0.0f, 0.0f, 0.01f);
+	m_pGameEnding->SetAlive(false);
+
+
 	AddGameObject(pCrosshair);
 	AddGameObject(m_pTracking);
 	AddGameObject(m_pInterruption);
 	AddGameObject(m_pRunning);
+	AddGameObject(m_pGameEnding);
 }
 
 void CZombieUserInterfaceShader::AnimateObjects(float fElapsedTime)
 {
-	AnimateObjectZombie();
+	AnimateObjectZombie(fElapsedTime);
 
 	CShader::AnimateObjects(fElapsedTime);
 }
 
-void CZombieUserInterfaceShader::AnimateObjectZombie()
+void CZombieUserInterfaceShader::Render(ID3D12GraphicsCommandList* pd3dCommandList, const shared_ptr<CCamera>& pCamera, const shared_ptr<CPlayer>& pPlayer, int nPipelineState)
 {
-	if (m_pZombiePlayer->IsAbleTracking()) m_pTracking->SetMaterial(0, m_vpmatTracking[0]);
-	else if(m_pZombiePlayer->IsTracking()) m_pTracking->SetMaterial(0, m_vpmatTracking[1]);
-	else if(!m_pZombiePlayer->IsAbleTracking()) m_pTracking->SetMaterial(0, m_vpmatTracking[2]);
+	UpdatePipeLineState(pd3dCommandList, nPipelineState);
 
-	if (m_pZombiePlayer->IsAbleInterruption()) m_pInterruption->SetMaterial(0, m_vpmatInterruption[0]);
-	else if (m_pZombiePlayer->IsInterruption()) m_pInterruption->SetMaterial(0, m_vpmatInterruption[1]);
-	else if (!m_pZombiePlayer->IsAbleInterruption()) m_pInterruption->SetMaterial(0, m_vpmatInterruption[2]);
+	for (auto& object : m_vGameObjects)
+	{
+		if (!object->IsAlive())
+		{
+			continue;
+		}
+		object->Render(pd3dCommandList);
+	}
+}
 
-	if (m_pZombiePlayer->IsAbleRunning()) m_pRunning->SetMaterial(0, m_vpmatRunning[0]);
-	else if (m_pZombiePlayer->IsRunning()) m_pRunning->SetMaterial(0, m_vpmatRunning[1]);
-	else if (!m_pZombiePlayer->IsAbleRunning()) m_pRunning->SetMaterial(0, m_vpmatRunning[2]);
+void CZombieUserInterfaceShader::AnimateObjectZombie(float fElapsedTime)
+{
+	switch (m_nGameState)
+	{
+	case GAME_STATE::IN_GAME:
+		if (m_pZombiePlayer->IsAbleTracking()) m_pTracking->SetMaterial(0, m_vpmatTracking[0]);
+		else if (m_pZombiePlayer->IsTracking()) m_pTracking->SetMaterial(0, m_vpmatTracking[1]);
+		else if (!m_pZombiePlayer->IsAbleTracking()) m_pTracking->SetMaterial(0, m_vpmatTracking[2]);
+
+		if (m_pZombiePlayer->IsAbleInterruption()) m_pInterruption->SetMaterial(0, m_vpmatInterruption[0]);
+		else if (m_pZombiePlayer->IsInterruption()) m_pInterruption->SetMaterial(0, m_vpmatInterruption[1]);
+		else if (!m_pZombiePlayer->IsAbleInterruption()) m_pInterruption->SetMaterial(0, m_vpmatInterruption[2]);
+
+		if (m_pZombiePlayer->IsAbleRunning()) m_pRunning->SetMaterial(0, m_vpmatRunning[0]);
+		else if (m_pZombiePlayer->IsRunning()) m_pRunning->SetMaterial(0, m_vpmatRunning[1]);
+		else if (!m_pZombiePlayer->IsAbleRunning()) m_pRunning->SetMaterial(0, m_vpmatRunning[2]);
+		break;
+	case GAME_STATE::BLUE_SUIT_WIN:
+		m_pGameEnding->SetAlive(true);
+		m_pGameEnding->SetMaterial(0, m_vpmatGameEnding[PLAYER_RESULT::OVER]);
+		break;
+	case GAME_STATE::ZOMBIE_WIN:
+		m_fEndingElapsedTime += fElapsedTime;
+		if (m_fEndingElapsedTime > 3.0) m_fEndingElapsedTime = 3.0f;
+		m_pGameEnding->SetAlive(true);
+		m_pGameEnding->SetMaterial(0, m_vpmatGameEnding[PLAYER_RESULT::WIN]);
+		m_pGameEnding->m_vpMaterials[0]->m_xmf4AlbedoColor = XMFLOAT4(0.0f, 0.0f, 0.0f, 2.0f - m_fEndingElapsedTime / 3.0f);
+		break;
+	default:
+		break;
+	}
 }
 
 void CZombieUserInterfaceShader::AddGameObject(const shared_ptr<CGameObject>& pGameObject)

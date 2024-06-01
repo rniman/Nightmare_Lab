@@ -113,6 +113,8 @@ public:
 	// 이벤트를 처리한다.
 	void OnProcessingSocketMessage(HWND hWnd, UINT nMessageID, WPARAM wParam, LPARAM lParam);
 	void OnProcessingReadMessage(HWND hWnd, UINT nMessageID, WPARAM wParam, LPARAM lParam);
+	void UpdateDataFromServer();
+	void UpdatePickedObject(int i);
 	void OnProcessingWriteMessage(HWND hWnd, UINT nMessageID, WPARAM wParam, LPARAM lParam);
 
 	template<class... Args>

@@ -103,7 +103,7 @@ void CServerCollisionManager::Collide(float fElapsedTime, const shared_ptr<CServ
 	aabbPlayer.Extents = pPlayer->GetOOBB(0).Extents;
 	XMVECTOR xmvTranslation = XMVectorSet(pPlayer->GetPosition().x, pPlayer->GetPosition().y, pPlayer->GetPosition().z, 1.0f);
 	aabbPlayer.Transform(aabbPlayer, 1.0f, XMQuaternionIdentity(), xmvTranslation);
-
+	
 	shared_ptr<CServerZombiePlayer> pZombiePlayer = dynamic_pointer_cast<CServerZombiePlayer>(pPlayer);
 	// 플레이어 충돌검사
 	for (const auto& pwOtherPlayer : m_apPlayer)
@@ -143,12 +143,11 @@ void CServerCollisionManager::Collide(float fElapsedTime, const shared_ptr<CServ
 
 		if (pZombiePlayer)
 		{
-			if (pZombiePlayer->IsAttack())
+			if (pOtherPlayer->IsAlive() && pZombiePlayer->IsAttack())
 			{
 				pZombiePlayer->CheckAttack(pOtherPlayer, aabbOtherPlayer);
 			}
 		}
-
 	}
 
 	for (int i = pPlayer->GetWidth() - 2; i <= pPlayer->GetWidth() + 2; ++i)
@@ -232,8 +231,6 @@ void CServerCollisionManager::Collide(float fElapsedTime, const shared_ptr<CServ
 		}
 		pPlayer->SetPlayerPosition(xmf3StairPosition);
 	}
-
-	
 }
 
 void CServerCollisionManager::CollideWithPlayer(float fElapsedTime)

@@ -32,6 +32,7 @@ public:
 
 	virtual void Update(float fElapsedTime);
 	virtual void CalculateSpace();
+	virtual void UpdateEnding(float fEndingElapsedTime, int nGameState) {};
 
 	virtual void CreateShaderVariables(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dCommandList);
 	virtual void ReleaseShaderVariables();
@@ -162,10 +163,13 @@ public:
 	virtual void Rotate(float x, float y, float z);
 	//virtual void Move(DWORD dwDirection, float fDistance, bool bVelocity = false);
 	virtual void Update(float fElapsedTime) override;
+	void UpdateAnimation();
+	virtual void UpdateEnding(float fEndingElapsedTime, int nGameState) override;
+
 	virtual void Animate(float fElapsedTime);
 	virtual void Render(ID3D12GraphicsCommandList* pd3dCommandList);
 
-	virtual void UpdatePicking() override;;
+	virtual void UpdatePicking() override;
 	virtual void RightClickProcess();
 
 	int AddItem(const shared_ptr<CGameObject>& pGameObject);
@@ -173,34 +177,16 @@ public:
 	void UseFuse();;
 	void Teleport();
 
-	void SetSlotItem(int nIndex, int nReferenceObjectNum)
-	{
-		m_apSlotItems[nIndex]->SetObtain(true);
-		m_apSlotItems[nIndex]->SetReferenceNumber(nReferenceObjectNum);
-	}
-
-	void SetSlotItemEmpty(int nIndex) 
-	{
-		m_apSlotItems[nIndex]->SetObtain(false); 
-		m_apSlotItems[nIndex]->SetReferenceNumber(-1);
-	}
-
-	void SetFuseItem(int nIndex, int nReferenceObjectNum)
-	{
-		m_apFuseItems[nIndex]->SetObtain(true);
-		m_apFuseItems[nIndex]->SetReferenceNumber(nReferenceObjectNum);
-	}
-
-	void SetFuseItemEmpty(int nIndex)
-	{
-		m_apFuseItems[nIndex]->SetObtain(false);
-		m_apFuseItems[nIndex]->SetReferenceNumber(-1);
-	}
+	void SetSlotItem(int nIndex, int nReferenceObjectNum);
+	void SetSlotItemEmpty(int nIndex);
+	void SetFuseItem(int nIndex, int nReferenceObjectNum);
+	void SetFuseItemEmpty(int nIndex);
 
 	int GetReferenceSlotItemNum(int nIndex) { return m_apSlotItems[nIndex]->GetReferenceNumber(); }
 	int GetReferenceFuseItemNum(int nIndex) { return m_apFuseItems[nIndex]->GetReferenceNumber(); }
 
 	void SelectItem(RightItem item) { m_selectItem = item; }
+	RightItem GetSelectItem() const { return m_selectItem; }
 	void AddEnvironmentMineItems(shared_ptr<CMineObject> object);
 	void UseMine(int item_id);
 
@@ -295,6 +281,9 @@ public:
 	virtual void LoadModelAndAnimation(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dCommandList, ID3D12RootSignature* pd3dGraphicsRootSignature, const shared_ptr<CLoadedModelInfo>& pLoadModelInfo) override;
 
 	virtual void Update(float fElapsedTime) override;
+	void UpdateAnimation();
+	virtual void UpdateEnding(float fEndingElapsedTime, int nGameState) override;
+
 	virtual void Animate(float fElapsedTime);
 	virtual void Render(ID3D12GraphicsCommandList* pd3dCommandList);
 

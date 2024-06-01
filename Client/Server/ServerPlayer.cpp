@@ -296,7 +296,8 @@ void CServerPlayer::SetPickedObject(const shared_ptr<CServerCollisionManager> pC
 	pickPosition.y = 0.0f;
 	pickPosition.z = 1.0f;
 
-	float fNearestHitDistance = FLT_MAX;
+	// 이값 조정하면 피킹 최소거리 설정 가능
+	float fNearestHitDistance = 3.0f;
 	for (int i = m_nWidth - 1; i <= m_nWidth + 1; ++i)
 	{
 		for (int j = m_nDepth - 1; j <= m_nDepth + 1; ++j)

@@ -3,6 +3,13 @@
 #include "Object.h"
 #include "Camera.h"
 
+enum GAME_STATE
+{
+	IN_GAME = 0,
+	BLUE_SUIT_WIN,
+	ZOMBIE_WIN
+};
+
 class CShader
 {
 public:
@@ -237,6 +244,12 @@ public:
 class CBlueSuitPlayer;
 class CZombiePlayer;
 
+enum PLAYER_RESULT
+{
+	WIN,
+	OVER
+};
+
 // [0504] UI SHADER
 class CBlueSuitUserInterfaceShader : public CShader
 {
@@ -253,9 +266,13 @@ public:
 	virtual void AnimateObjects(float fElapsedTime) override;
 	virtual void Render(ID3D12GraphicsCommandList* pd3dCommandList, const shared_ptr<CCamera>& pCamera, const shared_ptr<CPlayer>& pPlayer, int nPipelineState = 0) override;
 
-	void AnimateObjectBlueSuit();
+	void AnimateObjectBlueSuit(float fElapsedTime);
+
+	void AnimateInGame();
 
 	virtual void AddGameObject(const shared_ptr<CGameObject>& pGameObject) override;
+
+	void SetGameState(int nGameState) { m_nGameState = nGameState; };
 private:
 	shared_ptr<CBlueSuitPlayer> m_pBlueSuitPlayer;
 
@@ -269,9 +286,18 @@ private:
 	array<shared_ptr<CMaterial>, 2> m_vpmatMine;
 	array<shared_ptr<CMaterial>, 4> m_vpmatFuse;
 
+	shared_ptr<CGameObject> m_pSelectRect;
+	shared_ptr<CMaterial> m_pmatSelect;
+
 	array<shared_ptr<CGameObject>, 2> m_vpStamina;
 	array<shared_ptr<CMaterial>, 2> m_vpmatStamina;
 	shared_ptr<CUserInterfaceRectMesh> m_pmeshStaminaRect;
+
+	array<shared_ptr<CMaterial>, 2> m_vpmatGameEnding;
+	shared_ptr<CGameObject> m_pGameEnding;
+
+	float m_fEndingElapsedTime = 0.0f;
+	int m_nGameState = GAME_STATE::IN_GAME;
 };
 
 /// <CShader - CBlueSuitUserInterfaceShader>
@@ -290,10 +316,13 @@ public:
 	void CreateShader(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dCommandList, ID3D12RootSignature* pd3dGraphicsRootSignature, UINT nRenderTargets, DXGI_FORMAT* pdxgiRtvFormats, DXGI_FORMAT dxgiDsvFormat);
 	virtual void BuildObjects(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dCommandList, ID3D12RootSignature* pd3dGraphicsRootSignature);
 	virtual void AnimateObjects(float fElapsedTime) override;
+	virtual void Render(ID3D12GraphicsCommandList* pd3dCommandList, const shared_ptr<CCamera>& pCamera, const shared_ptr<CPlayer>& pPlayer, int nPipelineState = 0) override;
 
-	void AnimateObjectZombie();
+	void AnimateObjectZombie(float fElapsedTime);
 
 	virtual void AddGameObject(const shared_ptr<CGameObject>& pGameObject) override;
+
+	void SetGameState(int nGameState) { m_nGameState = nGameState; };
 private:
 	shared_ptr<CZombiePlayer> m_pZombiePlayer;
 
@@ -304,6 +333,12 @@ private:
 	shared_ptr<CGameObject> m_pTracking;
 	shared_ptr<CGameObject> m_pInterruption;
 	shared_ptr<CGameObject> m_pRunning;
+
+	array<shared_ptr<CMaterial>, 2> m_vpmatGameEnding;
+	shared_ptr<CGameObject> m_pGameEnding;
+
+	float m_fEndingElapsedTime = 0.0f;
+	int m_nGameState = GAME_STATE::IN_GAME;
 };
 
 /// <CShader - UserInterfaceShader>

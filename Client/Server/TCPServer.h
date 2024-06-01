@@ -122,6 +122,7 @@ public:
 	bool Init(HWND hWnd);
 	void SimulationLoop();
 	int CheckEndGame();
+	void UpdateEndGame(int nEndGame);
 
 	// 소켓 정보 관리 함수
 	INT8 AddSocketInfo(SOCKET sockClient, struct sockaddr_in addrClient, int nAddrLen);
@@ -148,8 +149,12 @@ public:
 	void SetAllClientsSendStatus(int cur_nPlayer, bool val);
 
 	// Interface
+	void SetNumOfZombie(int nZombie) { m_nZombie = nZombie; }
+	void SetNumOfBlueSuit(int nBlueSuit) { m_nBlueSuit = nBlueSuit; }
 	void SetClientListBox(HWND hListBox) { m_hClientListBox = hListBox; }
 
+	int GetNumOfZombie() const { return m_nZombie; }
+	int GetNumOfBlueSuit() const { return m_nBlueSuit; }
 	shared_ptr<CServerPlayer> GetPlayer(int nIndex) { return m_apPlayers[nIndex]; }
 
 	static default_random_engine m_mt19937Gen;
@@ -162,6 +167,8 @@ private:
 	// 접속한 클라이언트들의 정보를 저장.
 	std::array<SOCKETINFO, MAX_CLIENT> m_vSocketInfoList;	// 소켓 인덱스는 순차적으로 배정받는다
 
+	int m_nZombie = 0;
+	int m_nBlueSuit = 0;
 	std::array<std::shared_ptr<CServerPlayer>, MAX_CLIENT> m_apPlayers; 
 	std::array<SC_UPDATE_INFO, MAX_CLIENT> m_aUpdateInfo;		
 	std::vector<shared_ptr<CServerGameObject>> m_vpGameObject;

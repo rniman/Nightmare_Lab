@@ -13,5 +13,7 @@ float4 PSUserInterface(VS_USER_INTERFACE_OUTPUT input) : SV_TARGET
     if(gnTexturesMask & MATERIAL_ALBEDO_MAP)
         cAlbedoColor = AlbedoTexture.Sample(gssWrap, input.uv);
     
+    cAlbedoColor.a = (1.0f - gMaterial.m_cAlbedo.a) + cAlbedoColor.a;
+    
     return float4(cAlbedoColor);
 }

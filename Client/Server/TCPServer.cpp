@@ -129,11 +129,13 @@ void TCPServer::OnProcessingAcceptMessage(HWND hWnd, UINT nMessageID, WPARAM wPa
 	{
 		m_apPlayers[nSocketIndex] = make_shared<CServerZombiePlayer>();
 		m_apPlayers[nSocketIndex]->SetPlayerId(nSocketIndex);
+		++m_nZombie;
 	}
 	else
 	{
 		m_apPlayers[nSocketIndex] = make_shared<CServerBlueSuitPlayer>();
 		m_apPlayers[nSocketIndex]->SetPlayerId(nSocketIndex);
+		++m_nBlueSuit;
 	}
 
 	InitPlayerPosition(m_apPlayers[nSocketIndex], nSocketIndex);
@@ -322,6 +324,7 @@ void TCPServer::OnProcessingWriteMessage(HWND hWnd, UINT nMessageID, WPARAM wPar
 		{
 		}
 		cout << "BLUE SUIT WIN" << endl;
+		m_vSocketInfoList[nSocketIndex].m_socketState = SOCKET_STATE::SEND_UPDATE_DATA;
 		break;
 	case SOCKET_STATE::SEND_ZOMBIE_WIN:
 		nHead = 4;
@@ -330,6 +333,7 @@ void TCPServer::OnProcessingWriteMessage(HWND hWnd, UINT nMessageID, WPARAM wPar
 		{
 		}
 		cout << "ZOMBIE WIN" << endl;
+		m_vSocketInfoList[nSocketIndex].m_socketState = SOCKET_STATE::SEND_UPDATE_DATA;
 		break;
 	default:
 		break;
@@ -342,6 +346,14 @@ void TCPServer::OnProcessingCloseMessage(HWND hWnd, UINT nMessageID, WPARAM wPar
 	INT8 nIndex = RemoveSocketInfo((SOCKET)wParam);
 	m_apPlayers[nIndex].reset();
 	m_anPlayerStartPosNum[nIndex] = -1;
+	if (nIndex == ZOMBIEPLAYER)
+	{
+		--m_nZombie;
+	}
+	else
+	{
+		--m_nBlueSuit;
+	}
 	//m_apPlayers[nIndex]->SetPlayerId(-1);
 }
 
@@ -432,6 +444,14 @@ bool TCPServer::Init(HWND hWnd)
 void TCPServer::SimulationLoop()
 {
 	m_timer.Tick();
+	
+	int nEndGame = CheckEndGame();
+	if (nEndGame != GAME_STATE::IN_GAME)
+	{
+		UpdateEndGame(nEndGame);
+		return;
+	}
+
 	// 실제 시뮬레이션이 일어날곳
 	float fElapsedTime = m_timer.GetTimeElapsed();
 	for (auto& pPlayer : m_apPlayers)
@@ -441,10 +461,6 @@ void TCPServer::SimulationLoop()
 			continue;
 		}
 		pPlayer->SetPickedObject(m_pCollisionManager);	
-		//if (pPlayer->GetPickedObject().lock())
-		//{
-		//	printf("%s\n", pPlayer->GetPickedObject().lock()->GetFrameName());
-		//}
 
 		pPlayer->RightClickProcess(m_pCollisionManager);
 		pPlayer->UseItem(m_pCollisionManager);
@@ -458,34 +474,31 @@ void TCPServer::SimulationLoop()
 
 	m_pCollisionManager->Update(fElapsedTime);
 
-	int nEndGame = CheckEndGame();
-	if (nEndGame != GAME_STATE::IN_GAME)
-	{
-		for (auto& sockInfo : m_vSocketInfoList)
-		{
-			if (sockInfo.m_bUsed)
-			{
-				if (nEndGame == GAME_STATE::BLUE_SUIT_WIN) // BLUE SUIT WIN
-				{
-					sockInfo.m_socketState = SOCKET_STATE::SEND_BLUE_SUIT_WIN;
-				}
-				else // ZOMBIE WIN
-				{
-					sockInfo.m_socketState = SOCKET_STATE::SEND_ZOMBIE_WIN;
-				}
-			}
-		}
-	}
-	else
-	{
-		UpdateInformation();
-		CreateSendObject();
-	}
+	UpdateInformation();
+	CreateSendObject();
 }
 
 int TCPServer::CheckEndGame()
 {
 	int nEndGame = GAME_STATE::IN_GAME;
+
+	if (m_nZombie == 1 && m_nBlueSuit > 0)
+	{
+		int nAliveBlueSuit = 0;
+		for (int i = 1; i <= m_nBlueSuit; ++i)
+		{
+			if (m_apPlayers[i]->IsAlive())
+			{
+				++nAliveBlueSuit;
+			}
+		}
+
+		if (nAliveBlueSuit == 0)
+		{
+			nEndGame = GAME_STATE::ZOMBIE_WIN;
+			return nEndGame;
+		}
+	}
 
 	for (const auto& pPlayer : m_apPlayers)
 	{
@@ -500,15 +513,35 @@ int TCPServer::CheckEndGame()
 			{
 				nEndGame = GAME_STATE::BLUE_SUIT_WIN;
 			}
-			else
-			{
-				nEndGame = GAME_STATE::ZOMBIE_WIN;
-			}
+			//else
+			//{
+			//	nEndGame = GAME_STATE::ZOMBIE_WIN;
+			//}
 			break;
 		}
 	}
 
 	return nEndGame;
+}
+
+void TCPServer::UpdateEndGame(int nEndGame)
+{
+	for (auto& sockInfo : m_vSocketInfoList)
+	{
+		if (!sockInfo.m_bUsed)
+		{
+			continue;
+		}
+
+		if (nEndGame == GAME_STATE::BLUE_SUIT_WIN) // BLUE SUIT WIN
+		{
+			sockInfo.m_socketState = SOCKET_STATE::SEND_BLUE_SUIT_WIN;
+		}
+		else // ZOMBIE WIN
+		{
+			sockInfo.m_socketState = SOCKET_STATE::SEND_ZOMBIE_WIN;
+		}
+	}
 }
 
 // 소켓 정보 추가
@@ -1060,7 +1093,7 @@ void TCPServer::CreateSendObject()
 void TCPServer::InitPlayerPosition(shared_ptr<CServerPlayer>& pServerPlayer, int nIndex)
 {
 	// 후보지를 두고 int 값에 따라 그곳에 가도록 해야할듯
-	uniform_int_distribution<int> disIntPosition(0, DEBUGFLOOR - 1);
+	uniform_int_distribution<int> disIntPosition(0, DEBUGFLOOR);
 
 	int nStartPosNum = disIntPosition(m_mt19937Gen);
 	bool bEmpty = false;

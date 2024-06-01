@@ -110,6 +110,16 @@ LRESULT CALLBACK OnProcessingSocketMessage(HWND hWnd, UINT uMsg, WPARAM wParam, 
 		err_display(WSAGETSELECTERROR(lParam));
 		int nIndex = g_tcpServer.RemoveSocketInfo(wParam);
 		g_tcpServer.GetPlayer(nIndex).reset();
+		if (nIndex == ZOMBIEPLAYER)
+		{
+			int nZombie = g_tcpServer.GetNumOfZombie();
+			g_tcpServer.SetNumOfZombie(nZombie-1);
+		}
+		else
+		{
+			int nBlueSuit = g_tcpServer.GetNumOfBlueSuit();
+			g_tcpServer.SetNumOfBlueSuit(nBlueSuit - 1);
+		}
 		return -1;
 	}
 

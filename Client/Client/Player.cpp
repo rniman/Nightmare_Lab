@@ -582,28 +582,12 @@ void CBlueSuitPlayer::Update(float fElapsedTime)
 		m_fFullStaminaTime += fElapsedTime;
 	}
 
-
-	//if (m_bShiftRun)
-	//{
-	//	m_fStamina -= fElapsedTime;
-	//	if (m_fStamina < 0.0f)
-	//	{
-	//		m_bAbleRun = false;
-	//		m_bShiftRun = false;
-	//	}
-	//}
-	//else if(m_fStamina < 5.0f)
-	//{
-	//	m_fStamina += fElapsedTime;
-	//	if (!m_bAbleRun && m_fStamina > 3.0f)
-	//	{
-	//		m_bAbleRun = true;
-	//	}
-	//}
-
 	// 카메라 위치 업데이트
 	CPlayer::Update(fElapsedTime);
+}
 
+void CBlueSuitPlayer::UpdateAnimation()
+{
 	if (m_pSkinnedAnimationController && m_pSkinnedAnimationController->IsAnimation())
 	{
 		float fLength = sqrtf(m_xmf3Velocity.x * m_xmf3Velocity.x + m_xmf3Velocity.z * m_xmf3Velocity.z);
@@ -612,16 +596,10 @@ void CBlueSuitPlayer::Update(float fElapsedTime)
 		{
 			if (!m_pSkinnedAnimationController->m_bTransition)
 			{
-				if(m_pSkinnedAnimationController->m_nNowState != PlayerState::DEATH)
+				if (m_pSkinnedAnimationController->m_nNowState != PlayerState::DEATH)
 				{
 					m_pSkinnedAnimationController->m_bTransition = true;
 					m_pSkinnedAnimationController->m_nNextState = PlayerState::DEATH;
-
-					//float fStartPosition =
-					//	m_pSkinnedAnimationController->m_vAnimationTransitions[m_pSkinnedAnimationController->m_nNowState + 4].m_fTransitionStart
-					//	* m_pSkinnedAnimationController->m_pAnimationSets->m_vpAnimationSets[m_pSkinnedAnimationController->m_vAnimationTracks[5].m_nAnimationSet]->m_fLength;
-
-					//m_pSkinnedAnimationController->SetTrackPosition(5, fStartPosition);
 				}
 			}
 		}
@@ -696,12 +674,59 @@ void CBlueSuitPlayer::Update(float fElapsedTime)
 	}
 }
 
+void CBlueSuitPlayer::UpdateEnding(float fEndingElapsedTime, int nGameState)
+{
+	switch (nGameState)
+	{
+	case GAME_STATE::BLUE_SUIT_WIN:
+		if (!m_bAlive)
+		{
+			// 최대 시간이 지나면 더 이상 증가하지 않도록 제한
+			float fMaxFogTime = 3.0f; // 안개가 최대치에 도달하는 시간 (초 단위)
+			if (fEndingElapsedTime > fMaxFogTime)
+			{
+				fEndingElapsedTime = fMaxFogTime;
+			}
+
+			// 시간에 따른 안개 밀도 계산 (0.0에서 1.0까지 증가)
+			float fFogDensity = 1 - fEndingElapsedTime / fMaxFogTime;
+
+			XMFLOAT4 xmf4EndingFogInfo = XMFLOAT4(1.0f, 0.0f, 0.0f, fFogDensity);
+			XMFLOAT4 xmf4EndingFogColor = XMFLOAT4(0.1f + fEndingElapsedTime * 0.15f, 0.1f, 0.1f, 0.1f);
+			m_pCamera->SetFogColor(xmf4EndingFogColor);
+			m_pCamera->SetFogInfo(xmf4EndingFogInfo);
+		}
+		break;
+	case GAME_STATE::ZOMBIE_WIN:
+	{
+		// 최대 시간이 지나면 더 이상 증가하지 않도록 제한
+		float fMaxFogTime = 3.0f; // 안개가 최대치에 도달하는 시간 (초 단위)
+		if (fEndingElapsedTime > fMaxFogTime)
+		{
+			fEndingElapsedTime = fMaxFogTime;
+		}
+
+		// 시간에 따른 안개 밀도 계산 (0.0에서 1.0까지 증가)
+		float fFogDensity = 1 - fEndingElapsedTime / fMaxFogTime;
+
+		XMFLOAT4 xmf4EndingFogInfo = XMFLOAT4(1.0f, 0.0f, 0.0f, fFogDensity);
+		XMFLOAT4 xmf4EndingFogColor = XMFLOAT4(0.1f + fEndingElapsedTime * 0.15f, 0.1f, 0.1f, 0.1f);
+		m_pCamera->SetFogColor(xmf4EndingFogColor);
+		m_pCamera->SetFogInfo(xmf4EndingFogInfo);
+	}
+		break;
+	default:
+		break;
+	}
+}
+
 void CBlueSuitPlayer::Animate(float fElapsedTime)
 {
 	if (!m_pSkinnedAnimationController->IsAnimation())	// [0507] 죽은 플레이어는 Animate없어야함
 	{
 		return;
 	}
+	UpdateAnimation();
 
 	auto controller = dynamic_pointer_cast<CBlueSuitAnimationController>(m_pSkinnedAnimationController);
 	if (controller) {
@@ -936,6 +961,30 @@ void CBlueSuitPlayer::Teleport()
 	SetPosition(randomPos);
 }
 
+void CBlueSuitPlayer::SetSlotItem(int nIndex, int nReferenceObjectNum)
+{
+	m_apSlotItems[nIndex]->SetObtain(true);
+	m_apSlotItems[nIndex]->SetReferenceNumber(nReferenceObjectNum);
+}
+
+void CBlueSuitPlayer::SetSlotItemEmpty(int nIndex)
+{
+	m_apSlotItems[nIndex]->SetObtain(false);
+	m_apSlotItems[nIndex]->SetReferenceNumber(-1);
+}
+
+void CBlueSuitPlayer::SetFuseItem(int nIndex, int nReferenceObjectNum)
+{
+	m_apFuseItems[nIndex]->SetObtain(true);
+	m_apFuseItems[nIndex]->SetReferenceNumber(nReferenceObjectNum);
+}
+
+ void CBlueSuitPlayer::SetFuseItemEmpty(int nIndex)
+{
+	m_apFuseItems[nIndex]->SetObtain(false);
+	m_apFuseItems[nIndex]->SetReferenceNumber(-1);
+}
+
 XMFLOAT4X4* CBlueSuitPlayer::GetLeftHandItemFlashLightModelTransform() const
 {
 	auto controller = m_pSkinnedAnimationController.get();
@@ -1133,6 +1182,11 @@ void CZombiePlayer::Update(float fElapsedTime)
 		CPlayer::Update(fElapsedTime);
 	}
 
+	UpdateAnimation();
+}
+
+void CZombiePlayer::UpdateAnimation()
+{
 	if (m_pSkinnedAnimationController)
 	{
 		float fLength = sqrtf(m_xmf3Velocity.x * m_xmf3Velocity.x + m_xmf3Velocity.z * m_xmf3Velocity.z);
@@ -1157,6 +1211,37 @@ void CZombiePlayer::Update(float fElapsedTime)
 			}
 		}
 	}
+}
+
+void CZombiePlayer::UpdateEnding(float fEndingElapsedTime, int nGameState)
+{
+	switch (nGameState)
+	{
+	case GAME_STATE::BLUE_SUIT_WIN:
+		break;
+	case GAME_STATE::ZOMBIE_WIN:
+	{
+		// 최대 시간이 지나면 더 이상 증가하지 않도록 제한
+		float fMaxFogTime = 3.0f; // 안개가 최대치에 도달하는 시간 (초 단위)
+		if (fEndingElapsedTime > fMaxFogTime)
+		{
+			fEndingElapsedTime = fMaxFogTime;
+		}
+
+		// 시간에 따른 안개 밀도 계산 (0.0에서 1.0까지 증가)
+		float fFogDensity = 1 - fEndingElapsedTime / fMaxFogTime;
+
+		XMFLOAT4 xmf4EndingFogInfo = XMFLOAT4(1.0f, 0.0f, 0.0f, fFogDensity);
+		XMFLOAT4 xmf4EndingFogColor = XMFLOAT4(0.5f, 0.5f, 0.5f, 0.5f);
+		m_pCamera->SetFogColor(xmf4EndingFogColor);
+		m_pCamera->SetFogInfo(xmf4EndingFogInfo);
+	}
+		break;
+	default:
+		break;
+	}
+
+
 }
 
 void CZombiePlayer::SetEectricShock()

@@ -78,8 +78,8 @@ enum class ObjectType { DEFAULT= 0, HEXAHERON};
 
 enum RightItem {
 	NONE = 0,
-	RAIDER,
 	TELEPORT,
+	RAIDER,
 	LANDMINE,
 	FUSE,
 };

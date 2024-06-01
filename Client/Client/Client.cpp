@@ -224,6 +224,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 		break;
 	case WM_SOCKET: // 소켓 관련 윈도우 메시지
 	case WM_CREATE_TCP:
+	case WM_END_GAME:
 	case WM_COMMAND:
 	case WM_SIZE:
 	case WM_LBUTTONDOWN:
