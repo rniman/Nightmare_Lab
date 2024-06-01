@@ -235,7 +235,7 @@ public:
 	void SetFuseItem(shared_ptr<CFuseObject> object) { m_pFuse = object; }
 
 	XMFLOAT4X4* RaderUpdate(float fElapsedTime);
-	bool PlayRaiderUI() { return m_fOpenRaderTime == 0.0f && m_bRightClick && m_selectItem == RADER; }
+	bool PlayRaiderUI() { return m_fOpenRaderTime == 0.0f && m_bRightClick && m_selectItem == RADAR; }
 	float GetEscapeLength();
 private:
 	// 레이더 아이템 행렬

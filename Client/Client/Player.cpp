@@ -777,7 +777,7 @@ void CBlueSuitPlayer::Animate(float fElapsedTime)
 	{
 	case RightItem::NONE:
 		break;
-	case RightItem::RADER:
+	case RightItem::RADAR:
 		m_pRader->SetObtain(false);
 		m_pRader->UpdateTransform(RaderUpdate(fElapsedTime));
 		break;
@@ -882,7 +882,7 @@ void CBlueSuitPlayer::RightClickProcess()
 	{
 	case RightItem::NONE:
 		break;
-	case RightItem::RADER:
+	case RightItem::RADAR:
 		m_bRightClick = !m_bRightClick;
 		m_fOpenRaderTime = 0.3f;
 		break;

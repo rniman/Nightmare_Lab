@@ -402,7 +402,7 @@ void CServerBlueSuitPlayer::UseItem(shared_ptr<CServerCollisionManager>& pCollis
 	{
 		if (m_apSlotItems[Radar]->IsObtained())
 		{
-			m_selectItem = RightItem::RADER;
+			m_selectItem = RightItem::RADAR;
 		}
 	}
 	if (m_wKeyBuffer & KEY_3)
@@ -640,7 +640,7 @@ void CServerBlueSuitPlayer::RightClickProcess(shared_ptr<CServerCollisionManager
 	{
 	case RightItem::NONE:
 		break;
-	case RightItem::RADER:
+	case RightItem::RADAR:
 		break;
 	case RightItem::TELEPORT:
 		if (m_apSlotItems[Teleport]->IsObtained())
