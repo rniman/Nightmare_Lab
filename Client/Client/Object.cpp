@@ -874,6 +874,9 @@ CGameObject::CGameObject(char* pstrFrameName, XMFLOAT4X4& xmf4x4World, CMesh* pM
 	{
 		m_voobbOrigin.push_back(oobb);
 	}
+	if (m_voobbOrigin.size() == 0) {
+		int x = 0;
+	}
 }
 
 CGameObject::CGameObject(char* pstrFrameName, XMFLOAT4X4& xmf4x4World, const shared_ptr<CMesh>& pMesh)
@@ -944,6 +947,7 @@ void CGameObject::SetChild(const shared_ptr<CGameObject>& pChild, bool bReferenc
 		m_pChild = pChild;
 	}
 }
+
 
 void CGameObject::SetMesh(const shared_ptr<CMesh>& pMesh)
 {
@@ -1057,6 +1061,36 @@ void CGameObject::Collide(float fElapsedTime, const shared_ptr<CGameObject>& pGa
 
 }
 
+void CGameObject::Render(ID3D12GraphicsCommandList* pd3dCommandList,char* pstrFramname)
+{
+	if (m_pSkinnedAnimationController) m_pSkinnedAnimationController->UpdateShaderVariables(pd3dCommandList);
+
+	if (strcmp(m_pstrFrameName, pstrFramname) != 0) {
+
+
+		if (m_pMesh)
+		{
+			if (m_nMaterials > 0)
+			{
+				for (int subMeshIndex = 0; subMeshIndex < m_nMaterials; subMeshIndex++)
+				{
+					if (m_vpMaterials[subMeshIndex])
+					{
+						m_vpMaterials[subMeshIndex]->UpdateShaderVariable(pd3dCommandList, m_cbMappedObject);
+					}
+
+					UpdateShaderVariable(pd3dCommandList, &m_xmf4x4World);
+
+					m_pMesh->Render(pd3dCommandList, subMeshIndex);
+				}
+			}
+		}
+	}
+
+	if (m_pSibling) m_pSibling->Render(pd3dCommandList, pstrFramname);
+	if (m_pChild) m_pChild->Render(pd3dCommandList, pstrFramname);
+}
+
 void CGameObject::Render(ID3D12GraphicsCommandList* pd3dCommandList)
 {
 	if (m_pSkinnedAnimationController) m_pSkinnedAnimationController->UpdateShaderVariables(pd3dCommandList);
@@ -1141,6 +1175,7 @@ void CGameObject::RenderTransparent(ID3D12GraphicsCommandList* pd3dCommandList)
 	if (m_pSibling) m_pSibling->RenderTransparent(pd3dCommandList);
 	if (m_pChild) m_pChild->RenderTransparent(pd3dCommandList);
 }
+
 
 void CGameObject::CreateShaderVariables(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dCommandList)
 {
@@ -1346,26 +1381,50 @@ void CGameObject::SetLookAt(XMFLOAT3& xmf3target)
 	m_xmf4x4World = Matrix4x4::Multiply(m_xmf4x4ToParent, m_xmf4x4World);
 }
 
-void CGameObject::ObjectCopy(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dCommandList, shared_ptr<CGameObject> dstObject, shared_ptr<CGameObject> srcobject)
+void CGameObject::ObjectCopy(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dCommandList,shared_ptr<CGameObject> srcobject)
 {
 	SetMesh(srcobject->m_pMesh);
 
-	dstObject->m_nMaterials = srcobject->m_nMaterials;
+	m_nMaterials = srcobject->m_nMaterials;
 	for (int i = 0; i < srcobject->m_nMaterials;++i) {
-		dstObject->m_vpMaterials.push_back(srcobject->m_vpMaterials[i]);
+		m_vpMaterials.push_back(srcobject->m_vpMaterials[i]);
 	}
 	memcpy(&m_xmf4x4ToParent, &srcobject->m_xmf4x4ToParent, sizeof(XMFLOAT4X4));
 	strcpy(m_pstrFrameName, srcobject->m_pstrFrameName);
 
 	if (srcobject->m_pChild) {
 		// child 복사
-		dstObject->m_pChild = make_shared<CGameObject>(pd3dDevice, pd3dCommandList);
-		dstObject->m_pChild->ObjectCopy(pd3dDevice, pd3dCommandList, dstObject->m_pChild, srcobject->m_pChild);
+		m_pChild = make_shared<CGameObject>(pd3dDevice, pd3dCommandList);
+		m_pChild->ObjectCopy(pd3dDevice, pd3dCommandList, srcobject->m_pChild);
 	}
 	if (srcobject->m_pSibling) {
 		// sibling 복사
-		dstObject->m_pSibling = make_shared<CGameObject>(pd3dDevice, pd3dCommandList);
-		dstObject->m_pSibling->ObjectCopy(pd3dDevice, pd3dCommandList, dstObject->m_pSibling, srcobject->m_pSibling);
+		m_pSibling = make_shared<CGameObject>(pd3dDevice, pd3dCommandList);
+		m_pSibling->ObjectCopy(pd3dDevice, pd3dCommandList, srcobject->m_pSibling);
+	}
+}
+
+
+void CGameObject::InstanceObjectCopy(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dCommandList, shared_ptr<CGameObject> srcobject)
+{
+	SetMesh(srcobject->m_pMesh);
+
+	m_nMaterials = srcobject->m_nMaterials;
+	for (int i = 0; i < srcobject->m_nMaterials;++i) {
+		m_vpMaterials.push_back(srcobject->m_vpMaterials[i]);
+	}
+	memcpy(&m_xmf4x4ToParent, &srcobject->m_xmf4x4ToParent, sizeof(XMFLOAT4X4));
+	strcpy(m_pstrFrameName, srcobject->m_pstrFrameName);
+
+	if (srcobject->m_pChild) {
+		// child 복사
+		m_pChild = make_shared<CInstanceObject>(pd3dDevice, pd3dCommandList);
+		m_pChild->ObjectCopy(pd3dDevice, pd3dCommandList, srcobject->m_pChild);
+	}
+	if (srcobject->m_pSibling) {
+		// sibling 복사
+		m_pSibling = make_shared<CInstanceObject>(pd3dDevice, pd3dCommandList);
+		m_pSibling->ObjectCopy(pd3dDevice, pd3dCommandList, srcobject->m_pSibling);
 	}
 }
 

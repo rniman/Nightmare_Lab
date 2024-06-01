@@ -323,7 +323,7 @@ void CStandardMesh::ReleaseUploadBuffers()
 	if (m_pd3dBiTangentUploadBuffer.Get()) m_pd3dBiTangentUploadBuffer.Reset();
 	
 }
-void CStandardMesh::SaveStandardMesh(shared_ptr<CStandardMesh> pMesh )
+void CStandardMesh::SaveStandardMesh(shared_ptr<CStandardMesh> pMesh)
 {
 	for (auto& mesh : CStandardMesh::g_vAllstandardMesh) {
 		if (!strcmp(mesh->m_pstrMeshName, pMesh->m_pstrMeshName/*@제외 비교*/)) {
@@ -369,7 +369,7 @@ bool CStandardMesh::LoadMeshFromFile(ID3D12Device* pd3dDevice, ID3D12GraphicsCom
 			XMFLOAT3 xmf3AABBCenter, xmf3AABBExtents;
 			nReads = (UINT)::fread(&xmf3AABBCenter, sizeof(XMFLOAT3), 1, pInFile);
 			nReads = (UINT)::fread(&xmf3AABBExtents, sizeof(XMFLOAT3), 1, pInFile);
-			//m_vOOBBs.push_back(BoundingOrientedBox(xmf3AABBCenter, xmf3AABBExtents, XMFLOAT4(0.0f, 0.0f, 0.0f, 1.0f)));
+			m_vOOBBs.push_back(BoundingOrientedBox(xmf3AABBCenter, xmf3AABBExtents, XMFLOAT4(0.0f, 0.0f, 0.0f, 1.0f)));
 		}
 		else if (!strcmp(pstrToken, "<BoxColliders>:"))
 		{
@@ -583,7 +583,7 @@ bool CInstanceStandardMesh::LoadMeshFromFile(ID3D12Device* pd3dDevice, ID3D12Gra
 			XMFLOAT3 xmf3AABBCenter, xmf3AABBExtents;
 			nReads = (UINT)::fread(&xmf3AABBCenter, sizeof(XMFLOAT3), 1, pInFile);
 			nReads = (UINT)::fread(&xmf3AABBExtents, sizeof(XMFLOAT3), 1, pInFile);
-			//m_vOOBBs.push_back(BoundingOrientedBox(xmf3AABBCenter, xmf3AABBExtents, XMFLOAT4(0.0f, 0.0f, 0.0f, 1.0f)));
+			m_vOOBBs.push_back(BoundingOrientedBox(xmf3AABBCenter, xmf3AABBExtents, XMFLOAT4(0.0f, 0.0f, 0.0f, 1.0f)));
 		}
 		else if (!strcmp(pstrToken, "<BoxColliders>:"))
 		{
@@ -770,7 +770,8 @@ void CInstanceStandardMesh::LoadInstanceData(ID3D12Device* pd3dDevice, ID3D12Gra
 		m_pxmf4x4InstanceTransformMatrix = new XMFLOAT4X4[m_nCntInstance];
 		nReads = (UINT)::fread(m_pxmf4x4InstanceTransformMatrix, sizeof(XMFLOAT4X4), m_nCntInstance, pInFile);
 
-		m_pd3dInstanceTransformMatrixBuffer = ::CreateBufferResource(pd3dDevice, pd3dCommandList, m_pxmf4x4InstanceTransformMatrix, sizeof(XMFLOAT4X4) * m_nCntInstance, D3D12_HEAP_TYPE_UPLOAD, D3D12_RESOURCE_STATE_VERTEX_AND_CONSTANT_BUFFER, NULL);
+		m_pd3dInstanceTransformMatrixBuffer = ::CreateBufferResource(pd3dDevice, pd3dCommandList, m_pxmf4x4InstanceTransformMatrix, 
+			sizeof(XMFLOAT4X4) * m_nCntInstance, D3D12_HEAP_TYPE_UPLOAD, D3D12_RESOURCE_STATE_VERTEX_AND_CONSTANT_BUFFER, NULL);
 		
 		m_d3dInstanceTransformMatrixBufferView.BufferLocation = m_pd3dInstanceTransformMatrixBuffer->GetGPUVirtualAddress();
 		m_d3dInstanceTransformMatrixBufferView.StrideInBytes = sizeof(XMFLOAT4X4);
@@ -804,7 +805,7 @@ void CInstanceStandardMesh::UpdateShaderVariables(ID3D12GraphicsCommandList* pd3
 	{	 // 0312 CJI - 정적인객체들까지 계속 갱신 해줄 필요가 있을까 싶음.(최적화) -> 완료
 		if (object->IsStatic())
 		{
-			continue;
+			return; // [0528 CJI] 첫 오브젝트가 정적이면 이 후의 객체들도 정적인 객체들일것.
 		}
 		m_pxmf4x4InstanceTransformMatrix[i++] = Matrix4x4::Transpose(object->m_xmf4x4World);
 	}
@@ -897,11 +898,18 @@ void CInstanceStandardMesh::CreateInstanceObjectInfo(char* pstrMeshName, XMFLOAT
 	else
 	{
 		static int noneboxCount = 0;
+		if (!strcmp(pstrMeshName, "Laboratory_Floor_1")) {
+			int x = 0;
+		}
 		pInstanceObjectInfo = make_shared<CGameObject>(m_pstrMeshName, xmf4x4WorldMatrix, this);
 		pOriginInstance->m_vInstanceObjectInfo.push_back(pInstanceObjectInfo);
 		//pGameObject->m_vInstanceObjectInfo.push_back(CGameObject(m_pstrMeshName, xmf4x4WorldMatrix, this));
+		size_t nLastIndex = pOriginInstance->m_vInstanceObjectInfo.size() - 1;
+		g_collisionManager.AddNonCollisionObject(pOriginInstance->m_vInstanceObjectInfo[nLastIndex]); // 서버와는 상관없는 객체들
 	}
 	pInstanceObjectInfo->SetInstance(true);
+	//pInstanceObjectInfo->
+	//m_vOOBBs
 }
 
 /////////////////////////////////////////////////////////////////////////////////////////////////

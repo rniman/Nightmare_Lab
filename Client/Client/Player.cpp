@@ -35,6 +35,9 @@ CPlayer::CPlayer(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dComman
 	SetStatic(false);
 	m_pCamera = ChangeCamera(FIRST_PERSON_CAMERA, 0.0f);
 	CreateShaderVariables(pd3dDevice, pd3dCommandList);
+
+	m_ShadowRender = true;
+	m_SelfShadowRender = false;
 }
 
 CPlayer::~CPlayer()
@@ -194,7 +197,6 @@ void CPlayer::Rotate(float x, float y, float z)
 
 void CPlayer::Update(float fElapsedTime)
 {
-	DWORD nCurrentCameraMode = m_pCamera->GetMode();
 	m_pCamera->Update(m_xmf3Position, fElapsedTime);
 	if (m_pCameraUpdatedContext) OnCameraUpdateCallback(fElapsedTime);
 	m_pCamera->RegenerateViewMatrix();
@@ -428,7 +430,11 @@ void CPlayer::Render(ID3D12GraphicsCommandList* pd3dCommandList)
 	{
 		CGameObject::Render(pd3dCommandList);
 	}
+	else  {
+		CGameObject::Render(pd3dCommandList, (char*)"HeadF");
+	}
 }
+
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 // 
 
@@ -478,6 +484,7 @@ CBlueSuitPlayer::CBlueSuitPlayer(ID3D12Device* pd3dDevice, ID3D12GraphicsCommand
 
 	SetPlayerUpdatedContext(pContext);
 	SetCameraUpdatedContext(pContext);
+
 }
 
 CBlueSuitPlayer::~CBlueSuitPlayer()
@@ -514,8 +521,8 @@ shared_ptr<CCamera> CBlueSuitPlayer::ChangeCamera(DWORD nNewCameraMode, float fE
 	if (camera->GetMode() != THIRD_PERSON_CAMERA) {
 		int index = dynamic_pointer_cast<CBlueSuitAnimationController>(m_pSkinnedAnimationController)->GetBoneFrameIndex((char*)"Head_M");
 		XMFLOAT3 offset = m_pSkinnedAnimationController->GetBoneFramePositionVector(index);
-		offset.x = 0.0f; offset.z = 0.0f;
-		offset.y = offset.y - m_xmf3Position.y;	// [0507]수정
+		offset.x = 0.1f; offset.z = 0.2f;
+		offset.y = offset.y - m_xmf3Position.y+  0.1f;	// [0507]수정
 		camera->SetOffset(offset);
 		camera->SetPosition(Vector3::Add(m_xmf3Position, m_pCamera->GetOffset()));
 	}
@@ -770,7 +777,7 @@ void CBlueSuitPlayer::Animate(float fElapsedTime)
 	{
 	case RightItem::NONE:
 		break;
-	case RightItem::RAIDER:
+	case RightItem::RADER:
 		m_pRader->SetObtain(false);
 		m_pRader->UpdateTransform(RaderUpdate(fElapsedTime));
 		break;
@@ -823,6 +830,16 @@ void CBlueSuitPlayer::Animate(float fElapsedTime)
 
 void CBlueSuitPlayer::Render(ID3D12GraphicsCommandList* pd3dCommandList)
 {
+	if (m_nClientId == -1 || m_SelfShadowRender)
+	{
+		return;
+	}
+
+	if (m_ShadowRender) {
+		CGameObject::Render(pd3dCommandList);
+		return;
+	}
+
 	if (m_bHitEffectBlend)
 	{
 		m_pHitEffectMaterial->UpdateShaderVariable(pd3dCommandList, nullptr);
@@ -839,8 +856,14 @@ void CBlueSuitPlayer::Render(ID3D12GraphicsCommandList* pd3dCommandList)
 	{
 		pd3dCommandList->SetGraphicsRootDescriptorTable(12, m_d3dTimeCbvGPUDescriptorHandle);
 	}
-
 	CPlayer::Render(pd3dCommandList);
+
+}
+
+void CBlueSuitPlayer::MainPlayerRender(ID3D12GraphicsCommandList* pd3dCommandList)
+{
+	CGameObject::Render(pd3dCommandList);
+
 }
 
 void CBlueSuitPlayer::UpdatePicking() 
@@ -859,7 +882,7 @@ void CBlueSuitPlayer::RightClickProcess()
 	{
 	case RightItem::NONE:
 		break;
-	case RightItem::RAIDER:
+	case RightItem::RADER:
 		m_bRightClick = !m_bRightClick;
 		m_fOpenRaderTime = 0.3f;
 		break;
@@ -1130,6 +1153,7 @@ CZombiePlayer::CZombiePlayer(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList
 {
 	m_pCamera->SetFogColor(XMFLOAT4(0.5f, 0.5f, 0.5f, 0.5f));
 	m_pCamera->SetFogInfo(XMFLOAT4(1.0f, 10.0f, 0.05f, 1.0f));
+	m_pCamera->SetUpdateUseRotate(false);
 
 	m_xmf3Scale = XMFLOAT3(1.0f, 1.0f, 1.0f);
 	
@@ -1194,6 +1218,13 @@ void CZombiePlayer::Update(float fElapsedTime)
 		}
 	}
 	else {
+		int index = dynamic_pointer_cast<CZombieAnimationController>(m_pSkinnedAnimationController)->GetBoneFrameIndex((char*)"EyesSock");
+		XMFLOAT3 offset = m_pSkinnedAnimationController->GetBoneFramePositionVector(index);
+		offset.x = offset.x - m_xmf3Position.x;
+		offset.y = offset.y - m_xmf3Position.y;	// [0507]수정
+		offset.z = offset.z - m_xmf3Position.z;
+		m_pCamera->SetOffset(offset);
+
 		CPlayer::Update(fElapsedTime);
 	}
 
@@ -1378,4 +1409,21 @@ void CZombiePlayer::SetRunning(bool bRunning)
 		m_bAbleRunning = false;
 		m_fRunningTime = 0.0f;
 	}
+}
+
+
+shared_ptr<CCamera> CZombiePlayer::ChangeCamera(DWORD nNewCameraMode, float fElapsedTime)
+{
+	shared_ptr<CCamera> camera = CPlayer::ChangeCamera(nNewCameraMode, fElapsedTime);
+	if (camera->GetMode() != THIRD_PERSON_CAMERA) {		
+		int index = dynamic_pointer_cast<CZombieAnimationController>(m_pSkinnedAnimationController)->GetBoneFrameIndex((char*)"EyesSock");
+		XMFLOAT3 offset = m_pSkinnedAnimationController->GetBoneFramePositionVector(index);
+		//offset.x = 0.0f; offset.z = 0.0f;
+		offset.y = offset.y - m_xmf3Position.y;	// [0507]수정
+		//offset = XMFLOAT3(0.f, 0.f, 0.f);
+		camera->SetOffset(offset);
+		camera->SetPosition(Vector3::Add(m_xmf3Position, m_pCamera->GetOffset()));
+	}
+
+	return camera;
 }

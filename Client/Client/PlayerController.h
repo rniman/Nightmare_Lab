@@ -86,9 +86,12 @@ public:
 	void TransitionIDLEtoWALK(float fElapsedTime, int nTransitionIndex);
 	void TransitionWALKtoIDLE(float fElapsedTime, int nTransitionIndex);
 
+
+	int GetBoneFrameIndex(char* frameName);
 private:
 	int m_nStartSpine = -1;
 	int m_nStartNeck = -1;
 	int m_nEndNeck = -1;
 	int m_nEndSpine = -1;
+	int m_nEyesSock = -1;
 };

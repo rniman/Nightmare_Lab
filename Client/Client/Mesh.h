@@ -182,8 +182,12 @@ public:
 	void CreateInstanceObjectInfo(char* pstrMeshName, XMFLOAT4X4& xmf4x4WorldMatrix);
 
 	XMFLOAT4X4* GetInstanceTransformMatrix() { return m_pxmf4x4InstanceTransformMatrix; }
-	ComPtr<ID3D12Resource> GetInstanceTransformMatrixBuffer() { return m_pd3dInstanceTransformMatrixBuffer; }
+	void SetInstanceTransformMatrix(XMFLOAT4X4* transform) {  m_pxmf4x4InstanceTransformMatrix = transform; }
+	ComPtr<ID3D12Resource>& GetInstanceTransformMatrixBuffer() { return m_pd3dInstanceTransformMatrixBuffer; }
 	D3D12_VERTEX_BUFFER_VIEW GetInstanceTransformMatrixBufferView() const { return m_d3dInstanceTransformMatrixBufferView; }
+
+	void SetInstanceMatrixBufferView(D3D12_VERTEX_BUFFER_VIEW view) { m_d3dInstanceTransformMatrixBufferView = view; }
+	void SetOriginInstanceObject(const shared_ptr<CInstanceObject>& pGameObject) { m_pOriginInstance = pGameObject; }
 protected:
 	//XMFLOAT4X4						m_xmf4x4ToParent;
 	XMFLOAT4X4* m_pxmf4x4InstanceTransformMatrix = NULL;

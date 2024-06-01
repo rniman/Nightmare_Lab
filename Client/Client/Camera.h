@@ -50,6 +50,7 @@ public:
 
 	void SetPosition(XMFLOAT3 xmf3Position) { m_xmf3Position = xmf3Position; }
 	XMFLOAT3& GetPosition() { return(m_xmf3Position); }
+	//XMFLOAT3 GetPosition() const { return(m_xmf3Position); }
 
 	void SetLookVector(XMFLOAT3 look) { m_xmf3Look = look; }
 
@@ -77,7 +78,7 @@ public:
 
 	virtual void Move(const XMFLOAT3& xmf3Shift) { m_xmf3Position.x += xmf3Shift.x; m_xmf3Position.y += xmf3Shift.y; m_xmf3Position.z += xmf3Shift.z; }
 	virtual void Rotate(float fPitch = 0.0f, float fYaw = 0.0f, float fRoll = 0.0f) { }
-	virtual void Update(XMFLOAT3& xmf3LookAt, float fElapsedTime) { }
+	virtual void Update(XMFLOAT3& xmf3LookAt, float fElapsedTime);
 	virtual void SetLookAt(XMFLOAT3& xmf3LookAt) { }
 
 	D3D12_GPU_DESCRIPTOR_HANDLE GetDescriptorHandle();
@@ -85,8 +86,14 @@ public:
 
 	void SetFogColor(const XMFLOAT4& xmf4FogColor) { m_xmf4FogColor = xmf4FogColor; }
 	void SetFogInfo(const XMFLOAT4& xmf4FogInfo) { m_xmf4FogInfo = xmf4FogInfo; }
+
 	void SetPartition(int p) { m_iPartitionPos = p; }
 	int GetPartitionPos() { return m_iPartitionPos; }
+
+	void SetFloor(int val) { m_Floor = val; }
+	int GetFloor() { return m_Floor; }
+
+	void SetUpdateUseRotate(bool val) { m_bUpdateUseRotate = val; }
 protected:
 	XMFLOAT3						m_xmf3Position;
 	XMFLOAT3						m_xmf3Right;
@@ -119,6 +126,7 @@ protected:
 	weak_ptr<CPlayer> m_pPlayer;
 
 	int m_iPartitionPos;
+	int m_Floor;
 
 	//Fog
 	XMFLOAT4 m_xmf4FogColor;
@@ -127,6 +135,7 @@ protected:
 	//[0513] Frustum
 	BoundingFrustum m_xmFrustum;
 
+	bool m_bUpdateUseRotate = true;
 public:
 	void GenerateFrustum()
 	{
@@ -166,4 +175,23 @@ public:
 	virtual void Update(XMFLOAT3& xmf3LookAt, float fElapsedTime);
 	virtual void SetLookAt(XMFLOAT3& vLookAt);
 };
+
+typedef struct LIGHT;
+
+class CLightCamera : public CCamera
+{
+public:
+	CLightCamera();
+	virtual ~CLightCamera() { }
+
+	//bool operator<(const CLightCamera& A) {
+	//	const float epsilon = 1e-5f; // 허용 오차
+	//	//XMFLOAT3 clToA = Vector3::Subtract(clientCamera->GetPosition(), A->GetPosition());
+	//	//XMFLOAT3 clToB = Vector3::Subtract(clientCamera->GetPosition(), B->GetPosition());
+	//	//return Vector3::Length(clToA) - Vector3::Length(clToB) < epsilon;
+	//}
+	shared_ptr<LIGHT> m_pLight;
+	//shared_ptr<CCamera> m_pPlayerCamera;
+};
+
 

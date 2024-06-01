@@ -885,10 +885,18 @@ void CGameFramework::BuildObjects()
 	m_GameTimer.Reset();
 	PreRenderTasks(); // 사전 렌더링 작업
 
+	int light_id = 0;
+	auto& LightCamera = m_pScene->GetLightCamera();
 	for (auto& pPlayer : m_apPlayer)
 	{
 		pPlayer->ChangeCamera(FIRST_PERSON_CAMERA, 0.0f);
 		pPlayer->Update(m_GameTimer.GetTimeElapsed());
+
+		auto survivor = dynamic_pointer_cast<CBlueSuitPlayer>(pPlayer);
+		if (survivor) {
+			LightCamera[light_id]->SetPlayer(pPlayer);
+			light_id++;
+		}
 	}
 	m_pCamera = m_pMainPlayer->GetCamera();
 }
@@ -953,6 +961,26 @@ void CGameFramework::AnimateObjects()
 	m_pcbMappedTime->time += fElapsedTime;
 
 	if (m_pScene) m_pScene->AnimateObjects(fElapsedTime);
+
+
+	vector<shared_ptr<CLightCamera>>& lightCamera = m_pScene->GetLightCamera();
+
+	XMFLOAT3 clientCameraPos = m_pCamera.lock().get()->GetPosition();
+	sort(lightCamera.begin() + 4, lightCamera.end(), [clientCameraPos](const shared_ptr<CLightCamera>& A, const shared_ptr<CLightCamera>& B) {
+		//const float epsilon = 1e-5f; // 허용 오차
+		XMFLOAT3 clToA = Vector3::Subtract(clientCameraPos, A->GetPosition());
+		XMFLOAT3 clToB = Vector3::Subtract(clientCameraPos, B->GetPosition());
+		return Vector3::Length(clToA) < Vector3::Length(clToB);
+		});
+
+	for (auto& cm : lightCamera) {
+		cm->Update(cm->GetLookAtPosition(), fElapsedTime);
+		if (auto player = cm->GetPlayer().lock()) {
+			if (player->GetClientId() == -1) {
+				cm->m_pLight->m_bEnable = false;
+			}
+		}
+	}
 }
 
 void CGameFramework::AnimateEnding()
@@ -1011,6 +1039,9 @@ void CGameFramework::PreRenderTasks()
 		exit(0);
 	}
 
+	if (m_pScene->m_nLights >= MAX_LIGHTS) {
+		m_pScene->m_nLights = MAX_LIGHTS;
+	}
 	m_pMainPlayer->Update(/*m_GameTimer.GetTimeElapsed()*/0.01f);
 
 	AnimateObjects();
@@ -1030,7 +1061,7 @@ void CGameFramework::PreRenderTasks()
 	d3dRtvCPUDescriptorHandle.ptr += (m_nSwapChainBufferIndex * ::gnRtvDescriptorIncrementSize);
 	D3D12_CPU_DESCRIPTOR_HANDLE d3dDsvCPUDescriptorHandle = m_pPostProcessingShader->GetDsvCPUDesctriptorHandle(0);
 
-	auto& vlightCamera = m_pPostProcessingShader->GetLightCamera();
+	auto& vlightCamera = m_pScene->GetLightCamera();
 
 	for (int i = 0; i < m_pPostProcessingShader->GetShadowTexture()->GetTextures();++i) {
 		D3D12_CPU_DESCRIPTOR_HANDLE shadowRTVDescriptorHandle = m_pPostProcessingShader->GetShadowRtvCPUDescriptorHandle(i);
@@ -1042,7 +1073,13 @@ void CGameFramework::PreRenderTasks()
 			//1차 렌더링
 			if (m_pScene)
 			{
-				m_pScene->PrevRender(m_d3dCommandList.Get(), vlightCamera[i], 1); // 카메라만 빛의 위치대로 설정해서 렌더링함.
+				//m_pScene->PrevRender(m_d3dCommandList.Get(), vlightCamera[i], 1); // 카메라만 빛의 위치대로 설정해서 렌더링함.
+				if (i < MAX_SURVIVOR) {
+					m_pScene->Render(m_d3dCommandList.Get(), vlightCamera[i], 1/*nPipelinestate*/); // 카메라만 빛의 위치대로 설정해서 렌더링함.
+				}
+				else {
+					m_pScene->ShadowPreRender(m_d3dCommandList.Get(), vlightCamera[i], 1/*nPipelinestate*/);
+				}
 			}
 		}
 	}
@@ -1092,14 +1129,21 @@ void CGameFramework::FrameAdvance()
 
 		D3D12_CPU_DESCRIPTOR_HANDLE d3dDsvCPUDescriptorHandle = m_pPostProcessingShader->GetDsvCPUDesctriptorHandle(0);
 
-		auto& vlightCamera = m_pPostProcessingShader->GetLightCamera();
+		//그림자맵에는 플레이어의 메쉬도 그림.
+		for (auto& pl : m_apPlayer) {
+			if (pl->GetClientId() == -1) continue;
+			pl->SetShadowRender(true);
+		}
+
+		auto& vlightCamera = m_pScene->GetLightCamera();
 		int lightId{};
 		auto zombie = dynamic_pointer_cast<CZombiePlayer>(m_apPlayer[m_nMainClientId]);
 		if (zombie)
 		{
 			for (; lightId < MAX_CLIENT - 1;++lightId) 
 			{
-				m_pScene->m_pLights[lightId].m_bEnable = false;
+				//m_pScene->m_pLights[lightId].m_bEnable = false;
+				vlightCamera[lightId]->m_pLight->m_bEnable = false; // 항상 모든 빛을 꺼버림. 그림자맵을 생성하는 빛만 켤것.
 			}
 		}
 		else {
@@ -1109,29 +1153,46 @@ void CGameFramework::FrameAdvance()
 				if (!survivor) {
 					continue;
 				}
-
-				if (survivor) {
-					XMFLOAT4X4* xmf4x4playerLight = survivor->GetFlashLigthWorldTransform();
-					XMFLOAT3 xmf3LightPosition = XMFLOAT3(xmf4x4playerLight->_41, xmf4x4playerLight->_42, xmf4x4playerLight->_43);
-					XMFLOAT3 xmf3LightLook = XMFLOAT3(xmf4x4playerLight->_21, xmf4x4playerLight->_22, xmf4x4playerLight->_23);
-					xmf3LightLook = Vector3::ScalarProduct(xmf3LightLook, -1.0f, false);
-					xmf3LightPosition = Vector3::Add(xmf3LightPosition, xmf3LightLook);
-					vlightCamera[lightId]->SetPosition(xmf3LightPosition);
-					vlightCamera[lightId]->SetLookVector(XMFLOAT3(xmf4x4playerLight->_21, xmf4x4playerLight->_22, xmf4x4playerLight->_23));
-					vlightCamera[lightId]->RegenerateViewMatrix();
-					vlightCamera[lightId]->MultiplyViewProjection();
-				}
+				//lightId 는 좀비를 제외하므로 생존자를 4명으로 생성했기에 항상 0~3 의 인덱스틑 생존자의 빛 카메라
+				XMFLOAT4X4* xmf4x4playerLight = survivor->GetFlashLigthWorldTransform();
+				XMFLOAT3 xmf3LightPosition = XMFLOAT3(xmf4x4playerLight->_41, xmf4x4playerLight->_42, xmf4x4playerLight->_43);
+				XMFLOAT3 xmf3LightLook = XMFLOAT3(xmf4x4playerLight->_21, xmf4x4playerLight->_22, xmf4x4playerLight->_23);
+				xmf3LightLook = Vector3::ScalarProduct(xmf3LightLook, -1.0f, false);
+				xmf3LightPosition = Vector3::Add(xmf3LightPosition, xmf3LightLook);
+				vlightCamera[lightId]->SetPosition(xmf3LightPosition);
+				vlightCamera[lightId]->SetLookVector(XMFLOAT3(xmf4x4playerLight->_21, xmf4x4playerLight->_22, xmf4x4playerLight->_23));
+				vlightCamera[lightId]->RegenerateViewMatrix();
+				vlightCamera[lightId]->MultiplyViewProjection();
 
 				static XMFLOAT4X4 xmf4x4ToTexture = {
 				0.5f, 0.0f, 0.0f, 0.0f,
 				0.0f, -0.5f, 0.0f, 0.0f,
 				0.0f, 0.0f, 1.0f, 0.0f,
-				0.5f, 0.5f, 0.0f, 1.0f };
+				0.5f, 0.5f, 0.0f, 1.0f 
+				};
 				static XMMATRIX xmProjectionToTexture = XMLoadFloat4x4(&xmf4x4ToTexture);
 
 				XMFLOAT4X4 viewProjection = vlightCamera[lightId]->GetViewProjection();
 				XMMATRIX xmmtxViewProjection = XMLoadFloat4x4(&viewProjection);
-				XMStoreFloat4x4(&m_pScene->m_pLights[lightId].m_xmf4x4ViewProjection, XMMatrixTranspose(xmmtxViewProjection * xmProjectionToTexture));
+				//XMStoreFloat4x4(&m_pScene->m_pLights[lightId].m_xmf4x4ViewProjection, XMMatrixTranspose(xmmtxViewProjection * xmProjectionToTexture));
+				XMStoreFloat4x4(&vlightCamera[lightId]->m_pLight->m_xmf4x4ViewProjection, XMMatrixTranspose(xmmtxViewProjection * xmProjectionToTexture));
+				vlightCamera[lightId]->SetFloor(static_cast<int>(floor(survivor->GetPosition().y / 4.5f)));
+
+				//// 빛의 카메라 파티션 설정
+				//unique_ptr<PartitionInsStandardShader> PtShader(static_cast<PartitionInsStandardShader*>(m_pScene->m_vPreRenderShader[PARTITION_SHADER].release()));
+				//auto vBB = PtShader->GetPartitionBB();
+				//BoundingBox camerabb;
+				//camerabb.Center = vlightCamera[lightId]->GetPosition();
+				//camerabb.Extents = XMFLOAT3(0.1f, 0.1f, 0.1f);
+
+				//for (int bbIdx = 0; bbIdx < vBB.size();++bbIdx) {
+				//	if (vBB[bbIdx]->Intersects(camerabb)) {
+				//		vlightCamera[lightId]->SetPartition(bbIdx);
+				//		break;
+				//	}
+				//}
+
+				//m_pScene->m_vPreRenderShader[PARTITION_SHADER].reset(PtShader.release());
 
 				lightId++;
 			}
@@ -1154,34 +1215,58 @@ void CGameFramework::FrameAdvance()
 
 		for (int i = 0; i < ndynamicShadowMap;++i)
 		{
-			D3D12_CPU_DESCRIPTOR_HANDLE shadowRTVDescriptorHandle = m_pPostProcessingShader->GetShadowRtvCPUDescriptorHandle(i);
+			//m_pScene->m_pLights[i].m_bEnable = false; // 항상 모든 빛을 꺼버림. 그림자맵을 생성하는 빛만 켤것.
+			vlightCamera[i]->m_pLight->m_bEnable = false; // 항상 모든 빛을 꺼버림. 그림자맵을 생성하는 빛만 켤것.
+			if (m_pCamera.lock()->GetFloor() != vlightCamera[i]->GetFloor()) {
+				continue;
+			}
+
+			XMFLOAT3 playerToLight = Vector3::Subtract(m_pCamera.lock()->GetPosition(), vlightCamera[i]->GetPosition());
+			if (Vector3::Length(playerToLight) > 25.0f) { // 안개가 가린 위치의 빛에 대해서는 렌더링 하지 않는다.
+				continue;
+			}
+
+			if (m_pCamera.lock())
 			{
-				m_d3dCommandList->ClearDepthStencilView(d3dDsvCPUDescriptorHandle, D3D12_CLEAR_FLAG_DEPTH | D3D12_CLEAR_FLAG_STENCIL, 1.0f, 0, 0, NULL);
-
-				m_d3dCommandList->OMSetRenderTargets(1, &shadowRTVDescriptorHandle, TRUE, &d3dDsvCPUDescriptorHandle);
-
-				if (m_pCamera.lock())
+				if (!m_pCamera.lock()->IsInFrustum(vlightCamera[i]->GetBoundingFrustum()))
 				{
-					if (!m_pCamera.lock()->IsInFrustum(vlightCamera[i]->GetBoundingFrustum()))
-					{
-						//[0519]CreateCommittedResource에서 정했던 클리어 값하고 달라서 경고떠서 일단 수정
-						//FLOAT pfClearValue[4] = { 0.0f, 0.0f, 0.0f, 1.0f };
-						//m_d3dCommandList->ClearRenderTargetView(shadowRTVDescriptorHandle, pfClearValue, 0, nullptr);
-						continue;
-					}
+					continue;
 				}
+			}
 
-				//1차 렌더링
-				if (m_pScene)
-				{
-					//m_pScene->Render(m_d3dCommandList.Get(), vlightCamera[i], 1/*nPipelinestate*/); // 카메라만 빛의 위치대로 설정해서 렌더링함.
-					m_pScene->ShadowPreRender(m_d3dCommandList.Get(), vlightCamera[i], 1/*nPipelinestate*/); // 카메라만 빛의 위치대로 설정해서 렌더링함.
+			//m_pScene->m_pLights[i].m_bEnable = true;
+			vlightCamera[i]->m_pLight->m_bEnable = true; // 항상 모든 빛을 꺼버림. 그림자맵을 생성하는 빛만 켤것.
+
+			D3D12_CPU_DESCRIPTOR_HANDLE shadowRTVDescriptorHandle = m_pPostProcessingShader->GetShadowRtvCPUDescriptorHandle(i);
+			m_d3dCommandList->ClearDepthStencilView(d3dDsvCPUDescriptorHandle, D3D12_CLEAR_FLAG_DEPTH | D3D12_CLEAR_FLAG_STENCIL, 1.0f, 0, 0, NULL);
+
+			m_d3dCommandList->OMSetRenderTargets(1, &shadowRTVDescriptorHandle, TRUE, &d3dDsvCPUDescriptorHandle);
+
+			//1차 렌더링
+			if (m_pScene)
+			{
+				if (i < MAX_SURVIVOR) {
+					int pl_id = vlightCamera[i]->GetPlayer().lock()->GetClientId();
+					if (pl_id == -1) continue;
+					m_apPlayer[pl_id]->SetSelfShadowRender(true);
+					m_pScene->Render(m_d3dCommandList.Get(), vlightCamera[i], 1/*nPipelinestate*/); // 카메라만 빛의 위치대로 설정해서 렌더링함.
+					m_apPlayer[pl_id]->SetSelfShadowRender(false);
+				}
+				else {
+					m_pScene->ShadowPreRender(m_d3dCommandList.Get(), vlightCamera[i], 1/*nPipelinestate*/);
 				}
 			}
 		}
 		// 그림자맵에 해당하는 렌더타겟을 텍스처로 변환
 		m_pPostProcessingShader->TransitionShadowMapRenderTargetToCommon(m_d3dCommandList.Get(), ndynamicShadowMap); //플레이어의 손전등 1개 -> [0] 번째 요소에 들어있음.
 	}
+
+	//그림자맵 생성이 끝났을때의 처리.
+	for (auto& pl : m_apPlayer) {
+		if (pl->GetClientId() == -1) continue;
+		pl->SetShadowRender(false);
+	}
+
 	
 	SynchronizeResourceTransition(m_d3dCommandList.Get(), m_d3dSwapChainBackBuffers[m_nSwapChainBufferIndex].Get(), D3D12_RESOURCE_STATE_PRESENT, D3D12_RESOURCE_STATE_RENDER_TARGET);
 

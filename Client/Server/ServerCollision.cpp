@@ -237,7 +237,7 @@ void CServerCollisionManager::CollideWithPlayer(float fElapsedTime)
 {
 }
 
-void CServerCollisionManager::CollideWithMine(shared_ptr<CServerGameObject> pGameObject, shared_ptr<CServerGameObject> pPlayer,BoundingBox& aabbPlayer)
+void CServerCollisionManager::CollideWithMine(shared_ptr<CServerGameObject> pGameObject, shared_ptr<CServerGameObject> pPlayer, BoundingBox& aabbPlayer)
 {
 	if (pGameObject->GetCollisionType() != Picking) {
 		return;

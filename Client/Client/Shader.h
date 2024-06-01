@@ -126,6 +126,7 @@ public:
 	void AddPartitionBB(shared_ptr<BoundingBox>& bb);
 
 	vector<shared_ptr<BoundingBox>> GetPartitionBB() { return m_vPartitionBB; }
+	vector<vector<shared_ptr<CGameObject>>>& GetPartitionObjects() { return m_vPartitionObject; }
 protected:
 	vector<vector<shared_ptr<CGameObject>>> m_vPartitionObject;//index == partitionNumber
 	vector<shared_ptr<BoundingBox>> m_vPartitionBB; //index == partitionNumber
@@ -210,7 +211,7 @@ public:
 //ShadowMap Processing
 protected:
 	shared_ptr<CTexture> m_pShadowTextures;
-	vector<shared_ptr<CCamera>> m_pLightCamera;
+	//vector<shared_ptr<CLightCamera>> m_pLightCamera;
 
 	vector<unique_ptr<D3D12_CPU_DESCRIPTOR_HANDLE>> m_vpShadowRtvCPUDescriptorHandles;
 	vector<unique_ptr<D3D12_CPU_DESCRIPTOR_HANDLE>> m_vpShadowDsvDescriptorCPUHandles;
@@ -234,7 +235,7 @@ public:
 	void TransitionShadowMapRenderTargetToCommon(ID3D12GraphicsCommandList* pd3dCommandList, int nTransition=0);
 
 	void CreateLightCamera(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dCommandList,CScene* scene);
-	vector<shared_ptr<CCamera>>& GetLightCamera() { return  m_pLightCamera; }
+	//vector<shared_ptr<CCamera>>& GetLightCamera() { return  m_pLightCamera; }
 };
 
 /// <CShader - CPostProcessingShader>

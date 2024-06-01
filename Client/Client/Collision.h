@@ -31,6 +31,7 @@ public:
 	void CreateCollision(int nHeight, int nWidth, int nDepth);
 
 	void AddCollisionObject(const shared_ptr<CGameObject>& pGameObject);
+	void AddNonCollisionObject(const shared_ptr<CGameObject>& pGameObject);
 	
 	vpObjects_t& GetSpaceGameObjects(int nHeight, int nWidth, int nDepth);
 
@@ -49,10 +50,13 @@ public:
 	int GetHeight() const { return m_nHeight; }
 	int GetWidth() const { return m_nWidth; }
 	int GetDepth() const { return m_nDepth; }
+
+	vector<weak_ptr<CGameObject>> GetNonCollisionObjects() { return m_pNonCollisionObjects; }
 private:
 	static int m_nCollisionObject;
 
 	vector<weak_ptr<CGameObject>> m_pCollisionObject;	// 번호를 이용해서 충돌 객체를 빠르게 가져오기위함
+	vector<weak_ptr<CGameObject>> m_pNonCollisionObjects;	// 서버와는 상관없는 오브젝트들(정적인 오브젝트들이면서 충돌체크가 필요없는 객체)
 
 	int m_nHeight = -1; // == Floor
 	int m_nWidth = -1; 

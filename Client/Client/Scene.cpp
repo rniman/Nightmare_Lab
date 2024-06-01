@@ -26,6 +26,7 @@ vector<unique_ptr<CShader>> CScene::m_vShader;
 extern bool g_InstanceMeshNotAddCollision;
 
 int ReadLightObjectInfo(vector<XMFLOAT3>& positions, vector<XMFLOAT3>& looks);
+void PartisionShaderCollision(unique_ptr<PartitionInsStandardShader>& PtShader, shared_ptr<CGameObject>& pObject);
 
 CScene::CScene()
 {
@@ -282,7 +283,7 @@ void CScene::BuildObjects(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* p
 	// CBV(RootObject) : //육면체(1), 오브젝트(1), DeskObject(1), DoorObject(1), flashLight(1), 서버인원예상(20), fuse(3)
 	// CBV(Model) : Zom(72),  Zom_Controller(2 * N),// BlueSuit(85), BlueSuit_Controller(2 * N), Desk(3), Door(5), flashLight(1), Fuse(6), 레이더(5),텔레포트아이템(1),지뢰(1)
 	int nCntCbv = 1 + 1 + 2 + 66 +
-		(72 + 2) + (85 + 2) * MAX_CLIENT + 2 + 7 + 10 + 5 * MAX_CLIENT + 1 * MAX_CLIENT + 120 + 1 + 1+1000;
+		(72 + 2) + (85 + 2) * MAX_CLIENT + 2 + 7 + 10 + 5 * MAX_CLIENT + 1 * MAX_CLIENT + 120 + 1 + 1+2000;
 	// SRV(Default) : 디퍼드렌더링텍스처(ADD_RENDERTARGET_COUNT로 정의된 개수임)
 	// SRV(Scene Load) : 79
 	// SRV: Zombie(3), // BlueSuit(6), 육면체(1), 엘런(8(오클루젼맵제거), Desk(3), Door(9), flashLight(3) , m_nLights,지뢰(4),Electiric
@@ -372,29 +373,29 @@ void CScene::BuildObjects(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* p
 		//플래시라이트모델 로드
 		shared_ptr<CTeleportObject> flashLight = make_shared<CTeleportObject>(pd3dDevice, pd3dCommandList, m_pd3dGraphicsRootSignature.Get());
 		static shared_ptr<CLoadedModelInfo> pflashLightModel = CGameObject::LoadGeometryAndAnimationFromFile(pd3dDevice, pd3dCommandList, m_pd3dGraphicsRootSignature.Get(), (char*)"Asset/Model/Flashlight.bin", MeshType::Standard);
-		flashLight->ObjectCopy(pd3dDevice, pd3dCommandList, flashLight, pflashLightModel->m_pModelRootObject);
+		flashLight->ObjectCopy(pd3dDevice, pd3dCommandList, pflashLightModel->m_pModelRootObject);
 		//flashLight->LoadModelAndAnimation(pd3dDevice, pd3dCommandList, m_pd3dGraphicsRootSignature.Get(), pflashLightModel);
 		m_vShader[STANDARD_SHADER]->AddGameObject(flashLight);
 
 		//레이더모델 로드
 		shared_ptr<CRadarObject> pRaderObject = make_shared<CRadarObject>(pd3dDevice, pd3dCommandList, m_pd3dGraphicsRootSignature.Get());
 		static shared_ptr<CLoadedModelInfo> pRaderModel = CGameObject::LoadGeometryAndAnimationFromFile(pd3dDevice, pd3dCommandList, m_pd3dGraphicsRootSignature.Get(), (char*)"Asset/Model/Radar.bin", MeshType::Standard);
-		pRaderObject->ObjectCopy(pd3dDevice, pd3dCommandList, pRaderObject, pRaderModel->m_pModelRootObject);
+		pRaderObject->ObjectCopy(pd3dDevice, pd3dCommandList, pRaderModel->m_pModelRootObject);
 		m_vShader[STANDARD_SHADER]->AddGameObject(pRaderObject);
 
 		shared_ptr<CTeleportObject> pTeleportObject = make_shared<CTeleportObject>(pd3dDevice, pd3dCommandList, m_pd3dGraphicsRootSignature.Get());
 		static shared_ptr<CLoadedModelInfo> pTeleportItemModel = CGameObject::LoadGeometryAndAnimationFromFile(pd3dDevice, pd3dCommandList, m_pd3dGraphicsRootSignature.Get(), (char*)"Asset/Model/TeleportItem.bin", MeshType::Standard);
-		pTeleportObject->ObjectCopy(pd3dDevice, pd3dCommandList, pTeleportObject, pTeleportItemModel->m_pModelRootObject);
+		pTeleportObject->ObjectCopy(pd3dDevice, pd3dCommandList, pTeleportItemModel->m_pModelRootObject);
 		m_vShader[STANDARD_SHADER]->AddGameObject(pTeleportObject);
 
 		shared_ptr<CMineObject> pMineObject = make_shared<CMineObject>(pd3dDevice, pd3dCommandList, m_pd3dGraphicsRootSignature.Get());
 		static shared_ptr<CLoadedModelInfo> pMineItemModel = CGameObject::LoadGeometryAndAnimationFromFile(pd3dDevice, pd3dCommandList, m_pd3dGraphicsRootSignature.Get(), (char*)"Asset/Model/Item_Mine.bin", MeshType::Standard);
-		pMineObject->ObjectCopy(pd3dDevice, pd3dCommandList, pMineObject, pMineItemModel->m_pModelRootObject);
+		pMineObject->ObjectCopy(pd3dDevice, pd3dCommandList, pMineItemModel->m_pModelRootObject);
 		m_vShader[STANDARD_SHADER]->AddGameObject(pMineObject);
 
 		shared_ptr<CFuseObject> pFuseObject = make_shared<CFuseObject>(pd3dDevice, pd3dCommandList, m_pd3dGraphicsRootSignature.Get());
 		static shared_ptr<CLoadedModelInfo> pFuseModel = CGameObject::LoadGeometryAndAnimationFromFile(pd3dDevice, pd3dCommandList, m_pd3dGraphicsRootSignature.Get(), (char*)"Asset/Model/fuse_hi-obj.bin", MeshType::Standard);
-		pFuseObject->ObjectCopy(pd3dDevice, pd3dCommandList, pFuseObject, pFuseModel->m_pModelRootObject);
+		pFuseObject->ObjectCopy(pd3dDevice, pd3dCommandList, pFuseModel->m_pModelRootObject);
 		m_vShader[STANDARD_SHADER]->AddGameObject(pFuseObject);
 
 		auto player = dynamic_pointer_cast<CBlueSuitPlayer>(m_apPlayer[i]);
@@ -415,11 +416,11 @@ void CScene::BuildObjects(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* p
 
 	
 	// 아이템 개수를 고정할지는 상의해봐야할듯? 일단 고정으로 간다치고 만듬
-	for (int i = 0; i < 10; ++i)
+	for (int i = 0; i < 10; ++i) // 아이템도 인스턴스 처리를 해야함.또한 공간분할
 	{
 		shared_ptr<CFuseObject> pFuseObject = make_shared<CFuseObject>(pd3dDevice, pd3dCommandList, m_pd3dGraphicsRootSignature.Get());
 		static shared_ptr<CLoadedModelInfo> pFuseModel = CGameObject::LoadGeometryAndAnimationFromFile(pd3dDevice, pd3dCommandList, m_pd3dGraphicsRootSignature.Get(), (char*)"Asset/Model/fuse_hi-obj.bin", MeshType::Standard);
-		pFuseObject->ObjectCopy(pd3dDevice, pd3dCommandList, pFuseObject, pFuseModel->m_pModelRootObject);
+		pFuseObject->ObjectCopy(pd3dDevice, pd3dCommandList, pFuseModel->m_pModelRootObject);
 		
 		g_collisionManager.AddCollisionObject(pFuseObject);
 		m_vShader[STANDARD_SHADER]->AddGameObject(pFuseObject);
@@ -428,7 +429,7 @@ void CScene::BuildObjects(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* p
 	{
 		shared_ptr<CTeleportObject> pTeleportObject = make_shared<CTeleportObject>(pd3dDevice, pd3dCommandList, m_pd3dGraphicsRootSignature.Get());
 		static shared_ptr<CLoadedModelInfo> pTeleportModel = CGameObject::LoadGeometryAndAnimationFromFile(pd3dDevice, pd3dCommandList, m_pd3dGraphicsRootSignature.Get(), (char*)"Asset/Model/TeleportItem.bin", MeshType::Standard);
-		pTeleportObject->ObjectCopy(pd3dDevice, pd3dCommandList, pTeleportObject, pTeleportModel->m_pModelRootObject);
+		pTeleportObject->ObjectCopy(pd3dDevice, pd3dCommandList, pTeleportModel->m_pModelRootObject);
 		
 		g_collisionManager.AddCollisionObject(pTeleportObject);
 		m_vShader[STANDARD_SHADER]->AddGameObject(pTeleportObject);
@@ -439,7 +440,7 @@ void CScene::BuildObjects(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* p
 		//레이더모델 로드
 		shared_ptr<CRadarObject> pRaderObject = make_shared<CRadarObject>(pd3dDevice, pd3dCommandList, m_pd3dGraphicsRootSignature.Get());
 		static shared_ptr<CLoadedModelInfo> pRaderModel = CGameObject::LoadGeometryAndAnimationFromFile(pd3dDevice, pd3dCommandList, m_pd3dGraphicsRootSignature.Get(), (char*)"Asset/Model/Radar.bin", MeshType::Standard);
-		pRaderObject->ObjectCopy(pd3dDevice, pd3dCommandList, pRaderObject, pRaderModel->m_pModelRootObject);
+		pRaderObject->ObjectCopy(pd3dDevice, pd3dCommandList, pRaderModel->m_pModelRootObject);
 
 		g_collisionManager.AddCollisionObject(pRaderObject);
 		m_vShader[STANDARD_SHADER]->AddGameObject(pRaderObject);
@@ -455,7 +456,7 @@ void CScene::BuildObjects(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* p
 
 		shared_ptr<CMineObject> pMineObject = make_shared<CMineObject>(pd3dDevice, pd3dCommandList, m_pd3dGraphicsRootSignature.Get());
 		pMineObject->SetExplosionObject(mineExplosionObject);
-		pMineObject->ObjectCopy(pd3dDevice, pd3dCommandList, pMineObject, pMineModel->m_pModelRootObject);
+		pMineObject->ObjectCopy(pd3dDevice, pd3dCommandList, pMineModel->m_pModelRootObject);
 
 		g_collisionManager.AddCollisionObject(pMineObject);
 		m_vShader[STANDARD_SHADER]->AddGameObject(pMineObject);
@@ -471,7 +472,7 @@ void CScene::BuildObjects(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* p
 	m_vForwardRenderShader[USER_INTERFACE_SHADER]->AddGameObject(m_apPlayer[mainPlayerId]);
 	m_vForwardRenderShader[USER_INTERFACE_SHADER]->BuildObjects(pd3dDevice, pd3dCommandList, m_pd3dGraphicsRootSignature.Get());
 
-	BuildLights();
+	BuildLights(pd3dDevice, pd3dCommandList); // 쉐이더 생성 이후 수행하도록 한다.
 	CreateShaderVariables(pd3dDevice, pd3dCommandList);
 }
 
@@ -496,51 +497,112 @@ void CScene::AddDefaultObject(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandLis
 	m_vShader[shader]->AddGameObject(pObject);
 }
 
-void CScene::BuildLights()
+void CScene::BuildLights(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dCommandList)
 {
 	m_nLights = ReadLightObjectInfo(m_xmf3lightPositions, m_xmf3lightLooks) + MAX_SURVIVOR/*플레이어 조명*/;
 	if (m_nLights > MAX_LIGHTS) {
-		m_nLights = MAX_LIGHTS;
+		//m_nLights = MAX_LIGHTS;
 	}
-	m_pLights = new LIGHT[m_nLights];
-	::ZeroMemory(m_pLights, sizeof(LIGHT) * m_nLights);
+	m_pLights = new LIGHT[MAX_LIGHTS];
+	::ZeroMemory(m_pLights, sizeof(LIGHT) * MAX_LIGHTS);
 
 	m_xmf4GlobalAmbient = XMFLOAT4(0.15f, 0.15f, 0.15f, 1.0f);
 
-	for (int i = MAX_SURVIVOR; i < m_nLights;++i) {
-		m_pLights[i].m_bEnable = true;
-		m_pLights[i].m_nType = SPOT_LIGHT;
-		m_pLights[i].m_fRange = 30.0f;
-		m_pLights[i].m_xmf4Ambient = XMFLOAT4(0.6f, 0.0f, 0.0f, 0.0f);
-		m_pLights[i].m_xmf4Diffuse = XMFLOAT4(0.6f, 0.0f, 0.0f, 0.0f);
-		m_pLights[i].m_xmf4Specular = XMFLOAT4(1.0f, 0.0f, 0.0f, 0.0f);
-		m_pLights[i].m_xmf3Position = m_xmf3lightPositions[i - MAX_SURVIVOR];
-		m_pLights[i].m_xmf3Direction = m_xmf3lightLooks[i - MAX_SURVIVOR];
-		m_pLights[i].m_xmf3Attenuation = XMFLOAT3(1.0f, -0.1f, 0.01f);
-
-		m_pLights[i].m_fFalloff = 1.0f;
-		m_pLights[i].m_fPhi = (float)cos(XMConvertToRadians(45.0f));
-		m_pLights[i].m_fTheta = (float)cos(XMConvertToRadians(35.0f));
-	}
-
 	for (int i = 0; i < MAX_SURVIVOR;++i) {
+		m_pLightCamera.push_back(make_shared<CLightCamera>());
+		m_pLightCamera[i]->m_pLight = make_shared<LIGHT>();
+
 		m_xmf3lightPositions.insert(m_xmf3lightPositions.begin(), XMFLOAT3(0.0f, -100.0f, 0.0f)); // m_xmf3lightPositions을 가지고 카메라를 만들것임
 		m_xmf3lightLooks.insert(m_xmf3lightLooks.begin(), XMFLOAT3(0.0f, -1.0f, 0.0f));
 
-		m_pLights[i].m_bEnable = true;
-		m_pLights[i].m_nType = SPOT_LIGHT;
-		m_pLights[i].m_fRange = 30.0f;
-		m_pLights[i].m_xmf4Ambient = XMFLOAT4(1.0f, 1.0f, 1.0f, 1.0f);
-		m_pLights[i].m_xmf4Diffuse = XMFLOAT4(1.0f, 1.0f, 1.0f, 1.0f);
-		m_pLights[i].m_xmf4Specular = XMFLOAT4(1.0f, 1.0f, 1.0f, 1.0f);
-		m_pLights[i].m_xmf3Position = XMFLOAT3(0.0f, 0.0f, 0.0f);
-		m_pLights[i].m_xmf3Direction = XMFLOAT3(0.0f, -1.0f, 0.0f);
-		m_pLights[i].m_xmf3Attenuation = XMFLOAT3(1.0f, -0.1f, 0.01f);
-		m_pLights[i].m_fFalloff = 1.0f;
-		m_pLights[i].m_fPhi = (float)cos(XMConvertToRadians(35.0f));
-		m_pLights[i].m_fTheta = (float)cos(XMConvertToRadians(25.0f));
+		m_pLightCamera[i]->m_pLight->m_bEnable = true;
+		m_pLightCamera[i]->m_pLight->m_nType = SPOT_LIGHT;
+		m_pLightCamera[i]->m_pLight->m_fRange = 30.0f;
+		m_pLightCamera[i]->m_pLight->m_xmf4Ambient = XMFLOAT4(1.0f, 1.0f, 1.0f, 1.0f);
+		m_pLightCamera[i]->m_pLight->m_xmf4Diffuse = XMFLOAT4(1.0f, 1.0f, 1.0f, 1.0f);
+		m_pLightCamera[i]->m_pLight->m_xmf4Specular = XMFLOAT4(1.0f, 1.0f, 1.0f, 1.0f);
+		m_pLightCamera[i]->m_pLight->m_xmf3Position = XMFLOAT3(0.0f, 0.0f, 0.0f);
+		m_pLightCamera[i]->m_pLight->m_xmf3Direction = XMFLOAT3(0.0f, -1.0f, 0.0f);
+		m_pLightCamera[i]->m_pLight->m_xmf3Attenuation = XMFLOAT3(1.0f, -0.1f, 0.01f);
+		m_pLightCamera[i]->m_pLight->m_fFalloff = 1.0f;
+		m_pLightCamera[i]->m_pLight->m_fPhi = (float)cos(XMConvertToRadians(35.0f));
+		m_pLightCamera[i]->m_pLight->m_fTheta = (float)cos(XMConvertToRadians(25.0f));
 	}
 	m_pLights[0].m_bEnable = true;
+
+	for (int i = MAX_SURVIVOR; i < m_nLights;++i) {
+		m_pLightCamera.push_back(make_shared<CLightCamera>());
+		m_pLightCamera[i]->m_pLight = make_shared<LIGHT>();
+
+		m_pLightCamera[i]->m_pLight->m_bEnable = true;
+		m_pLightCamera[i]->m_pLight->m_nType = SPOT_LIGHT;
+		m_pLightCamera[i]->m_pLight->m_fRange = 30.0f;
+		m_pLightCamera[i]->m_pLight->m_xmf4Ambient = XMFLOAT4(0.6f, 0.0f, 0.0f, 0.0f);
+		m_pLightCamera[i]->m_pLight->m_xmf4Diffuse = XMFLOAT4(0.6f, 0.0f, 0.0f, 0.0f);
+		m_pLightCamera[i]->m_pLight->m_xmf4Specular = XMFLOAT4(1.0f, 0.0f, 0.0f, 0.0f);
+		m_pLightCamera[i]->m_pLight->m_xmf3Position = m_xmf3lightPositions[i];
+		m_pLightCamera[i]->m_pLight->m_xmf3Direction = m_xmf3lightLooks[i];
+		m_pLightCamera[i]->m_pLight->m_xmf3Attenuation = XMFLOAT3(1.0f, -0.1f, 0.01f);
+
+		m_pLightCamera[i]->m_pLight->m_fFalloff = 1.0f;
+		m_pLightCamera[i]->m_pLight->m_fPhi = (float)cos(XMConvertToRadians(45.0f));
+		m_pLightCamera[i]->m_pLight->m_fTheta = (float)cos(XMConvertToRadians(35.0f));
+	}
+
+	
+
+	vector<XMFLOAT3> positions = GetLightPositions();
+	vector<XMFLOAT3> looks = GetLightLooks();
+
+	XMFLOAT3 xmf3Right = XMFLOAT3(1.0f, 0.0f, 0.0f);
+
+	XMFLOAT4X4 xmf4x4ToTexture = {
+		0.5f, 0.0f, 0.0f, 0.0f,
+		0.0f, -0.5f, 0.0f, 0.0f,
+		0.0f, 0.0f, 1.0f, 0.0f,
+		0.5f, 0.5f, 0.0f, 1.0f };
+
+	XMMATRIX xmProjectionToTexture = XMLoadFloat4x4(&xmf4x4ToTexture);
+	XMMATRIX xmmtxViewProjection;
+
+	for (int i = 0;i < m_nLights;++i) {
+
+		XMFLOAT3 xmf3Up = Vector3::CrossProduct(looks[i], xmf3Right);
+		XMFLOAT3 lookAtPosition = Vector3::Add(positions[i], looks[i]);
+		m_pLightCamera[i]->GenerateViewMatrix(positions[i], lookAtPosition, xmf3Up);
+		if (i >= MAX_SURVIVOR)
+		{
+			m_pLightCamera[i]->GenerateProjectionMatrix(1.01f, 5.0f, ASPECT_RATIO, 90.0f);	//[0513] 근평면이 있어야  그림자를 그림
+		}
+		m_pLightCamera[i]->GenerateFrustum();
+		m_pLightCamera[i]->MultiplyViewProjection();
+
+		XMFLOAT4X4 viewProjection = m_pLightCamera[i]->GetViewProjection();
+		xmmtxViewProjection = XMLoadFloat4x4(&viewProjection);
+		XMStoreFloat4x4(&m_pLightCamera[i]->m_pLight->m_xmf4x4ViewProjection, XMMatrixTranspose(xmmtxViewProjection * xmProjectionToTexture));
+		m_pLightCamera[i]->CreateShaderVariables(pd3dDevice, pd3dCommandList);
+	}
+
+	// 빛의 카메라 파티션 설정
+	unique_ptr<PartitionInsStandardShader> PtShader(static_cast<PartitionInsStandardShader*>(m_vPreRenderShader[PARTITION_SHADER].release()));
+	auto vBB = PtShader->GetPartitionBB();
+
+	for (int i = 0; i < m_nLights;++i) {
+		BoundingBox camerabb;
+		camerabb.Center = m_pLightCamera[i]->GetPosition();
+		camerabb.Extents = XMFLOAT3(0.1f, 0.1f, 0.1f);
+		int curFloor = static_cast<int>(std::floor(camerabb.Center.y / 4.5f));
+
+		m_pLightCamera[i]->SetFloor(curFloor);
+		for (int bbIdx = 0; bbIdx < vBB.size();++bbIdx) {
+			if (vBB[bbIdx]->Intersects(camerabb)) {
+				m_pLightCamera[i]->SetPartition(bbIdx);
+				break;
+			}
+		}
+	}
+
+	m_vPreRenderShader[PARTITION_SHADER].reset(PtShader.release());
 }
 
 void CScene::LoadScene(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dCommandList)
@@ -571,6 +633,7 @@ void CScene::LoadScene(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3d
 	
 	unique_ptr<InstanceStandardShader> InsStShader(static_cast<InstanceStandardShader*>(m_vShader[INSTANCE_STANDARD_SHADER].release()));
 	int n_curfloor = -1;
+	static int count{};
 	while (true)
 	{
 		shared_ptr<CLoadedModelInfo> pLoadedModel = make_shared<CLoadedModelInfo>();
@@ -586,9 +649,13 @@ void CScene::LoadScene(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3d
 				}
 				else if (!strcmp(pstrToken, "<Hierarchy>:"))
 				{
+					count++;
 					pLoadedModel->m_pModelRootObject = CGameObject::LoadInstanceFrameHierarchyFromFile(pd3dDevice, pd3dCommandList, m_pd3dGraphicsRootSignature.Get(), NULL, pSceneFile, &pLoadedModel->m_nSkinnedMeshes);
 					::ReadStringFromFile(pSceneFile, pstrToken); //"</Hierarchy>"
 					pLoadedModel->m_pModelRootObject->Rotate(0.0f, 0.0f, 0.0f);
+
+					//if (!pLoadedModel->m_pModelRootObject->m_pChild->m_pMesh) continue;
+
 					if (!transparentObjects[pLoadedModel->m_pModelRootObject->m_pstrFrameName].empty()) {
 						pLoadedModel->m_pModelRootObject->SetTransparentObjectInfo(transparentObjects[pLoadedModel->m_pModelRootObject->m_pstrFrameName]);
 						InsStShader->m_vFloorObjects[n_curfloor].push_back(pLoadedModel->m_pModelRootObject);
@@ -625,7 +692,6 @@ void CScene::LoadScene(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3d
 		}
 	}
 
-	m_vShader[INSTANCE_STANDARD_SHADER].reset(InsStShader.release());
 
 	// 파티션 분할한 씬 로드
 	FILE* pPartitionFile = NULL;
@@ -649,8 +715,6 @@ void CScene::LoadScene(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3d
 				if (!strcmp(pstrToken, "<Partition>:")) {
 					PtShader->AddPartition(); // 파티션 추가
 					nPartition++;
-					//WriteInteger("<BoxColliders>:", boxColliders.Length);
-					//WriteBoxCollider("<Bound>:", boxColliders);
 				}
 				else if (!strcmp(pstrToken, "<Bound>:")) {
 					shared_ptr<BoundingBox> bb = make_shared<BoundingBox>();
@@ -664,24 +728,26 @@ void CScene::LoadScene(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3d
 					bb->Extents = xmf3bbExtents;
 
 					PtShader->AddPartitionBB(bb);
-				}
+				} // 바운딩 박스만 읽고 객체는 콜리전컨테이너에서 꺼내서 사용
 				else if (!strcmp(pstrToken, "<Hierarchy>:"))
 				{
 					pLoadedModel->m_pModelRootObject = CGameObject::LoadInstanceFrameHierarchyFromFile(pd3dDevice, pd3dCommandList, m_pd3dGraphicsRootSignature.Get(), NULL, pPartitionFile, &pLoadedModel->m_nSkinnedMeshes);
 					::ReadStringFromFile(pPartitionFile, pstrToken); //"</Hierarchy>"
 					pLoadedModel->m_pModelRootObject->Rotate(0.0f, 0.0f, 0.0f);
 					if (!strcmp(pLoadedModel->m_pModelRootObject->m_pstrFrameName, "Zom_1"))
-					{ 
-					}
-					else if (!transparentObjects[pLoadedModel->m_pModelRootObject->m_pstrFrameName].empty()) 
 					{
-						pLoadedModel->m_pModelRootObject->SetTransparentObjectInfo(transparentObjects[pLoadedModel->m_pModelRootObject->m_pstrFrameName]);
-						PtShader->AddPartitionGameObject((pLoadedModel->m_pModelRootObject), nPartition);
+					}
+					else if (!transparentObjects[pLoadedModel->m_pModelRootObject->m_pstrFrameName].empty())
+					{
+						//pLoadedModel->m_pModelRootObject->SetTransparentObjectInfo(transparentObjects[pLoadedModel->m_pModelRootObject->m_pstrFrameName]);
+						//PtShader->AddPartitionGameObject((pLoadedModel->m_pModelRootObject), nPartition);
 						// 첫번째 쉐이더는 불투명한 재질들만 렌더링, 두번째 쉐이더는 투명한 재질들만 렌더링 분류를 위함이고 마지막에 렌더링해야하기 떄문에 두 쉐이더에 모두 포함한다. 
+
 					}
 					else
 					{
-						PtShader->AddPartitionGameObject((pLoadedModel->m_pModelRootObject), nPartition);
+						//PtShader->AddPartitionGameObject((pLoadedModel->m_pModelRootObject), nPartition);
+
 					}
 				}
 				else if (!strcmp(pstrToken, "<Animation>:"))
@@ -708,8 +774,119 @@ void CScene::LoadScene(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3d
 			break;
 		}
 	}
+
+	//0528 CJI - 객체를 다시 만들지 말고 원래 있던 객체를 사용하자.
+	//1. 파티션에 해당하는 오브젝트를 파티션별로 넣는다.
+	//2. 똑같은 메쉬를 가지는 오브젝트들은 인스턴스화 시킨다.
+	for (int i = 0; i < g_collisionManager.GetNumOfCollisionObject();++i) { // 월드변환 행렬을 가지고 있는 객체들.
+		auto pObject = g_collisionManager.GetCollisionObjectWithNumber(i).lock();
+		PartisionShaderCollision(PtShader, pObject);
+	}
+	auto nonCollisionObjects = g_collisionManager.GetNonCollisionObjects();
+	for (int i = 0; i < nonCollisionObjects.size();++i) { // 월드변환 행렬을 가지고 있는 객체들.
+		auto pObject = nonCollisionObjects[i].lock();	
+		PartisionShaderCollision(PtShader, pObject);
+	}
+
+	map<string, shared_ptr<CInstanceObject>> mStr_GameObejcts;
+	auto& partition = PtShader->GetPartitionObjects();
+	for (auto& objects : partition) { // 한 파티션씩 오브젝트를 인스턴싱화.
+		mStr_GameObejcts.clear();
+		for (auto& ob : objects) {
+			if (!mStr_GameObejcts[ob->m_pstrFrameName]) {
+				mStr_GameObejcts[ob->m_pstrFrameName] = make_shared<CInstanceObject>(pd3dDevice, pd3dCommandList);
+			}
+			mStr_GameObejcts[ob->m_pstrFrameName]->m_vInstanceObjectInfo.push_back(ob); 
+			//인스턴싱된 오브젝트의 메쉬의 이름을 복사했기때문에 str 정보는 mesh의 이름을 의미함. 
+		}
+		if (mStr_GameObejcts.size() == 0) continue;
+
+		auto strVector = mStr_GameObejcts.begin();// 메쉬의 이름을 이용해 오브젝트를 찾는다.
+		while (strVector != mStr_GameObejcts.end())
+		{
+			shared_ptr<CInstanceStandardMesh> pMesh = make_shared<CInstanceStandardMesh>(pd3dDevice, pd3dCommandList);
+			strncpy(pMesh->m_pstrMeshName, strVector->first.c_str(), strVector->first.size());
+			CStandardMesh::SaveStandardMesh(dynamic_pointer_cast<CStandardMesh>(pMesh));
+
+			pMesh->m_nCntInstance = strVector->second->m_vInstanceObjectInfo.size();
+			XMFLOAT4X4* InsTrans = new XMFLOAT4X4[pMesh->m_nCntInstance];
+			for (int i = 0; i < strVector->second->m_vInstanceObjectInfo.size();++i) {
+				InsTrans[i] = Matrix4x4::Transpose(strVector->second->m_vInstanceObjectInfo[i]->m_xmf4x4World); // 버퍼로 복사할 행렬은 전치행렬로 보내야함.
+			}
+			pMesh->SetInstanceTransformMatrix(InsTrans);
+			pMesh->GetInstanceTransformMatrixBuffer() = ::CreateBufferResource(pd3dDevice, pd3dCommandList, InsTrans,
+				sizeof(XMFLOAT4X4) * pMesh->m_nCntInstance, D3D12_HEAP_TYPE_UPLOAD, D3D12_RESOURCE_STATE_VERTEX_AND_CONSTANT_BUFFER, NULL);
+			D3D12_VERTEX_BUFFER_VIEW bufferView;
+			bufferView.BufferLocation = pMesh->GetInstanceTransformMatrixBuffer()->GetGPUVirtualAddress();
+			bufferView.StrideInBytes = sizeof(XMFLOAT4X4);
+			bufferView.SizeInBytes = sizeof(XMFLOAT4X4) * pMesh->m_nCntInstance;
+			pMesh->SetInstanceMatrixBufferView(bufferView);
+
+			for (auto& floor : InsStShader->m_vFloorObjects) {
+				bool bFind = false;
+				for (auto& f_ob : floor) { // f_ob는 원본 오브젝트이므로 Ins -> child.mesh메쉬에 이름으로 비교해야함
+					if (!f_ob->m_pChild || !f_ob->m_pChild->m_pMesh) continue;
+					if (!strcmp(f_ob->m_pChild->m_pMesh->m_pstrMeshName, strVector->first.c_str())) {
+						mStr_GameObejcts[strVector->first]->InstanceObjectCopy(pd3dDevice, pd3dCommandList, f_ob);
+						bFind = true;
+						break;
+					}
+				}
+				if (bFind) break;
+			}
+
+			pMesh->SetOriginInstanceObject(dynamic_pointer_cast<CInstanceObject>(mStr_GameObejcts[strVector->first]));
+			mStr_GameObejcts[strVector->first]->m_pChild->SetMesh(pMesh);// 루트 객체는 인스턴스 부모객체를 의미 하므로 child에게 메쉬를 부여
+			if (!transparentObjects[mStr_GameObejcts[strVector->first]->m_pstrFrameName].empty())
+			{
+				mStr_GameObejcts[strVector->first]->SetTransparentObjectInfo(transparentObjects[mStr_GameObejcts[strVector->first]->m_pstrFrameName]);
+			}
+			objects.erase(
+				std::remove_if(objects.begin(), objects.end(), [strVector](const shared_ptr<CGameObject>& obj) {
+					return obj->m_pstrFrameName == strVector->first;
+					}),
+				objects.end()
+			);
+
+			++strVector;
+		}
+		objects.clear();
+		for (auto& [meshName,insObject] : mStr_GameObejcts) {
+			objects.push_back(insObject);
+		}
+	}
+	 
 	// 메모리 누수를 방지하기 위해 다시 변환
+	m_vShader[INSTANCE_STANDARD_SHADER].reset(InsStShader.release());
 	m_vPreRenderShader[PARTITION_SHADER].reset(PtShader.release());
+}
+
+void PartisionShaderCollision(unique_ptr<PartitionInsStandardShader>& PtShader, shared_ptr<CGameObject>& pObject)
+{
+	if (!strcmp(pObject->m_pstrFrameName, "Wall_BoundingBox") /*|| Ins_Bounding_Stair_Start*/) {
+		return;
+	}
+
+	//객체와 충돌체크를 하여 현재 파티션에 바운딩박스에 있으면 넣음
+	for (auto& srcobb : pObject->GetVectorOOBB()) {
+		BoundingOrientedBox dstobb;
+		srcobb.Transform(dstobb, XMLoadFloat4x4(&pObject->m_xmf4x4World));
+		XMStoreFloat4(&dstobb.Orientation, XMQuaternionNormalize(XMLoadFloat4(&dstobb.Orientation)));
+		int nPt = 0;
+		bool inPart = false;
+		for (auto& ptobb : PtShader->GetPartitionBB()) {
+			if (dstobb.Intersects(*ptobb)) {
+				PtShader->AddPartitionGameObject(pObject, nPt);
+				inPart = true;
+			}
+			nPt += 1;
+			if (nPt >= PtShader->GetPartitionBB().size()) break;
+		}
+
+		if (inPart ) {
+			break;
+		}
+	}
 }
 
 bool StreamReadString(ifstream& in, string& str)
@@ -797,21 +974,10 @@ void CScene::CreateShaderVariables(ID3D12Device* pd3dDevice, ID3D12GraphicsComma
 
 void CScene::UpdateShaderVariables(ID3D12GraphicsCommandList* pd3dCommandList)
 {
-	int light_Id{};
-	for (int i = 0;i < MAX_CLIENT;++i) {
-		if (m_apPlayer[i]->GetClientId() == -1) {
-			continue;
-		}
-		auto player = dynamic_pointer_cast<CBlueSuitPlayer>(m_apPlayer[i]);
-		if (player) {
-			XMFLOAT4X4* xmf4x4playerLight = player->GetFlashLigthWorldTransform();
-			m_pLights[light_Id].m_xmf3Position = XMFLOAT3(xmf4x4playerLight->_41, xmf4x4playerLight->_42, xmf4x4playerLight->_43);//m_pPlayer->GetCamera()->GetPosition();
-			m_pLights[light_Id].m_xmf3Direction = XMFLOAT3(xmf4x4playerLight->_21, xmf4x4playerLight->_22, xmf4x4playerLight->_23);/*XMFLOAT3(xmf4x4playerLight._31, xmf4x4playerLight._32, xmf4x4playerLight._33);*/ //m_pPlayer->GetCamera()->GetLookVector();
-
-			light_Id++;
-		}
+	for (int i = 0; i < m_nLights; ++i) {
+		memcpy(&m_pLights[i], m_pLightCamera[i]->m_pLight.get(), sizeof(LIGHT));
 	}
-	
+
 	::memcpy(m_pcbMappedLights->m_pLights, m_pLights, sizeof(LIGHT)* m_nLights);
 	::memcpy(&m_pcbMappedLights->m_xmf4GlobalAmbient, &m_xmf4GlobalAmbient, sizeof(XMFLOAT4));
 	::memcpy(&m_pcbMappedLights->m_nLights, &m_nLights, sizeof(int));
@@ -971,6 +1137,21 @@ void CScene::AnimateObjects(float fElapsedTime)
 	{
 		shader->AnimateObjects(fElapsedTime);
 	}
+
+	int light_Id{};
+	for (int i = 0;i < MAX_CLIENT;++i) {
+		if (m_apPlayer[i]->GetClientId() == -1) {
+			continue;
+		}
+		auto player = dynamic_pointer_cast<CBlueSuitPlayer>(m_apPlayer[i]);
+		if (player) {
+			XMFLOAT4X4* xmf4x4playerLight = player->GetFlashLigthWorldTransform();
+			m_pLightCamera[light_Id]->m_pLight->m_xmf3Position = XMFLOAT3(xmf4x4playerLight->_41, xmf4x4playerLight->_42, xmf4x4playerLight->_43);//m_pPlayer->GetCamera()->GetPosition();
+			m_pLightCamera[light_Id]->m_pLight->m_xmf3Direction = XMFLOAT3(xmf4x4playerLight->_21, xmf4x4playerLight->_22, xmf4x4playerLight->_23);/*XMFLOAT3(xmf4x4playerLight._31, xmf4x4playerLight._32, xmf4x4playerLight._33);*/ //m_pPlayer->GetCamera()->GetLookVector();
+
+			light_Id++;
+		}
+	}
 }
 
 
@@ -1006,12 +1187,12 @@ void CScene::ShadowPreRender(ID3D12GraphicsCommandList* pd3dCommandList, const s
 	m_vShader[SKINNEDANIMATION_STANDARD_SHADER]->Render(pd3dCommandList, pCamera, m_pMainPlayer, nPipelineState);
 }
 
-void CScene::PrevRender(ID3D12GraphicsCommandList* pd3dCommandList, const shared_ptr<CCamera>& pCamera, int nPipelineState)
-{
-	PrepareRender(pd3dCommandList, pCamera);
-
-	for (auto& shader : m_vShader)
-	{
-		shader->PrevRender(pd3dCommandList, pCamera, nPipelineState);
-	}
-}
+//void CScene::PrevRender(ID3D12GraphicsCommandList* pd3dCommandList, const shared_ptr<CCamera>& pCamera, int nPipelineState)
+//{
+//	PrepareRender(pd3dCommandList, pCamera);
+//
+//	for (auto& shader : m_vShader)
+//	{
+//		shader->PrevRender(pd3dCommandList, pCamera, nPipelineState);
+//	}
+//}

@@ -379,6 +379,8 @@ public:
 
 	//Rendering
 	virtual void Render(ID3D12GraphicsCommandList* pd3dCommandList);
+	//특정 객체는 렌더링하지 않을떄
+	virtual void Render(ID3D12GraphicsCommandList* pd3dCommandList, char* pstrFramname); 
 	//불투명한 재질의 메쉬만 렌더링
 	virtual void RenderOpaque(ID3D12GraphicsCommandList* pd3dCommandList);
 	//투명한 재질의 메쉬만 렌더링
@@ -467,7 +469,8 @@ public:
 	int GetCollisionNum() const { return m_nCollisionNum; }
 
 	void SetTransparentObjectInfo(vector<int> vNumbers);
-	void ObjectCopy(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dCommandList,shared_ptr<CGameObject> dobject, shared_ptr<CGameObject> sobject);
+	void ObjectCopy(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dCommandList, shared_ptr<CGameObject> sobject);
+	void InstanceObjectCopy(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dCommandList, shared_ptr<CGameObject> srcobject);
 
 	void SetStatic(bool bStatic) { m_bStatic = bStatic; }
 	bool IsStatic() const { return m_bStatic; }

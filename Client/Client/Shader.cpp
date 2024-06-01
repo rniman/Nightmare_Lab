@@ -859,9 +859,13 @@ void CPostProcessingShader::ShadowTextureWriteRender(ID3D12GraphicsCommandList* 
 
 void CPostProcessingShader::CreateShadowMapResource(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dCommandList,UINT nlight, D3D12_CPU_DESCRIPTOR_HANDLE d3dRtvCPUDescriptorHandle)
 {
+	int nLight = nlight;
+	if (nLight >= MAX_LIGHTS) {
+		nLight = MAX_LIGHTS;
+	}
 	D3D12_DESCRIPTOR_HEAP_DESC d3dDescriptorHeapDesc;
 	::ZeroMemory(&d3dDescriptorHeapDesc, sizeof(D3D12_DESCRIPTOR_HEAP_DESC));
-	d3dDescriptorHeapDesc.NumDescriptors = nlight; // 빛의 개수만큼 렌더타겟을 생성
+	d3dDescriptorHeapDesc.NumDescriptors = nLight; // 빛의 개수만큼 렌더타겟을 생성
 	d3dDescriptorHeapDesc.Type = D3D12_DESCRIPTOR_HEAP_TYPE_RTV;
 	d3dDescriptorHeapDesc.Flags = D3D12_DESCRIPTOR_HEAP_FLAG_NONE;
 	d3dDescriptorHeapDesc.NodeMask = 0;
@@ -869,12 +873,12 @@ void CPostProcessingShader::CreateShadowMapResource(ID3D12Device* pd3dDevice, ID
 
 	D3D12_CPU_DESCRIPTOR_HANDLE rtvHandle = m_pd3dShadowRtvDescriptorHeap->GetCPUDescriptorHandleForHeapStart();
 
-	m_pShadowTextures = make_shared<CTexture>(nlight, RESOURCE_TEXTURE2D, 0, 1);
+	m_pShadowTextures = make_shared<CTexture>(nLight, RESOURCE_TEXTURE2D, 0, 1);
 
 	DXGI_FORMAT pdxgiFormat = DXGI_FORMAT_R32_FLOAT;
 	D3D12_CLEAR_VALUE d3dClearValue(pdxgiFormat, { 1.0f, 1.0f, 1.0f, 1.0f });
 
-	for (UINT i = 0; i < nlight; i++)
+	for (UINT i = 0; i < nLight; i++)
 	{
 		m_pShadowTextures->CreateTexture(pd3dDevice, i, RESOURCE_TEXTURE2D, FRAME_BUFFER_WIDTH, FRAME_BUFFER_HEIGHT, 1, 0, pdxgiFormat, D3D12_RESOURCE_FLAG_ALLOW_RENDER_TARGET, D3D12_RESOURCE_STATE_COMMON, &d3dClearValue);
 
@@ -889,7 +893,7 @@ void CPostProcessingShader::CreateShadowMapResource(ID3D12Device* pd3dDevice, ID
 	d3dRenderTargetViewDesc.Texture2D.PlaneSlice = 0;
 	d3dRenderTargetViewDesc.Format = pdxgiFormat;
 
-	for (UINT i = 0; i < nlight; i++)
+	for (UINT i = 0; i < nLight; i++)
 	{
 		ID3D12Resource* pd3dTextureResource = m_pShadowTextures->GetResource(i);
 		pd3dDevice->CreateRenderTargetView(pd3dTextureResource, &d3dRenderTargetViewDesc, rtvHandle);
@@ -903,58 +907,60 @@ void CPostProcessingShader::CreateShadowMapResource(ID3D12Device* pd3dDevice, ID
 
 void CPostProcessingShader::CreateLightCamera(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dCommandList,CScene* scene)
 {
-	vector<XMFLOAT3> positions = scene->GetLightPositions();
-	vector<XMFLOAT3> looks = scene->GetLightLooks();
+	//vector<XMFLOAT3> positions = scene->GetLightPositions();
+	//vector<XMFLOAT3> looks = scene->GetLightLooks();
 
-	XMFLOAT3 xmf3Right = XMFLOAT3(1.0f, 0.0f, 0.0f);
+	//XMFLOAT3 xmf3Right = XMFLOAT3(1.0f, 0.0f, 0.0f);
 
-	XMFLOAT4X4 xmf4x4ToTexture = {
-		0.5f, 0.0f, 0.0f, 0.0f,
-		0.0f, -0.5f, 0.0f, 0.0f,
-		0.0f, 0.0f, 1.0f, 0.0f,
-		0.5f, 0.5f, 0.0f, 1.0f };
+	//XMFLOAT4X4 xmf4x4ToTexture = {
+	//	0.5f, 0.0f, 0.0f, 0.0f,
+	//	0.0f, -0.5f, 0.0f, 0.0f,
+	//	0.0f, 0.0f, 1.0f, 0.0f,
+	//	0.5f, 0.5f, 0.0f, 1.0f };
 
-	XMMATRIX xmProjectionToTexture = XMLoadFloat4x4(&xmf4x4ToTexture);
-	XMMATRIX xmmtxViewProjection;
+	//XMMATRIX xmProjectionToTexture = XMLoadFloat4x4(&xmf4x4ToTexture);
+	//XMMATRIX xmmtxViewProjection;
 
-	for (int i = 0;i < scene->m_nLights;++i) {
-		m_pLightCamera.push_back(make_shared<CCamera>());
+	//for (int i = 0;i < scene->m_nLights;++i) {
+	//	m_pLightCamera.push_back(make_shared<CCamera>());
 
-		XMFLOAT3 xmf3Up = Vector3::CrossProduct(looks[i], xmf3Right);
-		XMFLOAT3 lookAtPosition = Vector3::Add(positions[i], looks[i]);
-		m_pLightCamera[i]->GenerateViewMatrix(positions[i], lookAtPosition, xmf3Up);
-		if(i >= MAX_SURVIVOR)
-		{
-			m_pLightCamera[i]->GenerateProjectionMatrix(1.01f, 5.0f, ASPECT_RATIO, 90.0f);	//[0513] 근평면이 있어야  그림자를 그림
-		}
-		m_pLightCamera[i]->GenerateFrustum();
-		m_pLightCamera[i]->MultiplyViewProjection();
+	//	XMFLOAT3 xmf3Up = Vector3::CrossProduct(looks[i], xmf3Right);
+	//	XMFLOAT3 lookAtPosition = Vector3::Add(positions[i], looks[i]);
+	//	m_pLightCamera[i]->GenerateViewMatrix(positions[i], lookAtPosition, xmf3Up);
+	//	if(i >= MAX_SURVIVOR)
+	//	{
+	//		m_pLightCamera[i]->GenerateProjectionMatrix(1.01f, 5.0f, ASPECT_RATIO, 90.0f);	//[0513] 근평면이 있어야  그림자를 그림
+	//	}
+	//	m_pLightCamera[i]->GenerateFrustum();
+	//	m_pLightCamera[i]->MultiplyViewProjection();
 
-		XMFLOAT4X4 viewProjection = m_pLightCamera[i]->GetViewProjection();
-		xmmtxViewProjection = XMLoadFloat4x4(&viewProjection);
-		XMStoreFloat4x4(&scene->m_pLights[i].m_xmf4x4ViewProjection, XMMatrixTranspose(xmmtxViewProjection * xmProjectionToTexture));
+	//	XMFLOAT4X4 viewProjection = m_pLightCamera[i]->GetViewProjection();
+	//	xmmtxViewProjection = XMLoadFloat4x4(&viewProjection);
+	//	XMStoreFloat4x4(&scene->m_pLights[i].m_xmf4x4ViewProjection, XMMatrixTranspose(xmmtxViewProjection * xmProjectionToTexture));
 
-		m_pLightCamera[i]->CreateShaderVariables(pd3dDevice, pd3dCommandList);
-	}
+	//	m_pLightCamera[i]->CreateShaderVariables(pd3dDevice, pd3dCommandList);
+	//}
 
-	// 빛의 카메라 파티션 설정
-	unique_ptr<PartitionInsStandardShader> PtShader(static_cast<PartitionInsStandardShader*>(scene->m_vPreRenderShader[PARTITION_SHADER].release()));
-	auto vBB = PtShader->GetPartitionBB();
+	//// 빛의 카메라 파티션 설정
+	//unique_ptr<PartitionInsStandardShader> PtShader(static_cast<PartitionInsStandardShader*>(scene->m_vPreRenderShader[PARTITION_SHADER].release()));
+	//auto vBB = PtShader->GetPartitionBB();
 
-	for (int i = 0; i < scene->m_nLights;++i) {
-		BoundingBox camerabb;
-		camerabb.Center = m_pLightCamera[i]->GetPosition();
-		camerabb.Extents = XMFLOAT3(0.1f, 0.1f, 0.1f);
+	//for (int i = 0; i < scene->m_nLights;++i) {
+	//	BoundingBox camerabb;
+	//	camerabb.Center = m_pLightCamera[i]->GetPosition();
+	//	camerabb.Extents = XMFLOAT3(0.1f, 0.1f, 0.1f);
+	//	int curFloor = static_cast<int>(std::floor(camerabb.Center.y / 4.5f));
 
-		for (int bbIdx = 0; bbIdx < vBB.size();++bbIdx) {
-			if (vBB[bbIdx]->Intersects(camerabb)) {
-				m_pLightCamera[i]->SetPartition(bbIdx);
-				break;
-			}
-		}
-	}
+	//	m_pLightCamera[i]->SetFloor(curFloor);
+	//	for (int bbIdx = 0; bbIdx < vBB.size();++bbIdx) {
+	//		if (vBB[bbIdx]->Intersects(camerabb)) {
+	//			m_pLightCamera[i]->SetPartition(bbIdx);
+	//			break;
+	//		}
+	//	}
+	//}
 
-	scene->m_vPreRenderShader[PARTITION_SHADER].reset(PtShader.release());
+	//scene->m_vPreRenderShader[PARTITION_SHADER].reset(PtShader.release());
 }
 
 
