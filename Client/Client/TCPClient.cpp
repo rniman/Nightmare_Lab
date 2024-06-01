@@ -511,9 +511,9 @@ void CTcpClient::UpdatePlayer(int nIndex)
 		return;
 	}
 
-	int escapeDoor = m_aClientInfo[nIndex].m_playerInfo.m_iEscapeDoor;
-	if (escapeDoor != -1) {
-		shared_ptr<CGameObject> pGameObject = g_collisionManager.GetCollisionObjectWithNumber(escapeDoor).lock();
+	if (m_nEscapeDoor == -1) m_nEscapeDoor = m_aClientInfo[nIndex].m_playerInfo.m_iEscapeDoor;
+	if (m_nEscapeDoor != -1) {
+		shared_ptr<CGameObject> pGameObject = g_collisionManager.GetCollisionObjectWithNumber(m_nEscapeDoor).lock();
 		pBlueSuitPlayer->SetEscapePos(pGameObject->GetPosition());
 	}
 

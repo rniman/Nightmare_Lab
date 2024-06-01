@@ -97,6 +97,7 @@ private:
 	std::array<CS_CLIENTS_INFO, MAX_CLIENT> m_aClientInfo;
 	std::array<shared_ptr<CPlayer>, MAX_CLIENT> m_apPlayers;
 
+	int m_nEscapeDoor = -1;
 public:
 	SOCKET m_sock;
 	bool m_bSend = true;
@@ -134,5 +135,7 @@ public:
 	XMFLOAT3 GetPostion(int id);
 	std::array<CS_CLIENTS_INFO, 5>& GetArrayClientsInfo();
 	//SOCKET GetSocket() { return m_sock; }
+
+	int GetEscapeDoor() const { return m_nEscapeDoor; }
 };
 

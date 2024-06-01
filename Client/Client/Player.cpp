@@ -688,11 +688,26 @@ void CBlueSuitPlayer::UpdateEnding(float fEndingElapsedTime, int nGameState)
 				fEndingElapsedTime = fMaxFogTime;
 			}
 
-			// 시간에 따른 안개 밀도 계산 (0.0에서 1.0까지 증가)
 			float fFogDensity = 1 - fEndingElapsedTime / fMaxFogTime;
 
 			XMFLOAT4 xmf4EndingFogInfo = XMFLOAT4(1.0f, 0.0f, 0.0f, fFogDensity);
 			XMFLOAT4 xmf4EndingFogColor = XMFLOAT4(0.1f + fEndingElapsedTime * 0.15f, 0.1f, 0.1f, 0.1f);
+			m_pCamera->SetFogColor(xmf4EndingFogColor);
+			m_pCamera->SetFogInfo(xmf4EndingFogInfo);
+		}
+		else
+		{
+			// 최대 시간이 지나면 더 이상 증가하지 않도록 제한
+			float fMaxFogTime = 3.0f; // 안개가 최대치에 도달하는 시간 (초 단위)
+			if (fEndingElapsedTime > fMaxFogTime)
+			{
+				fEndingElapsedTime = fMaxFogTime;
+			}
+
+			float fFogDensity = 1 - fEndingElapsedTime / fMaxFogTime;
+
+			XMFLOAT4 xmf4EndingFogInfo = XMFLOAT4(0.1f, 0.0f, 1.0f, fFogDensity);
+			XMFLOAT4 xmf4EndingFogColor = XMFLOAT4(0.1f + fEndingElapsedTime, 0.1f + fEndingElapsedTime, 0.1f + fEndingElapsedTime, 0.1f + fEndingElapsedTime);
 			m_pCamera->SetFogColor(xmf4EndingFogColor);
 			m_pCamera->SetFogInfo(xmf4EndingFogInfo);
 		}
@@ -1218,6 +1233,22 @@ void CZombiePlayer::UpdateEnding(float fEndingElapsedTime, int nGameState)
 	switch (nGameState)
 	{
 	case GAME_STATE::BLUE_SUIT_WIN:
+	{
+		// 최대 시간이 지나면 더 이상 증가하지 않도록 제한
+		float fMaxFogTime = 3.0f; // 안개가 최대치에 도달하는 시간 (초 단위)
+		if (fEndingElapsedTime > fMaxFogTime)
+		{
+			fEndingElapsedTime = fMaxFogTime;
+		}
+
+		// 시간에 따른 안개 밀도 계산 (0.0에서 1.0까지 증가)
+		float fFogDensity = 1 - fEndingElapsedTime / fMaxFogTime;
+
+		XMFLOAT4 xmf4EndingFogInfo = XMFLOAT4(1.0f, 0.0f, 0.0f, fFogDensity);
+		XMFLOAT4 xmf4EndingFogColor = XMFLOAT4(0.6f - fEndingElapsedTime / 3.0f * 0.5f, 0.6f - fEndingElapsedTime / 3.0f * 0.5f, 0.6f - fEndingElapsedTime / 3.0f * 0.5f, 0.6f - fEndingElapsedTime / 3.0f * 0.5f);
+		m_pCamera->SetFogColor(xmf4EndingFogColor);
+		m_pCamera->SetFogInfo(xmf4EndingFogInfo);
+	}
 		break;
 	case GAME_STATE::ZOMBIE_WIN:
 	{

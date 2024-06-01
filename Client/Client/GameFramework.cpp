@@ -435,6 +435,11 @@ void CGameFramework::PrepareDrawText()
 
 void CGameFramework::RenderUI()
 {
+	if (m_nGameState != GAME_STATE::IN_GAME)
+	{
+		return;
+	}
+
 	D2D1_SIZE_F rtSize = m_d2dRenderTargets[m_nSwapChainBufferIndex]->GetSize();
 	D2D1_RECT_F textRect = D2D1::RectF(0, 0, rtSize.width, rtSize.height);
 
@@ -950,6 +955,22 @@ void CGameFramework::AnimateObjects()
 	if (m_pScene) m_pScene->AnimateObjects(fElapsedTime);
 }
 
+void CGameFramework::AnimateEnding()
+{
+	static bool bUpdateElevatorDoor = false;
+	shared_ptr<CGameObject> pDoor = g_collisionManager.GetCollisionObjectWithNumber(m_pTcpClient->GetEscapeDoor()).lock();
+
+	if (!bUpdateElevatorDoor)
+	{
+		g_collisionManager.GetCollisionObjectWithNumber(m_pTcpClient->GetEscapeDoor()).lock()->UpdatePicking();
+		bUpdateElevatorDoor = true;
+	}
+	pDoor->Animate(m_GameTimer.GetTimeElapsed());
+	AnimateObjects();
+
+
+}
+
 
 void CGameFramework::WaitForGpuComplete()
 {
@@ -1053,7 +1074,8 @@ void CGameFramework::FrameAdvance()
 	}
 	else
 	{
-		AnimateObjects();
+
+		AnimateEnding();
 		m_fEndingElapsedTime += m_GameTimer.GetTimeElapsed();
 
 		m_pMainPlayer->UpdateEnding(m_fEndingElapsedTime, m_nGameState);
@@ -1115,6 +1137,20 @@ void CGameFramework::FrameAdvance()
 			}
 		}
 
+		//if (m_nGameState == GAME_STATE::BLUE_SUIT_WIN)
+		//{
+		//	shared_ptr<CGameObject> pDoor = g_collisionManager.GetCollisionObjectWithNumber(m_pTcpClient->GetEscapeDoor()).lock();
+		//	auto& vlightCamera = m_pPostProcessingShader->GetLightCamera();
+		//	XMFLOAT3 xmf3DoorPos = pDoor->GetPosition();
+		//	XMFLOAT3 xmf3DoorOffset = pDoor->GetLook();
+		//	xmf3DoorOffset = Vector3::ScalarProduct(xmf3DoorOffset, -3.0f, false);
+		//	xmf3DoorPos = Vector3::Add(xmf3DoorPos, xmf3DoorOffset);
+
+		//	vlightCamera[0]->SetPosition(xmf3DoorPos);
+		//	vlightCamera[0]->SetLookVector(pDoor->GetLook());
+		//	vlightCamera[0]->RegenerateViewMatrix();
+		//	vlightCamera[0]->MultiplyViewProjection();
+		//}
 
 		for (int i = 0; i < ndynamicShadowMap;++i)
 		{
@@ -1179,11 +1215,15 @@ void CGameFramework::FrameAdvance()
 		m_pPostProcessingShader->Render(m_d3dCommandList.Get(), m_pCamera.lock(), m_pMainPlayer);
 
 		// Åõ¸í °´Ã¼ ·»´õ¸µ
-		if (m_pScene)
+		if (m_pScene && m_nGameState == GAME_STATE::IN_GAME)
 		{
 			for (auto& s : m_pScene->m_vForwardRenderShader) {
 				s->Render(m_d3dCommandList.Get(), m_pCamera.lock(),m_pMainPlayer);
 			}
+		}
+		else if(m_pScene && m_nGameState != GAME_STATE::IN_GAME)
+		{
+			m_pScene->m_vForwardRenderShader[USER_INTERFACE_SHADER]->Render(m_d3dCommandList.Get(), m_pCamera.lock(), m_pMainPlayer);
 		}
 	}
 	//SynchronizeResourceTransition(m_d3dCommandList.Get(), m_d3dSwapChainBackBuffers[m_nSwapChainBufferIndex].Get(), D3D12_RESOURCE_STATE_RENDER_TARGET, D3D12_RESOURCE_STATE_PRESENT);

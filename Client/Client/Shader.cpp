@@ -1074,6 +1074,7 @@ void CBlueSuitUserInterfaceShader::BuildObjects(ID3D12Device* pd3dDevice, ID3D12
 	pCrosshair->SetMaterial(0, pmatCrosshair);
 	pCrosshair->SetMesh(pmeshRect);
 	pCrosshair->SetScale(0.02f * fxScale, 0.02f, 1.0f);
+	pCrosshair->SetPosition(0.0f, 0.0f, 0.1f);
 
 	//TeleportUI
 	shared_ptr<CTexture> ptexMaskTeleport = make_shared<CTexture>(1, RESOURCE_TEXTURE2D, 0, 1);
@@ -1219,7 +1220,7 @@ void CBlueSuitUserInterfaceShader::BuildObjects(ID3D12Device* pd3dDevice, ID3D12
 	m_vpStamina[1]->SetAlive(false);
 
 	shared_ptr<CTexture> ptexGameWin = make_shared<CTexture>(1, RESOURCE_TEXTURE2D, 0, 1);
-	ptexGameWin->LoadTextureFromDDSFile(pd3dDevice, pd3dCommandList, (wchar_t*)L"Asset/UI/GameWin.dds", RESOURCE_TEXTURE2D, 0);
+	ptexGameWin->LoadTextureFromDDSFile(pd3dDevice, pd3dCommandList, (wchar_t*)L"Asset/UI/GameWin_Player.dds", RESOURCE_TEXTURE2D, 0);
 	CScene::CreateShaderResourceViews(pd3dDevice, ptexGameWin, 0, 3);
 	m_vpmatGameEnding[PLAYER_RESULT::WIN] = make_shared<CMaterial>(1);
 	m_vpmatGameEnding[PLAYER_RESULT::WIN]->SetMaterialType(MATERIAL_ALBEDO_MAP);
@@ -1286,19 +1287,34 @@ void CBlueSuitUserInterfaceShader::AnimateObjectBlueSuit(float fElapsedTime)
 		if (m_fEndingElapsedTime > 3.0) m_fEndingElapsedTime = 3.0f;
 		m_pGameEnding->SetAlive(true);
 		m_pGameEnding->SetMaterial(0, m_vpmatGameEnding[PLAYER_RESULT::OVER]);
+		for (auto& pGameObject : m_vGameObjects)
+		{
+			pGameObject->m_vpMaterials[0]->m_xmf4AlbedoColor = XMFLOAT4(0.0f, 0.0f, 0.0f, m_fEndingElapsedTime / 3.0f + 1.0f);
+		}
 		m_pGameEnding->m_vpMaterials[0]->m_xmf4AlbedoColor = XMFLOAT4(0.0f, 0.0f, 0.0f, 2.0f - m_fEndingElapsedTime / 3.0f);
 		break;
 	case GAME_STATE::BLUE_SUIT_WIN:
 		m_pGameEnding->SetAlive(true);
 		if (m_pBlueSuitPlayer->IsAlive())
 		{
+			m_fEndingElapsedTime += fElapsedTime;
+			if (m_fEndingElapsedTime > 3.0) m_fEndingElapsedTime = 3.0f;
 			m_pGameEnding->SetMaterial(0, m_vpmatGameEnding[PLAYER_RESULT::WIN]);
+			for (auto& pGameObject : m_vGameObjects)
+			{
+				pGameObject->m_vpMaterials[0]->m_xmf4AlbedoColor = XMFLOAT4(0.0f, 0.0f, 0.0f, m_fEndingElapsedTime / 3.0f + 1.0f);
+			}
+			m_pGameEnding->m_vpMaterials[0]->m_xmf4AlbedoColor = XMFLOAT4(0.0f, 0.0f, 0.0f, 2.0f - m_fEndingElapsedTime / 3.0f);
 		}
 		else
 		{
 			m_fEndingElapsedTime += fElapsedTime;
 			if (m_fEndingElapsedTime > 3.0) m_fEndingElapsedTime = 3.0f;
 			m_pGameEnding->SetMaterial(0, m_vpmatGameEnding[PLAYER_RESULT::OVER]);
+			for (auto& pGameObject : m_vGameObjects)
+			{
+				pGameObject->m_vpMaterials[0]->m_xmf4AlbedoColor = XMFLOAT4(0.0f, 0.0f, 0.0f, m_fEndingElapsedTime / 3.0f + 1.0f);
+			}
 			m_pGameEnding->m_vpMaterials[0]->m_xmf4AlbedoColor = XMFLOAT4(0.0f, 0.0f, 0.0f, 2.0f - m_fEndingElapsedTime / 3.0f);
 		}
 		break;
@@ -1468,6 +1484,7 @@ void CZombieUserInterfaceShader::BuildObjects(ID3D12Device* pd3dDevice, ID3D12Gr
 	pCrosshair->SetMaterial(0, pmatCrosshair);
 	pCrosshair->SetMesh(pmeshRect);
 	pCrosshair->SetScale(0.02f * fxScale, 0.02f, 1.0f);
+	pCrosshair->SetPosition(0.0f, 0.0f, 0.1f);
 
 	//TrackingUI
 	shared_ptr<CTexture> ptexTrackingOn = make_shared<CTexture>(1, RESOURCE_TEXTURE2D, 0, 1);
@@ -1621,14 +1638,25 @@ void CZombieUserInterfaceShader::AnimateObjectZombie(float fElapsedTime)
 		else if (!m_pZombiePlayer->IsAbleRunning()) m_pRunning->SetMaterial(0, m_vpmatRunning[2]);
 		break;
 	case GAME_STATE::BLUE_SUIT_WIN:
+		m_fEndingElapsedTime += fElapsedTime;
+		if (m_fEndingElapsedTime > 3.0) m_fEndingElapsedTime = 3.0f;
 		m_pGameEnding->SetAlive(true);
 		m_pGameEnding->SetMaterial(0, m_vpmatGameEnding[PLAYER_RESULT::OVER]);
+		for (auto& pGameObject : m_vGameObjects)
+		{
+			pGameObject->m_vpMaterials[0]->m_xmf4AlbedoColor = XMFLOAT4(0.0f, 0.0f, 0.0f, m_fEndingElapsedTime / 3.0f + 1.0f);
+		}
+		m_pGameEnding->m_vpMaterials[0]->m_xmf4AlbedoColor = XMFLOAT4(0.0f, 0.0f, 0.0f, 2.0f - m_fEndingElapsedTime / 3.0f);
 		break;
 	case GAME_STATE::ZOMBIE_WIN:
 		m_fEndingElapsedTime += fElapsedTime;
 		if (m_fEndingElapsedTime > 3.0) m_fEndingElapsedTime = 3.0f;
 		m_pGameEnding->SetAlive(true);
 		m_pGameEnding->SetMaterial(0, m_vpmatGameEnding[PLAYER_RESULT::WIN]);
+		for (auto& pGameObject : m_vGameObjects)
+		{
+			pGameObject->m_vpMaterials[0]->m_xmf4AlbedoColor = XMFLOAT4(0.0f, 0.0f, 0.0f, m_fEndingElapsedTime / 3.0f + 1.0f);
+		}
 		m_pGameEnding->m_vpMaterials[0]->m_xmf4AlbedoColor = XMFLOAT4(0.0f, 0.0f, 0.0f, 2.0f - m_fEndingElapsedTime / 3.0f);
 		break;
 	default:

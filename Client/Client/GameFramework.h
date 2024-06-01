@@ -47,6 +47,7 @@ public:
 
 	void ProcessInput();
 	void AnimateObjects();
+	void AnimateEnding();
 	//void ProcessCollide();
 	void PreRenderTasks();
 	void FrameAdvance();
