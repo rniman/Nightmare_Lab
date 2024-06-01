@@ -38,6 +38,11 @@ void CCollisionManager::AddCollisionObject(const shared_ptr<CGameObject>& pGameO
 	m_pCollisionObject.emplace_back(pGameObject);
 }
 
+void CCollisionManager::AddNonCollisionObject(const shared_ptr<CGameObject>& pGameObject)
+{
+	m_pNonCollisionObjects.emplace_back(pGameObject);
+}
+
 //size_t GetSizeGameObjects(CollisonLayer nLayer) { return m_v3dpCollisionGameObjects[static_cast<int>(nLayer)].size(); }
 
 vpObjects_t& CCollisionManager::GetSpaceGameObjects(int nHeight, int nWidth, int nDepth)

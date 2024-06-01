@@ -99,10 +99,16 @@ void CServerCollisionManager::Collide(float fElapsedTime, const shared_ptr<CServ
 	BoundingOrientedBox oobbPlayer;
 
 	BoundingBox aabbPlayer;
+	//BoundingOrientedBox aabbPlayer;
 	aabbPlayer.Center = pPlayer->GetOOBB(0).Center;
 	aabbPlayer.Extents = pPlayer->GetOOBB(0).Extents;
+	//aabbPlayer.Orientation = pPlayer->GetOOBB(0).Orientation;
+
 	XMVECTOR xmvTranslation = XMVectorSet(pPlayer->GetPosition().x, pPlayer->GetPosition().y, pPlayer->GetPosition().z, 1.0f);
 	aabbPlayer.Transform(aabbPlayer, 1.0f, XMQuaternionIdentity(), xmvTranslation);
+	//XMFLOAT4X4 worldTrans = pPlayer->GetWorldMatrix();
+	//aabbPlayer.Transform(aabbPlayer, XMLoadFloat4x4(&worldTrans));
+	//XMStoreFloat4(&aabbPlayer.Orientation, XMQuaternionNormalize(XMLoadFloat4(&aabbPlayer.Orientation)));
 
 	shared_ptr<CServerZombiePlayer> pZombiePlayer = dynamic_pointer_cast<CServerZombiePlayer>(pPlayer);
 	// 플레이어 충돌검사
@@ -240,7 +246,7 @@ void CServerCollisionManager::CollideWithPlayer(float fElapsedTime)
 {
 }
 
-void CServerCollisionManager::CollideWithMine(shared_ptr<CServerGameObject> pGameObject, shared_ptr<CServerGameObject> pPlayer,BoundingBox& aabbPlayer)
+void CServerCollisionManager::CollideWithMine(shared_ptr<CServerGameObject> pGameObject, shared_ptr<CServerGameObject> pPlayer, BoundingBox& aabbPlayer)
 {
 	if (pGameObject->GetCollisionType() != Picking) {
 		return;

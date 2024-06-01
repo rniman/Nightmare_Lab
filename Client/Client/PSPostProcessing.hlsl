@@ -6,8 +6,11 @@ float4 PSPostProcessing(PS_POSTPROCESSING_OUT input) : SV_Target
     float4 cColor = DFTextureTexture.Sample(gssWrap, input.uv);
     float3 normal = DFNormalTexture.Sample(gssWrap, input.uv).rgb;
     float4 position = DFPositionTexture.Sample(gssWrap, input.uv);
+    //return float4(normalize(position.xyz) * 0.5f + 0.5f, 1.0f);
+
     //return cColor;
-    float depth = DFzDepthTexture.Sample(gssWrap, input.uv);
+    //float2 uvP = input.position.xy / float2(FRAME_BUFFER_WIDTH, FRAME_BUFFER_HEIGHT);
+    //float depth = DFzDepthTexture.Sample(gssWrap, uvP);
     //return float4(depth, depth, depth, 1.0f);
     //return ShadowMapTexture[4].Sample(gssWrap, input.uv); // 뎁스 저장되는지 확인
     

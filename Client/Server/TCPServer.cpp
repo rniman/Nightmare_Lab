@@ -745,6 +745,10 @@ void TCPServer::LoadScene()
 							{
 								::ReadIntegerFromFile(pInFile);
 								::ReadStringFromFile(pInFile, pStrFrameName);
+								//std::cout << pStrFrameName << endl;
+								if (!strcmp(pStrFrameName, "BoxCollide_Wall_(17)")) {
+									int x = 0;
+								}
 							}
 							else if (!strcmp(pstrToken, "<Children>:"))
 							{
@@ -864,7 +868,7 @@ void TCPServer::CreateSceneObject(char* pstrFrameName, const XMFLOAT4X4& xmf4x4W
 	{
 		pGameObject = make_shared<CServerEnvironmentObject>(pstrFrameName, xmf4x4World, voobb);
 	}
-	else if(!strcmp(pstrFrameName, "Biological_Capsule_1") || !strcmp(pstrFrameName, "Laboratory_Table_1"))
+	else if(!strcmp(pstrFrameName, "Biological_Capsule_1") || !strcmp(pstrFrameName, "Laboratory_Table_1") || !strcmp(pstrFrameName, "Laboratory_Stool_1"))
 	{
 		pGameObject = make_shared<CServerEnvironmentObject>(pstrFrameName, xmf4x4World, voobb);
 	}

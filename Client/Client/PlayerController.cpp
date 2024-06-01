@@ -130,21 +130,7 @@ void CBlueSuitAnimationController::AdvanceTime(float fElapsedTime, CGameObject* 
 			pRootGameObject->UpdateTransform(NULL);
 			return;
 		}
-
-		//BlendLeftArm(fElapsedTime);
-
-		/*XMFLOAT3 axis = { 0.f,0.f,1.f };
-		static float time = 0.0f;
-		time += 0.1f;
-		XMMATRIX xmmtxRotate = XMMatrixRotationAxis(XMLoadFloat3(&axis), XMConvertToRadians(-72.0f-CScene::testAngle));
-		XMStoreFloat4x4(&m_pAnimationSets->m_vpBoneFrameCaches[m_nElbow_L]->m_xmf4x4ToParent,
-			XMMatrixMultiply(xmmtxRotate, XMLoadFloat4x4(&m_pAnimationSets->m_vpBoneFrameCaches[m_nElbow_L]->m_xmf4x4ToParent)));*/
-		
 		XMFLOAT3 axis = { 0.f,0.f,1.f };
-		//// 한번 계산하고 더이상 계산안함
-		//static XMMATRIX L_ElbowRotate = XMMatrixRotationAxis(XMLoadFloat3(&axis), XMConvertToRadians(-72.0f)); 
-		//XMStoreFloat4x4(&m_pAnimationSets->m_vpBoneFrameCaches[m_nElbow_L]->m_xmf4x4ToParent,
-		//	XMMatrixMultiply(L_ElbowRotate, XMLoadFloat4x4(&m_pAnimationSets->m_vpBoneFrameCaches[m_nElbow_L]->m_xmf4x4ToParent)));
 		static float time = 0.0f;
 		time += 0.1f;
 		XMMATRIX L_ElbowRotate = XMMatrixRotationAxis(XMLoadFloat3(&axis), XMConvertToRadians(-88.0f));
@@ -184,8 +170,17 @@ void CBlueSuitAnimationController::CalculateRightHandMatrix()
 	XMMATRIX xmmtxRotate2 = XMMatrixRotationAxis(XMLoadFloat3(&axis), XMConvertToRadians(18.0f));
 	axis = { 1.f,0.f,0.f };
 	XMMATRIX xmmtxRotate3 = XMMatrixRotationAxis(XMLoadFloat3(&axis), XMConvertToRadians(45.0f));
+	axis = { 0.f,0.f,1.f };
+	XMMATRIX rElbowRotate = XMMatrixRotationAxis(XMLoadFloat3(&axis), XMConvertToRadians(346.0f));
+	/*XMStoreFloat4x4(&m_pAnimationSets->m_vpBoneFrameCaches[m_nElbow_R]->m_xmf4x4ToParent,
+		XMMatrixMultiply(rElbowRotate, XMLoadFloat4x4(&m_pAnimationSets->m_vpBoneFrameCaches[m_nElbow_R]->m_xmf4x4ToParent)));*/
+	xmmtxRotate = XMMatrixMultiply(xmmtxRotate, xmmtxRotate2);
+	xmmtxRotate = XMMatrixMultiply(xmmtxRotate, xmmtxRotate3);
+	xmmtxRotate = XMMatrixMultiply(xmmtxRotate, rElbowRotate);
+	
+	XMStoreFloat4x4(&m_xmf4x4RightHandRotate, xmmtxRotate);
 
-	XMStoreFloat4x4(&m_xmf4x4RightHandRotate, XMMatrixMultiply(XMMatrixMultiply(xmmtxRotate, xmmtxRotate2), xmmtxRotate3));
+
 }
 
 
@@ -604,6 +599,9 @@ CZombieAnimationController::CZombieAnimationController(ID3D12Device* pd3dDevice,
 		if (strncmp(frameName, "mixamorig:Neck", strlen(frameName)) == 0) m_nStartNeck = i;
 		if (strncmp(frameName, "mixamorig:HeadTop_End", strlen(frameName)) == 0) m_nEndNeck = i;
 		if (strncmp(frameName, "mixamorig:RightHandThumb4", strlen(frameName)) == 0) m_nEndSpine = i;
+		if (strncmp(frameName, "EyesSock", strlen(frameName)) == 0) m_nEyesSock = i;
+
+		
 	}
 }
 
@@ -792,4 +790,20 @@ void CZombieAnimationController::TransitionWALKtoIDLE(float fElapsedTime, int nT
 		SetTrackEnable(1, false);
 		SetTrackPosition(1, 0.0f);
 	}
+}
+
+int CZombieAnimationController::GetBoneFrameIndex(char* frameName)
+{
+	int i = -1;
+	if (strncmp(frameName, "mixamorig:Spine", strlen(frameName)) == 0) i = m_nStartSpine;
+	if (strncmp(frameName, "mixamorig:Neck", strlen(frameName)) == 0) i = m_nStartNeck;
+	if (strncmp(frameName, "mixamorig:HeadTop_End", strlen(frameName)) == 0) i = m_nEndNeck;
+	if (strncmp(frameName, "mixamorig:RightHandThumb4", strlen(frameName)) == 0) i = m_nEndSpine;
+	if (strncmp(frameName, "EyesSock", strlen(frameName)) == 0) i = m_nEyesSock;
+
+	if (i == -1) {
+		assert(0);
+	}
+
+	return i;
 }

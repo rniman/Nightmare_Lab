@@ -106,7 +106,8 @@ void CServerPlayer::Collide(const shared_ptr<CServerCollisionManager>& pCollisio
 	XMFLOAT3 xmf3OldPosition = m_xmf3OldPosition;
 	m_bOccurredCollision = false;
 
-	BoundingBox aabbPlayer;
+	BoundingBox aabbPlayer; 
+	//BoundingOrientedBox aabbPlayer;
 
 	XMFLOAT3 xmf3SubVelocity[3];
 	xmf3SubVelocity[0] = XMFLOAT3(xmf3NormalOfVelocity.x, 0.0f, xmf3NormalOfVelocity.z);
@@ -139,8 +140,11 @@ void CServerPlayer::Collide(const shared_ptr<CServerCollisionManager>& pCollisio
 		OnUpdateToParent();
 		aabbPlayer.Center = m_voobbOrigin[0].Center;
 		aabbPlayer.Extents = m_voobbOrigin[0].Extents;
+		//aabbPlayer.Orientation = m_voobbOrigin[0].Orientation;
 		XMVECTOR xmvTranslation = XMVectorSet(m_xmf3Position.x, m_xmf3Position.y, m_xmf3Position.z, 1.0f);
 		aabbPlayer.Transform(aabbPlayer, 1.0f, XMQuaternionIdentity(), xmvTranslation);
+		//aabbPlayer.Transform(aabbPlayer, XMLoadFloat4x4(&m_xmf4x4World));
+		//XMStoreFloat4(&aabbPlayer.Orientation, XMQuaternionNormalize(XMLoadFloat4(&aabbPlayer.Orientation)));
 
 		for (int i = m_nWidth - 2; i <= m_nWidth + 2 && !m_bOccurredCollision; ++i)
 		{
@@ -397,7 +401,7 @@ void CServerBlueSuitPlayer::UseItem(shared_ptr<CServerCollisionManager>& pCollis
 	{
 		if (m_apSlotItems[Radar]->IsObtained())
 		{
-			m_selectItem = RightItem::RAIDER;
+			m_selectItem = RightItem::RADER;
 		}
 	}
 	if (m_wKeyBuffer & KEY_3)
@@ -635,7 +639,7 @@ void CServerBlueSuitPlayer::RightClickProcess(shared_ptr<CServerCollisionManager
 	{
 	case RightItem::NONE:
 		break;
-	case RightItem::RAIDER:
+	case RightItem::RADER:
 		break;
 	case RightItem::TELEPORT:
 		if (m_apSlotItems[Teleport]->IsObtained())

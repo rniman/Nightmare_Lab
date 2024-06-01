@@ -91,7 +91,7 @@ public:
 	void PrepareRender(ID3D12GraphicsCommandList* pd3dCommandList, const shared_ptr<CCamera>& pCamera);
 	void Render(ID3D12GraphicsCommandList* pd3dCommandList, const shared_ptr<CCamera>& pCamera,int nPipelineState);
 	void ShadowPreRender(ID3D12GraphicsCommandList* pd3dCommandList, const shared_ptr<CCamera>& pCamera, int nPipelineState);
-	void PrevRender(ID3D12GraphicsCommandList* pd3dCommandList, const shared_ptr<CCamera>& pCamera,int nPipelineState);
+	//void PrevRender(ID3D12GraphicsCommandList* pd3dCommandList, const shared_ptr<CCamera>& pCamera,int nPipelineState);
 
 	void AddDefaultObject(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dCommandList, ObjectType type, XMFLOAT3 position,int shader, int mesh);
 	
@@ -105,7 +105,11 @@ public:
 	vector<XMFLOAT3>					m_xmf3lightPositions, m_xmf3lightLooks;
 	vector<XMFLOAT3>& GetLightPositions() { return m_xmf3lightPositions; }
 	vector<XMFLOAT3>& GetLightLooks() { return m_xmf3lightLooks; }
-	void BuildLights();
+
+	vector<shared_ptr<CLightCamera>> m_pLightCamera;
+	vector<shared_ptr<CLightCamera>>& GetLightCamera() { return m_pLightCamera; }
+
+	void BuildLights(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dCommandList);
 
 	void SetPlayer(shared_ptr<CPlayer> pPlayer, int nIndex);
 	void SetMainPlayer(const shared_ptr<CPlayer>& pMainplayer);

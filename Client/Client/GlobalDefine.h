@@ -12,7 +12,7 @@
 #define ADD_RENDERTARGET_COUNT 4  
 #define ADD_DEPTH_MAP_COUNT 1
 
-#define ZOMBIEPLAYER 0
+#define ZOMBIEPLAYER -1
 #define DEBUGFLOOR 4
 #define ITEM_COUNT 80
 
@@ -78,7 +78,7 @@ enum class ObjectType { DEFAULT= 0, HEXAHERON};
 
 enum RightItem {
 	NONE = 0,
-	RAIDER,
+	RADER,
 	TELEPORT,
 	LANDMINE,
 	FUSE,

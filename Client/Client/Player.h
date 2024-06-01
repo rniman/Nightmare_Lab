@@ -145,6 +145,13 @@ protected:
 	float m_fInterruption = 0.0f;
 	bool m_bRunning = false;
 	float m_fRunningTime = 0.0f;
+
+	bool m_ShadowRender;
+	bool m_SelfShadowRender;
+public:
+	void SetShadowRender(bool val) { m_ShadowRender = val; }
+	void SetSelfShadowRender(bool val) { m_SelfShadowRender = val; }
+
 };
 
 constexpr float BLUESUIT_STAMINA_MAX{ 5.0f };
@@ -164,6 +171,7 @@ public:
 	virtual void Update(float fElapsedTime) override;
 	virtual void Animate(float fElapsedTime);
 	virtual void Render(ID3D12GraphicsCommandList* pd3dCommandList);
+	virtual void MainPlayerRender(ID3D12GraphicsCommandList* pd3dCommandList);
 
 	virtual void UpdatePicking() override;;
 	virtual void RightClickProcess();
@@ -241,7 +249,7 @@ public:
 	void SetFuseItem(shared_ptr<CFuseObject> object) { m_pFuse = object; }
 
 	XMFLOAT4X4* RaderUpdate(float fElapsedTime);
-	bool PlayRaiderUI() { return m_fOpenRaderTime == 0.0f && m_bRightClick; }
+	bool PlayRaiderUI() { return m_fOpenRaderTime == 0.0f && m_bRightClick && m_selectItem == RADER; }
 	float GetEscapeLength();
 private:
 	// 레이더 아이템 행렬
@@ -265,8 +273,6 @@ public:
 private:
 	float m_fStopMoving = 0.0f;
 	int m_iMineobjectNum = -1;
-public:
-
 };
 
 struct FrameTimeInfo;
@@ -317,4 +323,5 @@ public:
 	void SetEectricShock();
 	void SetElectiricMt(shared_ptr<CMaterial> mt) { m_pElectircaterial = mt; }
 
+	virtual shared_ptr<CCamera> ChangeCamera(DWORD nNewCameraMode, float fElapsedTime);
 };
