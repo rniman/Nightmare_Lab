@@ -414,7 +414,7 @@ CServerMineObject::CServerMineObject()
 
 	BoundingOrientedBox oobb;
 	oobb.Center = XMFLOAT3(0.003596, -0.00012212, -0.01279);
-	oobb.Extents = XMFLOAT3(0.26312, 0.066229, 0.27357);
+	oobb.Extents = XMFLOAT3(0.26312/2, 0.066229/2, 0.27357/2);
 	XMStoreFloat4(&oobb.Orientation, XMQuaternionIdentity());
 
 	m_voobbOrigin.clear();

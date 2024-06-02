@@ -896,6 +896,17 @@ void CInstanceStandardMesh::CreateInstanceObjectInfo(char* pstrMeshName, XMFLOAT
 		size_t nLastIndex = pOriginInstance->m_vInstanceObjectInfo.size() - 1;
 		g_collisionManager.AddCollisionObject(pOriginInstance->m_vInstanceObjectInfo[nLastIndex]);
 	}
+	else if (!strcmp(pstrMeshName, "SM_Prop_Vents_Straight_01") || !strcmp(pstrMeshName, "SM_Prop_Crate_01")
+		|| !strcmp(pstrMeshName, "SM_Prop_Pipe_Curve_02") || !strcmp(pstrMeshName, "SM_Prop_Billboard_Roof_01")
+		|| !strcmp(pstrMeshName, "SM_Prop_Roof_Aircon_03") || !strcmp(pstrMeshName, "SM_Prop_Vents_End_01")
+		|| !strcmp(pstrMeshName, "SM_Prop_ShopInterior_Table_01") || !strcmp(pstrMeshName, "SM_Prop_Couch_01")
+		|| !strcmp(pstrMeshName, "SM_Prop_PotPlant_02") || !strcmp(pstrMeshName, "Table1of10"))
+	{
+		pInstanceObjectInfo = make_shared<CEnvironmentObject>(m_pstrMeshName, xmf4x4WorldMatrix, this);
+		pOriginInstance->m_vInstanceObjectInfo.push_back(pInstanceObjectInfo);
+		size_t nLastIndex = pOriginInstance->m_vInstanceObjectInfo.size() - 1;
+		g_collisionManager.AddCollisionObject(pOriginInstance->m_vInstanceObjectInfo[nLastIndex]);
+	}
 	else
 	{
 		static int noneboxCount = 0;

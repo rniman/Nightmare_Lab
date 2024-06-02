@@ -1,5 +1,6 @@
 #include "stdafx.h"
 #include "Scene.h"
+#include "Player.h"
 #include "PlayerController.h"
 
 float CScene::testAngle;
@@ -600,6 +601,7 @@ CZombieAnimationController::CZombieAnimationController(ID3D12Device* pd3dDevice,
 		if (strncmp(frameName, "mixamorig:HeadTop_End", strlen(frameName)) == 0) m_nEndNeck = i;
 		if (strncmp(frameName, "mixamorig:RightHandThumb4", strlen(frameName)) == 0) m_nEndSpine = i;
 		if (strncmp(frameName, "EyesSock", strlen(frameName)) == 0) m_nEyesSock = i;
+		if (strncmp(frameName, "mixamorig:Hips", strlen(frameName)) == 0) m_nHips = i;
 
 		
 	}
@@ -663,8 +665,18 @@ void CZombieAnimationController::AdvanceTime(float fElapsedTime, CGameObject* pR
 				SetTrackPosition(2, 0.0f);
 			}
 		}
-
 		pRootGameObject->UpdateTransform(NULL);
+
+		if (m_pPlayer) {
+			XMFLOAT3 offset = GetBoneFramePositionVector(m_nEyesSock);
+			XMFLOAT3 pl_pos = m_pPlayer->GetPosition();
+			offset.x = offset.x - pl_pos.x;
+			offset.y = offset.y - pl_pos.y;
+			offset.z = offset.z - pl_pos.z;
+			if (m_pPlayer->GetCamera()->GetMode() != THIRD_PERSON_CAMERA) {
+				m_pPlayer->GetCamera()->SetOffset(offset);
+			}
+		}
 
 		OnRootMotion(pRootGameObject);
 		OnAnimationIK(pRootGameObject);
@@ -800,6 +812,7 @@ int CZombieAnimationController::GetBoneFrameIndex(char* frameName)
 	if (strncmp(frameName, "mixamorig:HeadTop_End", strlen(frameName)) == 0) i = m_nEndNeck;
 	if (strncmp(frameName, "mixamorig:RightHandThumb4", strlen(frameName)) == 0) i = m_nEndSpine;
 	if (strncmp(frameName, "EyesSock", strlen(frameName)) == 0) i = m_nEyesSock;
+	if (strncmp(frameName, "mixamorig:Hips", strlen(frameName)) == 0) i = m_nHips;
 
 	if (i == -1) {
 		assert(0);

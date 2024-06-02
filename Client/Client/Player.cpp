@@ -1189,6 +1189,9 @@ void CZombiePlayer::LoadModelAndAnimation(ID3D12Device* pd3dDevice, ID3D12Graphi
 	LoadBoundingBox(m_voobbOrigin);
 	m_pSkinnedAnimationController = make_shared<CZombieAnimationController>(pd3dDevice, pd3dCommandList, 3, pLoadModelInfo);
 
+	m_pBodyObject= FindFrame("Body");
+	m_pEyesObject = FindFrame("Eyes");
+
 //	m_pSkinnedAnimationController->SetCallbackKeys(1, 2);
 //#ifdef _WITH_SOUND_RESOURCE
 //	m_pSkinnedAnimationController->SetCallbackKey(0, 0.1f, _T("Footstep01"));
@@ -1218,13 +1221,14 @@ void CZombiePlayer::Update(float fElapsedTime)
 		}
 	}
 	else {
-		int index = dynamic_pointer_cast<CZombieAnimationController>(m_pSkinnedAnimationController)->GetBoneFrameIndex((char*)"EyesSock");
-		XMFLOAT3 offset = m_pSkinnedAnimationController->GetBoneFramePositionVector(index);
-		offset.x = offset.x - m_xmf3Position.x;
-		offset.y = offset.y - m_xmf3Position.y;	// [0507]수정
-		offset.z = offset.z - m_xmf3Position.z;
-		m_pCamera->SetOffset(offset);
+		//int index = dynamic_pointer_cast<CZombieAnimationController>(m_pSkinnedAnimationController)->GetBoneFrameIndex((char*)"EyesSock");
+		//XMFLOAT3 offset = m_pSkinnedAnimationController->GetBoneFramePositionVector(index);
+		//offset.x = offset.x - m_xmf3Position.x;
+		//offset.y = offset.y - m_xmf3Position.y;	// [0507]수정
+		//offset.z = offset.z - m_xmf3Position.z;
+		//m_pCamera->SetOffset(offset);
 
+		//m_pBodyObject->m_xmf4x4World = Matrix4x4::Multiply(m_pBodyObject->m_xmf4x4ToParent, m_pBodyObject->m_xmf4x4World);
 		CPlayer::Update(fElapsedTime);
 	}
 
@@ -1416,6 +1420,8 @@ shared_ptr<CCamera> CZombiePlayer::ChangeCamera(DWORD nNewCameraMode, float fEla
 {
 	shared_ptr<CCamera> camera = CPlayer::ChangeCamera(nNewCameraMode, fElapsedTime);
 	if (camera->GetMode() != THIRD_PERSON_CAMERA) {		
+
+		m_pCamera->GenerateProjectionMatrix(0.01f, 100.0f, ASPECT_RATIO, 60.0f);
 		int index = dynamic_pointer_cast<CZombieAnimationController>(m_pSkinnedAnimationController)->GetBoneFrameIndex((char*)"EyesSock");
 		XMFLOAT3 offset = m_pSkinnedAnimationController->GetBoneFramePositionVector(index);
 		//offset.x = 0.0f; offset.z = 0.0f;
@@ -1424,6 +1430,10 @@ shared_ptr<CCamera> CZombiePlayer::ChangeCamera(DWORD nNewCameraMode, float fEla
 		camera->SetOffset(offset);
 		camera->SetPosition(Vector3::Add(m_xmf3Position, m_pCamera->GetOffset()));
 	}
+
+	auto thisPlayer = shared_from_this();
+	dynamic_pointer_cast<CZombieAnimationController>(m_pSkinnedAnimationController)->SetPlayer(dynamic_pointer_cast<CPlayer>(thisPlayer));
+	
 
 	return camera;
 }

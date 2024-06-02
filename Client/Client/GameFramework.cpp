@@ -885,6 +885,9 @@ void CGameFramework::BuildObjects()
 	m_GameTimer.Reset();
 	PreRenderTasks(); // 사전 렌더링 작업
 
+	int x = g_collisionManager.GetNumOfCollisionObject();
+	x += 1;
+
 	int light_id = 0;
 	auto& LightCamera = m_pScene->GetLightCamera();
 	for (auto& pPlayer : m_apPlayer)

@@ -692,6 +692,15 @@ void CScene::LoadScene(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3d
 		}
 	}
 
+	for (int i = 0; i < g_collisionManager.GetNumOfCollisionObject();++i) { // 월드변환 행렬을 가지고 있는 객체들.
+		auto pObject = g_collisionManager.GetCollisionObjectWithNumber(i).lock();
+		if (!transparentObjects[pObject->m_pstrFrameName].empty()) {
+			pObject->SetTransparentObjectInfo(transparentObjects[pObject->m_pstrFrameName]);
+		}
+	}
+
+	
+
 
 	// 파티션 분할한 씬 로드
 	FILE* pPartitionFile = NULL;
