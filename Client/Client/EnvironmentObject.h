@@ -73,6 +73,7 @@ public:
 	virtual void UpdatePicking() override;
 
 private:
+	int m_nInstanceNumber = 0;
 	weak_ptr<CGameObject> m_pInstanceObject;
 
 	bool m_bOpened = false;

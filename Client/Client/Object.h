@@ -546,6 +546,9 @@ public:
 	virtual void Animate(float fElapsedTime) override;
 	virtual void Render(ID3D12GraphicsCommandList* pd3dCommandList);
 
+	void AddInstanceNumber() { m_nInstanceNumber++; }
+	int GetInstanceNumber() { return m_nInstanceNumber; }
 public:
 	vector<shared_ptr<CGameObject>> m_vInstanceObjectInfo;
+	int m_nInstanceNumber = 0;
 };

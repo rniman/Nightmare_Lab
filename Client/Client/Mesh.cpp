@@ -833,6 +833,7 @@ void CInstanceStandardMesh::CreateInstanceObjectInfo(char* pstrMeshName, XMFLOAT
 		pOriginInstance->m_vInstanceObjectInfo.push_back(pInstanceObjectInfo);
 		size_t nLastIndex = pOriginInstance->m_vInstanceObjectInfo.size() - 1;
 		g_collisionManager.AddCollisionObject(pOriginInstance->m_vInstanceObjectInfo[nLastIndex]);
+		pOriginInstance->AddInstanceNumber();
 	}
 	else if (!strcmp(pstrMeshName, "Drawer_1") || !strcmp(pstrMeshName, "Drawer_2"))
 	{

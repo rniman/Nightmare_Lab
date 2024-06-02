@@ -123,6 +123,7 @@ CDoorObject::CDoorObject(char* pstrFrameName, XMFLOAT4X4& xmf4x4World, CMesh* pM
 {
 	m_nCollisionType = 2;
 	m_pInstanceObject = pGameObject;
+	m_nInstanceNumber = dynamic_pointer_cast<CInstanceObject>(pGameObject)->GetInstanceNumber();
 }
 
 CDoorObject::~CDoorObject()
@@ -141,11 +142,11 @@ void CDoorObject::Render(ID3D12GraphicsCommandList* pd3dCommandList)
 		for (int subMeshIndex = 0; subMeshIndex < 1; subMeshIndex++)
 		{
 			shared_ptr<CInstanceStandardMesh> pInstanceMesh = dynamic_pointer_cast<CInstanceStandardMesh>(pGameObject->GetMesh());
-			pInstanceMesh->GetInstanceTransformMatrix()[0] = Matrix4x4::Transpose(m_xmf4x4World);
-			UINT8* pBufferDataBegin = NULL;
-			pInstanceMesh->GetInstanceTransformMatrixBuffer()->Map(0, NULL, (void**)&pBufferDataBegin);
-			memcpy(pBufferDataBegin, pInstanceMesh->GetInstanceTransformMatrix(), sizeof(XMFLOAT4X4) * 1);
-			pInstanceMesh->GetInstanceTransformMatrixBuffer()->Unmap(0, NULL);
+			//pInstanceMesh->GetInstanceTransformMatrix()[m_nInstanceNumber] = Matrix4x4::Transpose(m_xmf4x4World);
+			//UINT8* pBufferDataBegin = NULL;
+			//pInstanceMesh->GetInstanceTransformMatrixBuffer()->Map(0, NULL, (void**)&pBufferDataBegin);
+			//memcpy(pBufferDataBegin, pInstanceMesh->GetInstanceTransformMatrix(), sizeof(XMFLOAT4X4) * 1);
+			//pInstanceMesh->GetInstanceTransformMatrixBuffer()->Unmap(0, NULL);
 
 			D3D12_VERTEX_BUFFER_VIEW pVertexBufferViews[6] = { pInstanceMesh->GetVertexBufferView(),  pInstanceMesh->GetUV0BufferView(),  pInstanceMesh->GetNormalBufferView(),
 				 pInstanceMesh->GetTangentBufferView(), pInstanceMesh->GetBiTangentBufferView(), pInstanceMesh->GetInstanceTransformMatrixBufferView() };
@@ -157,7 +158,7 @@ void CDoorObject::Render(ID3D12GraphicsCommandList* pd3dCommandList)
 			{
 				D3D12_INDEX_BUFFER_VIEW dSubSetIndexBufferViews = pInstanceMesh->GetIndexBufferView(subMeshIndex);
 				pd3dCommandList->IASetIndexBuffer(&dSubSetIndexBufferViews);
-				pd3dCommandList->DrawIndexedInstanced(pInstanceMesh->GetNumOfSubSetIndices(subMeshIndex), 1, 0, 0, 0);
+				pd3dCommandList->DrawIndexedInstanced(pInstanceMesh->GetNumOfSubSetIndices(subMeshIndex), 1, 0, 0, m_nInstanceNumber);
 			}
 		}
 	}

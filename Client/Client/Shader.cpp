@@ -1892,7 +1892,7 @@ void COutLineShader::Render(ID3D12GraphicsCommandList* pd3dCommandList, const sh
 				continue;
 			}
 
-			m_pZombiePlayer->Render(pd3dCommandList);
+			//m_pZombiePlayer->Render(pd3dCommandList);
 			for (const auto& pBlueSuitPlayer : m_vpBlueSuitPlayer)
 			{
 				pBlueSuitPlayer->Render(pd3dCommandList);
