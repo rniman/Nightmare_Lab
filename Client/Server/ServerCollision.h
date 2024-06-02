@@ -32,6 +32,8 @@ public:
 
 	void Update(float fElapsedTime);
 	void Collide(float fElapsedTime, const shared_ptr<CServerPlayer>& pPlayer);
+	void PlayerInStair(const std::shared_ptr<CServerPlayer>& pPlayer);
+	void CheckStairTrigger(const std::shared_ptr<CServerGameObject>& pGameObject, DirectX::BoundingSphere& aabbPlayer, const std::shared_ptr<CServerPlayer>& pPlayer);
 	void CollideWithPlayer(float fElapsedTime);
 	void CollideWithMine(shared_ptr<CServerGameObject> pGameObject, shared_ptr<CServerGameObject> pPlayer, BoundingBox& aabbPlayer);
 

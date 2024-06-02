@@ -96,14 +96,20 @@ void CServerCollisionManager::Collide(float fElapsedTime, const shared_ptr<CServ
 		return;
 	}
 
-	BoundingOrientedBox oobbPlayer;
-
-	BoundingBox aabbPlayer;
+	BoundingSphere aabbPlayer;
+	/*BoundingBox aabbPlayer;
 	aabbPlayer.Center = pPlayer->GetOOBB(0).Center;
 	aabbPlayer.Extents = pPlayer->GetOOBB(0).Extents;
 	XMVECTOR xmvTranslation = XMVectorSet(pPlayer->GetPosition().x, pPlayer->GetPosition().y, pPlayer->GetPosition().z, 1.0f);
-	aabbPlayer.Transform(aabbPlayer, 1.0f, XMQuaternionIdentity(), xmvTranslation);
+	aabbPlayer.Transform(aabbPlayer, 1.0f, XMQuaternionIdentity(), xmvTranslation);*/
 	
+	//aabbPlayer = pPlayer->GetOOBB(0);
+	aabbPlayer.Center = pPlayer->GetOOBB(0).Center;
+	aabbPlayer.Radius = pPlayer->GetOOBB(0).Extents.z;
+	XMFLOAT4X4 xmf4x4World = pPlayer->GetWorldMatrix();
+	aabbPlayer.Transform(aabbPlayer, XMLoadFloat4x4(&xmf4x4World));
+	//XMStoreFloat4(&aabbPlayer.Orientation, XMQuaternionNormalize(XMLoadFloat4(&aabbPlayer.Orientation)));
+
 	shared_ptr<CServerZombiePlayer> pZombiePlayer = dynamic_pointer_cast<CServerZombiePlayer>(pPlayer);
 	// 플레이어 충돌검사
 	for (const auto& pwOtherPlayer : m_apPlayer)
@@ -124,15 +130,21 @@ void CServerCollisionManager::Collide(float fElapsedTime, const shared_ptr<CServ
 			continue;
 		}
 
-		BoundingBox aabbOtherPlayer;
+		BoundingSphere aabbOtherPlayer;
 		aabbOtherPlayer.Center = pOtherPlayer->GetOOBB(0).Center;
-		aabbOtherPlayer.Extents = pOtherPlayer->GetOOBB(0).Extents;
-		XMFLOAT4 xmf4OtherPosition = XMFLOAT4(pOtherPlayer->GetPosition().x, pOtherPlayer->GetPosition().y, pOtherPlayer->GetPosition().z, 1.0f);
-		XMVECTOR xmvTranslation = XMLoadFloat4(&xmf4OtherPosition);
-		aabbOtherPlayer.Transform(aabbOtherPlayer, 1.0f, XMQuaternionIdentity(), xmvTranslation);
+		aabbOtherPlayer.Radius = pOtherPlayer->GetOOBB(0).Extents.z;
+		//aabbOtherPlayer.Extents = pOtherPlayer->GetOOBB(0).Extents;
+		//XMFLOAT4 xmf4OtherPosition = XMFLOAT4(pOtherPlayer->GetPosition().x, pOtherPlayer->GetPosition().y, pOtherPlayer->GetPosition().z, 1.0f);
+		//XMVECTOR xmvTranslation = XMLoadFloat4(&xmf4OtherPosition);
+		//aabbOtherPlayer.Transform(aabbOtherPlayer, 1.0f, XMQuaternionIdentity(), xmvTranslation);
+		XMFLOAT4X4 xmf4x4OtherWorld = pOtherPlayer->GetWorldMatrix();
+		aabbOtherPlayer.Transform(aabbOtherPlayer, XMLoadFloat4x4(&xmf4x4OtherWorld));
+
 
 		if (aabbOtherPlayer.Intersects(aabbPlayer))
 		{
+			//pPlayer->Collide(shared_from_this(), fElapsedTime, pOtherPlayer);
+
 			pPlayer->CollideWithPlayer(shared_from_this(), fElapsedTime, pOtherPlayer);
 		}
 
@@ -168,32 +180,15 @@ void CServerCollisionManager::Collide(float fElapsedTime, const shared_ptr<CServ
 
 				if (pGameObject->GetCollisionType() == StairTrigger)
 				{
-					BoundingOrientedBox oobb;
-					XMFLOAT4X4 xmf4x4World = pGameObject->GetWorldMatrix();
-					pGameObject->GetOOBB(0).Transform(oobb, XMLoadFloat4x4(&xmf4x4World));
-					XMStoreFloat4(&oobb.Orientation, XMQuaternionNormalize(XMLoadFloat4(&oobb.Orientation)));
-					if (oobb.Intersects(aabbPlayer))
-					{
-						pPlayer->SetStair(true);
-						shared_ptr<CServerStairTriggerObject> pStairObject = dynamic_pointer_cast<CServerStairTriggerObject>(pGameObject);
-						if (pStairObject)
-						{
-							if (pStairObject->GetOffsetY() < 0.0f)
-							{
-								pPlayer->SetStairY(pStairObject->GetY() - 0.2f, pStairObject->GetY() - 0.2f - 4.5f);								
-							}
-							else
-							{
-								pPlayer->SetStairY(pStairObject->GetY() - 0.2f + 4.5f, pStairObject->GetY() - 0.2f);
-							}
-							pPlayer->SetStairPlane(pStairObject->GetStairPlane());
-						}
-					}
+					CheckStairTrigger(pGameObject, aabbPlayer, pPlayer);
 					continue;
 				}
 				else if (pGameObject->GetCollisionType() != Standard)
 				{
-					CollideWithMine(pGameObject, pPlayer, aabbPlayer);
+					BoundingBox a;
+					a.Center = aabbPlayer.Center;
+					a.Extents = pPlayer->GetOOBB(0).Extents;
+					CollideWithMine(pGameObject, pPlayer, a);
 					continue;
 				}
 
@@ -218,18 +213,48 @@ void CServerCollisionManager::Collide(float fElapsedTime, const shared_ptr<CServ
 	
 	if (pPlayer->IsStair())
 	{
-		XMFLOAT3 xmf3StairPosition = Plane::CalculatePointY(pPlayer->GetStairPlane(), pPlayer->GetPosition());
-		if (xmf3StairPosition.y - EPSILON <= pPlayer->GetStairMin())
+		PlayerInStair(pPlayer);
+	}
+}
+
+void CServerCollisionManager::PlayerInStair(const std::shared_ptr<CServerPlayer>& pPlayer)
+{
+	XMFLOAT3 xmf3StairPosition = Plane::CalculatePointY(pPlayer->GetStairPlane(), pPlayer->GetPosition());
+	if (xmf3StairPosition.y - EPSILON <= pPlayer->GetStairMin())
+	{
+		xmf3StairPosition.y = pPlayer->GetStairMin();
+		pPlayer->SetStair(false);
+	}
+	else if (xmf3StairPosition.y + EPSILON >= pPlayer->GetStairMax())
+	{
+		xmf3StairPosition.y = pPlayer->GetStairMax();
+		pPlayer->SetStair(false);
+	}
+	pPlayer->SetPlayerPosition(xmf3StairPosition);
+}
+
+void CServerCollisionManager::CheckStairTrigger(const std::shared_ptr<CServerGameObject>& pGameObject, DirectX::BoundingSphere& aabbPlayer, const std::shared_ptr<CServerPlayer>& pPlayer)
+{
+	BoundingOrientedBox oobb;
+	XMFLOAT4X4 xmf4x4World = pGameObject->GetWorldMatrix();
+	pGameObject->GetOOBB(0).Transform(oobb, XMLoadFloat4x4(&xmf4x4World));
+	XMStoreFloat4(&oobb.Orientation, XMQuaternionNormalize(XMLoadFloat4(&oobb.Orientation)));
+	if (oobb.Intersects(aabbPlayer))
+	{
+		pPlayer->SetStair(true);
+		shared_ptr<CServerStairTriggerObject> pStairObject = dynamic_pointer_cast<CServerStairTriggerObject>(pGameObject);
+		if (pStairObject)
 		{
-			xmf3StairPosition.y = pPlayer->GetStairMin();
-			pPlayer->SetStair(false);
+			if (pStairObject->GetOffsetY() < 0.0f)
+			{
+				pPlayer->SetStairY(pStairObject->GetY() - 0.2f, pStairObject->GetY() - 0.2f - 4.5f);
+			}
+			else
+			{
+				pPlayer->SetStairY(pStairObject->GetY() - 0.2f + 4.5f, pStairObject->GetY() - 0.2f);
+			}
+			pPlayer->SetStairPlane(pStairObject->GetStairPlane());
 		}
-		else if (xmf3StairPosition.y + EPSILON >= pPlayer->GetStairMax())
-		{
-			xmf3StairPosition.y = pPlayer->GetStairMax();
-			pPlayer->SetStair(false);
-		}
-		pPlayer->SetPlayerPosition(xmf3StairPosition);
 	}
 }
 

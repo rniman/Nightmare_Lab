@@ -91,8 +91,11 @@ void CServerPlayer::Update(float fElapsedTime, shared_ptr<CServerCollisionManage
 	XMFLOAT3 xmf3Velocity = Vector3::ScalarProduct(m_xmf3Velocity, fElapsedTime, false);
 	if (!Vector3::IsZero(xmf3Velocity)) m_xmf3OldVelocity = xmf3Velocity;
 	Move(xmf3Velocity, false);
+}
 
-	fLength = Vector3::Length(m_xmf3Velocity);
+void CServerPlayer::Declare(float fElapsedTime)
+{
+	float fLength = Vector3::Length(m_xmf3Velocity);
 	float fDeceleration = (m_fFriction * fElapsedTime);
 	if (fDeceleration > fLength) fDeceleration = fLength;
 	m_xmf3Velocity = Vector3::Add(m_xmf3Velocity, Vector3::ScalarProduct(m_xmf3Velocity, -fDeceleration, true));
@@ -100,21 +103,30 @@ void CServerPlayer::Update(float fElapsedTime, shared_ptr<CServerCollisionManage
 
 void CServerPlayer::Collide(const shared_ptr<CServerCollisionManager>& pCollisionManager, float fElapsedTime, shared_ptr<CServerGameObject> pCollided)
 {
+	XMFLOAT3 xmf3Pos = m_xmf3Position;
+	XMFLOAT3 xmf3Up = XMFLOAT3(0.0f, 1.0f, 0.0f);
+	XMFLOAT3 xmf3VelNormal = m_xmf3Velocity;
+	xmf3VelNormal = Vector3::Normalize(xmf3VelNormal);
+
+	XMFLOAT3 xmf3Add = Vector3::CrossProduct(xmf3VelNormal, xmf3Up, true);
+	XMFLOAT3 xmf3Point1 = Vector3::Normalize(xmf3Add);
+	XMFLOAT3 xmf3Point2 = Vector3::ScalarProduct(xmf3Point1, -1.0f, true);
+
 	XMFLOAT3 xmf3Velocity;
 	XMFLOAT3 xmf3NormalOfVelocity = Vector3::Normalize(m_xmf3Velocity);
 
 	XMFLOAT3 xmf3OldPosition = m_xmf3OldPosition;
+	XMFLOAT3 xmf3Position = m_xmf3Position;
 	m_bOccurredCollision = false;
 
-	BoundingBox aabbPlayer; 
-	//BoundingOrientedBox aabbPlayer;
+	//BoundingBox aabbPlayer; 
+	BoundingSphere oobbPlayer;
 
-	XMFLOAT3 xmf3SubVelocity[3];
-	xmf3SubVelocity[0] = XMFLOAT3(xmf3NormalOfVelocity.x, 0.0f, xmf3NormalOfVelocity.z);
-	xmf3SubVelocity[1] = XMFLOAT3(xmf3NormalOfVelocity.x, 0.0f, 0.0f);
-	xmf3SubVelocity[2] = XMFLOAT3(0.0f, 0.0f, xmf3NormalOfVelocity.z);
+	XMFLOAT3 xmf3SubVelocity[2];
+	xmf3SubVelocity[0] = xmf3Point1;
+	xmf3SubVelocity[1] = xmf3Point2;
 
-	xmf3Velocity = Vector3::Add(m_xmf3Velocity, m_xmf3Gravity);
+	xmf3Velocity = m_xmf3Velocity;
 	float fLength = sqrtf(xmf3Velocity.x * xmf3Velocity.x + xmf3Velocity.z * xmf3Velocity.z);
 	float fMaxVelocityXZ = m_fMaxVelocityXZ;
 	if (fLength > m_fMaxVelocityXZ)
@@ -127,24 +139,27 @@ void CServerPlayer::Collide(const shared_ptr<CServerCollisionManager>& pCollisio
 	if (fLength > m_fMaxVelocityY) xmf3Velocity.y *= (fMaxVelocityY / fLength);
 
 	XMFLOAT3 xmf3ResultVelocity = Vector3::ScalarProduct(xmf3Velocity, fElapsedTime, false);
+	XMFLOAT3 xmf3ReverseVelocity = Vector3::ScalarProduct(xmf3ResultVelocity, -1.0f, false);
 
-	for (int k = 0; k < 3; ++k)
+	for (int k = 0; k < 2; ++k)
 	{
-		m_xmf3Position = xmf3OldPosition;
+		m_xmf3Position = xmf3Position;
 		CalculateSpace();
 
 		m_bOccurredCollision = false;
-		xmf3SubVelocity[k] = Vector3::ScalarProduct(xmf3SubVelocity[k], Vector3::Length(xmf3ResultVelocity), false);
+		xmf3SubVelocity[k] = Vector3::ScalarProduct(xmf3SubVelocity[k], Vector3::Length(xmf3ResultVelocity) * 2.0f, false);
+		//xmf3SubVelocity[k] = Vector3::Add(xmf3SubVelocity[k], xmf3ReverseVelocity);
 		Move(xmf3SubVelocity[k], false);
 
 		OnUpdateToParent();
-		aabbPlayer.Center = m_voobbOrigin[0].Center;
+		/*aabbPlayer.Center = m_voobbOrigin[0].Center;
 		aabbPlayer.Extents = m_voobbOrigin[0].Extents;
-		//aabbPlayer.Orientation = m_voobbOrigin[0].Orientation;
 		XMVECTOR xmvTranslation = XMVectorSet(m_xmf3Position.x, m_xmf3Position.y, m_xmf3Position.z, 1.0f);
-		aabbPlayer.Transform(aabbPlayer, 1.0f, XMQuaternionIdentity(), xmvTranslation);
-		//aabbPlayer.Transform(aabbPlayer, XMLoadFloat4x4(&m_xmf4x4World));
-		//XMStoreFloat4(&aabbPlayer.Orientation, XMQuaternionNormalize(XMLoadFloat4(&aabbPlayer.Orientation)));
+		aabbPlayer.Transform(aabbPlayer, 1.0f, XMQuaternionIdentity(), xmvTranslation);*/
+		oobbPlayer.Center = m_voobbOrigin[0].Center;
+		oobbPlayer.Radius = m_voobbOrigin[0].Extents.z;
+		oobbPlayer.Transform(oobbPlayer, XMLoadFloat4x4(&m_xmf4x4World));
+		//XMStoreFloat4(&oobbPlayer.Orientation, XMQuaternionNormalize(XMLoadFloat4(&oobbPlayer.Orientation)));
 
 		for (int i = m_nWidth - 2; i <= m_nWidth + 2 && !m_bOccurredCollision; ++i)
 		{
@@ -164,27 +179,7 @@ void CServerPlayer::Collide(const shared_ptr<CServerCollisionManager>& pCollisio
 
 					if (pGameObject->GetCollisionType() == StairTrigger)
 					{
-						BoundingOrientedBox oobb;
-						XMFLOAT4X4 xmf4x4World = pGameObject->GetWorldMatrix();
-						pGameObject->GetOOBB(0).Transform(oobb, XMLoadFloat4x4(&xmf4x4World));
-						XMStoreFloat4(&oobb.Orientation, XMQuaternionNormalize(XMLoadFloat4(&oobb.Orientation)));
-						if (oobb.Intersects(aabbPlayer))
-						{
-							m_bStair = true;
-							shared_ptr<CServerStairTriggerObject> pStairObject = dynamic_pointer_cast<CServerStairTriggerObject>(pGameObject);
-							if (pStairObject)
-							{
-								if (pStairObject->GetOffsetY() < 0.0f)
-								{
-									SetStairY(pStairObject->GetY() - 0.2f, pStairObject->GetY() - 0.2f - 4.5f);
-								}
-								else
-								{
-									SetStairY(pStairObject->GetY() - 0.2f + 4.5f, pStairObject->GetY() - 0.2f);
-								}
-								m_xmf4StairPlane = pStairObject->GetStairPlane();
-							}
-						}
+						CheckStairTrigger(pGameObject, oobbPlayer);
 						continue;
 					}
 
@@ -200,7 +195,7 @@ void CServerPlayer::Collide(const shared_ptr<CServerCollisionManager>& pCollisio
 						oobbOrigin.Transform(oobb, XMLoadFloat4x4(&xmf4x4World));
 						XMStoreFloat4(&oobb.Orientation, XMQuaternionNormalize(XMLoadFloat4(&oobb.Orientation)));
 
-						if (oobb.Intersects(aabbPlayer))
+						if (oobb.Intersects(oobbPlayer))
 						{
 							m_bOccurredCollision = true;
 							break;
@@ -226,23 +221,180 @@ void CServerPlayer::Collide(const shared_ptr<CServerCollisionManager>& pCollisio
 
 	if (m_bOccurredCollision)
 	{
-		m_xmf3Position = m_xmf3OldPosition = xmf3OldPosition;
+		m_xmf3OldPosition = xmf3OldPosition;
+		m_xmf3Position = m_xmf3OldPosition;
+		//Move(xmf3ReverseVelocity, false);
+
 		CalculateSpace();
 	}
 	OnUpdateToParent();
 }
 
+void CServerPlayer::CheckStairTrigger(const std::shared_ptr<CServerGameObject>& pGameObject, DirectX::BoundingSphere& aabbPlayer)
+{
+	BoundingOrientedBox oobb;
+	XMFLOAT4X4 xmf4x4World = pGameObject->GetWorldMatrix();
+	pGameObject->GetOOBB(0).Transform(oobb, XMLoadFloat4x4(&xmf4x4World));
+	XMStoreFloat4(&oobb.Orientation, XMQuaternionNormalize(XMLoadFloat4(&oobb.Orientation)));
+	if (oobb.Intersects(aabbPlayer))
+	{
+		m_bStair = true;
+		shared_ptr<CServerStairTriggerObject> pStairObject = dynamic_pointer_cast<CServerStairTriggerObject>(pGameObject);
+		if (pStairObject)
+		{
+			if (pStairObject->GetOffsetY() < 0.0f)
+			{
+				SetStairY(pStairObject->GetY() - 0.2f, pStairObject->GetY() - 0.2f - 4.5f);
+			}
+			else
+			{
+				SetStairY(pStairObject->GetY() - 0.2f + 4.5f, pStairObject->GetY() - 0.2f);
+			}
+			m_xmf4StairPlane = pStairObject->GetStairPlane();
+		}
+	}
+}
+
 void CServerPlayer::CollideWithPlayer(const shared_ptr<CServerCollisionManager>& pCollisionManager, float fElapsedTime, shared_ptr<CServerPlayer> pCollidedPlayer)
 {
+	XMFLOAT3 xmf3Pos = m_xmf3Position;
+	XMFLOAT3 xmf3Up = XMFLOAT3(0.0f, 1.0f, 0.0f);
+	XMFLOAT3 xmf3VelNormal = m_xmf3Velocity;
+	xmf3VelNormal = Vector3::Normalize(xmf3VelNormal);
+
+	XMFLOAT3 xmf3Add = Vector3::CrossProduct(xmf3VelNormal, xmf3Up, true);
+	XMFLOAT3 xmf3Point1 = Vector3::Normalize(xmf3Add);
+	XMFLOAT3 xmf3Point2 = Vector3::ScalarProduct(xmf3Point1, -1.0f, true);
+
+	XMFLOAT3 xmf3Velocity;
+	XMFLOAT3 xmf3NormalOfVelocity = Vector3::Normalize(m_xmf3Velocity);
+
 	XMFLOAT3 xmf3OldPosition = m_xmf3OldPosition;
-	m_xmf3Position = xmf3OldPosition;
-	CalculateSpace();
+	XMFLOAT3 xmf3Position = m_xmf3Position;
+	m_bOccurredCollision = false;
+
+	//BoundingBox aabbPlayer; 
+	BoundingSphere oobbPlayer;
+
+	XMFLOAT3 xmf3SubVelocity[2];
+	xmf3SubVelocity[0] = xmf3Point1;
+	xmf3SubVelocity[1] = xmf3Point2;
+
+	xmf3Velocity = m_xmf3Velocity;
+	float fLength = sqrtf(xmf3Velocity.x * xmf3Velocity.x + xmf3Velocity.z * xmf3Velocity.z);
+	float fMaxVelocityXZ = m_fMaxVelocityXZ;
+	if (fLength > m_fMaxVelocityXZ)
+	{
+		xmf3Velocity.x *= (fMaxVelocityXZ / fLength);
+		xmf3Velocity.z *= (fMaxVelocityXZ / fLength);
+	}
+	float fMaxVelocityY = m_fMaxVelocityY;
+	fLength = sqrtf(xmf3Velocity.y * xmf3Velocity.y);
+	if (fLength > m_fMaxVelocityY) xmf3Velocity.y *= (fMaxVelocityY / fLength);
+
+	XMFLOAT3 xmf3ResultVelocity = Vector3::ScalarProduct(xmf3Velocity, fElapsedTime, false);
+	XMFLOAT3 xmf3ReverseVelocity = Vector3::ScalarProduct(xmf3ResultVelocity, -1.0f, false);
+
+	for (int k = 0; k < 2; ++k)
+	{
+		m_xmf3Position = xmf3Position;
+		CalculateSpace();
+
+		m_bOccurredCollision = false;
+		xmf3SubVelocity[k] = Vector3::ScalarProduct(xmf3SubVelocity[k], Vector3::Length(xmf3ResultVelocity) * 2.0f, false);
+		//xmf3SubVelocity[k] = Vector3::Add(xmf3SubVelocity[k], xmf3ReverseVelocity);
+		Move(xmf3SubVelocity[k], false);
+
+		OnUpdateToParent();
+
+		oobbPlayer.Center = m_voobbOrigin[0].Center;
+		oobbPlayer.Radius = m_voobbOrigin[0].Extents.z;
+		oobbPlayer.Transform(oobbPlayer, XMLoadFloat4x4(&m_xmf4x4World));
+
+		BoundingSphere spherebb;
+		spherebb.Center = pCollidedPlayer->GetVectorOOBB()[0].Center;
+		spherebb.Radius = pCollidedPlayer->GetVectorOOBB()[0].Extents.z;
+		XMFLOAT4X4 xmf4x4OtherWorld = pCollidedPlayer->GetWorldMatrix();
+		spherebb.Transform(spherebb, XMLoadFloat4x4(&xmf4x4OtherWorld));
+
+		if (spherebb.Intersects(oobbPlayer))
+		{
+			m_bOccurredCollision = true;
+			continue;
+		}
+
+		//for (int i = m_nWidth - 2; i <= m_nWidth + 2 && !m_bOccurredCollision; ++i)
+		//{
+		//	for (int j = m_nDepth - 2; j <= m_nDepth + 2 && !m_bOccurredCollision; ++j)
+		//	{
+		//		if (i < 0 || i >= pCollisionManager->GetWidth() || j < 0 || j >= pCollisionManager->GetDepth())
+		//		{
+		//			continue;
+		//		}
+
+		//		for (const auto& pGameObject : pCollisionManager->GetSpaceGameObjects(m_nFloor, i, j))
+		//		{
+		//			if (!pGameObject || !pGameObject->IsCollision())
+		//			{
+		//				continue;
+		//			}
+
+		//			if (pGameObject->GetCollisionType() == StairTrigger)
+		//			{
+		//				CheckStairTrigger(pGameObject, oobbPlayer);
+		//				continue;
+		//			}
+
+		//			if (pGameObject->GetCollisionType() != Standard) //임시로 2면 넘김
+		//			{
+		//				continue;
+		//			}
+
+		//			for (const auto& oobbOrigin : pGameObject->GetVectorOOBB())
+		//			{
+		//				BoundingOrientedBox oobb;
+		//				XMFLOAT4X4 xmf4x4World = pGameObject->GetWorldMatrix();
+		//				oobbOrigin.Transform(oobb, XMLoadFloat4x4(&xmf4x4World));
+		//				XMStoreFloat4(&oobb.Orientation, XMQuaternionNormalize(XMLoadFloat4(&oobb.Orientation)));
+
+		//				if (oobb.Intersects(oobbPlayer))
+		//				{
+		//					m_bOccurredCollision = true;
+		//					break;
+		//				}
+		//			}
+
+		//			if (m_bOccurredCollision)
+		//			{
+		//				break;
+		//			}
+		//		}
+		//	}
+		//}
+		//if (!m_bOccurredCollision)
+		//{
+		//	if (!Vector3::IsZero(xmf3SubVelocity[k]))
+		//	{
+		//		m_xmf3OldVelocity = xmf3SubVelocity[k];
+		//	}
+		//	break;
+		//}
+	}
+
+	if (m_bOccurredCollision)
+	{
+		m_xmf3OldPosition = xmf3OldPosition;
+		m_xmf3Position = m_xmf3OldPosition;
+		//Move(xmf3ReverseVelocity, false);
+
+		CalculateSpace();
+	}
 	OnUpdateToParent();
+
 }
 
 void CServerPlayer::Move(const XMFLOAT3& xmf3Shift, bool bUpdateVelocity)
 {
-	//cout << GetPosition().x << "," << GetPosition().y << "," << GetPosition().z << endl;
 	if (bUpdateVelocity)
 	{
 		m_xmf3Velocity = Vector3::Add(m_xmf3Velocity, xmf3Shift);
@@ -712,6 +864,9 @@ CServerZombiePlayer::CServerZombiePlayer()
 {
 	SetMaxVelocityXZ(ZOMBIE_WALK_VELOCITY);
 
+	m_voobbOrigin[0].Center = XMFLOAT3(0.0f, 0.8f, 0.0f);
+	m_voobbOrigin[0].Extents = XMFLOAT3(0.5f, 0.8f, 0.8f);
+
 	m_oobbAttackBox.Center = XMFLOAT3(0.0f, 0.8f, 0.0f);
 	m_oobbAttackBox.Extents = XMFLOAT3(0.5f, 0.8f, 0.5f);
 	XMStoreFloat4(&m_oobbAttackBox.Orientation, XMQuaternionIdentity());
@@ -842,7 +997,7 @@ void CServerZombiePlayer::Hit()
 {
 }
 
-void CServerZombiePlayer::CheckAttack(shared_ptr<CServerPlayer>& pPlayer, const BoundingBox& aabbPlayer)
+void CServerZombiePlayer::CheckAttack(shared_ptr<CServerPlayer>& pPlayer, const BoundingSphere& aabbPlayer)
 {
 	if (m_oobbAttackBox.Intersects(aabbPlayer))
 	{

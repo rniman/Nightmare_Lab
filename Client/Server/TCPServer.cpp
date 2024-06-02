@@ -468,8 +468,9 @@ void TCPServer::SimulationLoop()
 		pPlayer->UpdatePicking();
 		//UpdateInformation(pPlayer);
 		m_pCollisionManager->Collide(fElapsedTime, pPlayer);
-
+		
 		pPlayer->OnUpdateToParent();
+		pPlayer->Declare(fElapsedTime);
 	}
 
 	m_pCollisionManager->Update(fElapsedTime);

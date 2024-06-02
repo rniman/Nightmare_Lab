@@ -25,7 +25,9 @@ public:
 
 	virtual void UseItem(shared_ptr<CServerCollisionManager>& pCollisionManager) {};
 	virtual void Update(float fElapsedTime, shared_ptr<CServerCollisionManager>& pCollisionManager) override;
+	void Declare(float fElapsedTime);
 	virtual void Collide(const shared_ptr<CServerCollisionManager>& pCollisionManager, float fElapsedTime, shared_ptr<CServerGameObject> pCollided) override;
+	void CheckStairTrigger(const std::shared_ptr<CServerGameObject>& pGameObject, DirectX::BoundingSphere& aabbPlayer);
 	void CollideWithPlayer(const shared_ptr<CServerCollisionManager>& pCollisionManager, float fElapsedTime, shared_ptr<CServerPlayer> pCollidedPlayer);
 	virtual void Hit() {};	//BlueSuit: zombie Attack, Zombie: mine
 	void Move(const XMFLOAT3& xmf3Shift, bool bUpdateVelocity);
@@ -199,7 +201,7 @@ public:
 	virtual void Update(float fElapsedTime, shared_ptr<CServerCollisionManager>& pCollisionManager) override;
 	virtual void UpdatePicking() override;
 	virtual void Hit() override;;
-	void CheckAttack(shared_ptr<CServerPlayer>& pPlayer, const BoundingBox& aabbPlayer);
+	void CheckAttack(shared_ptr<CServerPlayer>& pPlayer, const BoundingSphere& aabbPlayer);
 
 	bool IsTracking() const { return m_bTracking; }
 	bool IsInterruption() const { return m_bInterruption; }
