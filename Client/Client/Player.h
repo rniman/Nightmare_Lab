@@ -308,6 +308,9 @@ private:
 	bool m_bAbleTracking = true;
 	bool m_bAbleInterruption = true;
 	bool m_bAbleRunning = true;
+
+	shared_ptr<CGameObject> m_pBodyObject;
+	shared_ptr<CGameObject> m_pEyesObject;
 public:
 	void SetEectricShock();
 	void SetElectiricMt(shared_ptr<CMaterial> mt) { m_pElectircaterial = mt; }

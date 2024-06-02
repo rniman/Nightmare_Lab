@@ -26,7 +26,7 @@ TCPServer::TCPServer()
 	m_axmf3Positions = {
 		XMFLOAT3(10.0f, 0.0f, 13.5),
 		XMFLOAT3(10.0f, 0.0f, -13.5),
-		XMFLOAT3(-10.0f, 0.0f, 13.5),
+		XMFLOAT3(-12.0f, 0.0f, 13.5),
 		XMFLOAT3(-10.0f, 0.0f, -13.5),
 
 		XMFLOAT3(10.0f, 4.5f, 13.5),
@@ -779,9 +779,6 @@ void TCPServer::LoadScene()
 								::ReadIntegerFromFile(pInFile);
 								::ReadStringFromFile(pInFile, pStrFrameName);
 								//std::cout << pStrFrameName << endl;
-								if (!strcmp(pStrFrameName, "BoxCollide_Wall_(17)")) {
-									int x = 0;
-								}
 							}
 							else if (!strcmp(pstrToken, "<Children>:"))
 							{
@@ -906,6 +903,14 @@ void TCPServer::CreateSceneObject(char* pstrFrameName, const XMFLOAT4X4& xmf4x4W
 		pGameObject = make_shared<CServerEnvironmentObject>(pstrFrameName, xmf4x4World, voobb);
 	}
 	else if (!strcmp(pstrFrameName, "Laboratory_Tunnel_1_Stairs") || !strcmp(pstrFrameName, "Laboratory_Tunnel_1"))
+	{
+		pGameObject = make_shared<CServerEnvironmentObject>(pstrFrameName, xmf4x4World, voobb);
+	}
+	else if (!strcmp(pstrFrameName, "SM_Prop_Vents_Straight_01") || !strcmp(pstrFrameName, "SM_Prop_Crate_01")
+		|| !strcmp(pstrFrameName, "SM_Prop_Pipe_Curve_02") || !strcmp(pstrFrameName, "SM_Prop_Billboard_Roof_01")
+		|| !strcmp(pstrFrameName, "SM_Prop_Roof_Aircon_03") || !strcmp(pstrFrameName, "SM_Prop_Vents_End_01")
+		|| !strcmp(pstrFrameName, "SM_Prop_ShopInterior_Table_01") || !strcmp(pstrFrameName, "SM_Prop_Couch_01")
+		|| !strcmp(pstrFrameName, "SM_Prop_PotPlant_02") || !strcmp(pstrFrameName, "Table1of10"))
 	{
 		pGameObject = make_shared<CServerEnvironmentObject>(pstrFrameName, xmf4x4World, voobb);
 	}

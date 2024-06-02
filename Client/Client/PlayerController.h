@@ -73,6 +73,8 @@ private:
 	bool m_bSelectItem = false;
 };
 
+//class CPlayer;
+
 class CZombieAnimationController : public CAnimationController
 {
 public:
@@ -88,10 +90,14 @@ public:
 
 
 	int GetBoneFrameIndex(char* frameName);
+	void SetPlayer(shared_ptr<CPlayer> pPlayer) { m_pPlayer = pPlayer; }
 private:
 	int m_nStartSpine = -1;
 	int m_nStartNeck = -1;
 	int m_nEndNeck = -1;
 	int m_nEndSpine = -1;
 	int m_nEyesSock = -1;
+	int m_nHips = -1;
+
+	shared_ptr<CPlayer> m_pPlayer;
 };

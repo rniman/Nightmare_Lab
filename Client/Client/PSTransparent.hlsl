@@ -3,11 +3,16 @@
 
 float4 PSTransparent(VS_STANDARD_OUTPUT input) : SV_Target
 {
-    float4 cAlbedoColor = float4(0.0f, 0.0f, 0.0f, 1.0f);
-    float4 cSpecularColor = float4(0.0f, 0.0f, 0.0f, 1.0f);
+    //float4 cAlbedoColor = float4(0.0f, 0.0f, 0.0f, 1.0f);
+    //float4 cSpecularColor = float4(0.0f, 0.0f, 0.0f, 1.0f);
+    //float4 cNormalColor = float4(0.0f, 0.0f, 0.0f, 1.0f);
+    //float4 cMetallicColor = float4(0.0f, 0.0f, 0.0f, 1.0f);
+    //float4 cEmissionColor = float4(0.0f, 0.0f, 0.0f, 1.0f);
+    float4 cAlbedoColor = gMaterial.m_cAlbedo;
+    float4 cSpecularColor = gMaterial.m_cSpecular;
     float4 cNormalColor = float4(0.0f, 0.0f, 0.0f, 1.0f);
     float4 cMetallicColor = float4(0.0f, 0.0f, 0.0f, 1.0f);
-    float4 cEmissionColor = float4(0.0f, 0.0f, 0.0f, 1.0f);
+    float4 cEmissionColor = gMaterial.m_cEmissive;
     
     if(gnTexturesMask & MATERIAL_ALBEDO_MAP)
         cAlbedoColor = AlbedoTexture.Sample(gssWrap, input.uv);
@@ -20,7 +25,7 @@ float4 PSTransparent(VS_STANDARD_OUTPUT input) : SV_Target
     if(gnTexturesMask & MATERIAL_EMISSION_MAP)
         cEmissionColor = EmissionTexture.Sample(gssWrap, input.uv);
     
-    float4 cColor = (cAlbedoColor * 0.7f) + (cSpecularColor * 0.2f) + (cMetallicColor * 0.05f) + (cEmissionColor * 0.05f);
+    float4 cColor = (cAlbedoColor * 1.0f) + (cSpecularColor * 0.2f) + (cMetallicColor * 0.05f) + (cEmissionColor * 0.05f);
     
     float3 vCameraPosition = gvCameraPosition.xyz;
     float3 vPostionToCamera = vCameraPosition - input.positionW;
@@ -38,5 +43,6 @@ float4 PSTransparent(VS_STANDARD_OUTPUT input) : SV_Target
     
     cColor = (light * cColor);
     cColor.w *= 0.5f; // 알파값 조절 
+    
     return cColor;
 }
