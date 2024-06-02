@@ -864,8 +864,8 @@ CServerZombiePlayer::CServerZombiePlayer()
 {
 	SetMaxVelocityXZ(ZOMBIE_WALK_VELOCITY);
 
-	m_voobbOrigin[0].Center = XMFLOAT3(0.0f, 0.8f, 0.0f);
-	m_voobbOrigin[0].Extents = XMFLOAT3(0.5f, 0.8f, 0.8f);
+	//m_voobbOrigin[0].Center = XMFLOAT3(0.0f, 0.8f, 0.0f);
+	m_voobbOrigin[0].Extents = XMFLOAT3(0.5f, 0.8f, 0.7f);
 
 	m_oobbAttackBox.Center = XMFLOAT3(0.0f, 0.8f, 0.0f);
 	m_oobbAttackBox.Extents = XMFLOAT3(0.5f, 0.8f, 0.5f);

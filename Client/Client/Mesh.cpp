@@ -889,7 +889,7 @@ void CInstanceStandardMesh::CreateInstanceObjectInfo(char* pstrMeshName, XMFLOAT
 		size_t nLastIndex = pOriginInstance->m_vInstanceObjectInfo.size() - 1;
 		g_collisionManager.AddCollisionObject(pOriginInstance->m_vInstanceObjectInfo[nLastIndex]);
 	}
-	else if (!strcmp(pstrMeshName, "Laboratory_Tunnel_1_Stairs"))
+	else if (!strcmp(pstrMeshName, "Laboratory_Tunnel_1_Stairs") || !strcmp(pstrMeshName, "Laboratory_Desk_Drawers_1"))
 	{
 		pInstanceObjectInfo = make_shared<CEnvironmentObject>(m_pstrMeshName, xmf4x4WorldMatrix, this);
 		pOriginInstance->m_vInstanceObjectInfo.push_back(pInstanceObjectInfo);
