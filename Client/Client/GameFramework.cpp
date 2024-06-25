@@ -556,6 +556,24 @@ void CGameFramework::OnProcessingKeyboardMessage(HWND hWnd, UINT nMessageID, WPA
 	case WM_KEYUP:
 		switch (wParam)
 		{
+		//case 'P':
+		//	m_pcbMappedTime->gfScale += 0.1f;
+		//	break;
+		//case 'O':
+		//	m_pcbMappedTime->gfScale -= 0.1f;
+		//	break;
+		//case 'L':
+		//	m_pcbMappedTime->gfIntesity += 0.1f;
+		//	break;
+		//case 'K':
+		//	m_pcbMappedTime->gfIntesity -= 0.1f;
+		//	break;
+		case 'M':
+			if(m_pPostProcessingShader->GetPipelineIndex() == 0)
+				m_pPostProcessingShader->SetPipelineIndex(1);
+			else
+				m_pPostProcessingShader->SetPipelineIndex(0);
+			break;
 		case VK_ESCAPE:
 			::PostQuitMessage(0);
 			break;
@@ -842,6 +860,9 @@ void CGameFramework::BuildObjects()
 
 	m_pd3dcbTime = ::CreateBufferResource(m_d3d12Device.Get(), m_d3dCommandList.Get(), NULL, ncbElementBytes, D3D12_HEAP_TYPE_UPLOAD, D3D12_RESOURCE_STATE_VERTEX_AND_CONSTANT_BUFFER, NULL);
 	m_pd3dcbTime->Map(0, NULL, (void**)&m_pcbMappedTime);
+	m_pcbMappedTime->gfScale = 1.0f;
+	m_pcbMappedTime->gfBias = 0.05f;
+	m_pcbMappedTime->gfIntesity = 3.0f;
 	m_d3dTimeCbvGPUDescriptorHandle = CScene::CreateConstantBufferViews(m_d3d12Device.Get(), 1, m_pd3dcbTime.Get(), ncbElementBytes);
 
 	//m_pPlayer = make_shared<CZombiePlayer>(pd3dDevice, pd3dCommandList, m_pd3dGraphicsRootSignature.Get(), nullptr);
@@ -1300,6 +1321,7 @@ void CGameFramework::FrameAdvance()
 		//OM ÃÖÁ¾Å¸°ÙÀ¸·Î Àç¼³Á¤
 		m_d3dCommandList->OMSetRenderTargets(1, &d3dRtvCPUDescriptorHandle, TRUE, &d3dDsvCPUDescriptorHandle);
 		//ºÒÅõ¸í °´Ã¼ ÃÖÁ¾ ·»´õ¸µ
+		m_d3dCommandList->SetGraphicsRootDescriptorTable(12, m_d3dTimeCbvGPUDescriptorHandle);
 		m_pPostProcessingShader->Render(m_d3dCommandList.Get(), m_pCamera.lock(), m_pMainPlayer);
 
 		// Åõ¸í °´Ã¼ ·»´õ¸µ
@@ -1329,6 +1351,8 @@ void CGameFramework::FrameAdvance()
 	m_dxgiSwapChain->Present(0, 0);
 
 	MoveToNextFrame();
+
+
 
 	m_GameTimer.GetFrameRate(m_pszFrameRate + 15, 37);
 	size_t nLength = _tcslen(m_pszFrameRate);

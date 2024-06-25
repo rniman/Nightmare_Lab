@@ -165,6 +165,12 @@ public:
 //
 class CScene;
 
+enum SHADER_INDEX
+{
+	PostProcessing = 0,
+	PostProcessingWithSSAO = 1,
+};
+
 class CPostProcessingShader : public CShader
 {
 public:
@@ -236,6 +242,13 @@ public:
 
 	void CreateLightCamera(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dCommandList,CScene* scene);
 	//vector<shared_ptr<CCamera>>& GetLightCamera() { return  m_pLightCamera; }
+
+public:
+	void SetPipelineIndex(UINT nIndex) { m_nPipelineIndex = nIndex; }
+	UINT GetPipelineIndex() const { return m_nPipelineIndex; }
+private:
+	shared_ptr<CTexture> m_pNoiseTexture;
+	UINT m_nPipelineIndex = 0;
 };
 
 /// <CShader - CPostProcessingShader>

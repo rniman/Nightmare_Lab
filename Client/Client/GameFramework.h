@@ -17,6 +17,11 @@ struct FrameTimeInfo {
 	float usePattern = -1.0f; // shaders에서 패턴텍스처를 사용하는가? 0보다 큰값이면 사용하는 것. 최적화 필요. 쉐이더를 나누면 분기문 줄일수있음.
 
 	float fTrackingTime = 0.0f;
+
+	// Occlusion Info
+	float gfScale = 2.0f;
+	float gfBias = 0.01f;
+	float gfIntesity = 5.0f;
 };
 
 class CGameFramework
@@ -123,6 +128,7 @@ private:
 	weak_ptr<CCamera>							m_pCamera;
 
 	CPostProcessingShader*				m_pPostProcessingShader = NULL;
+	int									m_nPostPipelineIndex = 0;
 
 	POINT								m_ptOldCursorPos;
 	_TCHAR								m_pszFrameRate[200];

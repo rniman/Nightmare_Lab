@@ -186,7 +186,9 @@ float4 Lighting(float3 vPosition, float3 vNormal)
 	float3 vCameraPosition = float3(gvCameraPosition.x, gvCameraPosition.y, gvCameraPosition.z);
 	float3 vToCamera = normalize(vCameraPosition - vPosition);
     
-    float4 cColor = float4(0.15f, 0.15f, 0.15f, 0.0f);
+    //float4 cColor = float4(0.15f, 0.15f, 0.15f, 0.0f);
+    float4 cColor = float4(0.0f, 0.0f, 0.0f, 0.0f);
+    cColor += (gcGlobalAmbientLight);
 	[unroll(MAX_LIGHTS)] for (int i = 0; i < gnLights; i++)
 	{
 		if (gLights[i].m_bEnable)
@@ -205,13 +207,47 @@ float4 Lighting(float3 vPosition, float3 vNormal)
 			else if (gLights[i].m_nType == SPOT_LIGHT)
             {
                 cColor += SpotLight(i, vPosition, vNormal, vCameraPosition) * fShadowFactor;
-
             }
         }
 	}
-	cColor += (gcGlobalAmbientLight * gMaterial.m_cAmbient);
+	//cColor += (gcGlobalAmbientLight /** gMaterial.m_cAmbient*/);
 	cColor.a = gMaterial.m_cAlbedo.a;
 
 	return(cColor);
+}
+
+float4 Lighting(float3 vPosition, float3 vNormal, float4 ssao)
+{
+    float3 vCameraPosition = float3(gvCameraPosition.x, gvCameraPosition.y, gvCameraPosition.z);
+    float3 vToCamera = normalize(vCameraPosition - vPosition);
+    
+    float4 cColor = float4(0.0f, 0.0f, 0.0f, 0.0f);
+    cColor += (gcGlobalAmbientLight * ssao);
+	[unroll(MAX_LIGHTS)]
+    for(int i = 0; i < gnLights; i++)
+    {
+        if(gLights[i].m_bEnable)
+        {
+            float fShadowFactor = 1.0f;
+            fShadowFactor = Shadowdecrease(i, vPosition, vCameraPosition);
+           
+            if(gLights[i].m_nType == DIRECTIONAL_LIGHT)
+            {
+				//cColor += DirectionalLight(i, vNormal, vToCamera);
+            }
+            else if(gLights[i].m_nType == POINT_LIGHT)
+            {
+				//cColor += PointLight(i, vPosition, vNormal, vToCamera);
+            }
+            else if(gLights[i].m_nType == SPOT_LIGHT)
+            {
+                cColor += SpotLight(i, vPosition, vNormal, vCameraPosition) * fShadowFactor;
+            }
+        }
+    }
+    
+    cColor.a = gMaterial.m_cAlbedo.a;
+
+    return (cColor);
 }
 

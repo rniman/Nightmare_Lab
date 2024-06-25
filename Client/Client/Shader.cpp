@@ -559,7 +559,6 @@ D3D12_INPUT_LAYOUT_DESC CSkinnedAnimationStandardShader::CreateInputLayout()
 D3D12_SHADER_BYTECODE CSkinnedAnimationStandardShader::CreateVertexShader()
 {
 	return CShader::ReadCompiledShaderFromFile(L"cso/VSSkinnedAnimationStandard.cso", m_pd3dVertexShaderBlob.GetAddressOf());
-	//return(CShader::CompileShaderFromFile(L"Shaders.hlsl", "VSSkinnedAnimationStandard", "vs_5_1", m_pd3dVertexShaderBlob.GetAddressOf()));
 }
 
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -612,41 +611,44 @@ D3D12_SHADER_BYTECODE CPostProcessingShader::CreateVertexShader()
 
 D3D12_SHADER_BYTECODE CPostProcessingShader::CreatePixelShader()
 {
-	if (m_PipeLineIndex == 0) {
-		return CShader::ReadCompiledShaderFromFile(L"cso/PSPostProcessing.cso", m_pd3dPixelShaderBlob.GetAddressOf());
-		//return(CShader::CompileShaderFromFile(L"Shaders.hlsl", "PSPostProcessing", "ps_5_1", m_pd3dPixelShaderBlob.GetAddressOf()));
+	if (m_PipeLineIndex == 0) 
+	{
+		return CShader::ReadCompiledShaderFromFile(L"cso/PSPostProcessingWithSSAO.cso", m_pd3dPixelShaderBlob.GetAddressOf());
 	}
-	else if (m_PipeLineIndex == 1) {
-		return CShader::ReadCompiledShaderFromFile(L"cso/PSShadow.cso", m_pd3dPixelShaderBlob.GetAddressOf());
-		//return(CShader::CompileShaderFromFile(L"Shadow.hlsl", "PS_Shadow", "ps_5_1", m_pd3dPixelShaderBlob.GetAddressOf()));
+	else if (m_PipeLineIndex == 1) 
+	{
+		return CShader::ReadCompiledShaderFromFile(L"cso/PSPostProcessing.cso", m_pd3dPixelShaderBlob.GetAddressOf());
+		//return CShader::ReadCompiledShaderFromFile(L"cso/PSShadow.cso", m_pd3dPixelShaderBlob.GetAddressOf());
 	}
 }
 
 D3D12_RASTERIZER_DESC CPostProcessingShader::CreateRasterizerState()
 {
-	if (m_PipeLineIndex == 0) {
-		return(CShader::CreateRasterizerState());
-	}
-	else if (m_PipeLineIndex == 1) {
-		D3D12_RASTERIZER_DESC resState = CShader::CreateRasterizerState();
-		resState.CullMode = D3D12_CULL_MODE_FRONT;
-		return resState;
-	}
+	return(CShader::CreateRasterizerState());
+
+	//if (m_PipeLineIndex == 0) {
+	//	return(CShader::CreateRasterizerState());
+	//}
+	//else if (m_PipeLineIndex == 1) {
+	//	D3D12_RASTERIZER_DESC resState = CShader::CreateRasterizerState();
+	//	resState.CullMode = D3D12_CULL_MODE_FRONT;
+	//	return resState;
+	//}
 }
 
-void CPostProcessingShader::CreateShader(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dCommandList, ID3D12RootSignature* pd3dGraphicsRootSignature,UINT nRenderTargets, DXGI_FORMAT* pdxgiRtvFormats, DXGI_FORMAT dxgiDsvFormat)
+void CPostProcessingShader::CreateShader(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dCommandList, ID3D12RootSignature* pd3dGraphicsRootSignature, UINT nRenderTargets, DXGI_FORMAT* pdxgiRtvFormats, DXGI_FORMAT dxgiDsvFormat)
 {
 	/*m_pd3dGraphicsRootSignature = pd3dGraphicsRootSignature;
 	m_pd3dGraphicsRootSignature->AddRef();*/
-	m_nPipelineState = 1;
+	m_nPipelineState = 2;
 	m_vpd3dPipelineState.reserve(m_nPipelineState);
 	for (int i = 0; i < m_nPipelineState; ++i)
 	{
 		m_vpd3dPipelineState.emplace_back();
+		CShader::CreateShader(pd3dDevice, pd3dCommandList, pd3dGraphicsRootSignature, nRenderTargets, pdxgiRtvFormats, dxgiDsvFormat);
 	}
 
 	//기본 파이프라인
-	CShader::CreateShader(pd3dDevice, pd3dCommandList, pd3dGraphicsRootSignature, nRenderTargets, pdxgiRtvFormats, dxgiDsvFormat);
 	////그림자 파이프라인
 	//DXGI_FORMAT shadowformat = DXGI_FORMAT_R32_FLOAT;
 	//CShader::CreateShader(pd3dDevice, pd3dCommandList, pd3dGraphicsRootSignature, nRenderTargets, &shadowformat, dxgiDsvFormat);
@@ -739,6 +741,10 @@ void CPostProcessingShader::CreateResourcesAndRtvsSrvs(ID3D12Device* pd3dDevice,
 		handle.ptr = ::gnDsvDescriptorIncrementSize;
 	}
 
+	m_pNoiseTexture = make_shared<CTexture>(1, RESOURCE_TEXTURE2D, 0, 1);
+	m_pNoiseTexture->LoadTextureFromDDSFile(pd3dDevice, pd3dCommandList, (wchar_t*)L"Asset/noise.dds", RESOURCE_TEXTURE2D, 0);
+	//m_pNoiseTexture->LoadTextureFromDDSFile(pd3dDevice, pd3dCommandList, (wchar_t*)L"Asset/noise1600x1024.dds", RESOURCE_TEXTURE2D, 0);
+	CScene::CreateShaderResourceViews(pd3dDevice, m_pNoiseTexture, 0, 3);
 }
 
 void CPostProcessingShader::OnPrepareRenderTarget(ID3D12GraphicsCommandList* pd3dCommandList, int nRenderTargets, D3D12_CPU_DESCRIPTOR_HANDLE* pd3dRtvCPUHandles, D3D12_CPU_DESCRIPTOR_HANDLE* pd3dDsvCPUHandle)
@@ -835,12 +841,24 @@ void CPostProcessingShader::TransitionCommonToRenderTarget(ID3D12GraphicsCommand
 	}
 }
 
-void CPostProcessingShader::Render(ID3D12GraphicsCommandList* pd3dCommandList, const shared_ptr<CCamera>& pCamera,const shared_ptr<CPlayer>& pPlayer )
+void CPostProcessingShader::Render(ID3D12GraphicsCommandList* pd3dCommandList, const shared_ptr<CCamera>& pCamera,const shared_ptr<CPlayer>& pPlayer)
 {
-	CShader::Render(pd3dCommandList, pCamera, pPlayer);
+	UpdatePipeLineState(pd3dCommandList, m_nPipelineIndex);
+
+	for (auto& object : m_vGameObjects)
+	{
+		if (!object->m_bThisContainTransparent) 
+		{
+			object->Render(pd3dCommandList);
+		}
+		else {
+			object->RenderOpaque(pd3dCommandList);
+		}
+	}
 
 	if (m_pTexture) m_pTexture->UpdateShaderVariables(pd3dCommandList);
 	if (m_pShadowTextures) m_pShadowTextures->UpdateShaderVariables(pd3dCommandList);
+	if (m_pNoiseTexture) m_pNoiseTexture->UpdateShaderVariables(pd3dCommandList);
 
 	pd3dCommandList->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
 	pd3dCommandList->DrawInstanced(6, 1, 0, 0);

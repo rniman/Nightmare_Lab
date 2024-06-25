@@ -235,6 +235,9 @@
     <FxCompile Include="VSInstanceOutLine.hlsl">
       <Filter>HLSL%28cso%29\OutLine</Filter>
     </FxCompile>
+    <FxCompile Include="PSPostProcessingWithSSAO.hlsl">
+      <Filter>HLSL%28cso%29</Filter>
+    </FxCompile>
   </ItemGroup>
   <ItemGroup>
     <None Include="Shadow.hlsl" />

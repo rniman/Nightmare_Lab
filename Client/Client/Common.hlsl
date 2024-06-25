@@ -56,6 +56,11 @@ cbuffer cbFrameInfo : register(b5)
     float localTime : packoffset(c0.y);
     float usePattern : packoffset(c0.z);
     float gfTrackingTime : packoffset(c0.w);
+    
+    // Occlusion Info
+    float gfScale : packoffset(c1.x);
+    float gfBias : packoffset(c1.y);
+    float gfIntesity : packoffset(c1.z);
 }
 
 SamplerState gssWrap : register(s0);

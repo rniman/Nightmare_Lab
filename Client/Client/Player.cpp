@@ -797,7 +797,7 @@ void CBlueSuitPlayer::Animate(float fElapsedTime)
 		break;
 	}
 
-
+	m_pcbMappedTime->time = fElapsedTime;
 	m_pcbMappedTime->localTime += fElapsedTime;
 	if (int(m_pcbMappedTime->localTime * 10.0f) % 3 == 0) { // È÷Æ®½Ã ±ôºýÀÓ
 		m_pcbMappedTime->usePattern = -1.0f;
@@ -1155,7 +1155,7 @@ CZombiePlayer::CZombiePlayer(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList
 	m_pCamera->SetFogInfo(XMFLOAT4(1.0f, 10.0f, 0.05f, 1.0f));
 	m_pCamera->SetUpdateUseRotate(false);
 
-	m_xmf3Scale = XMFLOAT3(1.0f, 1.5f, 1.0f);
+	m_xmf3Scale = XMFLOAT3(1.5f, 1.5f, 1.0f);
 	
 	UINT ncbElementBytes = ((sizeof(FrameTimeInfo) + 255) & ~255); //256ÀÇ ¹è¼ö
 	m_pd3dcbTime = ::CreateBufferResource(pd3dDevice, pd3dCommandList, NULL, ncbElementBytes, D3D12_HEAP_TYPE_UPLOAD, D3D12_RESOURCE_STATE_VERTEX_AND_CONSTANT_BUFFER, NULL);
@@ -1338,6 +1338,8 @@ void CZombiePlayer::Animate(float fElapsedTime)
 	{
 		//return;
 	}
+
+	m_pcbMappedTime->time += fElapsedTime;
 
 	OnUpdateToParent();
 	if (!m_bElectricBlend) {
