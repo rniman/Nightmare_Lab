@@ -741,10 +741,10 @@ void CPostProcessingShader::CreateResourcesAndRtvsSrvs(ID3D12Device* pd3dDevice,
 		handle.ptr = ::gnDsvDescriptorIncrementSize;
 	}
 
-	m_pNoiseTexture = make_shared<CTexture>(1, RESOURCE_TEXTURE2D, 0, 1);
-	m_pNoiseTexture->LoadTextureFromDDSFile(pd3dDevice, pd3dCommandList, (wchar_t*)L"Asset/noise.dds", RESOURCE_TEXTURE2D, 0);
-	//m_pNoiseTexture->LoadTextureFromDDSFile(pd3dDevice, pd3dCommandList, (wchar_t*)L"Asset/noise1600x1024.dds", RESOURCE_TEXTURE2D, 0);
-	CScene::CreateShaderResourceViews(pd3dDevice, m_pNoiseTexture, 0, 3);
+	//m_pNoiseTexture = make_shared<CTexture>(1, RESOURCE_TEXTURE2D, 0, 1);
+	//m_pNoiseTexture->LoadTextureFromDDSFile(pd3dDevice, pd3dCommandList, (wchar_t*)L"Asset/noise8x8(2).dds", RESOURCE_TEXTURE2D, 0);
+	////m_pNoiseTexture->LoadTextureFromDDSFile(pd3dDevice, pd3dCommandList, (wchar_t*)L"Asset/noise1600x1024.dds", RESOURCE_TEXTURE2D, 0);
+	//CScene::CreateShaderResourceViews(pd3dDevice, m_pNoiseTexture, 0, 3);
 }
 
 void CPostProcessingShader::OnPrepareRenderTarget(ID3D12GraphicsCommandList* pd3dCommandList, int nRenderTargets, D3D12_CPU_DESCRIPTOR_HANDLE* pd3dRtvCPUHandles, D3D12_CPU_DESCRIPTOR_HANDLE* pd3dDsvCPUHandle)

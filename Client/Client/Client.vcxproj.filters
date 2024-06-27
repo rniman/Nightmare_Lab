@@ -244,5 +244,8 @@
     <None Include="Common.hlsl">
       <Filter>HLSL%28cso%29</Filter>
     </None>
+    <None Include="NoiseData.hlsl">
+      <Filter>HLSL%28cso%29</Filter>
+    </None>
   </ItemGroup>
 </Project>
