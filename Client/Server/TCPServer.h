@@ -23,7 +23,8 @@ class CServerCollisionManager;
 
 enum GAME_STATE
 {
-	IN_GAME = 0,
+	IN_LOBBY = 0,
+	IN_GAME,
 	BLUE_SUIT_WIN,
 	ZOMBIE_WIN
 };
@@ -73,12 +74,14 @@ enum class SOCKET_STATE
 	SEND_UPDATE_DATA,			 // 클라이언트에 보내는 응답
 	SEND_NUM_OF_CLIENT,
 	SEND_BLUE_SUIT_WIN,
-	SEND_ZOMBIE_WIN
+	SEND_ZOMBIE_WIN,
+	SEND_GAME_START
 };
 
 enum RECV_HEAD
 {
 	HEAD_KEYS_BUFFER = 0,
+	HEAD_GAME_START
 };
 
 struct SOCKETINFO
@@ -121,6 +124,7 @@ public:
 
 	bool Init(HWND hWnd);
 	void SimulationLoop();
+	int CheckLobby();
 	int CheckEndGame();
 	void UpdateEndGame(int nEndGame);
 
@@ -149,6 +153,7 @@ public:
 	void SetAllClientsSendStatus(int cur_nPlayer, bool val);
 
 	// Interface
+	void SetGameState(int nGameState) { m_nGameState = nGameState; }
 	void SetNumOfZombie(int nZombie) { m_nZombie = nZombie; }
 	void SetNumOfBlueSuit(int nBlueSuit) { m_nBlueSuit = nBlueSuit; }
 	void SetClientListBox(HWND hListBox) { m_hClientListBox = hListBox; }
@@ -159,6 +164,7 @@ public:
 
 	static default_random_engine m_mt19937Gen;
 private:
+	int m_nGameState;
 	CTimer m_timer;
 	static INT8 m_nClient;
 	HWND m_hWnd;
@@ -174,12 +180,6 @@ private:
 	std::vector<shared_ptr<CServerGameObject>> m_vpGameObject;
 	std::shared_ptr<CServerCollisionManager> m_pCollisionManager;
 
-	//Test
-	//int m_nStartItemNumber = -1;	// 아이템 오브젝트의 시작 인덱스
-	//int m_nStartDrawer1 = -1;
-	//int m_nEndDrawer1 = -1;
-	//int m_nStartDrawer2 = -1;
-	//int m_nEndDrawer2 = -1;
 	vector<pair<int, int>> m_vDrawerId; // <ObjectCount,type>
 
 	bool m_bDataSend[MAX_CLIENT] = { false };

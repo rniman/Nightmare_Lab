@@ -59,12 +59,10 @@ bool CGameFramework::OnCreate(HINSTANCE hInstance, HWND hMainWnd)
 
 	//m_pTcpClient = make_shared<CTcpClient>(hMainWnd);
 
-	g_collisionManager.CreateCollision(SPACE_FLOOR, SPACE_WIDTH, SPACE_DEPTH);
-
+	//g_collisionManager.CreateCollision(SPACE_FLOOR, SPACE_WIDTH, SPACE_DEPTH);
 	BuildObjects();
-
 	//[0514] PrepaerDrawText-> 창모드 전환에 문제있음
-	PrepareDrawText();// Scene이 초기화 되고 나서 수행해야함 SRV를 Scene이 가지고 있음.
+	//PrepareDrawText();// Scene이 초기화 되고 나서 수행해야함 SRV를 Scene이 가지고 있음.
 
 	return(true);
 }
@@ -499,24 +497,18 @@ void CGameFramework::OnProcessingMouseMessage(HWND hWnd, UINT nMessageID, WPARAM
 	}
 
 	if (m_pScene) m_pScene->OnProcessingMouseMessage(hWnd, nMessageID, wParam, lParam);
+
+	if (m_nGameState == GAME_STATE::IN_LOBBY)
+	{
+		return;
+	}
+
 	switch (nMessageID)
 	{
 	case WM_LBUTTONDOWN:
-
 		SetCapture(hWnd);
 		SetCursor(NULL);
 		SetCursorPos(m_ptOldCursorPos.x, m_ptOldCursorPos.y);
-
-		//::GetCursorPos(&m_ptOldCursorPos);
-		if (!m_pMainPlayer)
-		{
-			break;
-		}
-		break;
-	case WM_RBUTTONDOWN:
-		m_pMainPlayer->SetRightClick(true);
-		m_pMainPlayer->RightClickProcess();
-		break;
 	case WM_LBUTTONUP:
 	case WM_RBUTTONUP:
 		break;
@@ -556,24 +548,6 @@ void CGameFramework::OnProcessingKeyboardMessage(HWND hWnd, UINT nMessageID, WPA
 	case WM_KEYUP:
 		switch (wParam)
 		{
-		//case 'P':
-		//	m_pcbMappedTime->gfScale += 0.1f;
-		//	break;
-		//case 'O':
-		//	m_pcbMappedTime->gfScale -= 0.1f;
-		//	break;
-		//case 'L':
-		//	m_pcbMappedTime->gfIntesity += 0.1f;
-		//	break;
-		//case 'K':
-		//	m_pcbMappedTime->gfIntesity -= 0.1f;
-		//	break;
-		case 'M':
-			if(m_pPostProcessingShader->GetPipelineIndex() == 0)
-				m_pPostProcessingShader->SetPipelineIndex(1);
-			else
-				m_pPostProcessingShader->SetPipelineIndex(0);
-			break;
 		case VK_ESCAPE:
 			::PostQuitMessage(0);
 			break;
@@ -606,32 +580,32 @@ void CGameFramework::OnProcessingKeyboardMessage(HWND hWnd, UINT nMessageID, WPA
 		case VK_F9:
 			ChangeSwapChainState();
 			break;
-		case VK_PRIOR:
-		{
-			if (!m_pMainPlayer)
-			{
-				break;
-			}
-			XMFLOAT3 xmf3Shift = XMFLOAT3(0, 0, 0);
-			XMFLOAT3 xmf3Up = m_pMainPlayer->GetUpVector();
-			if (m_pMainPlayer->GetPosition().y < 13.5f + FLT_EPSILON) xmf3Shift = Vector3::Add(xmf3Shift, xmf3Up, 4.5f);
+		//case VK_PRIOR:
+		//{
+		//	if (!m_pMainPlayer)
+		//	{
+		//		break;
+		//	}
+		//	XMFLOAT3 xmf3Shift = XMFLOAT3(0, 0, 0);
+		//	XMFLOAT3 xmf3Up = m_pMainPlayer->GetUpVector();
+		//	if (m_pMainPlayer->GetPosition().y < 13.5f + FLT_EPSILON) xmf3Shift = Vector3::Add(xmf3Shift, xmf3Up, 4.5f);
 
-			m_pMainPlayer->SetPosition(Vector3::Add(m_pMainPlayer->GetPosition(), xmf3Shift));
-		}
-			break;
-		case VK_NEXT:
-		{
-			if (!m_pMainPlayer)
-			{
-				break;
-			}
-			XMFLOAT3 xmf3Shift = XMFLOAT3(0, 0, 0);
-			XMFLOAT3 xmf3Up = m_pMainPlayer->GetUpVector();
-			if (m_pMainPlayer->GetPosition().y > 0.0f + FLT_EPSILON) xmf3Shift = Vector3::Add(xmf3Shift, xmf3Up, -4.5f);
+		//	m_pMainPlayer->SetPosition(Vector3::Add(m_pMainPlayer->GetPosition(), xmf3Shift));
+		//}
+		//	break;
+		//case VK_NEXT:
+		//{
+		//	if (!m_pMainPlayer)
+		//	{
+		//		break;
+		//	}
+		//	XMFLOAT3 xmf3Shift = XMFLOAT3(0, 0, 0);
+		//	XMFLOAT3 xmf3Up = m_pMainPlayer->GetUpVector();
+		//	if (m_pMainPlayer->GetPosition().y > 0.0f + FLT_EPSILON) xmf3Shift = Vector3::Add(xmf3Shift, xmf3Up, -4.5f);
 
-			m_pMainPlayer->SetPosition(Vector3::Add(m_pMainPlayer->GetPosition(), xmf3Shift));
-		}
-			break;
+		//	m_pMainPlayer->SetPosition(Vector3::Add(m_pMainPlayer->GetPosition(), xmf3Shift));
+		//}
+		//	break;
 		default:
 			break;
 		}
@@ -672,7 +646,7 @@ void CGameFramework::OnProcessingSocketMessage(HWND hWnd, UINT nMessageID, WPARA
 		if (WSAGETSELECTEVENT(lParam) == FD_CLOSE && m_bTcpClient)
 		{
 			m_bTcpClient = false;
-			err_display("exceed maximum client number");
+			err_display("Fail Connect", "Client count exceeded or game already started");
 		}
 		break;
 	default:
@@ -690,27 +664,24 @@ void CGameFramework::OnProcessingWindowMessage(HWND hWnd, UINT nMessageID, WPARA
 	case WM_CREATE_TCP:
 		m_bTcpClient = true;
 		break;
+	case WM_START_GAME:
+	{
+		m_nGameState = GAME_STATE::IN_GAME;
+		BuildObjects();
+
+		::SetCursor(NULL);
+		::SetCapture(hWnd);
+		// 마우스를 화면 중앙으로 이동시킴 (윈도우 내부로만 이동하도록)
+		RECT rect;
+		GetClientRect(hWnd, &rect);
+		POINT center = { (rect.right - rect.left) / 2, (rect.bottom - rect.top) / 2 };
+		ClientToScreen(hWnd, &center);
+		SetCursorPos(center.x, center.y);
+		SetMousePoint(center);
+	}
+		break;
 	case WM_END_GAME:
-		if (LOWORD(wParam) == 0)	// BLUESUIT WIN
-		{
-			m_nGameState = GAME_STATE::BLUE_SUIT_WIN;
-		}
-		else if (LOWORD(wParam) == 1)	// ZOMBIE WIN
-		{
-			m_nGameState = GAME_STATE::ZOMBIE_WIN;
-			for (int i = ZOMBIEPLAYER + 1; i < ZOMBIEPLAYER + 1 + 4; ++i)
-			{
-				m_apPlayer[i]->SetAlive(false);
-			}
-		}
-		if (m_nMainClientId != ZOMBIEPLAYER)
-		{
-			dynamic_cast<CBlueSuitUserInterfaceShader*>(m_pScene->m_vForwardRenderShader[USER_INTERFACE_SHADER].get())->SetGameState(m_nGameState);
-		}
-		else if (m_nMainClientId == ZOMBIEPLAYER)
-		{
-			dynamic_cast<CZombieUserInterfaceShader*>(m_pScene->m_vForwardRenderShader[USER_INTERFACE_SHADER].get())->SetGameState(m_nGameState);
-		}
+		OnProcessingEndGameMessage(wParam);
 		break;
 	case WM_SOCKET:
 		OnProcessingSocketMessage(hWnd, nMessageID, wParam, lParam);
@@ -736,6 +707,32 @@ void CGameFramework::OnProcessingWindowMessage(HWND hWnd, UINT nMessageID, WPARA
 	case WM_KEYUP:
 		OnProcessingKeyboardMessage(hWnd, nMessageID, wParam, lParam);
 		break;
+	}
+}
+
+void CGameFramework::OnProcessingEndGameMessage(WPARAM& wParam)
+{
+	if (LOWORD(wParam) == 0)	// BLUESUIT WIN
+	{
+		m_nGameState = GAME_STATE::BLUE_SUIT_WIN;
+	}
+	else if (LOWORD(wParam) == 1)	// ZOMBIE WIN
+	{
+		m_nGameState = GAME_STATE::ZOMBIE_WIN;
+		for (int i = ZOMBIEPLAYER + 1; i < ZOMBIEPLAYER + 1 + 4; ++i)
+		{
+			m_apPlayer[i]->SetAlive(false);
+		}
+	}
+
+	shared_ptr<CMainScene> pMainScene = dynamic_pointer_cast<CMainScene>(m_pScene);
+	if (m_nMainClientId != ZOMBIEPLAYER)
+	{
+		dynamic_cast<CBlueSuitUserInterfaceShader*>(pMainScene->m_vForwardRenderShader[USER_INTERFACE_SHADER].get())->SetGameState(m_nGameState);
+	}
+	else if (m_nMainClientId == ZOMBIEPLAYER)
+	{
+		dynamic_cast<CZombieUserInterfaceShader*>(pMainScene->m_vForwardRenderShader[USER_INTERFACE_SHADER].get())->SetGameState(m_nGameState);
 	}
 }
 
@@ -785,13 +782,13 @@ void CGameFramework::OnDestroy()
 
 }
 
-void CGameFramework::OnDestroyLobby()
+void CGameFramework::OnDestroyEntryWindow()
 {
 	DestroyWindow(m_hConnectButton);
 	DestroyWindow(m_hIPAddressEdit);
 }
 
-void CGameFramework::CreateLobby(HWND hWnd)
+void CGameFramework::CreateEntryWindow(HWND hWnd)
 {
 	int nConnectButtonWidth = 300;
 	int nConnectButtonHeight= 60;
@@ -847,101 +844,141 @@ void CGameFramework::CreateLobby(HWND hWnd)
 
 void CGameFramework::BuildObjects()
 {
-	m_d3dCommandList->Reset(m_d3dCommandAllocator[m_nSwapChainBufferIndex].Get(), NULL);
-
-	m_pScene = make_shared<CScene>();
-	if (m_pScene.get())
-	{
-		int nClientId = m_pTcpClient->GetClientId();
-		m_pScene->BuildObjects(m_d3d12Device.Get(), m_d3dCommandList.Get(), nClientId);
-	}
-
-	INT ncbElementBytes = ((sizeof(FrameTimeInfo) + 255) & ~255); //256의 배수
-
-	m_pd3dcbTime = ::CreateBufferResource(m_d3d12Device.Get(), m_d3dCommandList.Get(), NULL, ncbElementBytes, D3D12_HEAP_TYPE_UPLOAD, D3D12_RESOURCE_STATE_VERTEX_AND_CONSTANT_BUFFER, NULL);
-	m_pd3dcbTime->Map(0, NULL, (void**)&m_pcbMappedTime);
-	m_pcbMappedTime->gfScale = 1.0f;
-	m_pcbMappedTime->gfBias = 0.05f;
-	m_pcbMappedTime->gfIntesity = 3.0f;
-	m_d3dTimeCbvGPUDescriptorHandle = CScene::CreateConstantBufferViews(m_d3d12Device.Get(), 1, m_pd3dcbTime.Get(), ncbElementBytes);
-
-	//m_pPlayer = make_shared<CZombiePlayer>(pd3dDevice, pd3dCommandList, m_pd3dGraphicsRootSignature.Get(), nullptr);
-	//shared_ptr<CLoadedModelInfo> pZombiePlayerModel = CGameObject::LoadGeometryAndAnimationFromFile(pd3dDevice, pd3dCommandList, m_pd3dGraphicsRootSignature.Get(), "Asset/Model/Zom_1.bin");
-	//m_pPlayer->LoadModelAndAnimation(pd3dDevice, pd3dCommandList, m_pd3dGraphicsRootSignature.Get(), pZombiePlayerModel);
-	for(int i = 0; i< MAX_CLIENT;++i)
-	{
-		m_apPlayer[i] = m_pScene->m_apPlayer[i];
-		m_pTcpClient->SetPlayer(m_pScene->m_apPlayer[i], i);
-	}
-
-	m_pPostProcessingShader = new CPostProcessingShader();
-	m_pPostProcessingShader->CreateShader(m_d3d12Device.Get(), m_d3dCommandList.Get(), m_pScene->GetGraphicsRootSignature().Get(), 1, NULL, DXGI_FORMAT_D24_UNORM_S8_UINT);
-	
-	D3D12_CPU_DESCRIPTOR_HANDLE d3dRtvCPUDescriptorHandle = m_d3dRtvDescriptorHeap->GetCPUDescriptorHandleForHeapStart();
-	d3dRtvCPUDescriptorHandle.ptr += (::gnRtvDescriptorIncrementSize * m_nSwapChainBuffers);
-
-	DXGI_FORMAT pdxgiResourceFormats[ADD_RENDERTARGET_COUNT] = { DXGI_FORMAT_R8G8B8A8_UNORM,  DXGI_FORMAT_R8G8B8A8_UNORM, DXGI_FORMAT_R32_FLOAT ,DXGI_FORMAT_R32G32B32A32_FLOAT };
-	m_pPostProcessingShader->CreateResourcesAndRtvsSrvs(m_d3d12Device.Get(), m_d3dCommandList.Get(), ADD_RENDERTARGET_COUNT, pdxgiResourceFormats, d3dRtvCPUDescriptorHandle); //SRV to (Render Targets) + (Depth Buffer)
-
-	d3dRtvCPUDescriptorHandle.ptr += (::gnRtvDescriptorIncrementSize * ADD_RENDERTARGET_COUNT);
-	m_pPostProcessingShader->CreateShadowMapResource(m_d3d12Device.Get(), m_d3dCommandList.Get(),m_pScene->m_nLights, d3dRtvCPUDescriptorHandle);
-	//D3D12_GPU_DESCRIPTOR_HANDLE d3dDsvGPUDescriptorHandle = CScene::CreateShaderResourceView(m_d3d12Device.Get(), m_d3dDepthStencilBuffer.Get(), DXGI_FORMAT_R32_FLOAT);
-	m_pPostProcessingShader->CreateLightCamera(m_d3d12Device.Get(), m_d3dCommandList.Get(), m_pScene.get());
-
-	//[0523] 이제 좀비 플레이어 외에도 사용, COutLineShader 내부에서 m_pPostProcessingShader->GetDsvCPUDesctriptorHandle(0)을 사용하기위해서 필요
-	dynamic_cast<COutLineShader*>(m_pScene->m_vForwardRenderShader[OUT_LINE_SHADER].get())->SetPostProcessingShader(m_pPostProcessingShader);
-
-	m_d3dCommandList->Close();
-	ID3D12CommandList* ppd3dCommandLists[] = { m_d3dCommandList.Get()};
-	m_d3dCommandQueue->ExecuteCommandLists(1, ppd3dCommandLists);
-
-	WaitForGpuComplete();
-
-
-	if (m_pScene)
-	{
-		m_pScene->ReleaseUploadBuffers();
-	}
-
 	m_GameTimer.Reset();
-	PreRenderTasks(); // 사전 렌더링 작업
 
-	int x = g_collisionManager.GetNumOfCollisionObject();
-	x += 1;
-
-	int light_id = 0;
-	auto& LightCamera = m_pScene->GetLightCamera();
-	for (auto& pPlayer : m_apPlayer)
+	m_d3dCommandList->Reset(m_d3dCommandAllocator[m_nSwapChainBufferIndex].Get(), NULL);
+	if (m_nGameState == GAME_STATE::IN_LOBBY)
 	{
-		pPlayer->ChangeCamera(FIRST_PERSON_CAMERA, 0.0f);
-		pPlayer->Update(m_GameTimer.GetTimeElapsed());
+		m_pScene = make_shared<CLobbyScene>(m_hWnd, m_pCamera);
+		m_pScene->SetNumOfSwapChainBuffers(m_nSwapChainBuffers);
+		m_pScene->SetRTVDescriptorHeap(m_d3dRtvDescriptorHeap);
 
-		auto survivor = dynamic_pointer_cast<CBlueSuitPlayer>(pPlayer);
-		if (survivor) {
-			LightCamera[light_id]->SetPlayer(pPlayer);
-			light_id++;
-		}
+		int nMainClientId = m_pTcpClient->GetMainClientId();
+		m_pScene->BuildObjects(m_d3d12Device.Get(), m_d3dCommandList.Get(), nMainClientId);
+		m_pCamera.lock()->CreateShaderVariables(m_d3d12Device.Get(), m_d3dCommandList.Get());
+
+		for (int i = 0; i < MAX_CLIENT; ++i)
+		{
+			m_apPlayer[i] = m_pScene->m_apPlayer[i];
+			m_pTcpClient->SetPlayer(m_pScene->m_apPlayer[i], i);
+			int nClientId = m_pTcpClient->GetClientID(i);
+			m_apPlayer[i]->SetClientId(nClientId);
+		}		
+		m_nMainClientId = nMainClientId;
+		m_pMainPlayer = m_apPlayer[nMainClientId];
+		m_pScene->SetMainPlayer(m_pMainPlayer);
+
+		m_d3dCommandList->Close();
+		ID3D12CommandList* ppd3dCommandLists[] = { m_d3dCommandList.Get() };
+		m_d3dCommandQueue->ExecuteCommandLists(1, ppd3dCommandLists);
+
+		WaitForGpuComplete();
 	}
-	m_pCamera = m_pMainPlayer->GetCamera();
+	else if (m_nGameState == GAME_STATE::IN_GAME)
+	{
+		g_collisionManager.CreateCollision(SPACE_FLOOR, SPACE_WIDTH, SPACE_DEPTH);
+
+		m_pScene = make_shared<CMainScene>();
+		m_pScene->SetNumOfSwapChainBuffers(m_nSwapChainBuffers);
+		m_pScene->SetRTVDescriptorHeap(m_d3dRtvDescriptorHeap);
+
+		shared_ptr<CMainScene> pMainScene = dynamic_pointer_cast<CMainScene>(m_pScene);
+		if (m_pScene.get())
+		{
+			int nMainClientId = m_pTcpClient->GetMainClientId();
+			m_pScene->BuildObjects(m_d3d12Device.Get(), m_d3dCommandList.Get(), nMainClientId);
+
+			for (int i = 0; i < MAX_CLIENT; ++i)
+			{
+				m_apPlayer[i] = m_pScene->m_apPlayer[i];
+				m_pTcpClient->SetPlayer(m_pScene->m_apPlayer[i], i);
+				int nClientId = m_pTcpClient->GetClientID(i);
+				m_apPlayer[i]->SetClientId(nClientId);
+			}
+
+			m_nMainClientId = nMainClientId;
+			m_pMainPlayer = m_apPlayer[nMainClientId];
+			m_pScene->SetMainPlayer(m_pMainPlayer);
+		}
+
+		//for (int i = 0; i < MAX_CLIENT; ++i)
+		//{
+		//	m_apPlayer[i] = m_pScene->m_apPlayer[i];
+		//	m_pTcpClient->SetPlayer(m_pScene->m_apPlayer[i], i);
+		//}
+
+		////[0626] 포스트 프로세싱 셰이더가 Scene으로 오면서 옮김
+		//m_pScene->m_pPostProcessingShader = new CPostProcessingShader();
+		//m_pScene->m_pPostProcessingShader->CreateShader(m_d3d12Device.Get(), m_d3dCommandList.Get(), m_pScene->GetGraphicsRootSignature().Get(), 1, NULL, DXGI_FORMAT_D24_UNORM_S8_UINT);
+		//
+		//D3D12_CPU_DESCRIPTOR_HANDLE d3dRtvCPUDescriptorHandle = m_d3dRtvDescriptorHeap->GetCPUDescriptorHandleForHeapStart();
+		//d3dRtvCPUDescriptorHandle.ptr += (::gnRtvDescriptorIncrementSize * m_nSwapChainBuffers);
+		//
+		//DXGI_FORMAT pdxgiResourceFormats[ADD_RENDERTARGET_COUNT] = { DXGI_FORMAT_R8G8B8A8_UNORM,  DXGI_FORMAT_R8G8B8A8_UNORM, DXGI_FORMAT_R32_FLOAT ,DXGI_FORMAT_R32G32B32A32_FLOAT };
+		//m_pScene->m_pPostProcessingShader->CreateResourcesAndRtvsSrvs(m_d3d12Device.Get(), m_d3dCommandList.Get(), ADD_RENDERTARGET_COUNT, pdxgiResourceFormats, d3dRtvCPUDescriptorHandle); //SRV to (Render Targets) + (Depth Buffer)
+		//
+		//d3dRtvCPUDescriptorHandle.ptr += (::gnRtvDescriptorIncrementSize * ADD_RENDERTARGET_COUNT);
+		//m_pScene->m_pPostProcessingShader->CreateShadowMapResource(m_d3d12Device.Get(), m_d3dCommandList.Get(), m_pScene->m_nLights, d3dRtvCPUDescriptorHandle);
+		////D3D12_GPU_DESCRIPTOR_HANDLE d3dDsvGPUDescriptorHandle = CScene::CreateShaderResourceView(m_d3d12Device.Get(), m_d3dDepthStencilBuffer.Get(), DXGI_FORMAT_R32_FLOAT);
+		//m_pScene->m_pPostProcessingShader->CreateLightCamera(m_d3d12Device.Get(), m_d3dCommandList.Get(), m_pScene.get());
+		//
+		////[0523] 이제 좀비 플레이어 외에도 사용, COutLineShader 내부에서 m_pPostProcessingShader->GetDsvCPUDesctriptorHandle(0)을 사용하기위해서 필요
+		//dynamic_cast<COutLineShader*>(m_pScene->m_vForwardRenderShader[OUT_LINE_SHADER].get())->SetPostProcessingShader(m_pScene->m_pPostProcessingShader);
+		m_d3dCommandList->Close();
+		ID3D12CommandList* ppd3dCommandLists[] = { m_d3dCommandList.Get() };
+		m_d3dCommandQueue->ExecuteCommandLists(1, ppd3dCommandLists);
+
+		WaitForGpuComplete();
+
+		if (m_pScene)
+		{
+			m_pScene->ReleaseUploadBuffers();
+		}
+
+		PreRenderTasks(pMainScene); // 사전 렌더링 작업
+
+		int light_id = 0;
+		auto& LightCamera = pMainScene->GetLightCamera();
+		for (auto& pPlayer : m_apPlayer)
+		{
+			pPlayer->ChangeCamera(FIRST_PERSON_CAMERA, 0.0f);
+			pPlayer->Update(m_GameTimer.GetTimeElapsed());
+
+			auto survivor = dynamic_pointer_cast<CBlueSuitPlayer>(pPlayer);
+			if (survivor) {
+				LightCamera[light_id]->SetPlayer(pPlayer);
+				light_id++;
+			}
+		}
+		m_pCamera = m_pMainPlayer->GetCamera();
+		
+		PrepareDrawText();// Scene이 초기화 되고 나서 수행해야함 SRV를 Scene이 가지고 있음.
+	}
 }
 
 void CGameFramework::ReleaseObjects()
 {
-	if (m_pScene) m_pScene->ReleaseObjects();
+	//if (m_pScene) m_pScene->ReleaseObjects();
 	//if (m_pScene) delete m_pScene;
 }
 
 void CGameFramework::ProcessInput()
 {
 	bool bProcessedByScene = false;
-
-	if (GetKeyboardState(m_pKeysBuffer) && m_pScene) bProcessedByScene = m_pScene->ProcessInput(m_pKeysBuffer);
-	PostMessage(m_hWnd, WM_SOCKET, (WPARAM)m_pTcpClient->m_sock, MAKELPARAM(FD_WRITE, 0));
-
+	GetKeyboardState(m_pKeysBuffer);
 	if (!m_pMainPlayer)
 	{
 		return;
 	}
+
+	if (m_nGameState == GAME_STATE::IN_LOBBY)
+	{
+		m_pScene->ProcessInput(m_pKeysBuffer);
+		return;
+	}
+
+	//if ( && m_pScene) bProcessedByScene = m_pScene->ProcessInput(m_pKeysBuffer);
+	PostMessage(m_hWnd, WM_SOCKET, (WPARAM)m_pTcpClient->m_sock, MAKELPARAM(FD_WRITE, 0));
 
 	if (!bProcessedByScene)
 	{
@@ -982,29 +1019,26 @@ void CGameFramework::AnimateObjects()
 {
 	float fElapsedTime = m_GameTimer.GetTimeElapsed();
 
-	m_pcbMappedTime->time += fElapsedTime;
-
 	if (m_pScene) m_pScene->AnimateObjects(fElapsedTime);
 
+	//vector<shared_ptr<CLightCamera>>& lightCamera = m_pScene->GetLightCamera();
 
-	vector<shared_ptr<CLightCamera>>& lightCamera = m_pScene->GetLightCamera();
+	//XMFLOAT3 clientCameraPos = m_pCamera.lock().get()->GetPosition();
+	//sort(lightCamera.begin() + 4, lightCamera.end(), [clientCameraPos](const shared_ptr<CLightCamera>& A, const shared_ptr<CLightCamera>& B) {
+	//	//const float epsilon = 1e-5f; // 허용 오차
+	//	XMFLOAT3 clToA = Vector3::Subtract(clientCameraPos, A->GetPosition());
+	//	XMFLOAT3 clToB = Vector3::Subtract(clientCameraPos, B->GetPosition());
+	//	return Vector3::Length(clToA) < Vector3::Length(clToB);
+	//	});
 
-	XMFLOAT3 clientCameraPos = m_pCamera.lock().get()->GetPosition();
-	sort(lightCamera.begin() + 4, lightCamera.end(), [clientCameraPos](const shared_ptr<CLightCamera>& A, const shared_ptr<CLightCamera>& B) {
-		//const float epsilon = 1e-5f; // 허용 오차
-		XMFLOAT3 clToA = Vector3::Subtract(clientCameraPos, A->GetPosition());
-		XMFLOAT3 clToB = Vector3::Subtract(clientCameraPos, B->GetPosition());
-		return Vector3::Length(clToA) < Vector3::Length(clToB);
-		});
-
-	for (auto& cm : lightCamera) {
-		cm->Update(cm->GetLookAtPosition(), fElapsedTime);
-		if (auto player = cm->GetPlayer().lock()) {
-			if (player->GetClientId() == -1) {
-				cm->m_pLight->m_bEnable = false;
-			}
-		}
-	}
+	//for (auto& cm : lightCamera) {
+	//	cm->Update(cm->GetLookAtPosition(), fElapsedTime);
+	//	if (auto player = cm->GetPlayer().lock()) {
+	//		if (player->GetClientId() == -1) {
+	//			cm->m_pLight->m_bEnable = false;
+	//		}
+	//	}
+	//}
 }
 
 void CGameFramework::AnimateEnding()
@@ -1019,7 +1053,6 @@ void CGameFramework::AnimateEnding()
 	}
 	pDoor->Animate(m_GameTimer.GetTimeElapsed());
 	AnimateObjects();
-
 
 }
 
@@ -1050,9 +1083,9 @@ void CGameFramework::MoveToNextFrame()
 	}
 }
 
-void CGameFramework::PreRenderTasks()
+void CGameFramework::PreRenderTasks(shared_ptr<CMainScene>& pMainScene)
 {
-	INT8 nClientId = m_pTcpClient->GetClientId();
+	INT8 nClientId = m_pTcpClient->GetMainClientId();
 	if (nClientId != -1)
 	{
 		SetPlayerObjectOfClient(nClientId);
@@ -1060,11 +1093,12 @@ void CGameFramework::PreRenderTasks()
 	}
 	else	// 에러임
 	{
-		exit(0);
+		assert("FAIL CLIENT ID");
 	}
 
-	if (m_pScene->m_nLights >= MAX_LIGHTS) {
-		m_pScene->m_nLights = MAX_LIGHTS;
+	if (pMainScene->m_nLights >= MAX_LIGHTS)
+	{
+		pMainScene->m_nLights = MAX_LIGHTS;
 	}
 	m_pMainPlayer->Update(/*m_GameTimer.GetTimeElapsed()*/0.01f);
 
@@ -1077,38 +1111,11 @@ void CGameFramework::PreRenderTasks()
 	hResult = m_d3dCommandList->Reset(m_d3dCommandAllocator[m_nSwapChainBufferIndex].Get(), NULL);
 
 	SynchronizeResourceTransition(m_d3dCommandList.Get(), m_d3dSwapChainBackBuffers[m_nSwapChainBufferIndex].Get(), D3D12_RESOURCE_STATE_PRESENT, D3D12_RESOURCE_STATE_RENDER_TARGET);
-	
-	// 그림자맵에 해당하는 텍스처를 렌더타겟으로 변환
-	m_pPostProcessingShader->OnShadowPrepareRenderTarget(m_d3dCommandList.Get());
-
 	D3D12_CPU_DESCRIPTOR_HANDLE d3dRtvCPUDescriptorHandle = m_d3dRtvDescriptorHeap->GetCPUDescriptorHandleForHeapStart();
 	d3dRtvCPUDescriptorHandle.ptr += (m_nSwapChainBufferIndex * ::gnRtvDescriptorIncrementSize);
-	D3D12_CPU_DESCRIPTOR_HANDLE d3dDsvCPUDescriptorHandle = m_pPostProcessingShader->GetDsvCPUDesctriptorHandle(0);
 
-	auto& vlightCamera = m_pScene->GetLightCamera();
+	pMainScene->PrevRenderTask(m_d3dCommandList.Get());
 
-	for (int i = 0; i < m_pPostProcessingShader->GetShadowTexture()->GetTextures();++i) {
-		D3D12_CPU_DESCRIPTOR_HANDLE shadowRTVDescriptorHandle = m_pPostProcessingShader->GetShadowRtvCPUDescriptorHandle(i);
-		{
-			m_d3dCommandList->ClearDepthStencilView(d3dDsvCPUDescriptorHandle, D3D12_CLEAR_FLAG_DEPTH | D3D12_CLEAR_FLAG_STENCIL, 1.0f, 0, 0, NULL);
-
-			m_d3dCommandList->OMSetRenderTargets(1, &shadowRTVDescriptorHandle, TRUE, &d3dDsvCPUDescriptorHandle);
-
-			//1차 렌더링
-			if (m_pScene)
-			{
-				//m_pScene->PrevRender(m_d3dCommandList.Get(), vlightCamera[i], 1); // 카메라만 빛의 위치대로 설정해서 렌더링함.
-				if (i < MAX_SURVIVOR) {
-					m_pScene->Render(m_d3dCommandList.Get(), vlightCamera[i], 1/*nPipelinestate*/); // 카메라만 빛의 위치대로 설정해서 렌더링함.
-				}
-				else {
-					m_pScene->ShadowPreRender(m_d3dCommandList.Get(), vlightCamera[i], 1/*nPipelinestate*/);
-				}
-			}
-		}
-	}
-	// 그림자맵에 해당하는 렌더타겟을 텍스처로 변환
-	m_pPostProcessingShader->TransitionShadowMapRenderTargetToCommon(m_d3dCommandList.Get());
 	SynchronizeResourceTransition(m_d3dCommandList.Get(), m_d3dSwapChainBackBuffers[m_nSwapChainBufferIndex].Get(), D3D12_RESOURCE_STATE_RENDER_TARGET, D3D12_RESOURCE_STATE_PRESENT);
 
 	hResult = m_d3dCommandList->Close();
@@ -1128,14 +1135,18 @@ void CGameFramework::FrameAdvance()
 {
 	m_GameTimer.Tick(0.0f);
 
-	if(m_nGameState == GAME_STATE::IN_GAME)
+	if (m_nGameState == GAME_STATE::IN_LOBBY)
+	{
+		ProcessInput();
+		AnimateObjects();
+	}
+	else if(m_nGameState == GAME_STATE::IN_GAME)
 	{
 		ProcessInput(); 
 		AnimateObjects();
 	}
 	else
 	{
-
 		AnimateEnding();
 		m_fEndingElapsedTime += m_GameTimer.GetTimeElapsed();
 
@@ -1145,197 +1156,63 @@ void CGameFramework::FrameAdvance()
 	HRESULT hResult = m_d3dCommandAllocator[m_nSwapChainBufferIndex]->Reset();
 	hResult = m_d3dCommandList->Reset(m_d3dCommandAllocator[m_nSwapChainBufferIndex].Get(), NULL);
 
+	// 렌더링
+	switch (m_nGameState)
 	{
-		//-> 물어보기
-		int ndynamicShadowMap = m_pScene->m_nLights;
-		// 그림자맵에 해당하는 텍스처를 렌더타겟으로 변환
-		m_pPostProcessingShader->OnShadowPrepareRenderTarget(m_d3dCommandList.Get(), ndynamicShadowMap); //플레이어의 손전등 1개 -> [0] 번째 요소에 들어있음.
-
-		D3D12_CPU_DESCRIPTOR_HANDLE d3dDsvCPUDescriptorHandle = m_pPostProcessingShader->GetDsvCPUDesctriptorHandle(0);
-
-		//그림자맵에는 플레이어의 메쉬도 그림.
-		for (auto& pl : m_apPlayer) {
-			if (pl->GetClientId() == -1) continue;
-			pl->SetShadowRender(true);
-		}
-
-		auto& vlightCamera = m_pScene->GetLightCamera();
-		int lightId{};
-		auto zombie = dynamic_pointer_cast<CZombiePlayer>(m_apPlayer[m_nMainClientId]);
-		if (zombie)
-		{
-			for (; lightId < MAX_CLIENT - 1;++lightId) 
-			{
-				//m_pScene->m_pLights[lightId].m_bEnable = false;
-				vlightCamera[lightId]->m_pLight->m_bEnable = false; // 항상 모든 빛을 꺼버림. 그림자맵을 생성하는 빛만 켤것.
-			}
-		}
-		else {
-			for (int i = 0; i < MAX_CLIENT;++i) {
-				if (m_apPlayer[i]->GetClientId() == -1) continue;
-				auto survivor = dynamic_pointer_cast<CBlueSuitPlayer>(m_pScene->m_apPlayer[i]);
-				if (!survivor) {
-					continue;
-				}
-				//lightId 는 좀비를 제외하므로 생존자를 4명으로 생성했기에 항상 0~3 의 인덱스틑 생존자의 빛 카메라
-				XMFLOAT4X4* xmf4x4playerLight = survivor->GetFlashLigthWorldTransform();
-				XMFLOAT3 xmf3LightPosition = XMFLOAT3(xmf4x4playerLight->_41, xmf4x4playerLight->_42, xmf4x4playerLight->_43);
-				XMFLOAT3 xmf3LightLook = XMFLOAT3(xmf4x4playerLight->_21, xmf4x4playerLight->_22, xmf4x4playerLight->_23);
-				xmf3LightLook = Vector3::ScalarProduct(xmf3LightLook, -1.0f, false);
-				xmf3LightPosition = Vector3::Add(xmf3LightPosition, xmf3LightLook);
-				vlightCamera[lightId]->SetPosition(xmf3LightPosition);
-				vlightCamera[lightId]->SetLookVector(XMFLOAT3(xmf4x4playerLight->_21, xmf4x4playerLight->_22, xmf4x4playerLight->_23));
-				vlightCamera[lightId]->RegenerateViewMatrix();
-				vlightCamera[lightId]->MultiplyViewProjection();
-
-				static XMFLOAT4X4 xmf4x4ToTexture = {
-				0.5f, 0.0f, 0.0f, 0.0f,
-				0.0f, -0.5f, 0.0f, 0.0f,
-				0.0f, 0.0f, 1.0f, 0.0f,
-				0.5f, 0.5f, 0.0f, 1.0f 
-				};
-				static XMMATRIX xmProjectionToTexture = XMLoadFloat4x4(&xmf4x4ToTexture);
-
-				XMFLOAT4X4 viewProjection = vlightCamera[lightId]->GetViewProjection();
-				XMMATRIX xmmtxViewProjection = XMLoadFloat4x4(&viewProjection);
-				//XMStoreFloat4x4(&m_pScene->m_pLights[lightId].m_xmf4x4ViewProjection, XMMatrixTranspose(xmmtxViewProjection * xmProjectionToTexture));
-				XMStoreFloat4x4(&vlightCamera[lightId]->m_pLight->m_xmf4x4ViewProjection, XMMatrixTranspose(xmmtxViewProjection * xmProjectionToTexture));
-				vlightCamera[lightId]->SetFloor(static_cast<int>(floor(survivor->GetPosition().y / 4.5f)));
-
-				//// 빛의 카메라 파티션 설정
-				//unique_ptr<PartitionInsStandardShader> PtShader(static_cast<PartitionInsStandardShader*>(m_pScene->m_vPreRenderShader[PARTITION_SHADER].release()));
-				//auto vBB = PtShader->GetPartitionBB();
-				//BoundingBox camerabb;
-				//camerabb.Center = vlightCamera[lightId]->GetPosition();
-				//camerabb.Extents = XMFLOAT3(0.1f, 0.1f, 0.1f);
-
-				//for (int bbIdx = 0; bbIdx < vBB.size();++bbIdx) {
-				//	if (vBB[bbIdx]->Intersects(camerabb)) {
-				//		vlightCamera[lightId]->SetPartition(bbIdx);
-				//		break;
-				//	}
-				//}
-
-				//m_pScene->m_vPreRenderShader[PARTITION_SHADER].reset(PtShader.release());
-
-				lightId++;
-			}
-		}
-
-		//if (m_nGameState == GAME_STATE::BLUE_SUIT_WIN)
-		//{
-		//	shared_ptr<CGameObject> pDoor = g_collisionManager.GetCollisionObjectWithNumber(m_pTcpClient->GetEscapeDoor()).lock();
-		//	auto& vlightCamera = m_pPostProcessingShader->GetLightCamera();
-		//	XMFLOAT3 xmf3DoorPos = pDoor->GetPosition();
-		//	XMFLOAT3 xmf3DoorOffset = pDoor->GetLook();
-		//	xmf3DoorOffset = Vector3::ScalarProduct(xmf3DoorOffset, -3.0f, false);
-		//	xmf3DoorPos = Vector3::Add(xmf3DoorPos, xmf3DoorOffset);
-
-		//	vlightCamera[0]->SetPosition(xmf3DoorPos);
-		//	vlightCamera[0]->SetLookVector(pDoor->GetLook());
-		//	vlightCamera[0]->RegenerateViewMatrix();
-		//	vlightCamera[0]->MultiplyViewProjection();
-		//}
-
-		for (int i = 0; i < ndynamicShadowMap;++i)
-		{
-			//m_pScene->m_pLights[i].m_bEnable = false; // 항상 모든 빛을 꺼버림. 그림자맵을 생성하는 빛만 켤것.
-			vlightCamera[i]->m_pLight->m_bEnable = false; // 항상 모든 빛을 꺼버림. 그림자맵을 생성하는 빛만 켤것.
-			if (m_pCamera.lock()->GetFloor() != vlightCamera[i]->GetFloor()) {
-				continue;
-			}
-
-			XMFLOAT3 playerToLight = Vector3::Subtract(m_pCamera.lock()->GetPosition(), vlightCamera[i]->GetPosition());
-			if (Vector3::Length(playerToLight) > 25.0f) { // 안개가 가린 위치의 빛에 대해서는 렌더링 하지 않는다.
-				continue;
-			}
-
-			if (m_pCamera.lock())
-			{
-				if (!m_pCamera.lock()->IsInFrustum(vlightCamera[i]->GetBoundingFrustum()))
-				{
-					continue;
-				}
-			}
-
-			//m_pScene->m_pLights[i].m_bEnable = true;
-			vlightCamera[i]->m_pLight->m_bEnable = true; // 항상 모든 빛을 꺼버림. 그림자맵을 생성하는 빛만 켤것.
-
-			D3D12_CPU_DESCRIPTOR_HANDLE shadowRTVDescriptorHandle = m_pPostProcessingShader->GetShadowRtvCPUDescriptorHandle(i);
-			m_d3dCommandList->ClearDepthStencilView(d3dDsvCPUDescriptorHandle, D3D12_CLEAR_FLAG_DEPTH | D3D12_CLEAR_FLAG_STENCIL, 1.0f, 0, 0, NULL);
-
-			m_d3dCommandList->OMSetRenderTargets(1, &shadowRTVDescriptorHandle, TRUE, &d3dDsvCPUDescriptorHandle);
-
-			//1차 렌더링
-			if (m_pScene)
-			{
-				if (i < MAX_SURVIVOR) {
-					int pl_id = vlightCamera[i]->GetPlayer().lock()->GetClientId();
-					if (pl_id == -1) continue;
-					m_apPlayer[pl_id]->SetSelfShadowRender(true);
-					m_pScene->Render(m_d3dCommandList.Get(), vlightCamera[i], 1/*nPipelinestate*/); // 카메라만 빛의 위치대로 설정해서 렌더링함.
-					m_apPlayer[pl_id]->SetSelfShadowRender(false);
-				}
-				else {
-					m_pScene->ShadowPreRender(m_d3dCommandList.Get(), vlightCamera[i], 1/*nPipelinestate*/);
-				}
-			}
-		}
-		// 그림자맵에 해당하는 렌더타겟을 텍스처로 변환
-		m_pPostProcessingShader->TransitionShadowMapRenderTargetToCommon(m_d3dCommandList.Get(), ndynamicShadowMap); //플레이어의 손전등 1개 -> [0] 번째 요소에 들어있음.
-	}
-
-	//그림자맵 생성이 끝났을때의 처리.
-	for (auto& pl : m_apPlayer) {
-		if (pl->GetClientId() == -1) continue;
-		pl->SetShadowRender(false);
-	}
-
-	
-	SynchronizeResourceTransition(m_d3dCommandList.Get(), m_d3dSwapChainBackBuffers[m_nSwapChainBufferIndex].Get(), D3D12_RESOURCE_STATE_PRESENT, D3D12_RESOURCE_STATE_RENDER_TARGET);
-
-	D3D12_CPU_DESCRIPTOR_HANDLE d3dRtvCPUDescriptorHandle = m_d3dRtvDescriptorHeap->GetCPUDescriptorHandleForHeapStart();
-	d3dRtvCPUDescriptorHandle.ptr += (m_nSwapChainBufferIndex * ::gnRtvDescriptorIncrementSize);
-
-	//D3D12_CPU_DESCRIPTOR_HANDLE d3dDsvCPUDescriptorHandle = m_d3dDsvDescriptorHeap->GetCPUDescriptorHandleForHeapStart();
-	D3D12_CPU_DESCRIPTOR_HANDLE d3dDsvCPUDescriptorHandle = m_pPostProcessingShader->GetDsvCPUDesctriptorHandle(0);
+	case GAME_STATE::IN_LOBBY:
 	{
+		SynchronizeResourceTransition(m_d3dCommandList.Get(), m_d3dSwapChainBackBuffers[m_nSwapChainBufferIndex].Get(), D3D12_RESOURCE_STATE_PRESENT, D3D12_RESOURCE_STATE_RENDER_TARGET);
+
+		D3D12_CPU_DESCRIPTOR_HANDLE d3dDsvCPUDescriptorHandle = m_d3dDsvDescriptorHeap->GetCPUDescriptorHandleForHeapStart();
+		D3D12_CPU_DESCRIPTOR_HANDLE d3dRtvCPUDescriptorHandle = m_d3dRtvDescriptorHeap->GetCPUDescriptorHandleForHeapStart();
+		d3dRtvCPUDescriptorHandle.ptr += (m_nSwapChainBufferIndex * ::gnRtvDescriptorIncrementSize);
+
+		FLOAT ClearValue[4] = { 0.8f, 0.8f, 0.8f, 1.0f };
 		m_d3dCommandList->ClearDepthStencilView(d3dDsvCPUDescriptorHandle, D3D12_CLEAR_FLAG_DEPTH | D3D12_CLEAR_FLAG_STENCIL, 1.0f, 0, 0, NULL);
-
-		m_pPostProcessingShader->OnPrepareRenderTarget(m_d3dCommandList.Get(), 0, &m_pd3dSwapChainBackBufferRTVCPUHandles[m_nSwapChainBufferIndex], &d3dDsvCPUDescriptorHandle);
-
-		//1차 렌더링
-		if (m_pScene)
-		{
-			//m_d3dCommandList->SetGraphicsRootDescriptorTable(12, m_d3dTimeCbvGPUDescriptorHandle);
-			m_pScene->Render(m_d3dCommandList.Get(), m_pCamera.lock(), 0);
-		}
-		
-		m_pPostProcessingShader->TransitionRenderTargetToCommon(m_d3dCommandList.Get());
-
-		FLOAT ClearValue[4] = { 1.0f,1.0f,1.0f,1.0f };
-		
-		ClearValue[3] = 1.0f;
 		m_d3dCommandList->ClearRenderTargetView(d3dRtvCPUDescriptorHandle, ClearValue, 0, NULL);
-
-		//OM 최종타겟으로 재설정
 		m_d3dCommandList->OMSetRenderTargets(1, &d3dRtvCPUDescriptorHandle, TRUE, &d3dDsvCPUDescriptorHandle);
-		//불투명 객체 최종 렌더링
-		m_d3dCommandList->SetGraphicsRootDescriptorTable(12, m_d3dTimeCbvGPUDescriptorHandle);
-		m_pPostProcessingShader->Render(m_d3dCommandList.Get(), m_pCamera.lock(), m_pMainPlayer);
 
-		// 투명 객체 렌더링
-		if (m_pScene && m_nGameState == GAME_STATE::IN_GAME)
-		{
-			for (auto& s : m_pScene->m_vForwardRenderShader) {
-				s->Render(m_d3dCommandList.Get(), m_pCamera.lock(),m_pMainPlayer);
-			}
-		}
-		else if(m_pScene && m_nGameState != GAME_STATE::IN_GAME)
-		{
-			m_pScene->m_vForwardRenderShader[USER_INTERFACE_SHADER]->Render(m_d3dCommandList.Get(), m_pCamera.lock(), m_pMainPlayer);
-		}
+		m_pScene->Render(m_d3dCommandList.Get(), m_pCamera.lock(), 0);
+
+		SynchronizeResourceTransition(m_d3dCommandList.Get(), m_d3dSwapChainBackBuffers[m_nSwapChainBufferIndex].Get(), D3D12_RESOURCE_STATE_RENDER_TARGET, D3D12_RESOURCE_STATE_PRESENT);
 	}
+		break;
+	case GAME_STATE::IN_GAME:
+	case GAME_STATE::BLUE_SUIT_WIN:
+	case GAME_STATE::ZOMBIE_WIN:
+	{
+		shared_ptr<CMainScene> pMainScene = dynamic_pointer_cast<CMainScene>(m_pScene);
+
+		if (!pMainScene)
+		{
+			assert("FAIL MAIN SCENE");
+		}
+
+		pMainScene->ShadowRender(m_d3dCommandList.Get(), m_pCamera.lock(), 0);
+
+		//그림자맵 생성이 끝났을때의 처리.
+		for (auto& pl : m_apPlayer)
+		{
+			if (pl->GetClientId() == -1)
+				continue;
+			pl->SetShadowRender(false);
+		}
+
+		SynchronizeResourceTransition(m_d3dCommandList.Get(), m_d3dSwapChainBackBuffers[m_nSwapChainBufferIndex].Get(), D3D12_RESOURCE_STATE_PRESENT, D3D12_RESOURCE_STATE_RENDER_TARGET);
+
+		D3D12_CPU_DESCRIPTOR_HANDLE d3dRtvCPUDescriptorHandle = m_d3dRtvDescriptorHeap->GetCPUDescriptorHandleForHeapStart();
+		d3dRtvCPUDescriptorHandle.ptr += (m_nSwapChainBufferIndex * ::gnRtvDescriptorIncrementSize);
+
+		D3D12_CPU_DESCRIPTOR_HANDLE d3dDsvCPUDescriptorHandle = pMainScene->m_pPostProcessingShader->GetDsvCPUDesctriptorHandle(0);
+		m_d3dCommandList->ClearDepthStencilView(d3dDsvCPUDescriptorHandle, D3D12_CLEAR_FLAG_DEPTH | D3D12_CLEAR_FLAG_STENCIL, 1.0f, 0, 0, NULL);
+		pMainScene->m_pPostProcessingShader->OnPrepareRenderTarget(m_d3dCommandList.Get(), 0, &m_pd3dSwapChainBackBufferRTVCPUHandles[m_nSwapChainBufferIndex], &d3dDsvCPUDescriptorHandle);
+		pMainScene->FinalRender(m_d3dCommandList.Get(), m_pCamera.lock(), d3dRtvCPUDescriptorHandle, m_nGameState);
+	}
+		break;
+	default:
+		break;
+	}
+
 	//SynchronizeResourceTransition(m_d3dCommandList.Get(), m_d3dSwapChainBackBuffers[m_nSwapChainBufferIndex].Get(), D3D12_RESOURCE_STATE_RENDER_TARGET, D3D12_RESOURCE_STATE_PRESENT);
 	//[CJI 0411] -> RenderUI에서 렌더타겟 사용이 끝나면 m_wrappedBackBuffers가 자원을 해제할때 자동적으로 상태를 D3D12_RESOURCE_STATE_PRESENT으로 되돌리기 때문에 불필요
 
@@ -1352,11 +1229,9 @@ void CGameFramework::FrameAdvance()
 
 	MoveToNextFrame();
 
-
-
 	m_GameTimer.GetFrameRate(m_pszFrameRate + 15, 37);
 	size_t nLength = _tcslen(m_pszFrameRate);
 	XMFLOAT3 xmf3Position = xmf3Position = m_pMainPlayer->GetPosition();
-	_stprintf_s(m_pszFrameRate + nLength, 200 - nLength, _T("ID:%d, NumOfClient: %d, (%4f, %4f, %4f), %d"), m_pTcpClient->GetClientId(), m_pTcpClient->GetNumOfClient(), xmf3Position.x, xmf3Position.y, xmf3Position.z, g_collisionManager.GetNumOfCollisionObject());
+	_stprintf_s(m_pszFrameRate + nLength, 200 - nLength, _T("ID:%d, NumOfClient: %d, (%4f, %4f, %4f), %d"), m_pTcpClient->GetMainClientId(), m_pTcpClient->GetNumOfClient(), xmf3Position.x, xmf3Position.y, xmf3Position.z, g_collisionManager.GetNumOfCollisionObject());
 	::SetWindowText(m_hWnd, m_pszFrameRate);
 }

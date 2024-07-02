@@ -46,7 +46,7 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
 	HACCEL hAccelTable = LoadAccelerators(hInstance, MAKEINTRESOURCE(IDC_CLIENT));
 
 	MSG msg;
-	gGameFramework.CreateLobby(hWnd);
+	gGameFramework.CreateEntryWindow(hWnd);
 
 	while (!gGameFramework.IsConnected())
 	{
@@ -69,27 +69,33 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
 			if (nClientId != -1)
 			{
 				gGameFramework.SetConnected(true);
+				//gGameFramework.SetGameState(GAME_STATE::IN_GAME);
+				gGameFramework.SetGameState(GAME_STATE::IN_LOBBY);
 			}
 		}
 	}
 
 	if(gGameFramework.IsConnected())
 	{
+		// lobby Craete
 		gGameFramework.OnCreate(hInstance, hWnd);
 	}
-	gGameFramework.OnDestroyLobby();
+	else
+	{
+		assert("Connected Fail");
+	}
+	gGameFramework.OnDestroyEntryWindow();
 
-	::SetCursor(NULL);
-	::SetCapture(hWnd);
-	// 마우스를 화면 중앙으로 이동시킴 (윈도우 내부로만 이동하도록)
-	RECT rect;
-	GetClientRect(hWnd, &rect);
-	POINT center = { (rect.right - rect.left) / 2, (rect.bottom - rect.top) / 2 };
-	ClientToScreen(hWnd, &center);
-	SetCursorPos(center.x, center.y);
-	gGameFramework.SetMousePoint(center);
+	//::SetCursor(NULL);
+	//::SetCapture(hWnd);
+	//// 마우스를 화면 중앙으로 이동시킴 (윈도우 내부로만 이동하도록)
+	//RECT rect;
+	//GetClientRect(hWnd, &rect);
+	//POINT center = { (rect.right - rect.left) / 2, (rect.bottom - rect.top) / 2 };
+	//ClientToScreen(hWnd, &center);
+	//SetCursorPos(center.x, center.y);
+	//gGameFramework.SetMousePoint(center);
 	
-
 	// 기본 메시지 루프입니다:
 	while (gGameFramework.IsConnected())
 	{
@@ -115,7 +121,6 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
 
 	return (int)msg.wParam;
 }
-
 
 
 //
@@ -225,6 +230,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 	case WM_SOCKET: // 소켓 관련 윈도우 메시지
 	case WM_CREATE_TCP:
 	case WM_END_GAME:
+	case WM_START_GAME:
 	case WM_COMMAND:
 	case WM_SIZE:
 	case WM_LBUTTONDOWN:

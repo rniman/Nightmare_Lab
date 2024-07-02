@@ -27,6 +27,7 @@ class CPlayer;
 enum class SOCKET_STATE
 {
 	SEND_KEY_BUFFER,
+	SEND_GAME_START
 };
 
 enum RECV_HEAD
@@ -35,7 +36,8 @@ enum RECV_HEAD
 	HEAD_UPDATE_DATA,
 	HEAD_NUM_OF_CLIENT,
 	HEAD_BLUE_SUIT_WIN,
-	HEAD_ZOMBIE_WIN
+	HEAD_ZOMBIE_WIN,
+	HEAD_GAME_START
 };
 
 struct CS_ANIMATION_INFO {
@@ -88,8 +90,8 @@ private:
 	int m_nCurrentRecvByte = 0;		// 현재까지 받은 데이터의 길이
 	char m_pCurrentBuffer[BUFSIZE];
 
-	SOCKET_STATE m_socketState = SOCKET_STATE::SEND_KEY_BUFFER;
-	SOCKET_STATE m_prevSocketState = SOCKET_STATE::SEND_KEY_BUFFER;
+	SOCKET_STATE m_socketState = SOCKET_STATE::SEND_GAME_START;
+	SOCKET_STATE m_prevSocketState = SOCKET_STATE::SEND_GAME_START;
 
 	// 서버 접속 소켓
 
@@ -130,7 +132,8 @@ public:
 	void UpdatePlayer(int nIndex);
 
 	//Interface
-	INT8 GetClientId() const { return m_nMainClientId; }
+	INT8 GetMainClientId() const { return m_nMainClientId; }
+	INT8 GetClientID(int nIndex) { return m_aClientInfo[nIndex].m_nClientId; }
 	INT8 GetNumOfClient() const { return m_nClient; }
 	XMFLOAT3 GetPostion(int id);
 	std::array<CS_CLIENTS_INFO, 5>& GetArrayClientsInfo();

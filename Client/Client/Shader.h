@@ -5,7 +5,8 @@
 
 enum GAME_STATE
 {
-	IN_GAME = 0,
+	IN_LOBBY = 0,
+	IN_GAME,
 	BLUE_SUIT_WIN,
 	ZOMBIE_WIN
 };
@@ -163,7 +164,7 @@ public:
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 //
-class CScene;
+class CMainScene;
 
 enum SHADER_INDEX
 {
@@ -240,7 +241,7 @@ public:
 
 	void TransitionShadowMapRenderTargetToCommon(ID3D12GraphicsCommandList* pd3dCommandList, int nTransition=0);
 
-	void CreateLightCamera(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dCommandList,CScene* scene);
+	void CreateLightCamera(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dCommandList,CMainScene* scene);
 	//vector<shared_ptr<CCamera>>& GetLightCamera() { return  m_pLightCamera; }
 
 public:
@@ -357,7 +358,7 @@ private:
 
 /// <CShader - UserInterfaceShader>
 ////// /// /// /// /// /// /// /// /// /// /// /// /// /// /// /// /// /// /// /// /// /// /// /// /// /// /// /// ///  
-/// <CShader - StandardShader - OutLineShader>
+/// <CShader - OutLineShader>
 
 constexpr int STANDARD_OUT_LINE_MASK{ 0 };
 constexpr int INSTANCE_OUT_LINE_MASK{ 1 };
@@ -370,7 +371,7 @@ constexpr int SKINNING_OUT_LINE{ 5 };
 class COutLineShader : public CShader
 {
 public:
-	COutLineShader(int nMainPlayer);;
+	COutLineShader(int nMainPlayer);
 	virtual ~COutLineShader() {};
 
 	virtual D3D12_INPUT_LAYOUT_DESC CreateInputLayout();
@@ -397,4 +398,77 @@ private:
 
 	bool m_bOutLine = false;
 	CPostProcessingShader* m_pPostProcessingShader = nullptr;
+};
+
+/// <CShader - COutLineShader>
+////// /// /// /// /// /// /// /// /// /// /// /// /// /// /// /// /// /// /// /// /// /// /// /// /// /// /// /// ///  
+/// <CShader - CLobbyStandardShader>
+
+//[0629] LOBBY 
+class CLobbyStandardShader : public CShader
+{
+public:
+	CLobbyStandardShader() {};
+	virtual ~CLobbyStandardShader() {};
+
+	virtual D3D12_INPUT_LAYOUT_DESC CreateInputLayout();
+	virtual D3D12_SHADER_BYTECODE CreateVertexShader();
+	virtual D3D12_SHADER_BYTECODE CreatePixelShader();
+
+	virtual void CreateShader(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dCommandList, ID3D12RootSignature* pd3dGraphicsRootSignature, UINT nRenderTargets, DXGI_FORMAT* pdxgiRtvFormats, DXGI_FORMAT dxgiDsvFormat);
+
+private:
+};
+
+/// <CShader - CLobbyStandardShader>
+////// /// /// /// /// /// /// /// /// /// /// /// /// /// /// /// /// /// /// /// /// /// /// /// /// /// /// /// ///  
+/// <CShader - CLobbyUserInterfaceShader>
+
+enum LOBBY_PROCESS_INPUT
+{
+	START_BUTTON_NON = 0,
+	START_BUTTON_SEL,
+	START_BUTTON_DOWN,
+	START_BUTTON_UP,
+	CHANGE_BUTTON_NON,
+	CHANGE_BUTTON_SEL,
+	CHANGE_BUTTON_DOWN,
+	CHANGE_BUTTON_UP,
+	BORDER_NON,
+	BORDER_SEL
+
+};
+
+class CLobbyUserInterfaceShader : public CShader
+{
+public:
+	CLobbyUserInterfaceShader(int m_nMainClientID);;
+	virtual ~CLobbyUserInterfaceShader() {};
+
+	virtual D3D12_INPUT_LAYOUT_DESC CreateInputLayout();
+	virtual D3D12_SHADER_BYTECODE CreateVertexShader();
+	virtual D3D12_SHADER_BYTECODE CreatePixelShader();
+	virtual D3D12_RASTERIZER_DESC CreateRasterizerState();
+	virtual D3D12_BLEND_DESC CreateBlendState();
+
+	virtual void CreateShader(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dCommandList, ID3D12RootSignature* pd3dGraphicsRootSignature, UINT nRenderTargets, DXGI_FORMAT* pdxgiRtvFormats, DXGI_FORMAT dxgiDsvFormat);
+
+	virtual void BuildObjects(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dCommandList, ID3D12RootSignature* pd3dGraphicsRootSignature);
+
+	int ProcessInput(int nProcessInput);
+	void SetMainClientID(int nMainClientID) { m_nMainClientID = nMainClientID; }
+private:
+	int m_nMainClientID = -1;
+
+	int m_nSelectedBorder = -1;
+	array<shared_ptr<CMaterial>, 3> m_apmatLobbyBorder; // 0: default, 1: client, 2: selected
+	array<shared_ptr<CGameObject>, 5> m_apLobbyBorderObjects;
+
+	bool m_bStartButtonPressed = false;
+	array<shared_ptr<CMaterial>, 4> m_apmatStartButton;
+	shared_ptr<CGameObject> m_pStartButton;
+
+	bool m_bChangeButtonPressed = false;
+	array<shared_ptr<CMaterial>, 4> m_apmatChangeButton;
+	shared_ptr<CGameObject> m_pChangeButton;
 };

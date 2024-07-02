@@ -31,6 +31,9 @@
     <Filter Include="HLSL%28cso%29\OutLine">
       <UniqueIdentifier>{0e288363-9c9e-4027-a136-273d128fc452}</UniqueIdentifier>
     </Filter>
+    <Filter Include="HLSL%28cso%29\Lobby">
+      <UniqueIdentifier>{f8633c7c-af7d-4a58-9d75-83aea60ad5d3}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="targetver.h">
@@ -237,6 +240,18 @@
     </FxCompile>
     <FxCompile Include="PSPostProcessingWithSSAO.hlsl">
       <Filter>HLSL%28cso%29</Filter>
+    </FxCompile>
+    <FxCompile Include="PSLobbyUI.hlsl">
+      <Filter>HLSL%28cso%29\Lobby</Filter>
+    </FxCompile>
+    <FxCompile Include="PSLobbyStandard.hlsl">
+      <Filter>HLSL%28cso%29\Lobby</Filter>
+    </FxCompile>
+    <FxCompile Include="VSLobbyUI.hlsl">
+      <Filter>HLSL%28cso%29\Lobby</Filter>
+    </FxCompile>
+    <FxCompile Include="VSLobbyStandard.hlsl">
+      <Filter>HLSL%28cso%29\Lobby</Filter>
     </FxCompile>
   </ItemGroup>
   <ItemGroup>

@@ -875,7 +875,7 @@ void CPostProcessingShader::ShadowTextureWriteRender(ID3D12GraphicsCommandList* 
 	pd3dCommandList->DrawInstanced(6, 1, 0, 0);
 }
 
-void CPostProcessingShader::CreateShadowMapResource(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dCommandList,UINT nlight, D3D12_CPU_DESCRIPTOR_HANDLE d3dRtvCPUDescriptorHandle)
+void CPostProcessingShader::CreateShadowMapResource(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dCommandList, UINT nlight, D3D12_CPU_DESCRIPTOR_HANDLE d3dRtvCPUDescriptorHandle)
 {
 	int nLight = nlight;
 	if (nLight >= MAX_LIGHTS) {
@@ -923,7 +923,7 @@ void CPostProcessingShader::CreateShadowMapResource(ID3D12Device* pd3dDevice, ID
 	}
 }
 
-void CPostProcessingShader::CreateLightCamera(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dCommandList,CScene* scene)
+void CPostProcessingShader::CreateLightCamera(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dCommandList,CMainScene* scene)
 {
 	//vector<XMFLOAT3> positions = scene->GetLightPositions();
 	//vector<XMFLOAT3> looks = scene->GetLightLooks();
@@ -1082,6 +1082,8 @@ void CBlueSuitUserInterfaceShader::CreateShader(ID3D12Device* pd3dDevice, ID3D12
 
 void CBlueSuitUserInterfaceShader::BuildObjects(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dCommandList, ID3D12RootSignature* pd3dGraphicsRootSignature)
 {
+	m_nGameState = GAME_STATE::IN_GAME;
+
 	shared_ptr<CMesh> pmeshRect = make_shared<CUserInterfaceRectMesh>(pd3dDevice, pd3dCommandList, 1.f, 1.f, 0.0f, 1.0f, 1.0f, 0.0f, 0.0f);
 
 	//CROSSHAIR
@@ -1492,6 +1494,8 @@ void CZombieUserInterfaceShader::CreateShader(ID3D12Device* pd3dDevice, ID3D12Gr
 
 void CZombieUserInterfaceShader::BuildObjects(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dCommandList, ID3D12RootSignature* pd3dGraphicsRootSignature)
 {
+	m_nGameState = GAME_STATE::IN_GAME;
+
 	shared_ptr<CMesh> pmeshRect = make_shared<CUserInterfaceRectMesh>(pd3dDevice, pd3dCommandList, 1.f, 1.f, 0.0f, 1.0f, 1.0f, 0.0f, 0.0f);
 
 	//CROSSHAIR
@@ -2017,7 +2021,6 @@ void PartitionInsStandardShader::PartitionRender(ID3D12GraphicsCommandList* pd3d
 	}
 }
 
-
 void PartitionInsStandardShader::AddPartition()
 {
 	m_vPartitionObject.emplace_back(vector<shared_ptr<CGameObject>>());
@@ -2026,4 +2029,359 @@ void PartitionInsStandardShader::AddPartition()
 void PartitionInsStandardShader::AddPartitionBB(shared_ptr<BoundingBox>& bb)
 {
 	m_vPartitionBB.push_back(bb);
+}
+
+/// <CShader - COutLineShader>
+////// /// /// /// /// /// /// /// /// /// /// /// /// /// /// /// /// /// /// /// /// /// /// /// /// /// /// /// ///  
+/// <CShader - CLobbyStandardShader>
+
+D3D12_INPUT_LAYOUT_DESC CLobbyStandardShader::CreateInputLayout()
+{
+	UINT nInputElementDescs = 7;
+	D3D12_INPUT_ELEMENT_DESC* pd3dInputElementDescs = new D3D12_INPUT_ELEMENT_DESC[nInputElementDescs];
+
+	pd3dInputElementDescs[0] = { "POSITION", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, 0, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0 };
+	pd3dInputElementDescs[1] = { "TEXCOORD", 0, DXGI_FORMAT_R32G32_FLOAT, 1, 0, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0 };
+	pd3dInputElementDescs[2] = { "NORMAL", 0, DXGI_FORMAT_R32G32B32_FLOAT, 2, 0, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0 };
+	pd3dInputElementDescs[3] = { "TANGENT", 0, DXGI_FORMAT_R32G32B32_FLOAT, 3, 0, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0 };
+	pd3dInputElementDescs[4] = { "BITANGENT", 0, DXGI_FORMAT_R32G32B32_FLOAT, 4, 0, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0 };
+	pd3dInputElementDescs[5] = { "BONEINDEX", 0, DXGI_FORMAT_R32G32B32A32_SINT, 5, 0, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0 };
+	pd3dInputElementDescs[6] = { "BONEWEIGHT", 0, DXGI_FORMAT_R32G32B32A32_FLOAT, 6, 0, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0 };
+
+	D3D12_INPUT_LAYOUT_DESC d3dInputLayoutDesc;
+	d3dInputLayoutDesc.pInputElementDescs = pd3dInputElementDescs;
+	d3dInputLayoutDesc.NumElements = nInputElementDescs;
+
+	return(d3dInputLayoutDesc);
+}
+
+D3D12_SHADER_BYTECODE CLobbyStandardShader::CreateVertexShader()
+{
+	return CShader::ReadCompiledShaderFromFile(L"cso/VSLobbyStandard.cso", m_pd3dVertexShaderBlob.GetAddressOf());
+}
+
+D3D12_SHADER_BYTECODE CLobbyStandardShader::CreatePixelShader()
+{
+	return CShader::ReadCompiledShaderFromFile(L"cso/PSLobbyStandard.cso", m_pd3dVertexShaderBlob.GetAddressOf());
+}
+
+void CLobbyStandardShader::CreateShader(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dCommandList, ID3D12RootSignature* pd3dGraphicsRootSignature, UINT nRenderTargets, DXGI_FORMAT* pdxgiRtvFormats, DXGI_FORMAT dxgiDsvFormat)
+{
+	m_nPipelineState = 1;
+	m_vpd3dPipelineState.reserve(m_nPipelineState);
+	for (int i = 0; i < m_nPipelineState; ++i)
+	{
+		m_vpd3dPipelineState.emplace_back();
+		CShader::CreateShader(pd3dDevice, pd3dCommandList, pd3dGraphicsRootSignature, nRenderTargets, pdxgiRtvFormats, dxgiDsvFormat);
+	}
+}
+
+/// <CShader - CLobbyStandardShader>
+////// /// /// /// /// /// /// /// /// /// /// /// /// /// /// /// /// /// /// /// /// /// /// /// /// /// /// /// ///  
+/// <CShader - CLobbyUserInterfaceShader>
+
+CLobbyUserInterfaceShader::CLobbyUserInterfaceShader(int nMainClientID) 
+{
+	m_nMainClientID = nMainClientID;
+}
+
+D3D12_INPUT_LAYOUT_DESC CLobbyUserInterfaceShader::CreateInputLayout()
+{
+	UINT nInputElementDescs = 2;
+	D3D12_INPUT_ELEMENT_DESC* pd3dInputElementDescs = new D3D12_INPUT_ELEMENT_DESC[nInputElementDescs];
+
+	pd3dInputElementDescs[0] = { "POSITION", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, 0, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0 };
+	pd3dInputElementDescs[1] = { "TEXCOORD", 0, DXGI_FORMAT_R32G32_FLOAT, 1, 0, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0 };
+
+	D3D12_INPUT_LAYOUT_DESC d3dInputLayoutDesc;
+	d3dInputLayoutDesc.pInputElementDescs = pd3dInputElementDescs;
+	d3dInputLayoutDesc.NumElements = nInputElementDescs;
+
+	return(d3dInputLayoutDesc);
+}
+
+D3D12_SHADER_BYTECODE CLobbyUserInterfaceShader::CreateVertexShader()
+{
+	return CShader::ReadCompiledShaderFromFile(L"cso/VSLobbyUI.cso", m_pd3dVertexShaderBlob.GetAddressOf());
+}
+
+D3D12_SHADER_BYTECODE CLobbyUserInterfaceShader::CreatePixelShader()
+{
+	return CShader::ReadCompiledShaderFromFile(L"cso/PSLobbyUI.cso", m_pd3dPixelShaderBlob.GetAddressOf());
+}
+
+D3D12_RASTERIZER_DESC CLobbyUserInterfaceShader::CreateRasterizerState()
+{
+	D3D12_RASTERIZER_DESC d3dRasterizerDesc;
+	::ZeroMemory(&d3dRasterizerDesc, sizeof(D3D12_RASTERIZER_DESC));
+	d3dRasterizerDesc.FillMode = D3D12_FILL_MODE_SOLID;
+	d3dRasterizerDesc.CullMode = D3D12_CULL_MODE_BACK;
+	d3dRasterizerDesc.FrontCounterClockwise = FALSE;
+	d3dRasterizerDesc.DepthBias = 0;
+	d3dRasterizerDesc.DepthBiasClamp = 0.0f;
+	d3dRasterizerDesc.SlopeScaledDepthBias = 0.0f;
+	d3dRasterizerDesc.DepthClipEnable = TRUE;
+	d3dRasterizerDesc.MultisampleEnable = FALSE;
+	d3dRasterizerDesc.AntialiasedLineEnable = FALSE;
+	d3dRasterizerDesc.ForcedSampleCount = 0;
+	d3dRasterizerDesc.ConservativeRaster = D3D12_CONSERVATIVE_RASTERIZATION_MODE_OFF;
+
+	return(d3dRasterizerDesc);
+}
+
+D3D12_BLEND_DESC CLobbyUserInterfaceShader::CreateBlendState()
+{
+	D3D12_BLEND_DESC d3dBlendDesc;
+	::ZeroMemory(&d3dBlendDesc, sizeof(D3D12_BLEND_DESC));
+	d3dBlendDesc.AlphaToCoverageEnable = FALSE;
+	d3dBlendDesc.IndependentBlendEnable = FALSE;
+	d3dBlendDesc.RenderTarget[0].BlendEnable = TRUE;
+	d3dBlendDesc.RenderTarget[0].LogicOpEnable = FALSE;
+	d3dBlendDesc.RenderTarget[0].SrcBlend = D3D12_BLEND_SRC_ALPHA;
+	d3dBlendDesc.RenderTarget[0].DestBlend = D3D12_BLEND_INV_SRC_ALPHA;
+	d3dBlendDesc.RenderTarget[0].BlendOp = D3D12_BLEND_OP_ADD;
+	d3dBlendDesc.RenderTarget[0].SrcBlendAlpha = D3D12_BLEND_ONE;
+	d3dBlendDesc.RenderTarget[0].DestBlendAlpha = D3D12_BLEND_ZERO;
+	d3dBlendDesc.RenderTarget[0].BlendOpAlpha = D3D12_BLEND_OP_ADD;
+	d3dBlendDesc.RenderTarget[0].LogicOp = D3D12_LOGIC_OP_NOOP;
+	d3dBlendDesc.RenderTarget[0].RenderTargetWriteMask = D3D12_COLOR_WRITE_ENABLE_ALL;
+
+	return(d3dBlendDesc);
+}
+
+void CLobbyUserInterfaceShader::CreateShader(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dCommandList, ID3D12RootSignature* pd3dGraphicsRootSignature, UINT nRenderTargets, DXGI_FORMAT* pdxgiRtvFormats, DXGI_FORMAT dxgiDsvFormat)
+{
+	m_nPipelineState = 1;
+	m_vpd3dPipelineState.reserve(m_nPipelineState);
+	for (int i = 0; i < m_nPipelineState; ++i)
+	{
+		m_vpd3dPipelineState.emplace_back();
+		CShader::CreateShader(pd3dDevice, pd3dCommandList, pd3dGraphicsRootSignature, nRenderTargets, pdxgiRtvFormats, dxgiDsvFormat);
+	}
+}
+
+void CLobbyUserInterfaceShader::BuildObjects(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dCommandList, ID3D12RootSignature* pd3dGraphicsRootSignature)
+{
+	shared_ptr<CMesh> pmeshRect = make_shared<CUserInterfaceRectMesh>(pd3dDevice, pd3dCommandList, 1.f, 1.f, 0.0f, 1.0f, 1.0f, 0.0f, 0.0f);
+
+	//BACKGROUND
+	shared_ptr<CTexture> ptexLobbyBackGround= make_shared<CTexture>(1, RESOURCE_TEXTURE2D, 0, 1);
+	ptexLobbyBackGround->LoadTextureFromDDSFile(pd3dDevice, pd3dCommandList, (wchar_t*)L"Asset/UI/lobbyBackground.dds", RESOURCE_TEXTURE2D, 0);
+	CScene::CreateShaderResourceViews(pd3dDevice, ptexLobbyBackGround, 0, 3);
+	shared_ptr<CMaterial> pmatLobbyBackground = make_shared<CMaterial>(1);
+	pmatLobbyBackground->SetMaterialType(MATERIAL_ALBEDO_MAP);
+	pmatLobbyBackground->SetTexture(ptexLobbyBackGround);
+
+	float fxScale = float(FRAME_BUFFER_HEIGHT) / FRAME_BUFFER_WIDTH;
+	
+	shared_ptr<CGameObject> pLobbyBackGround = make_shared<CGameObject>(pd3dDevice, pd3dCommandList, 1);
+	pLobbyBackGround->SetMaterial(0, pmatLobbyBackground);
+	pLobbyBackGround->SetMesh(pmeshRect);
+	pLobbyBackGround->SetScale(2.0f, 2400.0f / 3840.0f * 4.0f, 1.0f);
+	pLobbyBackGround->SetPosition(0.0f, 0.0f, 0.99f);
+	AddGameObject(pLobbyBackGround);
+
+	//LOBBY BORDER
+	shared_ptr<CTexture> ptexLobbyBorder = make_shared<CTexture>(1, RESOURCE_TEXTURE2D, 0, 1);
+	ptexLobbyBorder->LoadTextureFromDDSFile(pd3dDevice, pd3dCommandList, (wchar_t*)L"Asset/UI/LobbyBorder.dds", RESOURCE_TEXTURE2D, 0);
+	CScene::CreateShaderResourceViews(pd3dDevice, ptexLobbyBorder, 0, 3);
+	m_apmatLobbyBorder[0] = make_shared<CMaterial>(1);
+	m_apmatLobbyBorder[0]->SetMaterialType(MATERIAL_ALBEDO_MAP);
+	m_apmatLobbyBorder[0]->SetTexture(ptexLobbyBorder);
+
+	shared_ptr<CTexture> ptexClientLobbyBorder = make_shared<CTexture>(1, RESOURCE_TEXTURE2D, 0, 1);
+	ptexClientLobbyBorder->LoadTextureFromDDSFile(pd3dDevice, pd3dCommandList, (wchar_t*)L"Asset/UI/ClientLobbyBorder.dds", RESOURCE_TEXTURE2D, 0);
+	CScene::CreateShaderResourceViews(pd3dDevice, ptexClientLobbyBorder, 0, 3);
+	m_apmatLobbyBorder[1] = make_shared<CMaterial>(1);
+	m_apmatLobbyBorder[1]->SetMaterialType(MATERIAL_ALBEDO_MAP);
+	m_apmatLobbyBorder[1]->SetTexture(ptexClientLobbyBorder);
+
+	shared_ptr<CTexture> ptexSelectedLobbyBorder = make_shared<CTexture>(1, RESOURCE_TEXTURE2D, 0, 1);
+	ptexSelectedLobbyBorder->LoadTextureFromDDSFile(pd3dDevice, pd3dCommandList, (wchar_t*)L"Asset/UI/SelectedLobbyBorder.dds", RESOURCE_TEXTURE2D, 0);
+	CScene::CreateShaderResourceViews(pd3dDevice, ptexSelectedLobbyBorder, 0, 3);
+	m_apmatLobbyBorder[2] = make_shared<CMaterial>(1);
+	m_apmatLobbyBorder[2]->SetMaterialType(MATERIAL_ALBEDO_MAP);
+	m_apmatLobbyBorder[2]->SetTexture(ptexSelectedLobbyBorder);
+
+	for (int i = 0; i < MAX_CLIENT; ++i)
+	{
+		m_apLobbyBorderObjects[i] = make_shared<CGameObject>(pd3dDevice, pd3dCommandList, 1);
+		if(m_nMainClientID == i)
+		{
+			m_apLobbyBorderObjects[i]->SetMaterial(0, m_apmatLobbyBorder[1]);
+		}
+		else
+		{
+			m_apLobbyBorderObjects[i]->SetMaterial(0, m_apmatLobbyBorder[0]);
+		}
+		m_apLobbyBorderObjects[i]->SetMesh(pmeshRect);
+		m_apLobbyBorderObjects[i]->SetScale(fxScale * 0.6f, 1.0f, 1.0f);
+		m_apLobbyBorderObjects[i]->SetPosition(-fxScale * 1.2f + fxScale * 0.6f * i, 0.3f, 0.0f);
+		AddGameObject(m_apLobbyBorderObjects[i]);
+	}
+
+	// START BUTTON
+	shared_ptr<CTexture> ptexStartButton = make_shared<CTexture>(1, RESOURCE_TEXTURE2D, 0, 1);
+	ptexStartButton->LoadTextureFromDDSFile(pd3dDevice, pd3dCommandList, (wchar_t*)L"Asset/UI/StartButton.dds", RESOURCE_TEXTURE2D, 0);
+	CScene::CreateShaderResourceViews(pd3dDevice, ptexStartButton, 0, 3);
+	m_apmatStartButton[0] = make_shared<CMaterial>(1);
+	m_apmatStartButton[0]->SetMaterialType(MATERIAL_ALBEDO_MAP);
+	m_apmatStartButton[0]->SetTexture(ptexStartButton);
+
+	shared_ptr<CTexture> ptexSelectedStartButton = make_shared<CTexture>(1, RESOURCE_TEXTURE2D, 0, 1);
+	ptexSelectedStartButton->LoadTextureFromDDSFile(pd3dDevice, pd3dCommandList, (wchar_t*)L"Asset/UI/SelectedStartButton.dds", RESOURCE_TEXTURE2D, 0);
+	CScene::CreateShaderResourceViews(pd3dDevice, ptexSelectedStartButton, 0, 3);
+	m_apmatStartButton[1] = make_shared<CMaterial>(1);
+	m_apmatStartButton[1]->SetMaterialType(MATERIAL_ALBEDO_MAP);
+	m_apmatStartButton[1]->SetTexture(ptexSelectedStartButton);
+
+	shared_ptr<CTexture> ptexPressedStartButton = make_shared<CTexture>(1, RESOURCE_TEXTURE2D, 0, 1);
+	ptexPressedStartButton->LoadTextureFromDDSFile(pd3dDevice, pd3dCommandList, (wchar_t*)L"Asset/UI/PressedStartButton.dds", RESOURCE_TEXTURE2D, 0);
+	CScene::CreateShaderResourceViews(pd3dDevice, ptexPressedStartButton, 0, 3);
+	m_apmatStartButton[2] = make_shared<CMaterial>(1);
+	m_apmatStartButton[2]->SetMaterialType(MATERIAL_ALBEDO_MAP);
+	m_apmatStartButton[2]->SetTexture(ptexPressedStartButton);
+
+	shared_ptr<CTexture> ptexDisabledStartButton = make_shared<CTexture>(1, RESOURCE_TEXTURE2D, 0, 1);
+	ptexDisabledStartButton->LoadTextureFromDDSFile(pd3dDevice, pd3dCommandList, (wchar_t*)L"Asset/UI/DisabledStartButton.dds", RESOURCE_TEXTURE2D, 0);
+	CScene::CreateShaderResourceViews(pd3dDevice, ptexDisabledStartButton, 0, 3);
+	m_apmatStartButton[3] = make_shared<CMaterial>(1);
+	m_apmatStartButton[3]->SetMaterialType(MATERIAL_ALBEDO_MAP);
+	m_apmatStartButton[3]->SetTexture(ptexDisabledStartButton);
+
+	float fButtonScale = 160.0f / 680.0f;
+	m_pStartButton = make_shared<CGameObject>(pd3dDevice, pd3dCommandList, 1);
+	if(m_nMainClientID == ZOMBIEPLAYER)
+	{
+		m_pStartButton->SetMaterial(0, m_apmatStartButton[0]);
+	}
+	else
+	{
+		m_pStartButton->SetMaterial(0, m_apmatStartButton[3]);
+	}
+	m_pStartButton->SetMesh(pmeshRect);
+	m_pStartButton->SetScale(0.5f, 1.0f * fButtonScale, 1.0f);
+	m_pStartButton->SetPosition(0.5f, -0.6f, 0.0f);
+	AddGameObject(m_pStartButton);
+
+	// CHANGE BUTTON
+	shared_ptr<CTexture> ptexChangeButton = make_shared<CTexture>(1, RESOURCE_TEXTURE2D, 0, 1);
+	ptexChangeButton->LoadTextureFromDDSFile(pd3dDevice, pd3dCommandList, (wchar_t*)L"Asset/UI/ChangeButton.dds", RESOURCE_TEXTURE2D, 0);
+	CScene::CreateShaderResourceViews(pd3dDevice, ptexChangeButton, 0, 3);
+	m_apmatChangeButton[0] = make_shared<CMaterial>(1);
+	m_apmatChangeButton[0]->SetMaterialType(MATERIAL_ALBEDO_MAP);
+	m_apmatChangeButton[0]->SetTexture(ptexChangeButton);
+
+	shared_ptr<CTexture> ptexSelectedChangeButton = make_shared<CTexture>(1, RESOURCE_TEXTURE2D, 0, 1);
+	ptexSelectedChangeButton->LoadTextureFromDDSFile(pd3dDevice, pd3dCommandList, (wchar_t*)L"Asset/UI/SelectedChangeButton.dds", RESOURCE_TEXTURE2D, 0);
+	CScene::CreateShaderResourceViews(pd3dDevice, ptexSelectedChangeButton, 0, 3);
+	m_apmatChangeButton[1] = make_shared<CMaterial>(1);
+	m_apmatChangeButton[1]->SetMaterialType(MATERIAL_ALBEDO_MAP);
+	m_apmatChangeButton[1]->SetTexture(ptexSelectedChangeButton);
+
+	shared_ptr<CTexture> ptexPressedChangeButton = make_shared<CTexture>(1, RESOURCE_TEXTURE2D, 0, 1);
+	ptexPressedChangeButton->LoadTextureFromDDSFile(pd3dDevice, pd3dCommandList, (wchar_t*)L"Asset/UI/PressedChangeButton.dds", RESOURCE_TEXTURE2D, 0);
+	CScene::CreateShaderResourceViews(pd3dDevice, ptexPressedChangeButton, 0, 3);
+	m_apmatChangeButton[2] = make_shared<CMaterial>(1);
+	m_apmatChangeButton[2]->SetMaterialType(MATERIAL_ALBEDO_MAP);
+	m_apmatChangeButton[2]->SetTexture(ptexPressedChangeButton);
+
+	shared_ptr<CTexture> ptexDisabledChangeButton = make_shared<CTexture>(1, RESOURCE_TEXTURE2D, 0, 1);
+	ptexDisabledChangeButton->LoadTextureFromDDSFile(pd3dDevice, pd3dCommandList, (wchar_t*)L"Asset/UI/DisabledChangeButton.dds", RESOURCE_TEXTURE2D, 0);
+	CScene::CreateShaderResourceViews(pd3dDevice, ptexDisabledChangeButton, 0, 3);
+	m_apmatChangeButton[3] = make_shared<CMaterial>(1);
+	m_apmatChangeButton[3]->SetMaterialType(MATERIAL_ALBEDO_MAP);
+	m_apmatChangeButton[3]->SetTexture(ptexDisabledChangeButton);
+
+	m_pChangeButton = make_shared<CGameObject>(pd3dDevice, pd3dCommandList, 1);
+	m_pChangeButton->SetMaterial(0, m_apmatChangeButton[3]);
+	m_pChangeButton->SetMesh(pmeshRect);
+	m_pChangeButton->SetScale(0.5f, 1.0f * fButtonScale, 1.0f);
+	m_pChangeButton->SetPosition(-0.5f, -0.6f, 0.0f);
+	AddGameObject(m_pChangeButton);
+}
+
+int CLobbyUserInterfaceShader::ProcessInput(int nProcessInput)
+{
+	switch (nProcessInput)
+	{
+	case LOBBY_PROCESS_INPUT::START_BUTTON_NON:
+		if (m_nMainClientID != ZOMBIEPLAYER || m_bStartButtonPressed) break;
+		m_pStartButton->SetMaterial(0, m_apmatStartButton[0]);
+		break;
+	case LOBBY_PROCESS_INPUT::START_BUTTON_SEL:
+		if (m_nMainClientID != ZOMBIEPLAYER || m_bStartButtonPressed) break;
+		m_pStartButton->SetMaterial(0, m_apmatStartButton[1]);
+		break;
+	case LOBBY_PROCESS_INPUT::START_BUTTON_DOWN:
+		if (m_nMainClientID != ZOMBIEPLAYER) break;
+		m_bStartButtonPressed = true;
+		m_pStartButton->SetMaterial(0, m_apmatStartButton[2]);
+		break;
+	case LOBBY_PROCESS_INPUT::START_BUTTON_UP:
+		if (m_bStartButtonPressed) // 게임 시작해야 함
+		{
+			m_bStartButtonPressed = false;
+			return 1;
+		}
+		break;
+
+	case LOBBY_PROCESS_INPUT::CHANGE_BUTTON_NON:
+		if (m_nSelectedBorder < 0 || m_bChangeButtonPressed) break;
+		m_pChangeButton->SetMaterial(0, m_apmatChangeButton[0]);
+		break;
+	case LOBBY_PROCESS_INPUT::CHANGE_BUTTON_SEL:
+		if (m_nSelectedBorder < 0 || m_bChangeButtonPressed) break;
+		m_pChangeButton->SetMaterial(0, m_apmatChangeButton[1]);
+		break;
+	case LOBBY_PROCESS_INPUT::CHANGE_BUTTON_DOWN:
+		if (m_nSelectedBorder < 0) break;
+		m_bChangeButtonPressed = true;
+		m_pChangeButton->SetMaterial(0, m_apmatChangeButton[2]);
+		break;
+	case LOBBY_PROCESS_INPUT::CHANGE_BUTTON_UP:
+		if(m_bChangeButtonPressed) // 위치 바꿔야 함
+		{
+			m_bChangeButtonPressed = false;
+			return 2;
+		}
+		break;
+	case LOBBY_PROCESS_INPUT::BORDER_SEL:
+	case LOBBY_PROCESS_INPUT::BORDER_SEL + 1:
+	case LOBBY_PROCESS_INPUT::BORDER_SEL + 2:
+	case LOBBY_PROCESS_INPUT::BORDER_SEL + 3:
+	case LOBBY_PROCESS_INPUT::BORDER_SEL + 4:
+	{
+		if (m_nMainClientID == nProcessInput - LOBBY_PROCESS_INPUT::BORDER_SEL)
+		{
+			break;
+		}
+
+		if (m_nSelectedBorder == nProcessInput - LOBBY_PROCESS_INPUT::BORDER_SEL)
+		{
+			m_apLobbyBorderObjects[m_nSelectedBorder]->SetMaterial(0, m_apmatLobbyBorder[0]);
+			m_nSelectedBorder = -1;
+			m_pChangeButton->SetMaterial(0, m_apmatChangeButton[3]);
+		}
+		else
+		{
+			for (int i = 0; i < MAX_CLIENT; ++i)
+			{
+				if (m_nMainClientID == i)
+				{
+					continue;
+				}
+				m_apLobbyBorderObjects[i]->SetMaterial(0, m_apmatLobbyBorder[0]);
+			}
+			m_nSelectedBorder = nProcessInput - LOBBY_PROCESS_INPUT::BORDER_SEL;
+			m_apLobbyBorderObjects[m_nSelectedBorder]->SetMaterial(0, m_apmatLobbyBorder[2]);
+			m_pChangeButton->SetMaterial(0, m_apmatChangeButton[0]);
+		}
+	}
+		break;
+	default:
+		break;
+	}
+
+	return 0;
 }

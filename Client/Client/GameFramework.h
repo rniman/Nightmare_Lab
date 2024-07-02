@@ -8,21 +8,9 @@
 
 constexpr UINT WM_CREATE_TCP{ WM_USER + 2 };
 constexpr UINT WM_END_GAME{ WM_USER + 3 };
+constexpr UINT WM_START_GAME{ WM_USER + 4 };
 constexpr UINT BUTTON_CREATE_TCP_ID{ 1 };
 constexpr UINT EDIT_INPUT_ADDRESS_ID{ 2 };
-
-struct FrameTimeInfo {
-	float time = 0.0f;
-	float localTime = 0.0f;
-	float usePattern = -1.0f; // shaders에서 패턴텍스처를 사용하는가? 0보다 큰값이면 사용하는 것. 최적화 필요. 쉐이더를 나누면 분기문 줄일수있음.
-
-	float fTrackingTime = 0.0f;
-
-	// Occlusion Info
-	float gfScale = 2.0f;
-	float gfBias = 0.01f;
-	float gfIntesity = 5.0f;
-};
 
 class CGameFramework
 {
@@ -32,9 +20,9 @@ public:
 
 	bool OnCreate(HINSTANCE hInstance, HWND hMainWnd);
 	void OnDestroy();
-	void OnDestroyLobby();
+	void OnDestroyEntryWindow();
 
-	void CreateLobby(HWND hWnd);
+	void CreateEntryWindow(HWND hWnd);
 
 	void CreateSwapChain();
 	void CreateDirect3DDevice();
@@ -47,6 +35,8 @@ public:
 
 	void ChangeSwapChainState();
 
+	void CreateMainScene();
+
 	void BuildObjects();
 	void ReleaseObjects();
 
@@ -54,7 +44,7 @@ public:
 	void AnimateObjects();
 	void AnimateEnding();
 	//void ProcessCollide();
-	void PreRenderTasks();
+	void PreRenderTasks(shared_ptr<CMainScene>& pMainScene);
 	void FrameAdvance();
 
 	void WaitForGpuComplete();
@@ -66,7 +56,9 @@ public:
 	void OnProcessingSocketMessage(HWND hWnd, UINT nMessageID, WPARAM wParam, LPARAM lParam);
 	void OnProcessingWindowMessage(HWND hWnd, UINT nMessageID, WPARAM wParam, LPARAM lParam);
 
-	INT8 GetClientIdFromTcpClient() const { return m_pTcpClient->GetClientId(); }
+	void OnProcessingEndGameMessage(WPARAM& wParam);
+
+	INT8 GetClientIdFromTcpClient() const { return m_pTcpClient->GetMainClientId(); }
 
 	static UCHAR* GetKeysBuffer();
 	static int GetMainClientId() { return m_nMainClientId; }
@@ -79,6 +71,10 @@ public:
 	void OnButtonClick(HWND hWnd);
 
 	void SetMousePoint(POINT ptMouse) { m_ptOldCursorPos = ptMouse; }
+
+	static int GetSwapChainNum() { return m_nSwapChainBuffers; }
+
+	void SetGameState(int nGameState) { m_nGameState = nGameState; }
 private:
 
 	D3D12_VIEWPORT m_d3dViewport;
@@ -127,9 +123,6 @@ private:
 	std::array<shared_ptr<CPlayer>, MAX_CLIENT>	m_apPlayer;		// 클라이언트ID와 인덱스는 동일하다.
 	weak_ptr<CCamera>							m_pCamera;
 
-	CPostProcessingShader*				m_pPostProcessingShader = NULL;
-	int									m_nPostPipelineIndex = 0;
-
 	POINT								m_ptOldCursorPos;
 	_TCHAR								m_pszFrameRate[200];
 	
@@ -159,10 +152,10 @@ private:
 	//unique_ptr<TextObject> m_pTextobject;
 	bool m_bPrepareDrawText = false;
 public:
-	// Time 
-	D3D12_GPU_DESCRIPTOR_HANDLE m_d3dTimeCbvGPUDescriptorHandle;
-	ComPtr<ID3D12Resource>		m_pd3dcbTime;
-	FrameTimeInfo* m_pcbMappedTime;
+	//// Time 
+	//D3D12_GPU_DESCRIPTOR_HANDLE m_d3dTimeCbvGPUDescriptorHandle;
+	//ComPtr<ID3D12Resource>		m_pd3dcbTime;
+	//FrameTimeInfo* m_pcbMappedTime;
 
 //[0507]
 private:

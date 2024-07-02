@@ -110,6 +110,14 @@ void TCPServer::OnProcessingAcceptMessage(HWND hWnd, UINT nMessageID, WPARAM wPa
 		err_display("Maximum number of clients reached. Connection refused."); // 연결 거부 메시지 표시
 		return;
 	}
+
+	if (m_nGameState == GAME_STATE::IN_GAME)
+	{
+		closesocket(sockClient); // 클라이언트 소켓 종료
+		err_display("Game that has already started."); // 연결 거부 메시지 표시
+		return;
+	}
+
 	printf("\n[TCP 서버] 클라이언트 접속: IP 주소=%s, 포트 번호=%d\n", m_vSocketInfoList[nSocketIndex].m_pAddr, ntohs(m_vSocketInfoList[nSocketIndex].m_addrClient.sin_port));
 
 	int retval = WSAAsyncSelect(sockClient, hWnd, WM_SOCKET, FD_READ | FD_WRITE | FD_CLOSE);
@@ -137,7 +145,7 @@ void TCPServer::OnProcessingAcceptMessage(HWND hWnd, UINT nMessageID, WPARAM wPa
 		m_apPlayers[nSocketIndex]->SetPlayerId(nSocketIndex);
 		++m_nBlueSuit;
 	}
-
+	
 	InitPlayerPosition(m_apPlayers[nSocketIndex], nSocketIndex);
 
 	m_pCollisionManager->AddCollisionPlayer(m_apPlayers[nSocketIndex], nSocketIndex);
@@ -149,8 +157,9 @@ void TCPServer::OnProcessingAcceptMessage(HWND hWnd, UINT nMessageID, WPARAM wPa
 			continue;
 		}
 		sockInfo.m_socketState = SOCKET_STATE::SEND_NUM_OF_CLIENT;
+		PostMessage(m_hWnd, WM_SOCKET, (WPARAM)sockInfo.m_sock, MAKELPARAM(FD_WRITE, 0));
 	}
-
+	
 	return;
 }
 
@@ -188,6 +197,11 @@ void TCPServer::OnProcessingReadMessage(HWND hWnd, UINT nMessageID, WPARAM wPara
 
 	switch (m_vSocketInfoList[nSocketIndex].m_nHead)
 	{
+	case HEAD_GAME_START:
+		cout << "GAME START" << endl;
+
+		m_vSocketInfoList[nSocketIndex].m_socketState = SOCKET_STATE::SEND_GAME_START;
+		break;
 	case HEAD_KEYS_BUFFER:
 	{
 		if (!pPlayer->IsRecvData())
@@ -279,13 +293,30 @@ void TCPServer::OnProcessingWriteMessage(HWND hWnd, UINT nMessageID, WPARAM wPar
 
 	switch (m_vSocketInfoList[nSocketIndex].m_socketState)
 	{
+	case SOCKET_STATE::SEND_GAME_START:
+		nHead = 5;
+		for (int i = 0; i < MAX_CLIENT; ++i)
+		{
+			if (!m_vSocketInfoList[i].m_bUsed)
+			{
+				continue;
+			}
+
+			InitPlayerPosition(m_apPlayers[i], i);
+			nRetval = SendData(m_vSocketInfoList[i].m_sock, nBufferSize, nHead);
+			m_vSocketInfoList[i].m_socketState = SOCKET_STATE::SEND_UPDATE_DATA;
+		}
+
+		m_nGameState = GAME_STATE::IN_GAME;
+		break;
 	case SOCKET_STATE::SEND_ID:
 		nHead = 0;
-		nBufferSize += sizeof(INT8) * 2;
+		//nBufferSize += sizeof(INT8) * 2;
+		nBufferSize += sizeof(INT8) * 2 + sizeof(m_aUpdateInfo);
 
 		m_vSocketInfoList[nSocketIndex].SendNum++;
-		nRetval = SendData(m_vSocketInfoList[nSocketIndex].m_sock, nBufferSize, nHead, m_aUpdateInfo[nSocketIndex].m_nClientId, m_nClient);
-
+		//nRetval = SendData(m_vSocketInfoList[nSocketIndex].m_sock, nBufferSize, nHead, m_aUpdateInfo[nSocketIndex].m_nClientId, m_nClient);
+		nRetval = SendData(m_vSocketInfoList[nSocketIndex].m_sock, nBufferSize, nHead, m_aUpdateInfo[nSocketIndex].m_nClientId, m_nClient, m_aUpdateInfo);
 		if (nRetval == -1 && WSAGetLastError() == WSAEWOULDBLOCK)
 		{
 		}
@@ -396,6 +427,9 @@ bool TCPServer::Init(HWND hWnd)
 		err_quit("WSAAsyncSelect()");
 	}
 
+	m_nGameState = GAME_STATE::IN_LOBBY;
+	//m_nGameState = GAME_STATE::IN_GAME;
+
 	m_pCollisionManager = make_shared<CServerCollisionManager>();
 	m_pCollisionManager->CreateCollision(SPACE_FLOOR, SPACE_WIDTH, SPACE_DEPTH);
 
@@ -445,10 +479,15 @@ void TCPServer::SimulationLoop()
 {
 	m_timer.Tick();
 	
-	int nEndGame = CheckEndGame();
-	if (nEndGame != GAME_STATE::IN_GAME)
+	if (m_nGameState == GAME_STATE::IN_LOBBY)
 	{
-		UpdateEndGame(nEndGame);
+		return;
+	}
+
+	m_nGameState = CheckEndGame();
+	if (m_nGameState != GAME_STATE::IN_GAME)
+	{
+		UpdateEndGame(m_nGameState);
 		return;
 	}
 
@@ -477,6 +516,11 @@ void TCPServer::SimulationLoop()
 
 	UpdateInformation();
 	CreateSendObject();
+}
+
+int TCPServer::CheckLobby()
+{
+	return 0;
 }
 
 int TCPServer::CheckEndGame()
@@ -646,6 +690,7 @@ INT8 TCPServer::RemoveSocketInfo(SOCKET sock)
 
 				//otherSocketInfo.m_prevSocketState = otherSocketInfo.m_socketState;
 				otherSocketInfo.m_socketState = SOCKET_STATE::SEND_NUM_OF_CLIENT;
+				PostMessage(m_hWnd, WM_SOCKET, (WPARAM)otherSocketInfo.m_sock, MAKELPARAM(FD_WRITE, 0));
 			}
 
 			return nIndex;

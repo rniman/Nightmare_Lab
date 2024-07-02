@@ -11,8 +11,8 @@ struct VS_CB_CAMERA_INFO
 	XMFLOAT4X4		m_xmf4x4Projection;
 	XMFLOAT4X4		m_xmf4x4InverseViewProjection;
 	XMFLOAT4		m_xmf4Position;
-	XMFLOAT4		m_xmf4FogColor;
-	XMFLOAT4		m_xmf4FogInfo; //START, RANGE, Density, MOD
+	XMFLOAT4		m_xmf4FogColor = XMFLOAT4(0.0f, 0.0f, 0.0f, 0.0f);
+	XMFLOAT4		m_xmf4FogInfo = XMFLOAT4(0.0f, 0.0f, 0.0f, 0.0f); //START, RANGE, Density, MOD
 };
 
 class CPlayer;

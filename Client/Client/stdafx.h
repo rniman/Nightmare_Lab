@@ -103,6 +103,7 @@ extern float ReadFloatFromFile(FILE* pInFile);
 extern void err_quit(const char* msg);
 // 소켓 함수 오류 출력
 extern void err_display(const char* msg);
+extern void err_display(const char* msg, const char* msg2);
 // 소켓 함수 오류 출력
 extern void err_display(int errcode);
 

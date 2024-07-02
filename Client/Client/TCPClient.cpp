@@ -127,8 +127,13 @@ void CTcpClient::OnProcessingReadMessage(HWND hWnd, UINT nMessageID, WPARAM wPar
 
 	switch (nHead)
 	{
+	case HEAD_GAME_START:
+		PostMessage(hWnd, WM_START_GAME, 0, 0);
+		m_socketState = SOCKET_STATE::SEND_KEY_BUFFER;
+		break;
 	case HEAD_INIT:
-		nBufferSize = sizeof(INT8) * 2;
+		//nBufferSize = sizeof(INT8) * 2;
+		nBufferSize = sizeof(INT8) * 2 + sizeof(m_aClientInfo);
 		RecvNum++;
 		nRetval = RecvData(wParam, nBufferSize);
 		if (nRetval != 0)
@@ -138,6 +143,8 @@ void CTcpClient::OnProcessingReadMessage(HWND hWnd, UINT nMessageID, WPARAM wPar
 
 		memcpy(&m_nMainClientId, m_pCurrentBuffer, sizeof(INT8));
 		memcpy(&m_nClient, m_pCurrentBuffer + sizeof(INT8), sizeof(INT8));
+		memcpy(&m_aClientInfo, m_pCurrentBuffer + sizeof(INT8) * 2, sizeof(m_aClientInfo));
+
 		break;
 	case HEAD_UPDATE_DATA:
 	{
@@ -314,6 +321,14 @@ void CTcpClient::OnProcessingWriteMessage(HWND hWnd, UINT nMessageID, WPARAM wPa
 
 	switch (m_socketState)
 	{
+	case SOCKET_STATE::SEND_GAME_START:
+		nHead = 1;
+		nRetval = SendData(m_sock, nBufferSize, nHead);
+
+		if (nRetval == -1 && WSAGetLastError() == WSAEWOULDBLOCK)
+		{
+		}
+		break;
 	case SOCKET_STATE::SEND_KEY_BUFFER:
 	{
 		nHead = 0;

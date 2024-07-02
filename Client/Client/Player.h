@@ -3,7 +3,7 @@
 #include "EnvironmentObject.h"
 #include "GlobalDefine.h"
 
-class CScene;
+class CMainScene;
 class CCamera;
 class CRadarObject;
 
@@ -61,6 +61,7 @@ public:
 
 	const XMFLOAT3& GetVelocity() const { return(m_xmf3Velocity); }
 
+	void SetWorldPostion(const XMFLOAT3& xmf3Position) { m_xmf3Position = xmf3Position; }
 	void SetPosition(const XMFLOAT3& xmf3Position) { Move(XMFLOAT3(xmf3Position.x - m_xmf3Position.x, xmf3Position.y - m_xmf3Position.y, xmf3Position.z - m_xmf3Position.z), false); }
 	void SetScale(XMFLOAT3& xmf3Scale) { m_xmf3Scale = xmf3Scale; }
 
@@ -92,6 +93,7 @@ public:
 	INT8 GetClientId()const { return m_nClientId; }
 	void SetLook(const XMFLOAT3& xmf3Look) { m_xmf3Look = xmf3Look; }
 	void SetRight(const XMFLOAT3& xmf3Right) { m_xmf3Right = xmf3Right; }
+	void SetUp(const XMFLOAT3& xmf3Up) { m_xmf3Up = xmf3Up; }
 
 	virtual void RightClickProcess() {}
 	bool IsRightClick() { return m_bRightClick; }

@@ -764,14 +764,14 @@ void CBlueSuitPlayer::Animate(float fElapsedTime)
 	CPlayer::Animate(fElapsedTime);
 
 	//플래시라이트
-	m_pFlashlight->UpdateTransform(GetLeftHandItemFlashLightModelTransform());
+	if(m_pFlashlight) m_pFlashlight->UpdateTransform(GetLeftHandItemFlashLightModelTransform());
 	//플레이어의 왼손: 레이더 // 내 눈에서만 레이더가 확대되는것처럼 보임. 즉, 자신의 오른손에 레이더는 사라지고 확대창으로.
 	// 다른 플레이어를 렌더링 할때는 손에 있는 형태로 보여야함.
 
-	m_pRader->SetObtain(true);
-	m_pTeleport->SetObtain(true);
-	m_pMine->SetObtain(true);
-	m_pFuse->SetObtain(true);
+	if (m_pRader) m_pRader->SetObtain(true);
+	if (m_pTeleport) m_pTeleport->SetObtain(true);
+	if (m_pMine) m_pMine->SetObtain(true);
+	if (m_pFuse) m_pFuse->SetObtain(true);
 
 	switch (m_selectItem)
 	{

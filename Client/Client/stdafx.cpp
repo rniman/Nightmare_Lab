@@ -405,6 +405,11 @@ void err_display(const char* msg)
 	LocalFree(lpMsgBuf);
 }
 
+void err_display(const char* msg, const char* msg2)
+{
+	MessageBoxA(NULL, (const char*)msg2, msg, MB_ICONERROR);
+}
+
 // 소켓 함수 오류 출력
 void err_display(int errcode)
 {

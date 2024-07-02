@@ -3,7 +3,7 @@
 #include "Player.h"
 #include "PlayerController.h"
 
-float CScene::testAngle;
+float CMainScene::testAngle;
 
 CBlueSuitAnimationController::CBlueSuitAnimationController(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dCommandList, int nAnimationTracks, const shared_ptr<CLoadedModelInfo>& pModel)
 	:CAnimationController(pd3dDevice, pd3dCommandList, nAnimationTracks, pModel)
