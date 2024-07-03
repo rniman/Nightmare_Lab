@@ -3,7 +3,8 @@
 #include "Shader.h"
 #include "TCPClient.h"
 #include "TextureBlendObject.h"
-//#include <stdexcept>
+
+constexpr UINT WM_CHANGE_SLOT{ WM_USER + 5 };
 
 // m_vShader 쉐이더에 AddDefaultObject 시에 접근할 각 쉐이더 인덱스를 의미
 #define STANDARD_SHADER 0
@@ -171,6 +172,10 @@ public:
 	virtual void Render(ID3D12GraphicsCommandList* pd3dCommandList, const shared_ptr<CCamera>& pCamera, int nPipelineState) override;
 
 	bool CheckCursor(POINT ptCursor, float fCenterX, float fCenterY, float fWidth, float fHeight);
+
+	void UpdateShaderMainPlayer(int nMainClientId);
+
+	int GetSelectedSlot()const { return m_nSelectedSlot; }
 private:
 	HWND m_hWnd;
 
@@ -185,6 +190,8 @@ private:
 	vector<shared_ptr<CShader>> m_vpShader;
 
 	POINT m_ptCursor;
+	int m_nClientSlot = -1;
+	int m_nSelectedSlot = -1;
 };
 
 /// <CScene - CLobbyScene>

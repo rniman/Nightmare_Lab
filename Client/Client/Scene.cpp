@@ -7,7 +7,6 @@
 #include "EnvironmentObject.h"
 #include "Collision.h"
 #include "TextureBlendObject.h"
-#include <windowsx.h> 
 
 ComPtr<ID3D12DescriptorHeap> CScene::m_pd3dCbvSrvDescriptorHeap;
 
@@ -371,6 +370,8 @@ bool CLobbyScene::OnProcessingMouseMessage(HWND hWnd, UINT nMessageID, WPARAM wP
 	{
 		ProcessButtonDown(ptCursorPos, pLobbyUIShader);
 		ProcessClickBorder(ptCursorPos, pLobbyUIShader);
+		// ¼±ÅÃµÈ ½½·Ô ¹øÈ£
+		m_nSelectedSlot = pLobbyUIShader->GetSelectedBorder();
 	}
 		break;
 	case WM_LBUTTONUP:
@@ -385,6 +386,8 @@ bool CLobbyScene::OnProcessingMouseMessage(HWND hWnd, UINT nMessageID, WPARAM wP
 		if (nRetVal == 2)
 		{
 			// CHANGE 
+			PostMessage(hWnd, WM_CHANGE_SLOT, 0, 0);
+			break;
 		}
 	}
 	break;
@@ -623,6 +626,13 @@ bool CLobbyScene::CheckCursor(POINT ptCursor, float fCenterX, float fCenterY, fl
 	{
 		return false;
 	}
+}
+
+void CLobbyScene::UpdateShaderMainPlayer(int nMainClientId) 
+{
+	shared_ptr<CLobbyUserInterfaceShader> pLobbyUIShader = dynamic_pointer_cast<CLobbyUserInterfaceShader>(m_vpShader[LOBBY_UI_SHADER]);
+	pLobbyUIShader->UpdateShaderMainPlayer(nMainClientId);
+
 }
 
 /// <CScene - CLobbyScene>
@@ -1522,8 +1532,8 @@ void CMainScene::AnimateObjects(float fElapsedTime)
 		auto player = dynamic_pointer_cast<CBlueSuitPlayer>(m_apPlayer[i]);
 		if (player) {
 			XMFLOAT4X4* xmf4x4playerLight = player->GetFlashLigthWorldTransform();
-			m_pLightCamera[light_Id]->m_pLight->m_xmf3Position = XMFLOAT3(xmf4x4playerLight->_41, xmf4x4playerLight->_42, xmf4x4playerLight->_43);//m_pPlayer->GetCamera()->GetPosition();
-			m_pLightCamera[light_Id]->m_pLight->m_xmf3Direction = XMFLOAT3(xmf4x4playerLight->_21, xmf4x4playerLight->_22, xmf4x4playerLight->_23);/*XMFLOAT3(xmf4x4playerLight._31, xmf4x4playerLight._32, xmf4x4playerLight._33);*/ //m_pPlayer->GetCamera()->GetLookVector();
+			m_pLightCamera[i - 1]->m_pLight->m_xmf3Position = XMFLOAT3(xmf4x4playerLight->_41, xmf4x4playerLight->_42, xmf4x4playerLight->_43);//m_pPlayer->GetCamera()->GetPosition();
+			m_pLightCamera[i - 1]->m_pLight->m_xmf3Direction = XMFLOAT3(xmf4x4playerLight->_21, xmf4x4playerLight->_22, xmf4x4playerLight->_23);/*XMFLOAT3(xmf4x4playerLight._31, xmf4x4playerLight._32, xmf4x4playerLight._33);*/ //m_pPlayer->GetCamera()->GetLookVector();
 
 			light_Id++;
 		}
@@ -1595,9 +1605,13 @@ void CMainScene::ShadowRender(ID3D12GraphicsCommandList* pd3dCommandList, const 
 	}
 	else {
 		for (int i = 0; i < MAX_CLIENT; ++i) {
-			if (m_apPlayer[i]->GetClientId() == -1) continue;
+			if (m_apPlayer[i]->GetClientId() == -1) 
+			{
+				continue;
+			}
 			auto survivor = dynamic_pointer_cast<CBlueSuitPlayer>(m_apPlayer[i]);
-			if (!survivor) {
+			if (!survivor) 
+			{
 				continue;
 			}
 
@@ -1607,10 +1621,10 @@ void CMainScene::ShadowRender(ID3D12GraphicsCommandList* pd3dCommandList, const 
 			XMFLOAT3 xmf3LightLook = XMFLOAT3(xmf4x4playerLight->_21, xmf4x4playerLight->_22, xmf4x4playerLight->_23);
 			xmf3LightLook = Vector3::ScalarProduct(xmf3LightLook, -1.0f, false);
 			xmf3LightPosition = Vector3::Add(xmf3LightPosition, xmf3LightLook);
-			m_pLightCamera[lightId]->SetPosition(xmf3LightPosition);
-			m_pLightCamera[lightId]->SetLookVector(XMFLOAT3(xmf4x4playerLight->_21, xmf4x4playerLight->_22, xmf4x4playerLight->_23));
-			m_pLightCamera[lightId]->RegenerateViewMatrix();
-			m_pLightCamera[lightId]->MultiplyViewProjection();
+			m_pLightCamera[i - 1]->SetPosition(xmf3LightPosition);
+			m_pLightCamera[i - 1]->SetLookVector(XMFLOAT3(xmf4x4playerLight->_21, xmf4x4playerLight->_22, xmf4x4playerLight->_23));
+			m_pLightCamera[i - 1]->RegenerateViewMatrix();
+			m_pLightCamera[i - 1]->MultiplyViewProjection();
 
 			static XMFLOAT4X4 xmf4x4ToTexture = {
 			0.5f, 0.0f, 0.0f, 0.0f,
@@ -1620,11 +1634,11 @@ void CMainScene::ShadowRender(ID3D12GraphicsCommandList* pd3dCommandList, const 
 			};
 			static XMMATRIX xmProjectionToTexture = XMLoadFloat4x4(&xmf4x4ToTexture);
 
-			XMFLOAT4X4 viewProjection = m_pLightCamera[lightId]->GetViewProjection();
+			XMFLOAT4X4 viewProjection = m_pLightCamera[i - 1]->GetViewProjection();
 			XMMATRIX xmmtxViewProjection = XMLoadFloat4x4(&viewProjection);
 			//XMStoreFloat4x4(&m_pScene->m_pLights[lightId].m_xmf4x4ViewProjection, XMMatrixTranspose(xmmtxViewProjection * xmProjectionToTexture));
-			XMStoreFloat4x4(&m_pLightCamera[lightId]->m_pLight->m_xmf4x4ViewProjection, XMMatrixTranspose(xmmtxViewProjection * xmProjectionToTexture));
-			m_pLightCamera[lightId]->SetFloor(static_cast<int>(floor(survivor->GetPosition().y / 4.5f)));
+			XMStoreFloat4x4(&m_pLightCamera[i - 1]->m_pLight->m_xmf4x4ViewProjection, XMMatrixTranspose(xmmtxViewProjection * xmProjectionToTexture));
+			m_pLightCamera[i - 1]->SetFloor(static_cast<int>(floor(survivor->GetPosition().y / 4.5f)));
 
 			lightId++;
 		}
@@ -1632,7 +1646,6 @@ void CMainScene::ShadowRender(ID3D12GraphicsCommandList* pd3dCommandList, const 
 
 	for (int i = 0; i < m_nLights; ++i)
 	{
-		//m_pScene->m_pLights[i].m_bEnable = false; // Ç×»ó ¸ðµç ºûÀ» ²¨¹ö¸². ±×¸²ÀÚ¸ÊÀ» »ý¼ºÇÏ´Â ºû¸¸ ÄÓ°Í.
 		m_pLightCamera[i]->m_pLight->m_bEnable = false; // Ç×»ó ¸ðµç ºûÀ» ²¨¹ö¸². ±×¸²ÀÚ¸ÊÀ» »ý¼ºÇÏ´Â ºû¸¸ ÄÓ°Í.
 		if (pCamera->GetFloor() != m_pLightCamera[i]->GetFloor()) {
 			continue;
@@ -1651,7 +1664,6 @@ void CMainScene::ShadowRender(ID3D12GraphicsCommandList* pd3dCommandList, const 
 			}
 		}
 
-		//m_pScene->m_pLights[i].m_bEnable = true;
 		m_pLightCamera[i]->m_pLight->m_bEnable = true; // Ç×»ó ¸ðµç ºûÀ» ²¨¹ö¸². ±×¸²ÀÚ¸ÊÀ» »ý¼ºÇÏ´Â ºû¸¸ ÄÓ°Í.
 
 		D3D12_CPU_DESCRIPTOR_HANDLE shadowRTVDescriptorHandle = m_pPostProcessingShader->GetShadowRtvCPUDescriptorHandle(i);

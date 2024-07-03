@@ -131,6 +131,32 @@ void CTcpClient::OnProcessingReadMessage(HWND hWnd, UINT nMessageID, WPARAM wPar
 		PostMessage(hWnd, WM_START_GAME, 0, 0);
 		m_socketState = SOCKET_STATE::SEND_KEY_BUFFER;
 		break;
+	case HEAD_CHANGE_SLOT:
+	{	//클라 id 바꾸기, 
+		nBufferSize = sizeof(INT8) + sizeof(m_aClientInfo);
+		RecvNum++;
+		nRetval = RecvData(wParam, nBufferSize);
+		INT8 nPrevMainClientId = m_nMainClientId;
+		memcpy(&m_nMainClientId, m_pCurrentBuffer, sizeof(INT8));
+		if (nRetval != 0)
+		{
+			break;
+		}
+		memcpy(&m_aClientInfo, m_pCurrentBuffer + sizeof(INT8), sizeof(m_aClientInfo));
+		for (int i = 0; i < MAX_CLIENT; ++i)
+		{
+			if (m_apPlayers[i])
+			{
+				m_apPlayers[i]->SetClientId(m_aClientInfo[i].m_nClientId);
+			}
+		}
+
+		if (nPrevMainClientId != m_nMainClientId)
+		{
+			PostMessage(hWnd, WM_CHANGE_SLOT, 1, 0);
+		}
+	}
+		break;
 	case HEAD_INIT:
 		//nBufferSize = sizeof(INT8) * 2;
 		nBufferSize = sizeof(INT8) * 2 + sizeof(m_aClientInfo);
@@ -328,6 +354,13 @@ void CTcpClient::OnProcessingWriteMessage(HWND hWnd, UINT nMessageID, WPARAM wPa
 		if (nRetval == -1 && WSAGetLastError() == WSAEWOULDBLOCK)
 		{
 		}
+		break;
+	case SOCKET_STATE::SEND_CHANGE_SLOT:
+		nHead = 2;
+		nBufferSize += sizeof(INT8);
+		nRetval = SendData(m_sock, nBufferSize, nHead, m_nSelectedSlot);
+
+		m_socketState = SOCKET_STATE::SEND_GAME_START;
 		break;
 	case SOCKET_STATE::SEND_KEY_BUFFER:
 	{

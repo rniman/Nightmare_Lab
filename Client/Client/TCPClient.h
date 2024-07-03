@@ -27,7 +27,8 @@ class CPlayer;
 enum class SOCKET_STATE
 {
 	SEND_KEY_BUFFER,
-	SEND_GAME_START
+	SEND_GAME_START,
+	SEND_CHANGE_SLOT
 };
 
 enum RECV_HEAD
@@ -37,7 +38,8 @@ enum RECV_HEAD
 	HEAD_NUM_OF_CLIENT,
 	HEAD_BLUE_SUIT_WIN,
 	HEAD_ZOMBIE_WIN,
-	HEAD_GAME_START
+	HEAD_GAME_START,
+	HEAD_CHANGE_SLOT
 };
 
 struct CS_ANIMATION_INFO {
@@ -83,6 +85,8 @@ class CTcpClient
 private:
 	INT8 m_nMainClientId = -1;
 	INT8 m_nClient = -1;				// 클라이언트 수
+
+	INT8 m_nSelectedSlot = -1;
 
 	bool m_bRecvDelayed = false;	// 오는 데이터를 전부 받지 못했다
 	bool m_bRecvHead = false;
@@ -140,5 +144,8 @@ public:
 	//SOCKET GetSocket() { return m_sock; }
 
 	int GetEscapeDoor() const { return m_nEscapeDoor; }
+
+	void SetSelectedSlot(INT8 nSelectedSlot) { m_nSelectedSlot = nSelectedSlot; }
+	void SetSocketState(SOCKET_STATE sockState) { m_socketState = sockState; }
 };
 

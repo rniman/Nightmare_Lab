@@ -456,7 +456,9 @@ public:
 	virtual void BuildObjects(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dCommandList, ID3D12RootSignature* pd3dGraphicsRootSignature);
 
 	int ProcessInput(int nProcessInput);
-	void SetMainClientID(int nMainClientID) { m_nMainClientID = nMainClientID; }
+
+	void UpdateShaderMainPlayer(int nMainClientID);
+	int GetSelectedBorder() const { return m_nSelectedBorder; }
 private:
 	int m_nMainClientID = -1;
 

@@ -661,6 +661,35 @@ void CGameFramework::OnProcessingWindowMessage(HWND hWnd, UINT nMessageID, WPARA
 	case WM_COMMAND:
 		OnProcessingCommandMessage(hWnd, nMessageID, wParam, lParam);
 		break;
+	case WM_CHANGE_SLOT:
+	{
+		shared_ptr<CLobbyScene> pScene = dynamic_pointer_cast<CLobbyScene>(m_pScene);
+		if(LOWORD(wParam) == 0) // 교환 주체
+		{
+			m_pTcpClient->SetSocketState(SOCKET_STATE::SEND_CHANGE_SLOT);
+			INT8 nSelectedSlot = pScene->GetSelectedSlot();
+			m_pTcpClient->SetSelectedSlot(nSelectedSlot);
+			PostMessage(m_hWnd, WM_SOCKET, NULL, MAKELPARAM(FD_WRITE, 0));
+
+			INT8 nChangeID = m_apPlayer[nSelectedSlot]->GetClientId();
+			m_apPlayer[m_nMainClientId]->SetClientId(nChangeID);
+			m_nMainClientId = nSelectedSlot;
+			m_apPlayer[m_nMainClientId]->SetClientId(m_nMainClientId);
+			m_pMainPlayer = m_apPlayer[m_nMainClientId];
+			pScene->SetMainPlayer(m_pMainPlayer);
+			pScene->UpdateShaderMainPlayer(m_nMainClientId);
+		}
+		else if (LOWORD(wParam) == 1) // 교환 당함
+		{
+			INT8 nChangeID = m_pTcpClient->GetMainClientId();
+			m_nMainClientId = nChangeID;
+			m_apPlayer[m_nMainClientId]->SetClientId(m_nMainClientId);
+			m_pMainPlayer = m_apPlayer[m_nMainClientId];
+			pScene->SetMainPlayer(m_pMainPlayer);
+			pScene->UpdateShaderMainPlayer(m_nMainClientId);
+		}
+	}
+		break;
 	case WM_CREATE_TCP:
 		m_bTcpClient = true;
 		break;
@@ -669,14 +698,14 @@ void CGameFramework::OnProcessingWindowMessage(HWND hWnd, UINT nMessageID, WPARA
 		m_nGameState = GAME_STATE::IN_GAME;
 		BuildObjects();
 
-		::SetCursor(NULL);
-		::SetCapture(hWnd);
-		// 마우스를 화면 중앙으로 이동시킴 (윈도우 내부로만 이동하도록)
+		//::SetCursor(NULL);
+		//::SetCapture(hWnd);
+		//// 마우스를 화면 중앙으로 이동시킴 (윈도우 내부로만 이동하도록)
 		RECT rect;
 		GetClientRect(hWnd, &rect);
 		POINT center = { (rect.right - rect.left) / 2, (rect.bottom - rect.top) / 2 };
 		ClientToScreen(hWnd, &center);
-		SetCursorPos(center.x, center.y);
+		//SetCursorPos(center.x, center.y);
 		SetMousePoint(center);
 	}
 		break;
@@ -1183,11 +1212,6 @@ void CGameFramework::FrameAdvance()
 	{
 		shared_ptr<CMainScene> pMainScene = dynamic_pointer_cast<CMainScene>(m_pScene);
 
-		if (!pMainScene)
-		{
-			assert("FAIL MAIN SCENE");
-		}
-
 		pMainScene->ShadowRender(m_d3dCommandList.Get(), m_pCamera.lock(), 0);
 
 		//그림자맵 생성이 끝났을때의 처리.
@@ -1232,6 +1256,6 @@ void CGameFramework::FrameAdvance()
 	m_GameTimer.GetFrameRate(m_pszFrameRate + 15, 37);
 	size_t nLength = _tcslen(m_pszFrameRate);
 	XMFLOAT3 xmf3Position = xmf3Position = m_pMainPlayer->GetPosition();
-	_stprintf_s(m_pszFrameRate + nLength, 200 - nLength, _T("ID:%d, NumOfClient: %d, (%4f, %4f, %4f), %d"), m_pTcpClient->GetMainClientId(), m_pTcpClient->GetNumOfClient(), xmf3Position.x, xmf3Position.y, xmf3Position.z, g_collisionManager.GetNumOfCollisionObject());
+	_stprintf_s(m_pszFrameRate + nLength, 200 - nLength, _T("ID:%d %d, NumOfClient: %d, (%4f, %4f, %4f), %d"), m_pTcpClient->GetMainClientId(), m_nMainClientId, m_pTcpClient->GetNumOfClient(), xmf3Position.x, xmf3Position.y, xmf3Position.z, g_collisionManager.GetNumOfCollisionObject());
 	::SetWindowText(m_hWnd, m_pszFrameRate);
 }

@@ -2342,6 +2342,9 @@ int CLobbyUserInterfaceShader::ProcessInput(int nProcessInput)
 	case LOBBY_PROCESS_INPUT::CHANGE_BUTTON_UP:
 		if(m_bChangeButtonPressed) // 위치 바꿔야 함
 		{
+			m_apLobbyBorderObjects[m_nSelectedBorder]->SetMaterial(0, m_apmatLobbyBorder[0]);
+			m_nSelectedBorder = -1;
+			m_pChangeButton->SetMaterial(0, m_apmatChangeButton[3]);
 			m_bChangeButtonPressed = false;
 			return 2;
 		}
@@ -2384,4 +2387,29 @@ int CLobbyUserInterfaceShader::ProcessInput(int nProcessInput)
 	}
 
 	return 0;
+}
+
+void CLobbyUserInterfaceShader::UpdateShaderMainPlayer(int nMainClientID) 
+{
+	m_nMainClientID = nMainClientID; 
+	if (m_nMainClientID == ZOMBIEPLAYER)
+	{
+		m_pStartButton->SetMaterial(0, m_apmatStartButton[0]);
+	}
+	else
+	{
+		m_pStartButton->SetMaterial(0, m_apmatStartButton[3]);
+	}
+
+	for (int i = 0; i < MAX_CLIENT; ++i)
+	{
+		if (m_nMainClientID == i)
+		{
+			m_apLobbyBorderObjects[i]->SetMaterial(0, m_apmatLobbyBorder[1]);
+		}
+		else
+		{
+			m_apLobbyBorderObjects[i]->SetMaterial(0, m_apmatLobbyBorder[0]);
+		}
+	}
 }

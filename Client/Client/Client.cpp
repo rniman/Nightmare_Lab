@@ -231,6 +231,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 	case WM_CREATE_TCP:
 	case WM_END_GAME:
 	case WM_START_GAME:
+	case WM_CHANGE_SLOT:
 	case WM_COMMAND:
 	case WM_SIZE:
 	case WM_LBUTTONDOWN:

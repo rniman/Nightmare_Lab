@@ -146,7 +146,7 @@ void TCPServer::OnProcessingAcceptMessage(HWND hWnd, UINT nMessageID, WPARAM wPa
 		++m_nBlueSuit;
 	}
 	
-	InitPlayerPosition(m_apPlayers[nSocketIndex], nSocketIndex);
+	//InitPlayerPosition(m_apPlayers[nSocketIndex], nSocketIndex);
 
 	m_pCollisionManager->AddCollisionPlayer(m_apPlayers[nSocketIndex], nSocketIndex);
 
@@ -171,7 +171,7 @@ void TCPServer::OnProcessingReadMessage(HWND hWnd, UINT nMessageID, WPARAM wPara
 	if (!m_vSocketInfoList[nSocketIndex].m_bUsed)
 	{
 		//error
-		exit(-1);
+		assert("error");
 	}
 	std::shared_ptr<CServerPlayer> pPlayer = m_apPlayers[nSocketIndex];
 
@@ -199,8 +199,127 @@ void TCPServer::OnProcessingReadMessage(HWND hWnd, UINT nMessageID, WPARAM wPara
 	{
 	case HEAD_GAME_START:
 		cout << "GAME START" << endl;
+		m_nGameState = GAME_STATE::IN_GAME;
 
-		m_vSocketInfoList[nSocketIndex].m_socketState = SOCKET_STATE::SEND_GAME_START;
+		for (int i = 0; i < MAX_CLIENT; ++i)
+		{
+			if (!m_vSocketInfoList[i].m_bUsed )
+			{
+				continue;
+			}
+			InitPlayerPosition(m_apPlayers[i], i);
+			m_vSocketInfoList[i].m_socketState = SOCKET_STATE::SEND_GAME_START;
+
+			if (i == nSocketIndex)
+			{
+				continue;
+			}
+			PostMessage(m_hWnd, WM_SOCKET, (WPARAM)m_vSocketInfoList[i].m_sock, MAKELPARAM(FD_WRITE, 0));
+		}
+		//m_vSocketInfoList[nSocketIndex].m_socketState = SOCKET_STATE::SEND_GAME_START;
+		break;
+	case HEAD_CHANGE_SLOT:
+		nBufferSize = sizeof(INT8);
+		nRetval = RecvData(nSocketIndex, nBufferSize);
+
+		INT8 nSelectedSlot;
+		memcpy(&nSelectedSlot, m_vSocketInfoList[nSocketIndex].m_pCurrentBuffer, sizeof(INT8));
+		// 뭘 바꿔야할까
+		if (!m_apPlayers[nSelectedSlot]) // 없으면 만들어서
+		{
+			m_apPlayers[nSelectedSlot] = make_shared<CServerBlueSuitPlayer>();
+		}
+		//	m_apPlayers[nSelectedSlot]->SetPlayerId(nSelectedSlot);
+		//	m_vSocketInfoList[nSelectedSlot].m_bUsed = m_vSocketInfoList[nSocketIndex].m_bUsed;
+		//	m_vSocketInfoList[nSelectedSlot].m_sock = m_vSocketInfoList[nSocketIndex].m_sock;
+		//	m_vSocketInfoList[nSelectedSlot].m_addrClient = m_vSocketInfoList[nSocketIndex].m_addrClient;
+		//	m_vSocketInfoList[nSelectedSlot].m_nAddrlen = m_vSocketInfoList[nSocketIndex].m_nAddrlen;
+		//	memcpy(m_vSocketInfoList[nSelectedSlot].m_pAddr, m_vSocketInfoList[nSocketIndex].m_pAddr, INET_ADDRSTRLEN);
+		//	m_vSocketInfoList[nSelectedSlot].m_bRecvDelayed = m_vSocketInfoList[nSocketIndex].m_bRecvDelayed;
+		//	m_vSocketInfoList[nSelectedSlot].m_bRecvHead = m_vSocketInfoList[nSocketIndex].m_bRecvHead;
+		//	m_vSocketInfoList[nSelectedSlot].m_nCurrentRecvByte = m_vSocketInfoList[nSocketIndex].m_nCurrentRecvByte;
+		//	memcpy(m_vSocketInfoList[nSelectedSlot].m_pCurrentBuffer, m_vSocketInfoList[nSocketIndex].m_pCurrentBuffer, BUFSIZE);
+		//	m_vSocketInfoList[nSelectedSlot].m_socketState = m_vSocketInfoList[nSocketIndex].m_socketState;
+		//	m_vSocketInfoList[nSelectedSlot].SendNum = m_vSocketInfoList[nSocketIndex].SendNum;
+		//	m_vSocketInfoList[nSelectedSlot].RecvNum = m_vSocketInfoList[nSocketIndex].RecvNum;
+
+		//	m_aUpdateInfo[nSelectedSlot].m_nClientId = nSelectedSlot;
+
+		//	m_vSocketInfoList[nSocketIndex].m_bUsed = false;
+		//	m_aUpdateInfo[nSocketIndex].m_nClientId = -1;
+		//	m_apPlayers[nSocketIndex]->SetPlayerId(-1);
+		//}
+	
+		if (m_apPlayers[nSelectedSlot]->GetPlayerId() == -1)
+		{
+			m_apPlayers[nSelectedSlot]->SetPlayerId(nSelectedSlot);
+
+			m_vSocketInfoList[nSelectedSlot].m_bUsed = m_vSocketInfoList[nSocketIndex].m_bUsed;
+			m_vSocketInfoList[nSelectedSlot].m_sock = m_vSocketInfoList[nSocketIndex].m_sock;
+			m_vSocketInfoList[nSelectedSlot].m_addrClient = m_vSocketInfoList[nSocketIndex].m_addrClient;
+			m_vSocketInfoList[nSelectedSlot].m_nAddrlen = m_vSocketInfoList[nSocketIndex].m_nAddrlen;
+			memcpy(m_vSocketInfoList[nSelectedSlot].m_pAddr, m_vSocketInfoList[nSocketIndex].m_pAddr, INET_ADDRSTRLEN);
+			m_vSocketInfoList[nSelectedSlot].m_bRecvDelayed = m_vSocketInfoList[nSocketIndex].m_bRecvDelayed;
+			m_vSocketInfoList[nSelectedSlot].m_bRecvHead = m_vSocketInfoList[nSocketIndex].m_bRecvHead;
+			m_vSocketInfoList[nSelectedSlot].m_nCurrentRecvByte = m_vSocketInfoList[nSocketIndex].m_nCurrentRecvByte;
+			memcpy(m_vSocketInfoList[nSelectedSlot].m_pCurrentBuffer, m_vSocketInfoList[nSocketIndex].m_pCurrentBuffer, BUFSIZE);
+			m_vSocketInfoList[nSelectedSlot].m_socketState = m_vSocketInfoList[nSocketIndex].m_socketState;
+			m_vSocketInfoList[nSelectedSlot].SendNum = m_vSocketInfoList[nSocketIndex].SendNum;
+			m_vSocketInfoList[nSelectedSlot].RecvNum = m_vSocketInfoList[nSocketIndex].RecvNum;
+
+			m_aUpdateInfo[nSelectedSlot].m_nClientId = nSelectedSlot;
+
+			m_vSocketInfoList[nSocketIndex].m_bUsed = false;
+			m_aUpdateInfo[nSocketIndex].m_nClientId = -1;
+			m_apPlayers[nSocketIndex]->SetPlayerId(-1);
+		}
+		else // 교환해야함
+		{
+			SOCKETINFO sockInfoTemp;
+			sockInfoTemp.m_bUsed = m_vSocketInfoList[nSocketIndex].m_bUsed;
+			sockInfoTemp.m_sock = m_vSocketInfoList[nSocketIndex].m_sock;
+			sockInfoTemp.m_addrClient = m_vSocketInfoList[nSocketIndex].m_addrClient;
+			sockInfoTemp.m_nAddrlen = m_vSocketInfoList[nSocketIndex].m_nAddrlen;
+			memcpy(sockInfoTemp.m_pAddr, m_vSocketInfoList[nSocketIndex].m_pAddr, INET_ADDRSTRLEN);
+			sockInfoTemp.m_bRecvDelayed = m_vSocketInfoList[nSocketIndex].m_bRecvDelayed;
+			sockInfoTemp.m_bRecvHead = m_vSocketInfoList[nSocketIndex].m_bRecvHead;
+			sockInfoTemp.m_nCurrentRecvByte = m_vSocketInfoList[nSocketIndex].m_nCurrentRecvByte;
+			memcpy(sockInfoTemp.m_pCurrentBuffer, m_vSocketInfoList[nSocketIndex].m_pCurrentBuffer, BUFSIZE);
+			sockInfoTemp.m_socketState = m_vSocketInfoList[nSocketIndex].m_socketState;
+			sockInfoTemp.SendNum = m_vSocketInfoList[nSocketIndex].SendNum;
+			sockInfoTemp.RecvNum = m_vSocketInfoList[nSocketIndex].RecvNum;
+
+			m_vSocketInfoList[nSocketIndex].m_bUsed = m_vSocketInfoList[nSelectedSlot].m_bUsed;
+			m_vSocketInfoList[nSocketIndex].m_sock = m_vSocketInfoList[nSelectedSlot].m_sock;
+			m_vSocketInfoList[nSocketIndex].m_addrClient = m_vSocketInfoList[nSelectedSlot].m_addrClient;
+			m_vSocketInfoList[nSocketIndex].m_nAddrlen = m_vSocketInfoList[nSelectedSlot].m_nAddrlen;
+			memcpy(m_vSocketInfoList[nSocketIndex].m_pAddr, m_vSocketInfoList[nSelectedSlot].m_pAddr, INET_ADDRSTRLEN);
+			m_vSocketInfoList[nSocketIndex].m_bRecvDelayed = m_vSocketInfoList[nSelectedSlot].m_bRecvDelayed;
+			m_vSocketInfoList[nSocketIndex].m_bRecvHead = m_vSocketInfoList[nSelectedSlot].m_bRecvHead;
+			m_vSocketInfoList[nSocketIndex].m_nCurrentRecvByte = m_vSocketInfoList[nSelectedSlot].m_nCurrentRecvByte;
+			memcpy(m_vSocketInfoList[nSocketIndex].m_pCurrentBuffer, m_vSocketInfoList[nSelectedSlot].m_pCurrentBuffer, BUFSIZE);
+			m_vSocketInfoList[nSocketIndex].m_socketState = m_vSocketInfoList[nSelectedSlot].m_socketState;
+			m_vSocketInfoList[nSocketIndex].SendNum = m_vSocketInfoList[nSelectedSlot].SendNum;
+			m_vSocketInfoList[nSocketIndex].RecvNum = m_vSocketInfoList[nSelectedSlot].RecvNum;
+
+			m_vSocketInfoList[nSelectedSlot].m_bUsed =sockInfoTemp.m_bUsed;
+			m_vSocketInfoList[nSelectedSlot].m_sock =sockInfoTemp.m_sock;
+			m_vSocketInfoList[nSelectedSlot].m_addrClient =sockInfoTemp.m_addrClient;
+			m_vSocketInfoList[nSelectedSlot].m_nAddrlen =sockInfoTemp.m_nAddrlen;
+			memcpy(m_vSocketInfoList[nSelectedSlot].m_pAddr,sockInfoTemp.m_pAddr, INET_ADDRSTRLEN);
+			m_vSocketInfoList[nSelectedSlot].m_bRecvDelayed =sockInfoTemp.m_bRecvDelayed;
+			m_vSocketInfoList[nSelectedSlot].m_bRecvHead =sockInfoTemp.m_bRecvHead;
+			m_vSocketInfoList[nSelectedSlot].m_nCurrentRecvByte =sockInfoTemp.m_nCurrentRecvByte;
+			memcpy(m_vSocketInfoList[nSelectedSlot].m_pCurrentBuffer,sockInfoTemp.m_pCurrentBuffer, BUFSIZE);
+			m_vSocketInfoList[nSelectedSlot].m_socketState =sockInfoTemp.m_socketState;
+			m_vSocketInfoList[nSelectedSlot].SendNum =sockInfoTemp.SendNum;
+			m_vSocketInfoList[nSelectedSlot].RecvNum =sockInfoTemp.RecvNum;
+
+			m_aUpdateInfo[nSelectedSlot].m_nClientId = nSelectedSlot;
+		}
+		
+		m_vSocketInfoList[nSelectedSlot].m_socketState = SOCKET_STATE::SEND_CHANGE_SLOT;
+		nSocketIndex = nSelectedSlot;
 		break;
 	case HEAD_KEYS_BUFFER:
 	{
@@ -295,6 +414,17 @@ void TCPServer::OnProcessingWriteMessage(HWND hWnd, UINT nMessageID, WPARAM wPar
 	{
 	case SOCKET_STATE::SEND_GAME_START:
 		nHead = 5;
+
+		nRetval = SendData(m_vSocketInfoList[nSocketIndex].m_sock, nBufferSize, nHead);
+		if (nRetval == -1 && WSAGetLastError() == WSAEWOULDBLOCK)
+		{
+		}
+		m_vSocketInfoList[nSocketIndex].m_socketState = SOCKET_STATE::SEND_UPDATE_DATA;
+		break;
+	case SOCKET_STATE::SEND_CHANGE_SLOT:
+		nHead = 6;
+		nBufferSize += sizeof(INT8) + sizeof(m_aUpdateInfo);
+
 		for (int i = 0; i < MAX_CLIENT; ++i)
 		{
 			if (!m_vSocketInfoList[i].m_bUsed)
@@ -302,12 +432,13 @@ void TCPServer::OnProcessingWriteMessage(HWND hWnd, UINT nMessageID, WPARAM wPar
 				continue;
 			}
 
-			InitPlayerPosition(m_apPlayers[i], i);
-			nRetval = SendData(m_vSocketInfoList[i].m_sock, nBufferSize, nHead);
-			m_vSocketInfoList[i].m_socketState = SOCKET_STATE::SEND_UPDATE_DATA;
+			nRetval = SendData(m_vSocketInfoList[i].m_sock, nBufferSize, nHead, m_aUpdateInfo[i].m_nClientId, m_aUpdateInfo);
+			if (nRetval == -1 && WSAGetLastError() == WSAEWOULDBLOCK)
+			{
+			}
+			//m_vSocketInfoList[i].m_socketState = SOCKET_STATE::SEND_UPDATE_DATA;
 		}
-
-		m_nGameState = GAME_STATE::IN_GAME;
+		cout << "CHANGE!\n";
 		break;
 	case SOCKET_STATE::SEND_ID:
 		nHead = 0;
@@ -325,6 +456,9 @@ void TCPServer::OnProcessingWriteMessage(HWND hWnd, UINT nMessageID, WPARAM wPar
 		break;
 	case SOCKET_STATE::SEND_UPDATE_DATA:
 	{
+		if (m_nGameState == GAME_STATE::IN_LOBBY)
+			break;
+
 		nHead = 1;
 		nBufferSize += sizeof(m_aUpdateInfo);
 
@@ -335,7 +469,7 @@ void TCPServer::OnProcessingWriteMessage(HWND hWnd, UINT nMessageID, WPARAM wPar
 		if (nRetval == -1 && WSAGetLastError() == WSAEWOULDBLOCK)
 		{
 		}
-		}
+	}
 		break;
 	case SOCKET_STATE::SEND_NUM_OF_CLIENT:
 		nHead = 2;
