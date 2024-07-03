@@ -208,6 +208,7 @@ void TCPServer::OnProcessingReadMessage(HWND hWnd, UINT nMessageID, WPARAM wPara
 				continue;
 			}
 			InitPlayerPosition(m_apPlayers[i], i);
+			m_pCollisionManager->AddCollisionPlayer(m_apPlayers[i], i);
 			m_vSocketInfoList[i].m_socketState = SOCKET_STATE::SEND_GAME_START;
 
 			if (i == nSocketIndex)
@@ -664,8 +665,13 @@ int TCPServer::CheckEndGame()
 	if (m_nZombie == 1 && m_nBlueSuit > 0)
 	{
 		int nAliveBlueSuit = 0;
-		for (int i = 1; i <= m_nBlueSuit; ++i)
+		for (int i = 1; i < MAX_CLIENT; ++i)
 		{
+			if (!m_apPlayers[i] || m_apPlayers[i]->GetPlayerId() == -1)
+			{
+				continue;
+			}
+
 			if (m_apPlayers[i]->IsAlive())
 			{
 				++nAliveBlueSuit;
