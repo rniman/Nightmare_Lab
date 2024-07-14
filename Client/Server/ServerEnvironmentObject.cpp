@@ -326,7 +326,7 @@ void CServerTeleportObject::UpdateUsing(const shared_ptr<CServerGameObject>& pGa
 	{
 		return;
 	}
-	pBlueSuitPlayer->TeleportRandomPosition();
+	pBlueSuitPlayer->TeleportItemUse();
 
 	// 아이템 리셋하는 함수 작성
 	m_bObtained = false;

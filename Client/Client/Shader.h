@@ -48,13 +48,14 @@ public:
 
 	virtual void BuildObjects(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dCommandList, ID3D12RootSignature* pd3dGraphicsRootSignature) { }
 	virtual void AnimateObjects(float fElapsedTime);
+	virtual void ParticleUpdate(float fCurTime){}
 	virtual void ReleaseObjects() { }
 
 	virtual void AddGameObject(const shared_ptr<CGameObject>& pGameObject);
 
 	// Interface
 	vector<shared_ptr<CGameObject>> GetGameObjects() const { return m_vGameObjects; };
-
+	
 protected:
 	// 게임내 오브젝트는 쉐이더가 관리한다.
 	vector<shared_ptr<CGameObject>> m_vGameObjects;
@@ -63,6 +64,7 @@ protected:
 	// m_ppd3dPipelineState 를 만들때 Blob을 사용하므로 ComPtr 사용x (오류발생가능)
 	ComPtr<ID3DBlob> m_pd3dVertexShaderBlob;
 	ComPtr<ID3DBlob> m_pd3dPixelShaderBlob;
+	ComPtr<ID3DBlob> m_pd3dGeometryShaderBlob;
 
 	UINT					m_nPipelineState = 1;
 	vector<ComPtr<ID3D12PipelineState>> m_vpd3dPipelineState;
@@ -72,6 +74,8 @@ protected:
 	D3D12_GRAPHICS_PIPELINE_STATE_DESC	m_d3dPipelineStateDesc;
 
 	float								m_fElapsedTime = 0.0f;
+
+	D3D12_PRIMITIVE_TOPOLOGY_TYPE m_topology_type = D3D12_PRIMITIVE_TOPOLOGY_TYPE_TRIANGLE;
 };
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////

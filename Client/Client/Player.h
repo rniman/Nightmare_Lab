@@ -95,7 +95,7 @@ public:
 	void SetRight(const XMFLOAT3& xmf3Right) { m_xmf3Right = xmf3Right; }
 	void SetUp(const XMFLOAT3& xmf3Up) { m_xmf3Up = xmf3Up; }
 
-	virtual void RightClickProcess() {}
+	virtual void RightClickProcess(float fCurTime) {}
 	bool IsRightClick() { return m_bRightClick; }
 	void SetRightClick(bool val) { m_bRightClick = val; }
 
@@ -151,6 +151,7 @@ protected:
 
 	bool m_ShadowRender;
 	bool m_SelfShadowRender;
+
 public:
 	void SetShadowRender(bool val) { m_ShadowRender = val; }
 	void SetSelfShadowRender(bool val) { m_SelfShadowRender = val; }
@@ -180,11 +181,11 @@ public:
 	virtual void MainPlayerRender(ID3D12GraphicsCommandList* pd3dCommandList);
 
 	virtual void UpdatePicking() override;
-	virtual void RightClickProcess();
+	virtual void RightClickProcess(float fCurTime) override;
 
 	int AddItem(const shared_ptr<CGameObject>& pGameObject);
 	virtual void UseItem(int nSlot) override;
-	void UseFuse();;
+	void UseFuse();
 	void Teleport();
 
 	void SetSlotItem(int nIndex, int nReferenceObjectNum);
@@ -261,6 +262,10 @@ public:
 private:
 	float m_fStopMoving = 0.0f;
 	int m_iMineobjectNum = -1;
+
+	int m_iTeleportParticleId = -1;
+	bool m_bTeleportUse = false;
+	float m_fCreateParticleTime = 0.0f;
 };
 
 struct FrameTimeInfo;

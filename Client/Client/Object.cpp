@@ -23,6 +23,7 @@ CTexture::CTexture(int nTextures, UINT nTextureType, int nSamplers, int nRootPar
 		m_vnResourceTypes.reserve(m_nTextures);
 		m_vdxgiBufferFormats.reserve(m_nTextures);
 		m_vnBufferElements.reserve(m_nTextures);
+		m_vnBufferStrides.reserve(m_nTextures);
 
 		for (int i = 0; i < m_nTextures; ++i)
 		{
@@ -33,6 +34,7 @@ CTexture::CTexture(int nTextures, UINT nTextureType, int nSamplers, int nRootPar
 			m_vnResourceTypes.emplace_back();
 			m_vdxgiBufferFormats.emplace_back();
 			m_vnBufferElements.emplace_back();
+			m_vnBufferStrides.emplace_back();
 		}
 
 	}
@@ -153,8 +155,10 @@ void CTexture::LoadBuffer(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* p
 	m_vnResourceTypes[nIndex] = RESOURCE_BUFFER;
 	m_vdxgiBufferFormats[nIndex] = ndxgiFormat;
 	m_vnBufferElements[nIndex] = nElements;
+	m_vnBufferStrides[nIndex] = nStride;
 	m_vpd3dTextures[nIndex] = ::CreateBufferResource(pd3dDevice, pd3dCommandList, pData, nElements * nStride, D3D12_HEAP_TYPE_DEFAULT, D3D12_RESOURCE_STATE_GENERIC_READ, m_vpd3dTextureUploadBuffers[nIndex].GetAddressOf());
 }
+
 
 ID3D12Resource* CTexture::CreateTexture(ID3D12Device* pd3dDevice, UINT nIndex, UINT nResourceType, UINT nWidth, UINT nHeight, UINT nElements, UINT nMipLevels, DXGI_FORMAT dxgiFormat, D3D12_RESOURCE_FLAGS d3dResourceFlags, D3D12_RESOURCE_STATES d3dResourceStates, D3D12_CLEAR_VALUE* pd3dClearValue)
 {

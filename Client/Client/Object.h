@@ -39,6 +39,7 @@ private:
 	vector<UINT> m_vnResourceTypes;
 	vector<DXGI_FORMAT> m_vdxgiBufferFormats;
 	vector<int> m_vnBufferElements;
+	vector<UINT> m_vnBufferStrides;
 
 	int m_nRootParameters = 0;
 	vector<UINT> m_vnRootParameterIndices;
@@ -394,7 +395,7 @@ public:
 	virtual void ReleaseShaderVariables();
 	virtual void ReleaseUploadBuffers();
 
-	void SetMesh(const shared_ptr<CMesh>& pMesh);
+	virtual void SetMesh(const shared_ptr<CMesh>& pMesh);
 	void SetMaterial(int nMaterial, const shared_ptr<CMaterial>& pMaterial);
 	void SetChild(const shared_ptr<CGameObject>& pChild, bool bReferenceUpdate = false);
 

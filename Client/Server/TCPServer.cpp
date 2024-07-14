@@ -902,10 +902,10 @@ void TCPServer::UpdateInformation()
 				// 지뢰충돌에 대한 데이터 로직
 				if (m_aUpdateInfo[nPlayerId].m_playerInfo.m_iMineobjectNum == -1) {
 					m_aUpdateInfo[nPlayerId].m_playerInfo.m_iMineobjectNum = pZombiePlayer->GetCollideMineRef();
-					pZombiePlayer->expDelay = 0.0f;
+					pZombiePlayer->m_fExplosionDelay = 0.0f;
 				} 
 				else {
-					if (pZombiePlayer->expDelay > 0.05f) {
+					if (pZombiePlayer->m_fExplosionDelay > 0.05f) {
 						pZombiePlayer->SetCollideMineRef(-1);
 						m_aUpdateInfo[nPlayerId].m_playerInfo.m_iMineobjectNum = pZombiePlayer->GetCollideMineRef();
 					}
@@ -924,6 +924,7 @@ void TCPServer::UpdateInformation()
 				}
 				m_aUpdateInfo[nPlayerId].m_playerInfo.m_bAttacked = pBlueSuitPlayer->IsAttacked();
 				m_aUpdateInfo[nPlayerId].m_playerInfo.m_selectItem = pBlueSuitPlayer->GetRightItem();
+				m_aUpdateInfo[nPlayerId].m_playerInfo.m_bTeleportItemUse = pBlueSuitPlayer->IsTeleportUse();
 			}
 			
 		}

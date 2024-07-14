@@ -13,9 +13,10 @@ constexpr UINT WM_CHANGE_SLOT{ WM_USER + 5 };
 
 // m_vForwardRenderShader
 #define TRANSPARENT_SHADER 0 // 투명객체에 대한 쉐이더는 항상 후순위로 배치
-#define TEXTUREBLEND_SHADER 1
-#define USER_INTERFACE_SHADER 2
-#define OUT_LINE_SHADER 3
+#define PARTICLE_SHADER 1 
+#define TEXTUREBLEND_SHADER 2
+#define USER_INTERFACE_SHADER 3
+#define OUT_LINE_SHADER 4
 
 // m_vPartitionShader
 #define PARTITION_SHADER 0
@@ -92,7 +93,7 @@ public:
 	virtual void ReleaseUploadBuffers() {}
 
 	virtual bool ProcessInput(UCHAR* pKeysBuffer) { return false; }
-	virtual void AnimateObjects(float fElapsedTime) {}
+	virtual void AnimateObjects(float fElapsedTime, float fCurTime) {}
 	virtual void PrepareRender(ID3D12GraphicsCommandList* pd3dCommandList, const shared_ptr<CCamera>& pCamera) {}
 	virtual void Render(ID3D12GraphicsCommandList* pd3dCommandList, const shared_ptr<CCamera>& pCamera, int nPipelineState) {}
 
@@ -147,6 +148,10 @@ public:
 	D3D12_GPU_DESCRIPTOR_HANDLE GetGPUCbvDescriptorNextHandle() { return(m_d3dCbvGPUDescriptorNextHandle); }
 	D3D12_CPU_DESCRIPTOR_HANDLE GetCPUSrvDescriptorNextHandle() { return(m_d3dSrvCPUDescriptorNextHandle); }
 	D3D12_GPU_DESCRIPTOR_HANDLE GetGPUSrvDescriptorNextHandle() { return(m_d3dSrvGPUDescriptorNextHandle); }
+
+public:
+	virtual void SetParticleTest(float fCurTime) {}
+	virtual void ParticleReadByteTask() {}
 };
 
 /// <CScene>
@@ -166,8 +171,8 @@ public:
 
 	virtual void BuildObjects(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dCommandList, int mainPlayerId) override;
 
-	virtual void AnimateObjects(float fElapsedTime) override;
-	virtual bool ProcessInput(UCHAR* pKeysBuffer) override;;
+	virtual void AnimateObjects(float fElapsedTime, float fCurTime) override;
+	virtual bool ProcessInput(UCHAR* pKeysBuffer) override;
 	virtual void PrepareRender(ID3D12GraphicsCommandList* pd3dCommandList, const shared_ptr<CCamera>& pCamera) override;
 	virtual void Render(ID3D12GraphicsCommandList* pd3dCommandList, const shared_ptr<CCamera>& pCamera, int nPipelineState) override;
 
@@ -218,7 +223,7 @@ public:
 
 	//씬 업데이트 관련
 	virtual bool ProcessInput(UCHAR* pKeysBuffer) override;
-	virtual void AnimateObjects(float fElapsedTime) override;
+	virtual void AnimateObjects(float fElapsedTime, float fCurTime) override;
 
 	//[0626] 포스트 프로세싱 셰이더가 씬내로 오면서 gameframework의 PrevRenderTask 코드 정리
 	void PrevRenderTask(ID3D12GraphicsCommandList* pd3dCommandList);
@@ -262,7 +267,7 @@ public:
 	shared_ptr<CMaterial> mt_Electirc;
 	// 마티리얼은 Com 객체를 가진다.텍스처가 리소스로 관리되는데 이 객체를 지역변수로 선언하고 사용하지 않으면 알아서 삭제가 되면서
 	// 디바이스에서 에러를 발생 시킨다. 
-	static float testAngle;
+
 	vector<unique_ptr<CShader>> m_vPreRenderShader;
 
 	//[0626] gameframework에서 scene으로 옮김
@@ -279,5 +284,8 @@ private:
 	D3D12_GPU_DESCRIPTOR_HANDLE m_d3dTimeCbvGPUDescriptorHandle;
 	ComPtr<ID3D12Resource>		m_pd3dcbTime;
 	FrameTimeInfo* m_pcbMappedTime;
+public:
+	void SetParticleTest(float fCurTime);
+	void ParticleReadByteTask();
 };
 

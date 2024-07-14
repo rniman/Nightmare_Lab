@@ -31,6 +31,9 @@
     <Filter Include="HLSL%28cso%29\OutLine">
       <UniqueIdentifier>{0e288363-9c9e-4027-a136-273d128fc452}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Particle">
+      <UniqueIdentifier>{e75b5546-0935-4a85-b146-b8ee7821198f}</UniqueIdentifier>
+    </Filter>
     <Filter Include="HLSL%28cso%29\Lobby">
       <UniqueIdentifier>{f8633c7c-af7d-4a58-9d75-83aea60ad5d3}</UniqueIdentifier>
     </Filter>
@@ -105,6 +108,18 @@
     <ClInclude Include="TeleportLocation.h">
       <Filter>Data</Filter>
     </ClInclude>
+    <ClInclude Include="ParticleShader.h">
+      <Filter>Particle</Filter>
+    </ClInclude>
+    <ClInclude Include="ParticleMesh.h">
+      <Filter>Particle</Filter>
+    </ClInclude>
+    <ClInclude Include="ParticleObject.h">
+      <Filter>Particle</Filter>
+    </ClInclude>
+    <ClInclude Include="SharedObject.h">
+      <Filter>헤더 파일</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="Client.cpp">
@@ -160,6 +175,18 @@
     </ClCompile>
     <ClCompile Include="TextureBlendObject.cpp">
       <Filter>TextureBlendShader</Filter>
+    </ClCompile>
+    <ClCompile Include="ParticleShader.cpp">
+      <Filter>Particle</Filter>
+    </ClCompile>
+    <ClCompile Include="ParticleMesh.cpp">
+      <Filter>Particle</Filter>
+    </ClCompile>
+    <ClCompile Include="ParticleObject.cpp">
+      <Filter>Particle</Filter>
+    </ClCompile>
+    <ClCompile Include="SharedObject.cpp">
+      <Filter>소스 파일</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
@@ -252,6 +279,9 @@
     </FxCompile>
     <FxCompile Include="VSLobbyStandard.hlsl">
       <Filter>HLSL%28cso%29\Lobby</Filter>
+    </FxCompile>
+    <FxCompile Include="ParticleShader.hlsl">
+      <Filter>Particle</Filter>
     </FxCompile>
   </ItemGroup>
   <ItemGroup>

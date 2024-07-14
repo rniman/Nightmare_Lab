@@ -142,6 +142,10 @@ void CCamera::UpdateShaderVariables(ID3D12GraphicsCommandList* pd3dCommandList)
 	XMStoreFloat4x4(&xmf4x4Projection, XMMatrixTranspose(XMLoadFloat4x4(&m_xmf4x4Projection)));
 	::memcpy(&m_pcbMappedCamera->m_xmf4x4Projection, &xmf4x4Projection, sizeof(XMFLOAT4X4));
 
+	XMFLOAT4X4 xmf4x4InverseView;
+	XMStoreFloat4x4(&xmf4x4InverseView, XMMatrixTranspose(XMMatrixInverse(nullptr, XMLoadFloat4x4(&m_xmf4x4View))));
+	::memcpy(&m_pcbMappedCamera->m_xmf4x4InverseView, &xmf4x4InverseView, sizeof(XMFLOAT4X4));
+
 	XMMATRIX xmmtxInverseViewProjection;
 	xmmtxInverseViewProjection = XMMatrixTranspose(XMMatrixInverse(nullptr, XMLoadFloat4x4(&m_xmf4x4ViewProjection)));
 	XMFLOAT4X4 xmf4x4InverseViewProjection;

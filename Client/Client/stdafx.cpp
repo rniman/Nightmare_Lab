@@ -423,5 +423,17 @@ void err_display(int errcode)
 	LocalFree(lpMsgBuf);
 }
 
+void SwapResourcePointer(ID3D12Resource** ppd3dResourceA, ID3D12Resource** ppd3dResourceB)
+{
+	ID3D12Resource* pd3dTempResource = *ppd3dResourceA;
+	*ppd3dResourceA = *ppd3dResourceB;
+	*ppd3dResourceB = pd3dTempResource;
+}
 
 
+//void SwapResourcePointer(ComPtr<ID3D12Resource>& ppd3dResourceA, ComPtr<ID3D12Resource>& ppd3dResourceB)
+//{
+//	ComPtr<ID3D12Resource> pd3dTempResource = ppd3dResourceA;
+//	ppd3dResourceA = ppd3dResourceB;
+//	ppd3dResourceB = pd3dTempResource;
+//}

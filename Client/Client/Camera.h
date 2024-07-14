@@ -9,6 +9,7 @@ struct VS_CB_CAMERA_INFO
 {
 	XMFLOAT4X4		m_xmf4x4View;
 	XMFLOAT4X4		m_xmf4x4Projection;
+	XMFLOAT4X4		m_xmf4x4InverseView;
 	XMFLOAT4X4		m_xmf4x4InverseViewProjection;
 	XMFLOAT4		m_xmf4Position;
 	XMFLOAT4		m_xmf4FogColor = XMFLOAT4(0.0f, 0.0f, 0.0f, 0.0f);

@@ -3,6 +3,16 @@
 #include "Scene.h"
 #include "TCPClient.h"
 
+struct CB_FRAMEWORK_INFO
+{
+	float					m_fCurrentTime;
+	float					m_fElapsedTime;
+	float					m_fSecondsPerFirework = 1.0f;
+	int						m_nFlareParticlesToEmit = -1;
+	XMFLOAT3				m_xmf3Gravity = XMFLOAT3(0.0f, -9.8f, 0.0f);
+	int						m_nMaxFlareType2Particles = -1;
+};
+
 //constexpr size_t SWAPCHAIN_BUFFER_NUM = 2;
 //class TextObject;
 
@@ -115,7 +125,7 @@ private:
 	ID3D12Debug*						m_pd3dDebugController;
 #endif
 
-	CGameTimer							m_GameTimer;
+	//CGameTimer							m_GameTimer;
 	
 	shared_ptr<CScene>					m_pScene;
 
@@ -156,7 +166,7 @@ public:
 	//D3D12_GPU_DESCRIPTOR_HANDLE m_d3dTimeCbvGPUDescriptorHandle;
 	//ComPtr<ID3D12Resource>		m_pd3dcbTime;
 	//FrameTimeInfo* m_pcbMappedTime;
-
+	void UpdateFrameworkShaderVariable();
 //[0507]
 private:
 	bool m_bConnected = false;
@@ -173,5 +183,9 @@ private:
 	int m_nGameState = GAME_STATE::IN_GAME;
 	float m_fEndingElapsedTime = 0.0f;
 	XMFLOAT4 m_xmf4EndFog = XMFLOAT4(0.0f, 0.0f, 0.0f, 0.0f);
+
+	D3D12_GPU_DESCRIPTOR_HANDLE m_d3dFramework_info_CbvGPUDescriptorHandle;
+	ComPtr<ID3D12Resource> m_d3dFramework_info_Resource;
+	CB_FRAMEWORK_INFO* m_cbFramework_info;
 };
 

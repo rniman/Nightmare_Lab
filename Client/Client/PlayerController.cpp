@@ -2,8 +2,7 @@
 #include "Scene.h"
 #include "Player.h"
 #include "PlayerController.h"
-
-float CMainScene::testAngle;
+#include "SharedObject.h"
 
 CBlueSuitAnimationController::CBlueSuitAnimationController(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dCommandList, int nAnimationTracks, const shared_ptr<CLoadedModelInfo>& pModel)
 	:CAnimationController(pd3dDevice, pd3dCommandList, nAnimationTracks, pModel)
@@ -600,6 +599,7 @@ CZombieAnimationController::CZombieAnimationController(ID3D12Device* pd3dDevice,
 		if (strncmp(frameName, "mixamorig:Neck", strlen(frameName)) == 0) m_nStartNeck = i;
 		if (strncmp(frameName, "mixamorig:HeadTop_End", strlen(frameName)) == 0) m_nEndNeck = i;
 		if (strncmp(frameName, "mixamorig:RightHandThumb4", strlen(frameName)) == 0) m_nEndSpine = i;
+		if (strncmp(frameName, "mixamorig:LeftHandThumb4", strlen(frameName)) == 0) m_nLeftHandThumb4 = i;
 		if (strncmp(frameName, "EyesSock", strlen(frameName)) == 0) m_nEyesSock = i;
 		if (strncmp(frameName, "mixamorig:Hips", strlen(frameName)) == 0) m_nHips = i;
 
@@ -659,6 +659,7 @@ void CZombieAnimationController::AdvanceTime(float fElapsedTime, CGameObject* pR
 				m_pAnimationSets->m_vpBoneFrameCaches[j]->m_xmf4x4ToParent = xmf4x4Transform;
 			}
 
+
 			if (fPosition >= pAnimationSet->m_fLength - ANIMATION_CALLBACK_EPSILON)
 			{
 				SetTrackEnable(2, false);
@@ -677,7 +678,11 @@ void CZombieAnimationController::AdvanceTime(float fElapsedTime, CGameObject* pR
 				m_pPlayer->GetCamera()->SetOffset(offset);
 			}
 		}
-
+		if (m_vAnimationTracks[2].m_bEnable)
+		{
+			sharedobject.AddParticle(CParticleMesh::ATTACK, m_pAnimationSets->m_vpBoneFrameCaches[m_nEndSpine]->GetPosition());
+			sharedobject.AddParticle(CParticleMesh::ATTACK, m_pAnimationSets->m_vpBoneFrameCaches[m_nLeftHandThumb4]->GetPosition());			
+		}
 		OnRootMotion(pRootGameObject);
 		OnAnimationIK(pRootGameObject);
 	}

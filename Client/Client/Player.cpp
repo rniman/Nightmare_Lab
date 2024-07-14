@@ -1,3 +1,4 @@
+#pragma once
 #include "stdafx.h"
 #include "GameFramework.h"
 #include "Player.h"
@@ -7,6 +8,9 @@
 #include "Collision.h"
 #include "EnvironmentObject.h"
 #include "TeleportLocation.h"
+#include "ParticleShader.h"
+#include "SharedObject.h"
+
 //#define _WITH_DEBUG_CALLBACK_DATA
 
 void CSoundCallbackHandler::HandleCallback(void* pCallbackData, float fTrackPosition)
@@ -589,6 +593,16 @@ void CBlueSuitPlayer::Update(float fElapsedTime)
 		m_fFullStaminaTime += fElapsedTime;
 	}
 
+	if (m_bTeleportUse) {
+		XMFLOAT3 position = GetPosition();
+		position.y += 1.5f;
+		sharedobject.m_vParticleObjects[int(CParticleMesh::TP)]->SetParticlePosition(m_iTeleportParticleId,position);
+
+		if (gGameTimer.GetTotalTime() - 2.8f > m_fCreateParticleTime) {
+			m_bTeleportUse = false;
+			m_iTeleportParticleId = -1;
+		}
+	}
 	// 카메라 위치 업데이트
 	CPlayer::Update(fElapsedTime);
 }
@@ -876,7 +890,7 @@ void CBlueSuitPlayer::UpdatePicking()
 	//}
 }
 
-void CBlueSuitPlayer::RightClickProcess()
+void CBlueSuitPlayer::RightClickProcess(float fCurTime)
 {
 	switch (m_selectItem)
 	{
@@ -994,9 +1008,19 @@ void CBlueSuitPlayer::UseFuse()
 
 void CBlueSuitPlayer::Teleport()
 {
-	XMFLOAT3 randomPos = TeleportLocations[rand() % (sizeof(TeleportLocations) / sizeof(XMFLOAT3))];
+	if (m_fCreateParticleTime != 0.0f) {
+		if (gGameTimer.GetTotalTime() - 3.0f < m_fCreateParticleTime) {
+			return;
+		}
+	}
+	m_fCreateParticleTime = gGameTimer.GetTotalTime();
 
-	SetPosition(randomPos);
+	XMFLOAT3 position = GetPosition();
+	position.y += 1.5f;
+	m_iTeleportParticleId = sharedobject.m_vParticleObjects[int(CParticleMesh::TP)]->SetParticleInsEnable(-1, true, gGameTimer.GetTotalTime(), position);
+	if (m_iTeleportParticleId != -1) {
+		m_bTeleportUse = true;
+	}
 }
 
 void CBlueSuitPlayer::SetSlotItem(int nIndex, int nReferenceObjectNum)
@@ -1167,7 +1191,7 @@ CZombiePlayer::CZombiePlayer(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList
 	m_d3dTimeCbvGPUDescriptorHandleEnd = CScene::CreateConstantBufferViews(pd3dDevice, 1, m_pd3dcbTimeEnd.Get(), ncbElementBytes);
 	
 
-	// 감전 텍스쳐링 추가
+	// 감전 텍스쳐 추가
 	shared_ptr<CTexture> pTexture = make_shared<CTexture>(1, RESOURCE_TEXTURE2D, 0, 1);
 	pTexture->LoadTextureFromDDSFile(pd3dDevice, pd3dCommandList, (wchar_t*)L"Asset/Textures/elecpatern.dds", RESOURCE_TEXTURE2D, 0);
 	m_pElectircaterial = make_shared<CMaterial>(1); // 텍스처가 1개
@@ -1221,14 +1245,6 @@ void CZombiePlayer::Update(float fElapsedTime)
 		}
 	}
 	else {
-		//int index = dynamic_pointer_cast<CZombieAnimationController>(m_pSkinnedAnimationController)->GetBoneFrameIndex((char*)"EyesSock");
-		//XMFLOAT3 offset = m_pSkinnedAnimationController->GetBoneFramePositionVector(index);
-		//offset.x = offset.x - m_xmf3Position.x;
-		//offset.y = offset.y - m_xmf3Position.y;	// [0507]수정
-		//offset.z = offset.z - m_xmf3Position.z;
-		//m_pCamera->SetOffset(offset);
-
-		//m_pBodyObject->m_xmf4x4World = Matrix4x4::Multiply(m_pBodyObject->m_xmf4x4ToParent, m_pBodyObject->m_xmf4x4World);
 		CPlayer::Update(fElapsedTime);
 	}
 
@@ -1259,6 +1275,9 @@ void CZombiePlayer::UpdateAnimation()
 				m_pSkinnedAnimationController->m_bTransition = true;
 				m_pSkinnedAnimationController->m_nNextState = PlayerState::WALK;
 			}
+
+
+			sharedobject.AddParticle(CParticleMesh::ATTACK, GetPosition());
 		}
 	}
 }

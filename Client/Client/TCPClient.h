@@ -54,6 +54,8 @@ struct CS_PLAYER_INFO {
 	bool m_bAttacked = false;
 
 	int m_iEscapeDoor = -1;
+
+	bool m_bTeleportItemUse = false;
 };
 
 struct CS_CLIENTS_INFO

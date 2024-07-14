@@ -23,9 +23,11 @@ CGameTimer::~CGameTimer()
 
 void CGameTimer::Tick(float fLockFPS)
 {
+	
 	if (m_bStopped)
 	{
 		m_fElapsedTime = 0.0f;
+		m_fTotaltime = float(((m_nStopPerformanceCounter - m_nPausedPerformanceCounter) - m_nBasePerformanceCounter) * m_fTimeScale);
 		return;
 	}
 	float fElapsedTime;
@@ -63,6 +65,8 @@ void CGameTimer::Tick(float fLockFPS)
 	m_fElapsedTime = 0.0f;
 	for (ULONG i = 0; i < m_nSampleCount; i++) m_fElapsedTime += m_fFrameTime[i];
 	if (m_nSampleCount > 0) m_fElapsedTime /= m_nSampleCount;
+
+	m_fTotaltime = float(((m_nCurrentPerformanceCounter - m_nPausedPerformanceCounter) - m_nBasePerformanceCounter) * m_fTimeScale);
 }
 
 unsigned long CGameTimer::GetFrameRate(LPTSTR lpszString, int nCharacters)
@@ -81,10 +85,15 @@ float CGameTimer::GetTimeElapsed()
 	return(m_fElapsedTime);
 }
 
+//float CGameTimer::GetTotalTime()
+//{
+//	if (m_bStopped) return(float(((m_nStopPerformanceCounter - m_nPausedPerformanceCounter) - m_nBasePerformanceCounter) * m_fTimeScale));
+//	return(float(((m_nCurrentPerformanceCounter - m_nPausedPerformanceCounter) - m_nBasePerformanceCounter) * m_fTimeScale));
+//}
+
 float CGameTimer::GetTotalTime()
 {
-	if (m_bStopped) return(float(((m_nStopPerformanceCounter - m_nPausedPerformanceCounter) - m_nBasePerformanceCounter) * m_fTimeScale));
-	return(float(((m_nCurrentPerformanceCounter - m_nPausedPerformanceCounter) - m_nBasePerformanceCounter) * m_fTimeScale));
+	return m_fTotaltime;
 }
 
 void CGameTimer::Reset()

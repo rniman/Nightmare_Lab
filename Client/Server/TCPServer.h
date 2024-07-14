@@ -41,8 +41,10 @@ struct SC_PLAYER_INFO
 	
 	int m_iMineobjectNum = -1;
 	bool m_bAttacked = false;
-
+	
 	int m_iEscapeDoor = -1;
+
+	bool m_bTeleportItemUse = false;
 };
 
 struct SC_UPDATE_INFO

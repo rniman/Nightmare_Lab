@@ -607,6 +607,15 @@ void CServerBlueSuitPlayer::Update(float fElapsedTime, shared_ptr<CServerCollisi
 		}
 	}
 
+	if (m_bTeleport)
+	{
+		m_fTeleportTime += fElapsedTime;
+		if (m_fTeleportTime >= BLUESUIT_TELEPORT_TIME) {
+			TeleportRandomPosition();
+			m_bTeleport = false;
+		}
+	}
+
 	CServerPlayer::Update(fElapsedTime, pCollisionManager);
 }
 
@@ -741,13 +750,14 @@ void CServerBlueSuitPlayer::UseFuse(shared_ptr<CServerCollisionManager>& pCollis
 
 void CServerBlueSuitPlayer::TeleportRandomPosition()
 {
+	
 	// 후보지를 두고 int 값에 따라 그곳에 가도록 해야할듯
 	uniform_int_distribution<int> disFloatPosition(0, 15);
 
 	array<XMFLOAT3, 16> axmf3Positions = {
 		XMFLOAT3(10.0f, 0.0f, 13.5),
 		XMFLOAT3(10.0f, 0.0f, -13.5),
-		XMFLOAT3(-10.0f, 0.0f, 13.5),
+		XMFLOAT3(-12.0f, 0.0f, 13.5),
 		XMFLOAT3(-10.0f, 0.0f, -13.5),
 
 		XMFLOAT3(10.0f, 4.5f, 13.5),
@@ -855,6 +865,12 @@ void CServerBlueSuitPlayer::RightClickProcess(shared_ptr<CServerCollisionManager
 	SetRightClick(false);
 }
 
+void CServerBlueSuitPlayer::TeleportItemUse()
+{
+	m_bTeleport = true;
+	m_fTeleportTime = 0.0f;
+}
+
 ////
 ////
 ////
@@ -897,7 +913,7 @@ void CServerZombiePlayer::UseItem(shared_ptr<CServerCollisionManager>& pCollisio
 void CServerZombiePlayer::Update(float fElapsedTime, shared_ptr<CServerCollisionManager>& pCollisionManager)
 {
 	m_fCoolTimeAttack -= fElapsedTime;
-	expDelay += fElapsedTime;
+	m_fExplosionDelay += fElapsedTime;
 	if (m_fNoStopTime > 0.0f) { // 움직임 제한 쿨타임
 		m_fNoStopTime -= fElapsedTime;
 

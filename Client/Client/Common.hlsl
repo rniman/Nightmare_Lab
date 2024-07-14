@@ -26,10 +26,11 @@ cbuffer cbCameraInfo : register(b0)
 {
     matrix gmtxView : packoffset(c0);
     matrix gmtxProjection : packoffset(c4);
-    matrix gmtxInverseViewProjection : packoffset(c8);
-    float4 gvCameraPosition : packoffset(c12); // 16바이트를 맞추기 위해 w값: 더미 추가
-    float4 gvFogColor : packoffset(c13);
-    float4 gvfFogInfo : packoffset(c14); // START, RANGE, Density, MOD
+    matrix gmtxInverseView : packoffset(c8);
+    matrix gmtxInverseViewProjection : packoffset(c12);
+    float4 gvCameraPosition : packoffset(c16); // 16바이트를 맞추기 위해 w값: 더미 추가
+    float4 gvFogColor : packoffset(c17);
+    float4 gvfFogInfo : packoffset(c18); // START, RANGE, Density, MOD
 };
 
 cbuffer cbGameObjectInfo : register(b1)
@@ -63,6 +64,16 @@ cbuffer cbFrameInfo : register(b5)
     float gfIntesity : packoffset(c1.z);
 }
 
+cbuffer cbFrameworkInfo : register(b6)
+{
+    float gfCurrentTime : packoffset(c0.x);
+    float gfElapsedTime : packoffset(c0.y);
+    float gfSecondsPerFirework : packoffset(c0.z);
+    int gnFlareParticlesToEmit : packoffset(c0.w);
+    float3 gf3Gravity : packoffset(c1.x);
+    int gnMaxFlareType2Particles : packoffset(c1.w);
+};
+
 SamplerState gssWrap : register(s0);
 SamplerState gssWrapPoint : register(s3);
 
@@ -78,7 +89,6 @@ Texture2D<float> DFzDepthTexture : register(t7);
 Texture2D DFPositionTexture : register(t8);
 
 Texture2D PatternTexture : register(t9);
-
 
 struct VS_STANDARD_OUTPUT
 {

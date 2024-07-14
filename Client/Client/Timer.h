@@ -2,13 +2,18 @@
 //-----------------------------------------------------------------------------
 // File: CGameTimer.h
 //-----------------------------------------------------------------------------
-
+#define gGameTimer CGameTimer::GetInstance()
 const ULONG MAX_SAMPLE_COUNT = 50; // Maximum frame time sample count
 
 class CGameTimer
 {
-public:
+private:
 	CGameTimer();
+public:
+	static CGameTimer& GetInstance() {
+		static CGameTimer cgametimer;
+		return cgametimer;
+	}
 	virtual ~CGameTimer();
 
 	void Tick(float fLockFPS = 0.0f);
@@ -40,5 +45,6 @@ private:
 	float							m_fFPSTimeElapsed;
 
 	bool							m_bStopped;
+	float							m_fTotaltime;
 };
 

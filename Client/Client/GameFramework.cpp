@@ -5,6 +5,7 @@
 #include "GameFramework.h"
 #include "Player.h"
 #include "Collision.h"
+#include "SharedObject.h"
 
  extern UINT gnCbvSrvDescriptorIncrementSize;
  extern UINT gnRtvDescriptorIncrementSize;
@@ -487,7 +488,6 @@ void CGameFramework::RenderUI()
 	m_d3d11DeviceContext->Flush();
 }
 
-
 void CGameFramework::OnProcessingMouseMessage(HWND hWnd, UINT nMessageID, WPARAM wParam, LPARAM lParam)
 {
 	if (!m_bConnected)	// 서버와 연결 X
@@ -548,6 +548,10 @@ void CGameFramework::OnProcessingKeyboardMessage(HWND hWnd, UINT nMessageID, WPA
 	case WM_KEYUP:
 		switch (wParam)
 		{
+		case VK_UP:
+			sharedobject.AddParticle(CParticleMesh::ATTACK, XMFLOAT3());
+			//m_pScene->SetParticleTest(gGameTimer.GetTotalTime());
+			break;
 		case VK_ESCAPE:
 			::PostQuitMessage(0);
 			break;
@@ -572,7 +576,7 @@ void CGameFramework::OnProcessingKeyboardMessage(HWND hWnd, UINT nMessageID, WPA
 			{
 				break;
 			}
-			m_pMainPlayer->ChangeCamera((DWORD)(wParam - VK_F1 + 1), m_GameTimer.GetTimeElapsed());
+			m_pMainPlayer->ChangeCamera((DWORD)(wParam - VK_F1 + 1), gGameTimer.GetTimeElapsed());
 			m_pCamera = m_pMainPlayer->GetCamera();
 			break;
 		case VK_F3:
@@ -580,32 +584,32 @@ void CGameFramework::OnProcessingKeyboardMessage(HWND hWnd, UINT nMessageID, WPA
 		case VK_F9:
 			ChangeSwapChainState();
 			break;
-		//case VK_PRIOR:
-		//{
-		//	if (!m_pMainPlayer)
-		//	{
-		//		break;
-		//	}
-		//	XMFLOAT3 xmf3Shift = XMFLOAT3(0, 0, 0);
-		//	XMFLOAT3 xmf3Up = m_pMainPlayer->GetUpVector();
-		//	if (m_pMainPlayer->GetPosition().y < 13.5f + FLT_EPSILON) xmf3Shift = Vector3::Add(xmf3Shift, xmf3Up, 4.5f);
+			//case VK_PRIOR:
+			//{
+			//	if (!m_pMainPlayer)
+			//	{
+			//		break;
+			//	}
+			//	XMFLOAT3 xmf3Shift = XMFLOAT3(0, 0, 0);
+			//	XMFLOAT3 xmf3Up = m_pMainPlayer->GetUpVector();
+			//	if (m_pMainPlayer->GetPosition().y < 13.5f + FLT_EPSILON) xmf3Shift = Vector3::Add(xmf3Shift, xmf3Up, 4.5f);
 
-		//	m_pMainPlayer->SetPosition(Vector3::Add(m_pMainPlayer->GetPosition(), xmf3Shift));
-		//}
-		//	break;
-		//case VK_NEXT:
-		//{
-		//	if (!m_pMainPlayer)
-		//	{
-		//		break;
-		//	}
-		//	XMFLOAT3 xmf3Shift = XMFLOAT3(0, 0, 0);
-		//	XMFLOAT3 xmf3Up = m_pMainPlayer->GetUpVector();
-		//	if (m_pMainPlayer->GetPosition().y > 0.0f + FLT_EPSILON) xmf3Shift = Vector3::Add(xmf3Shift, xmf3Up, -4.5f);
+			//	m_pMainPlayer->SetPosition(Vector3::Add(m_pMainPlayer->GetPosition(), xmf3Shift));
+			//}
+			//	break;
+			//case VK_NEXT:
+			//{
+			//	if (!m_pMainPlayer)
+			//	{
+			//		break;
+			//	}
+			//	XMFLOAT3 xmf3Shift = XMFLOAT3(0, 0, 0);
+			//	XMFLOAT3 xmf3Up = m_pMainPlayer->GetUpVector();
+			//	if (m_pMainPlayer->GetPosition().y > 0.0f + FLT_EPSILON) xmf3Shift = Vector3::Add(xmf3Shift, xmf3Up, -4.5f);
 
-		//	m_pMainPlayer->SetPosition(Vector3::Add(m_pMainPlayer->GetPosition(), xmf3Shift));
-		//}
-		//	break;
+			//	m_pMainPlayer->SetPosition(Vector3::Add(m_pMainPlayer->GetPosition(), xmf3Shift));
+			//}
+			//	break;
 		default:
 			break;
 		}
@@ -664,7 +668,7 @@ void CGameFramework::OnProcessingWindowMessage(HWND hWnd, UINT nMessageID, WPARA
 	case WM_CHANGE_SLOT:
 	{
 		shared_ptr<CLobbyScene> pScene = dynamic_pointer_cast<CLobbyScene>(m_pScene);
-		if(LOWORD(wParam) == 0) // 교환 주체
+		if (LOWORD(wParam) == 0) // 교환 주체
 		{
 			m_pTcpClient->SetSocketState(SOCKET_STATE::SEND_CHANGE_SLOT);
 			INT8 nSelectedSlot = pScene->GetSelectedSlot();
@@ -689,7 +693,7 @@ void CGameFramework::OnProcessingWindowMessage(HWND hWnd, UINT nMessageID, WPARA
 			pScene->UpdateShaderMainPlayer(m_nMainClientId);
 		}
 	}
-		break;
+	break;
 	case WM_CREATE_TCP:
 		m_bTcpClient = true;
 		break;
@@ -708,7 +712,7 @@ void CGameFramework::OnProcessingWindowMessage(HWND hWnd, UINT nMessageID, WPARA
 		//SetCursorPos(center.x, center.y);
 		SetMousePoint(center);
 	}
-		break;
+	break;
 	case WM_END_GAME:
 		OnProcessingEndGameMessage(wParam);
 		break;
@@ -718,9 +722,9 @@ void CGameFramework::OnProcessingWindowMessage(HWND hWnd, UINT nMessageID, WPARA
 	case WM_ACTIVATE:
 	{
 		if (LOWORD(wParam) == WA_INACTIVE)
-			m_GameTimer.Stop();
+			gGameTimer.Stop();
 		else
-			m_GameTimer.Start();
+			gGameTimer.Start();
 		break;
 	}
 	case WM_SIZE:
@@ -767,7 +771,7 @@ void CGameFramework::OnProcessingEndGameMessage(WPARAM& wParam)
 
 UCHAR* CGameFramework::GetKeysBuffer()
 {
-	return m_pKeysBuffer; 
+	return m_pKeysBuffer;
 }
 
 void CGameFramework::SetPlayerObjectOfClient(int nClientId)
@@ -797,7 +801,7 @@ void CGameFramework::OnDestroy()
 
 	::CloseHandle(m_hFenceEvent);
 
-	if(m_dxgiSwapChain)
+	if (m_dxgiSwapChain)
 	{
 		m_dxgiSwapChain->SetFullscreenState(FALSE, NULL);
 	}
@@ -820,7 +824,7 @@ void CGameFramework::OnDestroyEntryWindow()
 void CGameFramework::CreateEntryWindow(HWND hWnd)
 {
 	int nConnectButtonWidth = 300;
-	int nConnectButtonHeight= 60;
+	int nConnectButtonHeight = 60;
 
 	m_hConnectButton = CreateWindowEx(
 		WS_EX_CLIENTEDGE,
@@ -837,19 +841,19 @@ void CGameFramework::CreateEntryWindow(HWND hWnd)
 	int nIPEditWidth = 400;
 	int nIPEditHeight = 50;
 	m_hIPAddressEdit = CreateWindowEx(
-		WS_EX_CLIENTEDGE,      
-		L"EDIT",                
-		L"",      
+		WS_EX_CLIENTEDGE,
+		L"EDIT",
+		L"",
 		WS_CHILD | WS_VISIBLE | WS_BORDER | SS_CENTER,
 		FRAME_BUFFER_WIDTH / 2 - nIPEditWidth / 2, FRAME_BUFFER_HEIGHT / 2, nIPEditWidth, nIPEditHeight,
-		hWnd,                
-		(HMENU)EDIT_INPUT_ADDRESS_ID,       
-		(HINSTANCE)GetWindowLongPtr(hWnd, GWLP_HINSTANCE),      
-		NULL                
+		hWnd,
+		(HMENU)EDIT_INPUT_ADDRESS_ID,
+		(HINSTANCE)GetWindowLongPtr(hWnd, GWLP_HINSTANCE),
+		NULL
 	);
 	SendMessage(m_hIPAddressEdit, EM_LIMITTEXT, (WPARAM)16, 0);	// 16글자 제한
 
-	
+
 	HFONT hFont = CreateFont(40, 0, 0, 0, FW_NORMAL, FALSE, FALSE, FALSE, DEFAULT_CHARSET,
 		OUT_DEFAULT_PRECIS, CLIP_DEFAULT_PRECIS, DEFAULT_QUALITY, DEFAULT_PITCH | FF_SWISS, L"Arial");
 	SendMessage(m_hIPAddressEdit, WM_SETFONT, (WPARAM)hFont, TRUE);
@@ -873,7 +877,7 @@ void CGameFramework::CreateEntryWindow(HWND hWnd)
 
 void CGameFramework::BuildObjects()
 {
-	m_GameTimer.Reset();
+	gGameTimer.Reset();
 
 	m_d3dCommandList->Reset(m_d3dCommandAllocator[m_nSwapChainBufferIndex].Get(), NULL);
 	if (m_nGameState == GAME_STATE::IN_LOBBY)
@@ -892,7 +896,7 @@ void CGameFramework::BuildObjects()
 			m_pTcpClient->SetPlayer(m_pScene->m_apPlayer[i], i);
 			int nClientId = m_pTcpClient->GetClientID(i);
 			m_apPlayer[i]->SetClientId(nClientId);
-		}		
+		}
 		m_nMainClientId = nMainClientId;
 		m_pMainPlayer = m_apPlayer[nMainClientId];
 		m_pScene->SetMainPlayer(m_pMainPlayer);
@@ -929,6 +933,11 @@ void CGameFramework::BuildObjects()
 			m_pMainPlayer = m_apPlayer[nMainClientId];
 			m_pScene->SetMainPlayer(m_pMainPlayer);
 		}
+
+		UINT ncbElementBytes = ((sizeof(CB_FRAMEWORK_INFO) + 255) & ~255); //256의 배수
+		m_d3dFramework_info_Resource = ::CreateBufferResource(m_d3d12Device.Get(), m_d3dCommandList.Get(), NULL, ncbElementBytes, D3D12_HEAP_TYPE_UPLOAD, D3D12_RESOURCE_STATE_VERTEX_AND_CONSTANT_BUFFER | D3D12_RESOURCE_STATE_GENERIC_READ, NULL);
+		m_d3dFramework_info_Resource->Map(0, NULL, (void**)&m_cbFramework_info);
+		m_d3dFramework_info_CbvGPUDescriptorHandle = CScene::CreateConstantBufferViews(m_d3d12Device.Get(), 1, m_d3dFramework_info_Resource.Get(), ncbElementBytes);
 
 		//for (int i = 0; i < MAX_CLIENT; ++i)
 		//{
@@ -971,7 +980,7 @@ void CGameFramework::BuildObjects()
 		for (auto& pPlayer : m_apPlayer)
 		{
 			pPlayer->ChangeCamera(FIRST_PERSON_CAMERA, 0.0f);
-			pPlayer->Update(m_GameTimer.GetTimeElapsed());
+			pPlayer->Update(gGameTimer.GetTimeElapsed());
 
 			auto survivor = dynamic_pointer_cast<CBlueSuitPlayer>(pPlayer);
 			if (survivor) {
@@ -980,7 +989,7 @@ void CGameFramework::BuildObjects()
 			}
 		}
 		m_pCamera = m_pMainPlayer->GetCamera();
-		
+
 		PrepareDrawText();// Scene이 초기화 되고 나서 수행해야함 SRV를 Scene이 가지고 있음.
 	}
 }
@@ -1034,21 +1043,21 @@ void CGameFramework::ProcessInput()
 		}
 	}
 
-	for(auto& pPlayer: m_apPlayer)
+	for (auto& pPlayer : m_apPlayer)
 	{
 		if (pPlayer->GetClientId() == -1)
 		{
 			continue;
 		}
-		pPlayer->Update(m_GameTimer.GetTimeElapsed());
+		pPlayer->Update(gGameTimer.GetTimeElapsed());
 	}
 }
 
 void CGameFramework::AnimateObjects()
 {
-	float fElapsedTime = m_GameTimer.GetTimeElapsed();
+	float fElapsedTime = gGameTimer.GetTimeElapsed();
 
-	if (m_pScene) m_pScene->AnimateObjects(fElapsedTime);
+	if (m_pScene) m_pScene->AnimateObjects(fElapsedTime, gGameTimer.GetTotalTime());
 
 	//vector<shared_ptr<CLightCamera>>& lightCamera = m_pScene->GetLightCamera();
 
@@ -1080,7 +1089,7 @@ void CGameFramework::AnimateEnding()
 		g_collisionManager.GetCollisionObjectWithNumber(m_pTcpClient->GetEscapeDoor()).lock()->UpdatePicking();
 		bUpdateElevatorDoor = true;
 	}
-	pDoor->Animate(m_GameTimer.GetTimeElapsed());
+	pDoor->Animate(gGameTimer.GetTimeElapsed());
 	AnimateObjects();
 
 }
@@ -1129,12 +1138,12 @@ void CGameFramework::PreRenderTasks(shared_ptr<CMainScene>& pMainScene)
 	{
 		pMainScene->m_nLights = MAX_LIGHTS;
 	}
-	m_pMainPlayer->Update(/*m_GameTimer.GetTimeElapsed()*/0.01f);
+	m_pMainPlayer->Update(/*gGameTimer.GetTimeElapsed()*/0.01f);
 
 	AnimateObjects();
 	// 이곳에서 렌더링 하기전에 준비작업을 시행하도록한다. ex) 쉐도우맵 베이킹
 	// buildobject함수 호출 이후 처리되어야할 작업이다. -> 모든 객체들이 렌더링되어야 그림자맵을 생성함.
-	
+
 	//HRESULT hResult = m_d3dCommandAllocator->Reset();
 	HRESULT hResult = m_d3dCommandAllocator[m_nSwapChainBufferIndex]->Reset();
 	hResult = m_d3dCommandList->Reset(m_d3dCommandAllocator[m_nSwapChainBufferIndex].Get(), NULL);
@@ -1162,22 +1171,22 @@ void CGameFramework::PreRenderTasks(shared_ptr<CMainScene>& pMainScene)
 //#define _WITH_PLAYER_TOP
 void CGameFramework::FrameAdvance()
 {
-	m_GameTimer.Tick(0.0f);
+	gGameTimer.Tick(0.0f);
 
 	if (m_nGameState == GAME_STATE::IN_LOBBY)
 	{
 		ProcessInput();
 		AnimateObjects();
 	}
-	else if(m_nGameState == GAME_STATE::IN_GAME)
+	else if (m_nGameState == GAME_STATE::IN_GAME)
 	{
-		ProcessInput(); 
+		ProcessInput();
 		AnimateObjects();
 	}
 	else
 	{
 		AnimateEnding();
-		m_fEndingElapsedTime += m_GameTimer.GetTimeElapsed();
+		m_fEndingElapsedTime += gGameTimer.GetTimeElapsed();
 
 		m_pMainPlayer->UpdateEnding(m_fEndingElapsedTime, m_nGameState);
 	}
@@ -1205,7 +1214,7 @@ void CGameFramework::FrameAdvance()
 
 		SynchronizeResourceTransition(m_d3dCommandList.Get(), m_d3dSwapChainBackBuffers[m_nSwapChainBufferIndex].Get(), D3D12_RESOURCE_STATE_RENDER_TARGET, D3D12_RESOURCE_STATE_PRESENT);
 	}
-		break;
+	break;
 	case GAME_STATE::IN_GAME:
 	case GAME_STATE::BLUE_SUIT_WIN:
 	case GAME_STATE::ZOMBIE_WIN:
@@ -1230,9 +1239,13 @@ void CGameFramework::FrameAdvance()
 		D3D12_CPU_DESCRIPTOR_HANDLE d3dDsvCPUDescriptorHandle = pMainScene->m_pPostProcessingShader->GetDsvCPUDesctriptorHandle(0);
 		m_d3dCommandList->ClearDepthStencilView(d3dDsvCPUDescriptorHandle, D3D12_CLEAR_FLAG_DEPTH | D3D12_CLEAR_FLAG_STENCIL, 1.0f, 0, 0, NULL);
 		pMainScene->m_pPostProcessingShader->OnPrepareRenderTarget(m_d3dCommandList.Get(), 0, &m_pd3dSwapChainBackBufferRTVCPUHandles[m_nSwapChainBufferIndex], &d3dDsvCPUDescriptorHandle);
+
+		pMainScene->PrepareRender(m_d3dCommandList.Get(), m_pCamera.lock());
+		UpdateFrameworkShaderVariable();
 		pMainScene->FinalRender(m_d3dCommandList.Get(), m_pCamera.lock(), d3dRtvCPUDescriptorHandle, m_nGameState);
+
 	}
-		break;
+	break;
 	default:
 		break;
 	}
@@ -1242,20 +1255,32 @@ void CGameFramework::FrameAdvance()
 
 	hResult = m_d3dCommandList->Close();
 
-	ID3D12CommandList* ppd3dCommandLists[] = { m_d3dCommandList.Get()};
+	ID3D12CommandList* ppd3dCommandLists[] = { m_d3dCommandList.Get() };
 	m_d3dCommandQueue->ExecuteCommandLists(1, ppd3dCommandLists);
 
 	RenderUI();
 
 	WaitForGpuComplete();
-	
+
+	if (m_pScene) {
+		m_pScene->ParticleReadByteTask();
+	}
+
 	m_dxgiSwapChain->Present(0, 0);
 
 	MoveToNextFrame();
 
-	m_GameTimer.GetFrameRate(m_pszFrameRate + 15, 37);
+	gGameTimer.GetFrameRate(m_pszFrameRate + 15, 37);
 	size_t nLength = _tcslen(m_pszFrameRate);
 	XMFLOAT3 xmf3Position = xmf3Position = m_pMainPlayer->GetPosition();
 	_stprintf_s(m_pszFrameRate + nLength, 200 - nLength, _T("ID:%d %d, NumOfClient: %d, (%4f, %4f, %4f), %d"), m_pTcpClient->GetMainClientId(), m_nMainClientId, m_pTcpClient->GetNumOfClient(), xmf3Position.x, xmf3Position.y, xmf3Position.z, g_collisionManager.GetNumOfCollisionObject());
 	::SetWindowText(m_hWnd, m_pszFrameRate);
+}
+
+void CGameFramework::UpdateFrameworkShaderVariable()
+{
+	m_cbFramework_info->m_fCurrentTime = gGameTimer.GetTotalTime();
+	m_cbFramework_info->m_fElapsedTime = gGameTimer.GetTimeElapsed();
+
+	m_d3dCommandList->SetGraphicsRootDescriptorTable(14, m_d3dFramework_info_CbvGPUDescriptorHandle);
 }

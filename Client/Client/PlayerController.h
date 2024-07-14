@@ -96,6 +96,7 @@ private:
 	int m_nStartNeck = -1;
 	int m_nEndNeck = -1;
 	int m_nEndSpine = -1;
+	int m_nLeftHandThumb4 = -1;
 	int m_nEyesSock = -1;
 	int m_nHips = -1;
 

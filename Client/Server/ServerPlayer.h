@@ -17,6 +17,8 @@ constexpr float INTERRUPTION_COOLTIME{ 10.0f };
 constexpr float ZOM_RUNNING_DURATION{ 6.0f };
 constexpr float ZOM_RUNNING_COOLTIME{ 10.0f };
 
+constexpr float BLUESUIT_TELEPORT_TIME{ 3.0f };
+
 class CServerPlayer : public CServerGameObject
 {
 public:
@@ -89,6 +91,7 @@ public:
 
 	//void SetWinner(bool bWinner) { m_bWinner = bWinner; }
 	bool IsWinner() const { return m_bWinner; }
+
 protected:
 	// 첫 데이터를 받기 시작
 	bool m_bRecvData = false;
@@ -133,6 +136,7 @@ protected:
 
 	bool m_bRightClick = false;
 	bool m_bWinner = false;;
+
 };
 
 ///
@@ -173,6 +177,9 @@ public:
 	virtual void RightClickProcess(shared_ptr<CServerCollisionManager>& pCollisionManager);
 
 	bool IsAttacked() { return m_fCoolTimeInvincibility > 0.0f; }
+	
+	void TeleportItemUse();
+	bool IsTeleportUse() { return m_bTeleport; }
 private:
 	RightItem m_selectItem = NONE;
 
@@ -185,6 +192,9 @@ private:
 	float m_fStamina = 5.0f;
 
 	int m_nHealthPoint = 3;
+
+	bool m_bTeleport = false;
+	float m_fTeleportTime = 0.0f;
 };
 
 ///
@@ -233,5 +243,5 @@ public:
 	void SetStopMove(float val) { m_fStopMove = val; }
 	void CollisionMine(int ref);
 
-	float expDelay = 0.0f;
+	float m_fExplosionDelay = 0.0f;
 };

@@ -2,6 +2,7 @@
 #include "TCPClient.h"
 #include "GameFramework.h"
 #include "Player.h"
+#include "SharedObject.h"
 
 
 CTcpClient::CTcpClient()
@@ -262,22 +263,22 @@ void CTcpClient::UpdateDataFromServer()
 			//[0523] 피킹 오브젝트 설정(외곽선 작업에 필요)
 			UpdatePickedObject(i);
 
-				// 지뢰 충돌
-				int nObjectNum = m_aClientInfo[i].m_playerInfo.m_iMineobjectNum;
-				if (nObjectNum >= 0) {
-					shared_ptr<CGameObject> pGameObject = g_collisionManager.GetCollisionObjectWithNumber(nObjectNum).lock();
-					auto mine = dynamic_pointer_cast<CMineObject>(pGameObject);
-					if (mine)
+			// 지뢰 충돌
+			int nObjectNum = m_aClientInfo[i].m_playerInfo.m_iMineobjectNum;
+			if (nObjectNum >= 0) {
+				shared_ptr<CGameObject> pGameObject = g_collisionManager.GetCollisionObjectWithNumber(nObjectNum).lock();
+				auto mine = dynamic_pointer_cast<CMineObject>(pGameObject);
+				if (mine)
+				{
+					mine->SetCollide(true);
+					shared_ptr<CZombiePlayer> pZombiePlayer = dynamic_pointer_cast<CZombiePlayer>(m_apPlayers[i]);
+					if (pZombiePlayer)
 					{
-						mine->SetCollide(true);
-						shared_ptr<CZombiePlayer> pZombiePlayer = dynamic_pointer_cast<CZombiePlayer>(m_apPlayers[i]);
-						if (pZombiePlayer) 
-						{
-							pZombiePlayer->SetEectricShock();
-						}
+						pZombiePlayer->SetEectricShock();
 					}
 				}
 			}
+		}
 
 		if (i == ZOMBIEPLAYER)
 		{
@@ -573,6 +574,10 @@ void CTcpClient::UpdatePlayer(int nIndex)
 			shared_ptr<CGameObject> pGameObject = g_collisionManager.GetCollisionObjectWithNumber(m_aClientInfo[nIndex].m_nSlotObjectNum[j]).lock();
 			shared_ptr<CItemObject> pItemObject = dynamic_pointer_cast<CItemObject>(pGameObject);
 			if (pItemObject) {
+				if (!pItemObject->IsObtained()) {
+					// 아이템을 획득한 순간
+					sharedobject.EnableItemGetParticle(pItemObject);
+				}
 				pItemObject->SetObtain(true);
 				pBlueSuitPlayer->SetSlotItem(j, m_aClientInfo[nIndex].m_nSlotObjectNum[j]);
 			}
@@ -618,6 +623,10 @@ void CTcpClient::UpdatePlayer(int nIndex)
 
 	if (m_aClientInfo[nIndex].m_playerInfo.m_bAttacked) {
 		pBlueSuitPlayer->SetHitEvent();
+	}
+
+	if (m_aClientInfo[nIndex].m_playerInfo.m_bTeleportItemUse) {
+		pBlueSuitPlayer->Teleport();
 	}
 }
 
