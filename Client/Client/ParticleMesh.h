@@ -9,7 +9,7 @@ public:
 		TP = 0,
 		SPARK,
 		BUBBLE,
-		ATTACK
+		FOOTPRINT
 	};
 	struct TYPE_TIME {
 		static constexpr float TP = 8.0f;
@@ -116,10 +116,10 @@ public:
 	void Update(float fcurtime);
 };
 
-class CAttackParticleMesh : public CDefaultParticleMesh {
+class CFootPrintParticleMesh : public CDefaultParticleMesh {
 public:
-	CAttackParticleMesh(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dCommandList);
-	~CAttackParticleMesh() = default;
+	CFootPrintParticleMesh(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dCommandList);
+	~CFootPrintParticleMesh() = default;
 
 	void CreateShaderVariable(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dCommandList);
 	void Update(float fcurtime);

@@ -680,8 +680,8 @@ void CZombieAnimationController::AdvanceTime(float fElapsedTime, CGameObject* pR
 		}
 		if (m_vAnimationTracks[2].m_bEnable)
 		{
-			sharedobject.AddParticle(CParticleMesh::ATTACK, m_pAnimationSets->m_vpBoneFrameCaches[m_nEndSpine]->GetPosition());
-			sharedobject.AddParticle(CParticleMesh::ATTACK, m_pAnimationSets->m_vpBoneFrameCaches[m_nLeftHandThumb4]->GetPosition());			
+			sharedobject.AddParticle(CParticleMesh::FOOTPRINT, m_pAnimationSets->m_vpBoneFrameCaches[m_nEndSpine]->GetPosition());
+			sharedobject.AddParticle(CParticleMesh::FOOTPRINT, m_pAnimationSets->m_vpBoneFrameCaches[m_nLeftHandThumb4]->GetPosition());			
 		}
 		OnRootMotion(pRootGameObject);
 		OnAnimationIK(pRootGameObject);

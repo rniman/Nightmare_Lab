@@ -1277,7 +1277,7 @@ void CZombiePlayer::UpdateAnimation()
 			}
 
 
-			sharedobject.AddParticle(CParticleMesh::ATTACK, GetPosition());
+			sharedobject.AddParticle(CParticleMesh::FOOTPRINT, GetPosition());
 		}
 	}
 }

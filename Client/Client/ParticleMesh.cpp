@@ -328,11 +328,11 @@ void CTPParticleMesh::Update(float fcurtime)
 	draw_instance_count = newcount;
 }
 
-CAttackParticleMesh::CAttackParticleMesh(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dCommandList) : CDefaultParticleMesh(pd3dDevice, pd3dCommandList)
+CFootPrintParticleMesh::CFootPrintParticleMesh(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dCommandList) : CDefaultParticleMesh(pd3dDevice, pd3dCommandList)
 {
 }
 
-void CAttackParticleMesh::CreateShaderVariable(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dCommandList)
+void CFootPrintParticleMesh::CreateShaderVariable(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dCommandList)
 {
 	m_nVertices = 99999;
 	m_nStride = sizeof(ParticleVertex);
@@ -344,7 +344,7 @@ void CAttackParticleMesh::CreateShaderVariable(ID3D12Device* pd3dDevice, ID3D12G
 	m_particleVertex[0].velocity.y = 0.0f;
 	m_particleVertex[0].velocity.z = 0.0f;
 	m_particleVertex[0].lifeTime = 2.0f;
-	m_particleVertex[0].type = ATTACK;
+	m_particleVertex[0].type = FOOTPRINT;
 
 	CreateBufferViewResource(pd3dDevice, pd3dCommandList, (void*)&m_particleVertex, m_nVertices, m_nStride);
 
@@ -356,18 +356,18 @@ void CAttackParticleMesh::CreateShaderVariable(ID3D12Device* pd3dDevice, ID3D12G
 
 	for (auto& infos : m_ParticleInsInfos) {
 		infos.b_enabled = false;
-		infos.type = ATTACK;
+		infos.type = FOOTPRINT;
 	}
 	m_ParticleInsInfos[0].b_enabled = true;
 	draw_instance_count = 1; // AttackÀº ÀÎ½ºÅÏ½Ì X
 }
 
-void CAttackParticleMesh::Update(float fcurtime)
+void CFootPrintParticleMesh::Update(float fcurtime)
 {
 
 }
 
-void CAttackParticleMesh::AddParticle(XMFLOAT3& pos)
+void CFootPrintParticleMesh::AddParticle(XMFLOAT3& pos)
 {
 	if (m_nVertices >= 99999) {
 		m_nVertices = 0;
@@ -384,7 +384,7 @@ void CAttackParticleMesh::AddParticle(XMFLOAT3& pos)
 	vertices[m_nVertices].velocity.x = rdSpeed(gen) * 0.3f / 10.0f;
 	vertices[m_nVertices].velocity.y = 0.3f;
 	vertices[m_nVertices].velocity.z = rdSpeed(gen) * 0.3f / 10.0f;
-	vertices[m_nVertices].type = ATTACK;
+	vertices[m_nVertices].type = FOOTPRINT;
 
 	m_pd3dVertexBuffer->Unmap(0, nullptr);
 

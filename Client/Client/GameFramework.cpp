@@ -549,7 +549,7 @@ void CGameFramework::OnProcessingKeyboardMessage(HWND hWnd, UINT nMessageID, WPA
 		switch (wParam)
 		{
 		case VK_UP:
-			sharedobject.AddParticle(CParticleMesh::ATTACK, XMFLOAT3());
+			sharedobject.AddParticle(CParticleMesh::FOOTPRINT, XMFLOAT3());
 			//m_pScene->SetParticleTest(gGameTimer.GetTotalTime());
 			break;
 		case VK_ESCAPE:

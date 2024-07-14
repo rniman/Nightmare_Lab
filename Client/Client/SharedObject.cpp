@@ -11,5 +11,5 @@ void SharedObject::EnableItemGetParticle(const shared_ptr<CGameObject>& object)
 
 void SharedObject::AddParticle(CParticleMesh::TYPE particleType,XMFLOAT3 pos)
 {
-	m_vParticleObjects[CParticleMesh::ATTACK]->AddParticle(pos);
+	m_vParticleObjects[CParticleMesh::FOOTPRINT]->AddParticle(pos);
 }

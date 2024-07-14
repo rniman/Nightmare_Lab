@@ -252,7 +252,7 @@ void ParticleShader::BuildObjects(ID3D12Device* pd3dDevice, ID3D12GraphicsComman
 	m_vParticleObjects.push_back(pSOParticleObject);
 
 	//공격 효과 파티클
-	shared_ptr<CAttackParticleMesh> pAttackParticleMesh = make_shared<CAttackParticleMesh>(pd3dDevice, pd3dCommandList);
+	shared_ptr<CFootPrintParticleMesh> pAttackParticleMesh = make_shared<CFootPrintParticleMesh>(pd3dDevice, pd3dCommandList);
 	pAttackParticleMesh->CreateShaderVariable(pd3dDevice, pd3dCommandList);
 	shared_ptr<CGSParticleObject> pAttackParticleObject = make_shared<CGSParticleObject>(pd3dDevice, pd3dCommandList);
 	pAttackParticleObject->SetMesh(pAttackParticleMesh);
