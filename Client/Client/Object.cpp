@@ -831,6 +831,11 @@ XMFLOAT3 CAnimationController::GetBoneFrameUpVector(int index)
 	return XMFLOAT3{ matrix->_21, matrix->_22, matrix->_23 };
 }
 
+shared_ptr<CGameObject> CAnimationController::GetBoneFrameObject(int index)
+{
+	return m_pAnimationSets->m_vpBoneFrameCaches[index];
+}
+
 XMFLOAT3 CAnimationController::GetBoneFrameRightVector(int index)
 {
 	XMFLOAT4X4* matrix = &m_pAnimationSets->m_vpBoneFrameCaches[index]->m_xmf4x4World;

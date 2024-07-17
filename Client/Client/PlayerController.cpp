@@ -600,10 +600,10 @@ CZombieAnimationController::CZombieAnimationController(ID3D12Device* pd3dDevice,
 		if (strncmp(frameName, "mixamorig:HeadTop_End", strlen(frameName)) == 0) m_nEndNeck = i;
 		if (strncmp(frameName, "mixamorig:RightHandThumb4", strlen(frameName)) == 0) m_nEndSpine = i;
 		if (strncmp(frameName, "mixamorig:LeftHandThumb4", strlen(frameName)) == 0) m_nLeftHandThumb4 = i;
+		if (strncmp(frameName, "mixamorig:LeftToeBase", strlen(frameName)) == 0) m_nLeftToeBase = i;
+		if (strncmp(frameName, "mixamorig:RightToeBase", strlen(frameName)) == 0) m_nRightToeBase = i;
 		if (strncmp(frameName, "EyesSock", strlen(frameName)) == 0) m_nEyesSock = i;
 		if (strncmp(frameName, "mixamorig:Hips", strlen(frameName)) == 0) m_nHips = i;
-
-		
 	}
 }
 
@@ -635,6 +635,27 @@ void CZombieAnimationController::AdvanceTime(float fElapsedTime, CGameObject* pR
 						m_pAnimationSets->m_vpBoneFrameCaches[j]->m_xmf4x4ToParent = xmf4x4Transform;
 					}
 					m_vAnimationTracks[k].HandleCallback();
+
+					if (k == 1) {
+						if (IsEqual(0.4f, m_vAnimationTracks[k].m_fPosition, 0.05f)) {
+							sharedobject.AddParticle(CParticleMesh::FOOTPRINT, m_pAnimationSets->m_vpBoneFrameCaches[m_nLeftToeBase]->GetPosition());
+						}
+						else if (IsEqual(0.8f, m_vAnimationTracks[k].m_fPosition, 0.05f)) {
+							sharedobject.AddParticle(CParticleMesh::FOOTPRINT, m_pAnimationSets->m_vpBoneFrameCaches[m_nRightToeBase]->GetPosition());
+						}
+						else if (IsEqual(1.2f, m_vAnimationTracks[k].m_fPosition, 0.05f)) {
+							sharedobject.AddParticle(CParticleMesh::FOOTPRINT, m_pAnimationSets->m_vpBoneFrameCaches[m_nLeftToeBase]->GetPosition());
+						}
+						else if (IsEqual(1.6f, m_vAnimationTracks[k].m_fPosition, 0.05f)) {
+							sharedobject.AddParticle(CParticleMesh::FOOTPRINT, m_pAnimationSets->m_vpBoneFrameCaches[m_nRightToeBase]->GetPosition());
+						}
+						else if (IsEqual(2.0f, m_vAnimationTracks[k].m_fPosition, 0.05f)) {
+							sharedobject.AddParticle(CParticleMesh::FOOTPRINT, m_pAnimationSets->m_vpBoneFrameCaches[m_nLeftToeBase]->GetPosition());
+						}
+						else if (IsEqual(2.4f, m_vAnimationTracks[k].m_fPosition, 0.05f)) {
+							sharedobject.AddParticle(CParticleMesh::FOOTPRINT, m_pAnimationSets->m_vpBoneFrameCaches[m_nRightToeBase]->GetPosition());
+						}
+					}
 				}
 			}
 
@@ -678,10 +699,13 @@ void CZombieAnimationController::AdvanceTime(float fElapsedTime, CGameObject* pR
 				m_pPlayer->GetCamera()->SetOffset(offset);
 			}
 		}
+
 		if (m_vAnimationTracks[2].m_bEnable)
 		{
-			sharedobject.AddParticle(CParticleMesh::FOOTPRINT, m_pAnimationSets->m_vpBoneFrameCaches[m_nEndSpine]->GetPosition());
-			sharedobject.AddParticle(CParticleMesh::FOOTPRINT, m_pAnimationSets->m_vpBoneFrameCaches[m_nLeftHandThumb4]->GetPosition());			
+			m_pPlayer->m_pRightHandTrail->TrailStart();
+			m_pPlayer->m_pLeftHandTrail->TrailStart();
+			//sharedobject.AddParticle(CParticleMesh::FOOTPRINT, m_pAnimationSets->m_vpBoneFrameCaches[m_nEndSpine]->GetPosition());
+			//sharedobject.AddParticle(CParticleMesh::FOOTPRINT, m_pAnimationSets->m_vpBoneFrameCaches[m_nLeftHandThumb4]->GetPosition());			
 		}
 		OnRootMotion(pRootGameObject);
 		OnAnimationIK(pRootGameObject);
@@ -816,6 +840,9 @@ int CZombieAnimationController::GetBoneFrameIndex(char* frameName)
 	if (strncmp(frameName, "mixamorig:Neck", strlen(frameName)) == 0) i = m_nStartNeck;
 	if (strncmp(frameName, "mixamorig:HeadTop_End", strlen(frameName)) == 0) i = m_nEndNeck;
 	if (strncmp(frameName, "mixamorig:RightHandThumb4", strlen(frameName)) == 0) i = m_nEndSpine;
+	if (strncmp(frameName, "mixamorig:LeftHandThumb4", strlen(frameName)) == 0) i = m_nLeftHandThumb4;
+	if (strncmp(frameName, "mixamorig:LeftToeBase", strlen(frameName)) == 0) i = m_nLeftToeBase;
+	if (strncmp(frameName, "mixamorig:RightToeBase", strlen(frameName)) == 0) i = m_nRightToeBase;
 	if (strncmp(frameName, "EyesSock", strlen(frameName)) == 0) i = m_nEyesSock;
 	if (strncmp(frameName, "mixamorig:Hips", strlen(frameName)) == 0) i = m_nHips;
 

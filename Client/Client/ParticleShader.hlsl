@@ -269,10 +269,9 @@ VS_PARTICLE_DRAW_OUTPUT VSParticleDraw(VS_PARTICLE_INPUT input)
     {
         float visibleTime = 2.0f;
         float t = gfCurrentTime - input.lifetime + visibleTime;
-        output.color = float4(0.65f, 0.0f, 0.0f, lerp(0.0f, 1.0f, clamp(input.lifetime - gfCurrentTime, 0.0f, 1.0f)));
+        output.color = float4(0.45f, 0.0f, 0.0f, lerp(0.0f, 1.0f, clamp(input.lifetime - gfCurrentTime, 0.0f, 1.0f)));
         output.position = input.position + input.velocity * t;
     }
-    
     output.type = input.type;
     
     output.size = 0.04f;

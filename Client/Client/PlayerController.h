@@ -90,15 +90,17 @@ public:
 
 
 	int GetBoneFrameIndex(char* frameName);
-	void SetPlayer(shared_ptr<CPlayer> pPlayer) { m_pPlayer = pPlayer; }
+	void SetPlayer(shared_ptr<CPlayer> pPlayer) { m_pPlayer = dynamic_pointer_cast<CZombiePlayer>(pPlayer); }
 private:
 	int m_nStartSpine = -1;
 	int m_nStartNeck = -1;
 	int m_nEndNeck = -1;
 	int m_nEndSpine = -1;
 	int m_nLeftHandThumb4 = -1;
+	int m_nLeftToeBase = -1;
+	int m_nRightToeBase = -1;
 	int m_nEyesSock = -1;
 	int m_nHips = -1;
 
-	shared_ptr<CPlayer> m_pPlayer;
+	shared_ptr<CZombiePlayer> m_pPlayer;
 };

@@ -321,6 +321,7 @@ public:
 	XMFLOAT3 GetBoneFrameLookVector(int index);
 	XMFLOAT3 GetBoneFrameRightVector(int index);
 	XMFLOAT3 GetBoneFrameUpVector(int index);
+	shared_ptr<CGameObject> GetBoneFrameObject(int index);
 
 	bool IsAnimation() const { return m_bAnimation; }
 public:

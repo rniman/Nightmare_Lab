@@ -108,7 +108,7 @@ D3D12_DEPTH_STENCIL_DESC ParticleShader::CreateDepthStencilState()
 {
 	D3D12_DEPTH_STENCIL_DESC d3dDepthStencilDesc;
 	::ZeroMemory(&d3dDepthStencilDesc, sizeof(D3D12_DEPTH_STENCIL_DESC));
-	d3dDepthStencilDesc.DepthEnable = false;
+	d3dDepthStencilDesc.DepthEnable = true;
 	d3dDepthStencilDesc.DepthWriteMask = D3D12_DEPTH_WRITE_MASK_ZERO;
 	d3dDepthStencilDesc.DepthFunc = D3D12_COMPARISON_FUNC_LESS;
 	d3dDepthStencilDesc.StencilEnable = FALSE;
@@ -221,7 +221,7 @@ void ParticleShader::BuildObjects(ID3D12Device* pd3dDevice, ID3D12GraphicsComman
 
 	// 파티클 마티리얼
 	shared_ptr<CTexture> pRoundSoftParticleTexture = make_shared<CTexture>(1, RESOURCE_TEXTURE2D, 0, 1);
-	pRoundSoftParticleTexture->LoadTextureFromDDSFile(pd3dDevice, pd3dCommandList, (wchar_t*)L"Asset/Textures/trailTest.dds", RESOURCE_TEXTURE2D, 0);
+	pRoundSoftParticleTexture->LoadTextureFromDDSFile(pd3dDevice, pd3dCommandList, (wchar_t*)L"Asset/Textures/RoundSoftParticle.dds", RESOURCE_TEXTURE2D, 0);
 	CScene::CreateShaderResourceViews(pd3dDevice, pRoundSoftParticleTexture, 0, 3);
 	shared_ptr<CMaterial> pParticleMaterial = make_shared<CMaterial>(1);
 	pParticleMaterial->SetMaterialType(MATERIAL_ALBEDO_MAP);

@@ -9,6 +9,7 @@
 #include "Collision.h"
 #include "TextureBlendObject.h"
 #include "SharedObject.h"
+#include "CTrailShader.h"
 
 ComPtr<ID3D12DescriptorHeap> CScene::m_pd3dCbvSrvDescriptorHeap;
 
@@ -710,6 +711,10 @@ void CMainScene::BuildObjects(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandLis
 
 	m_vForwardRenderShader.push_back(make_unique<TextureBlendAnimationShader>());
 	m_vForwardRenderShader[TEXTUREBLEND_SHADER]->CreateShader(pd3dDevice, pd3dCommandList, m_pd3dGraphicsRootSignature.Get(), 1, nullptr, DXGI_FORMAT_D24_UNORM_S8_UINT);
+	
+	m_vForwardRenderShader.push_back(make_unique<CTrailShader>());
+	m_vForwardRenderShader[TRAIL_SHADER]->CreateShader(pd3dDevice, pd3dCommandList, m_pd3dGraphicsRootSignature.Get(), 1, nullptr, DXGI_FORMAT_D24_UNORM_S8_UINT);
+	m_vForwardRenderShader[TRAIL_SHADER]->BuildObjects(pd3dDevice, pd3dCommandList, m_pd3dGraphicsRootSignature.Get());
 
 	//[0505] UI
 	if (mainPlayerId == ZOMBIEPLAYER)
@@ -742,6 +747,9 @@ void CMainScene::BuildObjects(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandLis
 			m_apPlayer[i]->LoadModelAndAnimation(pd3dDevice, pd3dCommandList, m_pd3dGraphicsRootSignature.Get(), pZombiePlayerModel);
 			m_vShader[SKINNEDANIMATION_STANDARD_SHADER]->AddGameObject(m_apPlayer[i]);
 			
+			auto zombiePlayer = dynamic_pointer_cast<CZombiePlayer>(m_apPlayer[i]);
+			zombiePlayer->SetAttackTrail(dynamic_cast<CTrailShader*>(m_vForwardRenderShader[TRAIL_SHADER].get())->GetZombieSwordTrail1());
+			zombiePlayer->SetAttackTrail(dynamic_cast<CTrailShader*>(m_vForwardRenderShader[TRAIL_SHADER].get())->GetZombieSwordTrail2());
 			// [0506] OutLine Shader
 			if (mainPlayerId == ZOMBIEPLAYER)
 			{

@@ -37,6 +37,9 @@
     <Filter Include="HLSL%28cso%29\Lobby">
       <UniqueIdentifier>{f8633c7c-af7d-4a58-9d75-83aea60ad5d3}</UniqueIdentifier>
     </Filter>
+    <Filter Include="SwordTrail">
+      <UniqueIdentifier>{e1bc8f89-06e7-4fb1-a7a5-86f73ec0613f}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="targetver.h">
@@ -120,6 +123,12 @@
     <ClInclude Include="SharedObject.h">
       <Filter>헤더 파일</Filter>
     </ClInclude>
+    <ClInclude Include="Trail.h">
+      <Filter>SwordTrail</Filter>
+    </ClInclude>
+    <ClInclude Include="CTrailShader.h">
+      <Filter>SwordTrail</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="Client.cpp">
@@ -187,6 +196,12 @@
     </ClCompile>
     <ClCompile Include="SharedObject.cpp">
       <Filter>소스 파일</Filter>
+    </ClCompile>
+    <ClCompile Include="Trail.cpp">
+      <Filter>SwordTrail</Filter>
+    </ClCompile>
+    <ClCompile Include="CTrailShader.cpp">
+      <Filter>SwordTrail</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
@@ -282,6 +297,9 @@
     </FxCompile>
     <FxCompile Include="ParticleShader.hlsl">
       <Filter>Particle</Filter>
+    </FxCompile>
+    <FxCompile Include="Trail.hlsl">
+      <Filter>SwordTrail</Filter>
     </FxCompile>
   </ItemGroup>
   <ItemGroup>

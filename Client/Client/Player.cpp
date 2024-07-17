@@ -1277,7 +1277,7 @@ void CZombiePlayer::UpdateAnimation()
 			}
 
 
-			sharedobject.AddParticle(CParticleMesh::FOOTPRINT, GetPosition());
+			//sharedobject.AddParticle(CParticleMesh::FOOTPRINT, GetPosition());
 		}
 	}
 }
@@ -1457,4 +1457,28 @@ shared_ptr<CCamera> CZombiePlayer::ChangeCamera(DWORD nNewCameraMode, float fEla
 	
 
 	return camera;
+}
+
+void CZombiePlayer::SetAttackTrail(shared_ptr<Trail> trail)
+{
+	if (!m_pRightHandTrail) {
+		m_pRightHandTrail = trail;
+
+		auto zombieAnimationController = dynamic_pointer_cast<CZombieAnimationController>(m_pSkinnedAnimationController);
+		int RightHandThumb4index = zombieAnimationController->GetBoneFrameIndex((char*)"mixamorig:RightHandThumb4");
+
+		// 좀비 모델의 손에 트레일 생성되도록한다.
+		m_pRightHandTrail->SetObject(zombieAnimationController->GetBoneFrameObject(RightHandThumb4index));
+		//m_pRightHandTrail->TrailStart();
+	}
+	else {
+		m_pLeftHandTrail = trail;
+
+		auto zombieAnimationController = dynamic_pointer_cast<CZombieAnimationController>(m_pSkinnedAnimationController);
+		int LeftHandThumb4index = zombieAnimationController->GetBoneFrameIndex((char*)"mixamorig:LeftHandThumb4");
+
+		// 좀비 모델의 손에 트레일 생성되도록한다.
+		m_pLeftHandTrail->SetObject(zombieAnimationController->GetBoneFrameObject(LeftHandThumb4index));
+		//m_pLeftHandTrail->TrailStart();
+	}
 }

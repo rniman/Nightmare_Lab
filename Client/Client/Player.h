@@ -2,10 +2,12 @@
 #include "Object.h"
 #include "EnvironmentObject.h"
 #include "GlobalDefine.h"
+#include "Trail.h"
 
 class CMainScene;
 class CCamera;
 class CRadarObject;
+class Trail;
 
 class CSoundCallbackHandler : public CAnimationCallbackHandler
 {
@@ -323,4 +325,9 @@ public:
 	void SetElectiricMt(shared_ptr<CMaterial> mt) { m_pElectircaterial = mt; }
 
 	virtual shared_ptr<CCamera> ChangeCamera(DWORD nNewCameraMode, float fElapsedTime);
+
+	shared_ptr<Trail> m_pRightHandTrail;
+	shared_ptr<Trail> m_pLeftHandTrail;
+
+	void SetAttackTrail(shared_ptr<Trail> trail);
 };

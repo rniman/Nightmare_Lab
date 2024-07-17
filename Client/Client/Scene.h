@@ -15,8 +15,9 @@ constexpr UINT WM_CHANGE_SLOT{ WM_USER + 5 };
 #define TRANSPARENT_SHADER 0 // 투명객체에 대한 쉐이더는 항상 후순위로 배치
 #define PARTICLE_SHADER 1 
 #define TEXTUREBLEND_SHADER 2
-#define USER_INTERFACE_SHADER 3
-#define OUT_LINE_SHADER 4
+#define TRAIL_SHADER 3
+#define USER_INTERFACE_SHADER 4
+#define OUT_LINE_SHADER 5
 
 // m_vPartitionShader
 #define PARTITION_SHADER 0
