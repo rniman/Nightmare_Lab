@@ -16,6 +16,7 @@
 #define SERVERPORT 9000
 #define BUFSIZE    12000
 #define WM_SOCKET  (WM_USER+1)
+#define WM_SOUND  (WM_USER+2)
 
 #include <vector>
 //#include "TCPServer.h"

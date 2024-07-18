@@ -123,7 +123,7 @@ void CServerDrawerObject::Update(float fElapsedTime, shared_ptr<CServerCollision
 	}
 }
 
-void CServerDrawerObject::UpdatePicking()
+void CServerDrawerObject::UpdatePicking(INT8 nClientId)
 {
 	if (m_bOpened)
 	{
@@ -135,6 +135,9 @@ void CServerDrawerObject::UpdatePicking()
 		m_bOpened = true;
 		m_bAnimate = true;
 	}
+	
+	//소리를 알려야함
+	PostMessage(TCPServer::m_hWnd, WM_SOUND, (WPARAM)SOUND_MESSAGE::DRAWER, (LPARAM)nClientId);
 }
 
 /// <CGameObject - CDrawerObject>
@@ -174,7 +177,7 @@ void CServerDoorObject::Update(float fElapsedTime, shared_ptr<CServerCollisionMa
 
 }
 
-void CServerDoorObject::UpdatePicking()
+void CServerDoorObject::UpdatePicking(INT8 nClientId)
 {
 	if (m_bOpened)
 	{
@@ -186,6 +189,8 @@ void CServerDoorObject::UpdatePicking()
 		m_bOpened = true;
 		m_fDoorAngle = 150.0f;
 	}
+
+	PostMessage(TCPServer::m_hWnd, WM_SOUND, (WPARAM)SOUND_MESSAGE::DOOR, (LPARAM)nClientId);
 }
 
 /// <CGameObject - CDrawerObject>
@@ -248,12 +253,11 @@ void CServerElevatorDoorObject::Update(float fElapsedTime, shared_ptr<CServerCol
 
 }
 
-void CServerElevatorDoorObject::UpdatePicking()
+void CServerElevatorDoorObject::UpdatePicking(INT8 nClientId)
 {
-	
 }
 
-void CServerElevatorDoorObject::EscapeDoorOpen()
+void CServerElevatorDoorObject::EscapeDoorOpen(INT8 nClientId)
 {
 	if (!IsEscape()) {
 		return;
@@ -313,7 +317,7 @@ void CServerTeleportObject::Update(float fElapsedTime, shared_ptr<CServerCollisi
 	CServerItemObject::SetWorldMatrix(xmf4x4FuseWorld);
 }
 
-void CServerTeleportObject::UpdatePicking()
+void CServerTeleportObject::UpdatePicking(INT8 nClientId)
 {
 	m_bObtained = true;
 	m_bCollision = false;
@@ -527,7 +531,7 @@ void CServerFuseObject::Update(float fElapsedTime, shared_ptr<CServerCollisionMa
 	CServerItemObject::SetWorldMatrix(xmf4x4FuseWorld);
 }
 
-void CServerFuseObject::UpdatePicking()
+void CServerFuseObject::UpdatePicking(INT8 nClientId)
 {
 	m_bObtained = true;
 	m_bCollision = false;

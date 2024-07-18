@@ -79,7 +79,7 @@ public:
 	virtual ~CServerDrawerObject();
 
 	virtual void Update(float fElapsedTime, shared_ptr<CServerCollisionManager>& pCollisionManager) override;
-	virtual void UpdatePicking() override;
+	virtual void UpdatePicking(INT8 nClientId) override;
 
 	bool IsOpen() const { return m_bOpened; }
 
@@ -102,7 +102,7 @@ public:
 	virtual ~CServerDoorObject();
 
 	virtual void Update(float fElapsedTime, shared_ptr<CServerCollisionManager>& pCollisionManager) override;
-	virtual void UpdatePicking() override;
+	virtual void UpdatePicking(INT8 nClientId) override;
 
 private:
 	bool m_bOpened = false;
@@ -122,8 +122,8 @@ public:
 	virtual ~CServerElevatorDoorObject() {};
 
 	virtual void Update(float fElapsedTime, shared_ptr<CServerCollisionManager>& pCollisionManager) override;
-	virtual void UpdatePicking() override;
-	void EscapeDoorOpen();
+	virtual void UpdatePicking(INT8 nClientId) override;
+	void EscapeDoorOpen(INT8 nClientId);
 
 	void SetEscapeDoor(bool val) { m_bEscapeDoor = val; }
 	bool IsEscape() { return m_bEscapeDoor; }
@@ -147,7 +147,7 @@ public:
 	virtual ~CServerTeleportObject();
 
 	virtual void Update(float fElapsedTime, shared_ptr<CServerCollisionManager>& pCollisionManager) override;
-	virtual void UpdatePicking() override;
+	virtual void UpdatePicking(INT8 nClientId) override;
 	virtual void UpdateUsing(const shared_ptr<CServerGameObject>& pGameObject, shared_ptr<CServerCollisionManager>& pCollisionManager) override;
 
 	virtual void SetRandomPosition(shared_ptr<CServerCollisionManager>& pCollisionManager) override;
@@ -188,7 +188,7 @@ public:
 	virtual ~CServerFuseObject();
 
 	virtual void Update(float fElapsedTime, shared_ptr<CServerCollisionManager>& pCollisionManager) override;
-	virtual void UpdatePicking() override;
+	virtual void UpdatePicking(INT8 nClientId) override;
 	virtual void UpdateUsing(const shared_ptr<CServerGameObject>& pGameObject, shared_ptr<CServerCollisionManager>& pCollisionManager) override;
 
 	virtual void SetRandomPosition(shared_ptr<CServerCollisionManager>& pCollisionManager) override;

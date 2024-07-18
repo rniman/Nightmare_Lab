@@ -34,7 +34,7 @@ public:
 	virtual void Hit() {};	//BlueSuit: zombie Attack, Zombie: mine
 	void Move(const XMFLOAT3& xmf3Shift, bool bUpdateVelocity);
 
-	virtual void UpdatePicking() override {};
+	virtual void UpdatePicking(INT8 nClientId) override {};
 	//virtual void UseItem(int nSlot) {};
 
 	void CalculateSpace();
@@ -162,7 +162,7 @@ public:
 
 	virtual void UseItem(shared_ptr<CServerCollisionManager>& pCollisionManager);
 	virtual void Update(float fElapsedTime, shared_ptr<CServerCollisionManager>& pCollisionManager) override;
-	virtual void UpdatePicking() override;
+	virtual void UpdatePicking(INT8 nClientId) override;
 	virtual void Hit() override;
 
 	int AddItem(const shared_ptr<CServerGameObject>& pGameObject);
@@ -209,7 +209,7 @@ public:
 
 	virtual void UseItem(shared_ptr<CServerCollisionManager>& pCollisionManager) override;;
 	virtual void Update(float fElapsedTime, shared_ptr<CServerCollisionManager>& pCollisionManager) override;
-	virtual void UpdatePicking() override;
+	virtual void UpdatePicking(INT8 nClientId) override;
 	virtual void Hit() override;;
 	void CheckAttack(shared_ptr<CServerPlayer>& pPlayer, const BoundingSphere& aabbPlayer);
 

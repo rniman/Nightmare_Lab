@@ -1607,6 +1607,39 @@ void CMainScene::AnimateObjects(float fElapsedTime, float fCurTime)
 			}
 		}
 	}
+
+	// 플레이어간 사운드 조정
+	for (auto& pPlayer : m_apPlayer)
+	{
+		if (pPlayer->GetClientId() == m_pMainPlayer->GetClientId())
+		{
+			continue;
+		}
+
+		XMFLOAT3 xmf3MainPos = m_pMainPlayer->GetPosition();
+		XMFLOAT3 xmf3OtherPos = pPlayer->GetPosition();
+
+		if (abs(xmf3MainPos.y - xmf3OtherPos.y) > 4.0f) // 층이 다르면 안들림
+		{
+			pPlayer->SetPlayerVolume(0.0f);
+			continue;
+		}
+
+		float fWeight = (4.0f - abs(xmf3MainPos.y - xmf3OtherPos.y)) / 4.0f;
+
+		xmf3MainPos.y = 0.0f;
+		xmf3OtherPos.y = 0.0f;
+		float fDistance = Vector3::Distance(xmf3MainPos, xmf3OtherPos);
+		if (fDistance > WALK_SOUND_DISTANCE)
+		{
+			pPlayer->SetPlayerVolume(0.0f);
+		}
+		else
+		{
+			float fVolume = ((WALK_SOUND_DISTANCE - fDistance) / WALK_SOUND_DISTANCE) * fWeight ;
+			pPlayer->SetPlayerVolume(fVolume);
+		}
+	}
 }
 
 

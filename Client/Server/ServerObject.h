@@ -20,7 +20,7 @@ public:
 	virtual void Collide(const shared_ptr<CServerCollisionManager>& pCollisionManager, float fElapsedTime, shared_ptr<CServerGameObject> pCollided) {};
 
 	void Move(XMFLOAT3 xmf3Offset);
-	virtual void UpdatePicking() {};
+	virtual void UpdatePicking(INT8 nClientId) {};
 	virtual void UpdateUsing(const shared_ptr<CServerGameObject>& pGameObject, shared_ptr<CServerCollisionManager>& pCollisionManager) {};
 
 	void UpdateTransform(XMFLOAT4X4* pxmf4x4Parent = NULL);
