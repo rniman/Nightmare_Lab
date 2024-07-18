@@ -1025,6 +1025,10 @@ void CBlueSuitPlayer::Teleport()
 			return;
 		}
 	}
+	SoundManager& soundManager = soundManager.GetInstance();
+	soundManager.SetVolume(sound::USE_TP_BLUESUIT, m_fPlayerVolume);
+	if (m_fPlayerVolume - EPSILON >= 0.0f) soundManager.PlaySoundWithName(sound::USE_TP_BLUESUIT);
+
 	m_fCreateParticleTime = gGameTimer.GetTotalTime();
 
 	XMFLOAT3 position = GetPosition();

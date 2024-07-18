@@ -292,7 +292,6 @@ void CTcpClient::UpdateDataFromServer()
 					SoundManager& soundManager = soundManager.GetInstance();
 					soundManager.SetVolume(sound::ACTIVE_MINE, m_apPlayers[i]->GetPlayerVolume());
 					if (m_apPlayers[i]->GetPlayerVolume() - EPSILON >= 0.0f) soundManager.PlaySoundWithName(sound::ACTIVE_MINE);
-					soundManager.PlaySoundWithName(sound::ACTIVE_MINE);
 				}
 			}
 		}

@@ -872,6 +872,11 @@ void CZombieAnimationController::AdvanceTime(float fElapsedTime, CGameObject* pR
 				}
 			}
 		}
+		else
+		{
+			m_nAttackSound = 0;
+		}
+
 		pRootGameObject->UpdateTransform(NULL);
 
 		if (m_pPlayer) {
