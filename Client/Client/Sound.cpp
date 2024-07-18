@@ -38,25 +38,25 @@ bool SoundManager::Initialize()
     }
 
     // 모든 사운드 로드
-    LoadSound(sound::LOBBY_SCENE, "Sound/singing.wav", true);
-    LoadSound(sound::MAIN_SCENE, "Sound/wave.mp3", true);
+    LoadSound(sound::LOBBY_SCENE, "Sound/resource/singing.wav", true);
+    LoadSound(sound::MAIN_SCENE, "Sound/resource/wave.mp3", true);
     
-    LoadSound(sound::GAME_WIN, "Sound/town.mid", true);
-    LoadSound(sound::GAME_OVER, "Sound/onestop.mid", true);
+    LoadSound(sound::GAME_WIN, "Sound/resource/town.mid", true);
+    LoadSound(sound::GAME_OVER, "Sound/resource/onestop.mid", true);
 
-    LoadSound(sound::WALK_ZOMBIE, "Sound/Ding.wav");
-    LoadSound(sound::ATTACK_ZOMBIE, "Sound/chord.wav");
+    LoadSound(sound::WALK_ZOMBIE, "Sound/resource/Ding.wav");
+    LoadSound(sound::ATTACK_ZOMBIE, "Sound/resource/chord.wav");
     
-    LoadSound(sound::WALK_BLUESUIT, "Sound/Ding.wav");
-    LoadSound(sound::RUN_BLUESUIT, "Sound/Ding.wav");
-    LoadSound(sound::DEAD_BLUESUIT, "Sound/singing.wav");
+    LoadSound(sound::WALK_BLUESUIT, "Sound/resource/Ding.wav");
+    LoadSound(sound::RUN_BLUESUIT, "Sound/resource/Ding.wav");
+    LoadSound(sound::DEAD_BLUESUIT, "Sound/resource/singing.wav");
     
-    LoadSound(sound::GET_ITEM_BLUESUIT, "Sound/singing.wav");
-    LoadSound(sound::USE_TP_BLUESUIT, "Sound/singing.wav");
-    LoadSound(sound::ACTIVE_MINE, "Sound/Ding.wav");
+    LoadSound(sound::GET_ITEM_BLUESUIT, "Sound/resource/singing.wav");
+    LoadSound(sound::USE_TP_BLUESUIT, "Sound//resource/singing.wav");
+    LoadSound(sound::ACTIVE_MINE, "Sound/resource/Ding.wav");
     
-    LoadSound(sound::USE_DRAWER, "Sound/chord.wav");
-    LoadSound(sound::USE_DOOR, "Sound/chord.wav");
+    LoadSound(sound::USE_DRAWER, "Sound/resource/chord.wav");
+    LoadSound(sound::USE_DOOR, "Sound/resource/chord.wav");
    // LoadSound(sound::USE_EXIT_DOOR, "Sound/Ding.wav");
 
     return true;
