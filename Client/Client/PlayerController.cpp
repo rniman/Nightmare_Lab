@@ -2,6 +2,7 @@
 #include "Scene.h"
 #include "Player.h"
 #include "PlayerController.h"
+#include "Sound.h"
 
 float CMainScene::testAngle;
 
@@ -91,15 +92,9 @@ void CBlueSuitAnimationController::AdvanceTime(float fElapsedTime, CGameObject* 
 		}
 		else if (m_vAnimationTracks[1].m_bEnable || m_vAnimationTracks[2].m_bEnable) //애니메이션 블렌딩
 		{
-			BlendAnimation(1, 2, fElapsedTime*1.5f, m_vfBlendWeight[0]);
-			if(m_vAnimationTracks[1].m_bEnable)
-			{
-				m_vAnimationTracks[1].HandleCallback();
-			}
-			if (m_vAnimationTracks[2].m_bEnable)
-			{
-				m_vAnimationTracks[2].HandleCallback();
-			}
+			BlendAnimation(1, 2, fElapsedTime * 1.5f, m_vfBlendWeight[0]);
+
+			WalkSoundProcess();
 		}
 		else
 		{
@@ -107,7 +102,7 @@ void CBlueSuitAnimationController::AdvanceTime(float fElapsedTime, CGameObject* 
 			{
 				if (m_vAnimationTracks[k].m_bEnable)
 				{
-					shared_ptr<CAnimationSet>  pAnimationSet = m_pAnimationSets->m_vpAnimationSets[m_vAnimationTracks[k].m_nAnimationSet];	//애니메이션 트랙에 해당하는 애니메이션 sets을 가져온다
+					shared_ptr<CAnimationSet> pAnimationSet = m_pAnimationSets->m_vpAnimationSets[m_vAnimationTracks[k].m_nAnimationSet];	//애니메이션 트랙에 해당하는 애니메이션 sets을 가져온다
 					float fPosition = m_vAnimationTracks[k].UpdatePosition(m_vAnimationTracks[k].m_fPosition, fElapsedTime*1.5f, pAnimationSet->m_fLength);	// 현재 애니메이션 트랙을 재생(현재 재생중인 위치와 흐른 시간, 애니메이션 총 길이)
 					for (int j = 0; j < m_pAnimationSets->m_nBoneFrames; j++)
 					{
@@ -117,6 +112,12 @@ void CBlueSuitAnimationController::AdvanceTime(float fElapsedTime, CGameObject* 
 						xmf4x4Transform = Matrix4x4::Add(xmf4x4Transform, xmf4x4TrackTransform);
 						m_pAnimationSets->m_vpBoneFrameCaches[j]->m_xmf4x4ToParent = xmf4x4Transform;
 					}
+
+					if (k == 3)
+					{
+						RunSoundProcess();
+					}
+
 					m_vAnimationTracks[k].HandleCallback();
 				}
 			}
@@ -163,6 +164,155 @@ void CBlueSuitAnimationController::AdvanceTime(float fElapsedTime, CGameObject* 
 	}
 }
 
+void CBlueSuitAnimationController::RunSoundProcess()
+{
+	SoundManager& soundManager = soundManager.GetInstance();
+	soundManager.SetVolume(sound::RUN_BLUESUIT, m_fPlayerVolume);
+
+	shared_ptr<CAnimationSet> pAnimationSet = m_pAnimationSets->m_vpAnimationSets[m_vAnimationTracks[3].m_nAnimationSet];
+
+	if (m_vAnimationTracks[3].m_fPosition >= SUIT_RUN_FOOT[0] * pAnimationSet->m_fLength && m_nRunSound == 0)
+	{
+		if (m_fPlayerVolume - EPSILON >= 0.0f) soundManager.PlaySoundWithName(sound::RUN_BLUESUIT);
+		m_nRunSound = 1;
+	}
+	else if (m_vAnimationTracks[3].m_fPosition >= SUIT_RUN_FOOT[1] * pAnimationSet->m_fLength && m_nRunSound == 1)
+	{
+		if (m_fPlayerVolume - EPSILON >= 0.0f) soundManager.PlaySoundWithName(sound::RUN_BLUESUIT);
+		m_nRunSound = 2;
+	}
+	else if (m_vAnimationTracks[3].m_fPosition <= 0.0f && m_nRunSound == 2)
+	{
+		m_nRunSound = 0;
+	}
+}
+
+void CBlueSuitAnimationController::WalkSoundProcess()
+{
+	SoundManager& soundManager = soundManager.GetInstance();
+	soundManager.SetVolume(sound::WALK_BLUESUIT, m_fPlayerVolume);
+
+	if (m_vfBlendWeight[0] < 0.1f)
+	{
+		shared_ptr<CAnimationSet>  pAnimationSet = m_pAnimationSets->m_vpAnimationSets[m_vAnimationTracks[1].m_nAnimationSet];
+
+		if (m_vAnimationTracks[1].m_fSpeed > 0.0f)
+		{
+			if (m_vAnimationTracks[1].m_fPosition >= SUIT_WALK_FOOT[0] * pAnimationSet->m_fLength && m_nWalkSound == 0) // PlayLeftSound
+			{
+				if (m_fPlayerVolume - EPSILON >= 0.0f) soundManager.PlaySoundWithName(sound::WALK_BLUESUIT);
+				m_nWalkSound = 1;
+			}
+			else if (m_vAnimationTracks[1].m_fPosition >= SUIT_WALK_FOOT[1] * pAnimationSet->m_fLength && m_nWalkSound == 1) // PlayRightSound
+			{
+				if (m_fPlayerVolume - EPSILON >= 0.0f) soundManager.PlaySoundWithName(sound::WALK_BLUESUIT);
+				m_nWalkSound = 2;
+			}
+			else if (m_vAnimationTracks[1].m_fPosition <= 0.0f)
+			{
+				m_nWalkSound = 0;
+			}
+		}
+		else
+		{
+			if (m_vAnimationTracks[1].m_fPosition <= SUIT_WALK_FOOT[1] * pAnimationSet->m_fLength && m_nWalkSound == 0) // PlayRightSound
+			{
+				if (m_fPlayerVolume - EPSILON >= 0.0f) soundManager.PlaySoundWithName(sound::WALK_BLUESUIT);
+				m_nWalkSound = 1;
+			}
+			else if (m_vAnimationTracks[1].m_fPosition <= SUIT_WALK_FOOT[0] * pAnimationSet->m_fLength && m_nWalkSound == 1) // PlayLeftSound
+			{
+				if (m_fPlayerVolume - EPSILON >= 0.0f) soundManager.PlaySoundWithName(sound::WALK_BLUESUIT);
+				m_nWalkSound = 2;
+			}
+			else if (m_vAnimationTracks[1].m_fPosition >= pAnimationSet->m_fLength - EPSILON)
+			{
+				m_nWalkSound = 0;
+			}
+		}
+	}
+	else if (m_vfBlendWeight[0] > 0.9f)
+	{
+		shared_ptr<CAnimationSet>  pAnimationSet = m_pAnimationSets->m_vpAnimationSets[m_vAnimationTracks[2].m_nAnimationSet];
+
+		if (m_vAnimationTracks[2].m_fSpeed > 0.0f)
+		{
+			if (m_vAnimationTracks[2].m_fPosition >= SUIT_WALK_FOOT[0] * pAnimationSet->m_fLength && m_nSideWalKSound == 0)
+			{
+				if (m_fPlayerVolume - EPSILON >= 0.0f) soundManager.PlaySoundWithName(sound::WALK_BLUESUIT);
+				m_nSideWalKSound = 1;
+			}
+			else if (m_vAnimationTracks[2].m_fPosition >= SUIT_WALK_FOOT[1] * pAnimationSet->m_fLength && m_nSideWalKSound == 1)
+			{
+				if (m_fPlayerVolume - EPSILON >= 0.0f) soundManager.PlaySoundWithName(sound::WALK_BLUESUIT);
+				m_nSideWalKSound = 2;
+			}
+			else if (m_vAnimationTracks[2].m_fPosition <= 0.0f)
+			{
+				m_nSideWalKSound = 0;
+			}
+		}
+		else
+		{
+			if (m_vAnimationTracks[2].m_fPosition <= SUIT_WALK_FOOT[1] * pAnimationSet->m_fLength && m_nSideWalKSound == 0)
+			{
+				if (m_fPlayerVolume - EPSILON >= 0.0f) soundManager.PlaySoundWithName(sound::WALK_BLUESUIT);
+				m_nSideWalKSound = 1;
+			}
+			else if (m_vAnimationTracks[2].m_fPosition <= SUIT_WALK_FOOT[0] * pAnimationSet->m_fLength && m_nSideWalKSound == 1)
+			{
+				if (m_fPlayerVolume - EPSILON >= 0.0f) soundManager.PlaySoundWithName(sound::WALK_BLUESUIT);
+				m_nSideWalKSound = 2;
+			}
+			else if (m_vAnimationTracks[2].m_fPosition >= pAnimationSet->m_fLength - EPSILON)
+			{
+				m_nSideWalKSound = 0;
+			}
+		}
+	}
+	else
+	{
+		if (m_vAnimationTracks[1].m_fSpeed > 0.0f)
+		{
+			shared_ptr<CAnimationSet>  pAnimationSet = m_pAnimationSets->m_vpAnimationSets[m_vAnimationTracks[1].m_nAnimationSet];
+
+			if (m_vAnimationTracks[1].m_fPosition >= SUIT_WALK_FOOT[0] * pAnimationSet->m_fLength && m_nWalkSound == 0) // PlayLeftSound
+			{
+				if (m_fPlayerVolume - EPSILON >= 0.0f) soundManager.PlaySoundWithName(sound::WALK_BLUESUIT);
+				m_nWalkSound = 1;
+			}
+			else if (m_vAnimationTracks[1].m_fPosition >= SUIT_WALK_FOOT[1] * pAnimationSet->m_fLength && m_nWalkSound == 1) // PlayRightSound
+			{
+				if (m_fPlayerVolume - EPSILON >= 0.0f) soundManager.PlaySoundWithName(sound::WALK_BLUESUIT);
+				m_nWalkSound = 2;
+			}
+			else if (m_vAnimationTracks[1].m_fPosition <= 0.0f && m_nWalkSound == 2)
+			{
+				m_nWalkSound = 0;
+			}
+		}
+		else
+		{
+			shared_ptr<CAnimationSet>  pAnimationSet = m_pAnimationSets->m_vpAnimationSets[m_vAnimationTracks[1].m_nAnimationSet];
+
+			if (m_vAnimationTracks[1].m_fPosition <= SUIT_WALK_FOOT[1] * pAnimationSet->m_fLength && m_nWalkSound == 0) // PlayRightSound
+			{
+				if (m_fPlayerVolume - EPSILON >= 0.0f) soundManager.PlaySoundWithName(sound::WALK_BLUESUIT);
+				m_nWalkSound = 1;
+			}
+			else if (m_vAnimationTracks[1].m_fPosition <= SUIT_WALK_FOOT[0] * pAnimationSet->m_fLength && m_nWalkSound == 1) // PlayLeftSound
+			{
+				if (m_fPlayerVolume - EPSILON >= 0.0f) soundManager.PlaySoundWithName(sound::WALK_BLUESUIT);
+				m_nWalkSound = 2;
+			}
+			else if (m_vAnimationTracks[1].m_fPosition >= pAnimationSet->m_fLength - EPSILON && m_nWalkSound == 2)
+			{
+				m_nWalkSound = 0;
+			}
+		}
+	}
+}
+
 void CBlueSuitAnimationController::CalculateRightHandMatrix()
 {
 	XMFLOAT3 axis = { 0.f,0.f,1.f };
@@ -192,7 +342,7 @@ void CBlueSuitAnimationController::BlendAnimation(int nTrack1, int nTrack2, floa
 
 	float fPosition_0; 
 	float fPosition_1;
-	if (fBlendWeight < 0.5f)	// TRACK[1]이 더 큼
+	if (fBlendWeight < 0.51f)	// TRACK[1]이 더 큼 // 사운드 때문에 .51로 수정
 	{
 		fPosition_0 = m_vAnimationTracks[nTrack1].UpdatePosition(m_vAnimationTracks[nTrack1].m_fPosition, fElapsedTime, pAnimationSet_0->m_fLength);
 		if(m_vAnimationTracks[nTrack1].m_fSpeed > 0.0f)
@@ -269,6 +419,7 @@ void CBlueSuitAnimationController::TransitionBlueSuitPlayer(float fElapsedTime)
 	else if (nTransitionIndex == 1)	// WALK -> IDLE
 	{
 		TransitionWALKtoIDLE(fElapsedTime, nTransitionIndex);
+
 	}
 	else if (nTransitionIndex == 2) // WALK -> RUN
 	{
@@ -352,6 +503,9 @@ void CBlueSuitAnimationController::TransitionWALKtoIDLE(float fElapsedTime, int 
 		SetTrackSpeed(2, 1.0f);
 		SetTrackEnable(3, false);
 		SetTrackPosition(3, 0.0f);
+
+		m_nWalkSound = 0;
+		m_nSideWalKSound = 0;
 	}
 }
 
@@ -388,6 +542,8 @@ void CBlueSuitAnimationController::TransitionWALKtoRUN(float fElapsedTime, int n
 		SetTrackPosition(2, 0.0f);
 		SetTrackSpeed(2, 1.0f);
 		SetTrackEnable(3, true);
+
+		m_nRunSound = 0;
 	}
 }
 
@@ -421,6 +577,9 @@ void CBlueSuitAnimationController::TransitionRUNtoWALK(float fElapsedTime, int n
 		SetTrackEnable(2, true);
 		SetTrackEnable(3, false);
 		SetTrackPosition(3, 0.0f);
+
+		m_nWalkSound = 0;
+		m_nSideWalKSound = 0;
 	}
 }
 
@@ -634,6 +793,12 @@ void CZombieAnimationController::AdvanceTime(float fElapsedTime, CGameObject* pR
 						xmf4x4Transform = Matrix4x4::Add(xmf4x4Transform, xmf4x4TrackTransform);
 						m_pAnimationSets->m_vpBoneFrameCaches[j]->m_xmf4x4ToParent = xmf4x4Transform;
 					}
+
+					if (k == 1)	//WALK SOUND
+					{
+						WalkSoundProcess(k, pAnimationSet, fPosition);
+					}
+
 					m_vAnimationTracks[k].HandleCallback();
 				}
 			}
@@ -664,6 +829,26 @@ void CZombieAnimationController::AdvanceTime(float fElapsedTime, CGameObject* pR
 				SetTrackEnable(2, false);
 				SetTrackPosition(2, 0.0f);
 			}
+
+			
+			{
+				SoundManager& soundManager = soundManager.GetInstance();
+				soundManager.SetVolume(sound::ATTACK_ZOMBIE, m_fPlayerVolume);
+				if (m_vAnimationTracks[2].m_fPosition >= ZOMBIE_ATTACK[0] * pAnimationSet->m_fLength && m_nAttackSound == 0) // PlayLeftSound
+				{
+					if (m_fPlayerVolume - EPSILON >= 0.0f) soundManager.PlaySoundWithName(sound::ATTACK_ZOMBIE);
+					m_nAttackSound = 1;
+				}
+				else if (m_vAnimationTracks[2].m_fPosition >= ZOMBIE_ATTACK[1] * pAnimationSet->m_fLength && m_nAttackSound == 1) // PlayRightSound
+				{
+					if (m_fPlayerVolume - EPSILON >= 0.0f) soundManager.PlaySoundWithName(sound::ATTACK_ZOMBIE);
+					m_nAttackSound = 2;
+				}
+				else if (fPosition >= pAnimationSet->m_fLength - EPSILON)
+				{
+					m_nAttackSound = 0;
+				}
+			}
 		}
 		pRootGameObject->UpdateTransform(NULL);
 
@@ -680,6 +865,36 @@ void CZombieAnimationController::AdvanceTime(float fElapsedTime, CGameObject* pR
 
 		OnRootMotion(pRootGameObject);
 		OnAnimationIK(pRootGameObject);
+	}
+}
+
+void CZombieAnimationController::WalkSoundProcess(int k, std::shared_ptr<CAnimationSet>& pAnimationSet, float fPosition)
+{
+	SoundManager& soundManager = soundManager.GetInstance();
+	soundManager.SetVolume(sound::WALK_ZOMBIE, m_fPlayerVolume);
+	if (m_vAnimationTracks[k].m_fPosition >= ZOMBIE_LFET_FOOT[0] * pAnimationSet->m_fLength && m_nWalkSound == 0) // PlayLeftSound
+	{
+		if (m_fPlayerVolume - EPSILON >= 0.0f) soundManager.PlaySoundWithName(sound::WALK_ZOMBIE);
+		m_nWalkSound = 1;
+	}
+	else if (m_vAnimationTracks[k].m_fPosition >= ZOMBIE_LFET_FOOT[1] * pAnimationSet->m_fLength && m_nWalkSound == 2) // PlayLeftSound
+	{
+		if (m_fPlayerVolume - EPSILON >= 0.0f) soundManager.PlaySoundWithName(sound::WALK_ZOMBIE);
+		m_nWalkSound = 3;
+	}
+	else if (m_vAnimationTracks[k].m_fPosition >= ZOMBIE_RIGHT_FOOT[0] * pAnimationSet->m_fLength && m_nWalkSound == 1) // PlayRightSound
+	{
+		if (m_fPlayerVolume - EPSILON >= 0.0f) soundManager.PlaySoundWithName(sound::WALK_ZOMBIE);
+		m_nWalkSound = 2;
+	}
+	else if (m_vAnimationTracks[k].m_fPosition >= ZOMBIE_RIGHT_FOOT[1] * pAnimationSet->m_fLength && m_nWalkSound == 3) // PlayRightSound
+	{
+		if (m_fPlayerVolume - EPSILON >= 0.0f) soundManager.PlaySoundWithName(sound::WALK_ZOMBIE);
+		m_nWalkSound = 4;
+	}
+	else if (fPosition == pAnimationSet->m_fLength - EPSILON)
+	{
+		m_nWalkSound = 0;
 	}
 }
 
@@ -801,6 +1016,7 @@ void CZombieAnimationController::TransitionWALKtoIDLE(float fElapsedTime, int nT
 		SetTrackEnable(0, true);
 		SetTrackEnable(1, false);
 		SetTrackPosition(1, 0.0f);
+		m_nWalkSound = 0;
 	}
 }
 

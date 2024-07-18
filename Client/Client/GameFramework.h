@@ -173,5 +173,7 @@ private:
 	int m_nGameState = GAME_STATE::IN_GAME;
 	float m_fEndingElapsedTime = 0.0f;
 	XMFLOAT4 m_xmf4EndFog = XMFLOAT4(0.0f, 0.0f, 0.0f, 0.0f);
+
+	float m_fBGMVolume = 0.1f;
 };
 

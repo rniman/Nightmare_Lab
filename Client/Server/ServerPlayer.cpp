@@ -610,7 +610,7 @@ void CServerBlueSuitPlayer::Update(float fElapsedTime, shared_ptr<CServerCollisi
 	CServerPlayer::Update(fElapsedTime, pCollisionManager);
 }
 
-void CServerBlueSuitPlayer::UpdatePicking()
+void CServerBlueSuitPlayer::UpdatePicking(INT8 nClientId)
 {
 	if (!IsAlive()) // 죽음
 	{
@@ -639,7 +639,7 @@ void CServerBlueSuitPlayer::UpdatePicking()
 
 	if (AddItem(pPickedObject) != -1)	// 이미 있던 걸 피킹한거 -> 나중에 아예 피킹 안잡히게 수정해야함
 	{
-		pPickedObject->UpdatePicking();
+		pPickedObject->UpdatePicking(m_nPlayerId);
 	}
 }
 
@@ -826,7 +826,7 @@ void CServerBlueSuitPlayer::RightClickProcess(shared_ptr<CServerCollisionManager
 		{
 			if (door->IsEscape())
 			{
-				door->EscapeDoorOpen();
+				door->EscapeDoorOpen(m_nPlayerId);
 				UseFuse(pCollisionManager);
 				m_selectItem = RightItem::NONE;
 				m_bWinner = true;
@@ -965,7 +965,7 @@ void CServerZombiePlayer::Update(float fElapsedTime, shared_ptr<CServerCollision
 	CServerPlayer::Update(fElapsedTime, pCollisionManager);
 }
 
-void CServerZombiePlayer::UpdatePicking()
+void CServerZombiePlayer::UpdatePicking(INT8 nClientId)
 {
 	shared_ptr<CServerGameObject> pPickedObject = m_pPickedObject.lock();
 	if (!pPickedObject)
@@ -989,7 +989,7 @@ void CServerZombiePlayer::UpdatePicking()
 
 	if (!dynamic_pointer_cast<CServerItemObject>(pPickedObject))	// 아이템이 아님
 	{
-		pPickedObject->UpdatePicking();
+		pPickedObject->UpdatePicking(m_nPlayerId);
 	}
 }
 

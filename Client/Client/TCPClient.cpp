@@ -2,7 +2,7 @@
 #include "TCPClient.h"
 #include "GameFramework.h"
 #include "Player.h"
-
+#include "Sound.h"
 
 CTcpClient::CTcpClient()
 {
@@ -213,6 +213,18 @@ void CTcpClient::OnProcessingReadMessage(HWND hWnd, UINT nMessageID, WPARAM wPar
 	case HEAD_ZOMBIE_WIN:
 		PostMessage(hWnd, WM_END_GAME, 1, 0);
 		break;
+	case HEAD_DRAWER_SOUND:
+	{
+		SoundManager& soundManager = soundManager.GetInstance();
+		soundManager.PlaySoundWithName(sound::USE_DRAWER);
+	}
+		break;
+	case HEAD_DOOR_SOUND:
+	{
+		SoundManager& soundManager = soundManager.GetInstance();
+		soundManager.PlaySoundWithName(sound::USE_DOOR);
+	}
+		break;
 	default:
 		break;
 	}
@@ -262,22 +274,27 @@ void CTcpClient::UpdateDataFromServer()
 			//[0523] 피킹 오브젝트 설정(외곽선 작업에 필요)
 			UpdatePickedObject(i);
 
-				// 지뢰 충돌
-				int nObjectNum = m_aClientInfo[i].m_playerInfo.m_iMineobjectNum;
-				if (nObjectNum >= 0) {
-					shared_ptr<CGameObject> pGameObject = g_collisionManager.GetCollisionObjectWithNumber(nObjectNum).lock();
-					auto mine = dynamic_pointer_cast<CMineObject>(pGameObject);
-					if (mine)
+			// 지뢰 충돌
+			int nObjectNum = m_aClientInfo[i].m_playerInfo.m_iMineobjectNum;
+			if (nObjectNum >= 0) {
+				shared_ptr<CGameObject> pGameObject = g_collisionManager.GetCollisionObjectWithNumber(nObjectNum).lock();
+				auto mine = dynamic_pointer_cast<CMineObject>(pGameObject);
+				if (mine)
+				{
+					mine->SetCollide(true);
+					shared_ptr<CZombiePlayer> pZombiePlayer = dynamic_pointer_cast<CZombiePlayer>(m_apPlayers[i]);
+					if (pZombiePlayer)
 					{
-						mine->SetCollide(true);
-						shared_ptr<CZombiePlayer> pZombiePlayer = dynamic_pointer_cast<CZombiePlayer>(m_apPlayers[i]);
-						if (pZombiePlayer) 
-						{
-							pZombiePlayer->SetEectricShock();
-						}
+						pZombiePlayer->SetEectricShock();
 					}
+
+					SoundManager& soundManager = soundManager.GetInstance();
+					soundManager.SetVolume(sound::ACTIVE_MINE, m_apPlayers[i]->GetPlayerVolume());
+					if (m_apPlayers[i]->GetPlayerVolume() - EPSILON >= 0.0f) soundManager.PlaySoundWithName(sound::ACTIVE_MINE);
+					soundManager.PlaySoundWithName(sound::ACTIVE_MINE);
 				}
 			}
+		}
 
 		if (i == ZOMBIEPLAYER)
 		{
@@ -294,10 +311,10 @@ void CTcpClient::UpdateDataFromServer()
 			int nObjectNum = m_aClientInfo[i].m_anObjectNum[j];
 
 
-				if (nObjectNum <= -1 || nObjectNum >= g_collisionManager.GetNumOfCollisionObject())
-				{
-					continue;
-				}
+			if (nObjectNum <= -1 || nObjectNum >= g_collisionManager.GetNumOfCollisionObject())
+			{
+				continue;
+			}
 #ifdef LOADSCENE
 			shared_ptr<CGameObject> pGameObject = g_collisionManager.GetCollisionObjectWithNumber(nObjectNum).lock();
 			if (pGameObject)
@@ -574,6 +591,11 @@ void CTcpClient::UpdatePlayer(int nIndex)
 			shared_ptr<CItemObject> pItemObject = dynamic_pointer_cast<CItemObject>(pGameObject);
 			if (pItemObject) {
 				pItemObject->SetObtain(true);
+				if (nIndex == m_nMainClientId && !pBlueSuitPlayer->IsSlotItemObtain(j))
+				{
+					SoundManager& soundManager = soundManager.GetInstance();
+					soundManager.PlaySoundWithName(sound::GET_ITEM_BLUESUIT);
+				}
 				pBlueSuitPlayer->SetSlotItem(j, m_aClientInfo[nIndex].m_nSlotObjectNum[j]);
 			}
 		}
@@ -599,6 +621,11 @@ void CTcpClient::UpdatePlayer(int nIndex)
 			shared_ptr<CItemObject> pItemObject = dynamic_pointer_cast<CItemObject>(pGameObject);
 			if (pItemObject) {
 				pItemObject->SetObtain(true);
+				if (nIndex == m_nMainClientId && !pBlueSuitPlayer->IsFuseObtain(j))
+				{
+					SoundManager& soundManager = soundManager.GetInstance();
+					soundManager.PlaySoundWithName(sound::GET_ITEM_BLUESUIT);
+				}
 				pBlueSuitPlayer->SetFuseItem(j, m_aClientInfo[nIndex].m_nFuseObjectNum[j]);
 			}
 		}

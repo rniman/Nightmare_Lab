@@ -355,7 +355,10 @@ public:
 	weak_ptr<CGameObject> m_pRootMotionObject;	//지금 사용안하는 중
 	XMFLOAT3 m_xmf3FirstRootMotionPosition = XMFLOAT3(0.0f, 0.0f, 0.0f);
 
-
+public:
+	void SetPlayerVolume(float fPlayerVolume) { m_fPlayerVolume = fPlayerVolume; }
+protected:
+	float m_fPlayerVolume = 0.0f;
 };
 
 

@@ -11,6 +11,9 @@ enum PlayerState
 
 class CAnimationController;
 
+constexpr float SUIT_WALK_FOOT[2]{ 0.3f, 0.7f };
+constexpr float SUIT_RUN_FOOT[2]{ 0.3f, 0.7f };
+
 class CBlueSuitAnimationController : public CAnimationController
 {
 public:
@@ -19,6 +22,10 @@ public:
 
 	virtual void OnRootMotion(CGameObject* pRootGameObject) {}
 	virtual void AdvanceTime(float fElapsedTime, CGameObject* pRootGameObject);
+
+	void RunSoundProcess();
+
+	void WalkSoundProcess();
 
 	void BlendAnimation(int nTrack1, int nTrack2, float fElapsedTime, float fBlentWeight);
 	void TransitionBlueSuitPlayer(float fElapsedTime);
@@ -43,6 +50,10 @@ public:
 
 	XMFLOAT4X4 m_xmf4x4RightHandRotate;
 private:
+	INT8 m_nWalkSound = 0;
+	INT8 m_nSideWalKSound = 0;
+	INT8 m_nRunSound = 0;
+
 	int m_nWrist_L = -1;
 	int m_nShoulder_L = -1;
 
@@ -73,7 +84,9 @@ private:
 	bool m_bSelectItem = false;
 };
 
-//class CPlayer;
+constexpr float ZOMBIE_LFET_FOOT[2]{0.1f, 0.6f};
+constexpr float ZOMBIE_RIGHT_FOOT[2]{0.3f, 0.8f};
+constexpr float ZOMBIE_ATTACK[2]{0.3f, 0.6f};
 
 class CZombieAnimationController : public CAnimationController
 {
@@ -83,6 +96,7 @@ public:
 
 	virtual void OnRootMotion(CGameObject* pRootGameObject) {}
 	virtual void AdvanceTime(float fElapsedTime, CGameObject* pRootGameObject);
+	void WalkSoundProcess(int k, std::shared_ptr<CAnimationSet>& pAnimationSet, float fPosition);
 	void BlendAnimation(int nTrack1, int nTrack2, float fElapsedTime, float fBlentWeight);
 	void TransitionZombiePlayer(float fElapsedTime);
 	void TransitionIDLEtoWALK(float fElapsedTime, int nTransitionIndex);
@@ -91,7 +105,11 @@ public:
 
 	int GetBoneFrameIndex(char* frameName);
 	void SetPlayer(shared_ptr<CPlayer> pPlayer) { m_pPlayer = pPlayer; }
+
 private:
+	INT8 m_nWalkSound = 0; // 0 ->(left) 1 ->(right) 2 ->(left) 3 ->(right) 4 -> 0 
+	INT8 m_nAttackSound = 0;
+
 	int m_nStartSpine = -1;
 	int m_nStartNeck = -1;
 	int m_nEndNeck = -1;

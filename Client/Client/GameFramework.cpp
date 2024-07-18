@@ -5,6 +5,7 @@
 #include "GameFramework.h"
 #include "Player.h"
 #include "Collision.h"
+#include "Sound.h"
 
  extern UINT gnCbvSrvDescriptorIncrementSize;
  extern UINT gnRtvDescriptorIncrementSize;
@@ -56,6 +57,9 @@ bool CGameFramework::OnCreate(HINSTANCE hInstance, HWND hMainWnd)
 #endif
 
 	CoInitialize(NULL);
+	
+	SoundManager& soundManager = SoundManager::GetInstance();
+	soundManager.Initialize();
 
 	//m_pTcpClient = make_shared<CTcpClient>(hMainWnd);
 
@@ -548,6 +552,14 @@ void CGameFramework::OnProcessingKeyboardMessage(HWND hWnd, UINT nMessageID, WPA
 	case WM_KEYUP:
 		switch (wParam)
 		{
+		case VK_UP:
+			m_fBGMVolume += 0.1f;
+			if (m_fBGMVolume > 1.0f) m_fBGMVolume = 1.0f;
+			break;
+		case VK_DOWN:
+			m_fBGMVolume -= 0.1f;
+			if (m_fBGMVolume < 0.0f) m_fBGMVolume = 0.0f;
+			break;
 		case VK_ESCAPE:
 			::PostQuitMessage(0);
 			break;
@@ -741,9 +753,20 @@ void CGameFramework::OnProcessingWindowMessage(HWND hWnd, UINT nMessageID, WPARA
 
 void CGameFramework::OnProcessingEndGameMessage(WPARAM& wParam)
 {
+	SoundManager& soundManager = soundManager.GetInstance();
+	
 	if (LOWORD(wParam) == 0)	// BLUESUIT WIN
 	{
 		m_nGameState = GAME_STATE::BLUE_SUIT_WIN;
+
+		if (m_nMainClientId == ZOMBIEPLAYER)
+		{
+			soundManager.PlaySoundWithName(sound::GAME_OVER, -1);
+		}
+		else
+		{
+			soundManager.PlaySoundWithName(sound::GAME_WIN, -1);
+		}
 	}
 	else if (LOWORD(wParam) == 1)	// ZOMBIE WIN
 	{
@@ -751,6 +774,15 @@ void CGameFramework::OnProcessingEndGameMessage(WPARAM& wParam)
 		for (int i = ZOMBIEPLAYER + 1; i < ZOMBIEPLAYER + 1 + 4; ++i)
 		{
 			m_apPlayer[i]->SetAlive(false);
+		}
+
+		if (m_nMainClientId == ZOMBIEPLAYER)
+		{
+			soundManager.PlaySoundWithName(sound::GAME_WIN, -1);
+		}
+		else
+		{
+			soundManager.PlaySoundWithName(sound::GAME_OVER, -1);
 		}
 	}
 
@@ -875,9 +907,14 @@ void CGameFramework::BuildObjects()
 {
 	m_GameTimer.Reset();
 
+	SoundManager& soundManager = soundManager.GetInstance();
+	
 	m_d3dCommandList->Reset(m_d3dCommandAllocator[m_nSwapChainBufferIndex].Get(), NULL);
 	if (m_nGameState == GAME_STATE::IN_LOBBY)
 	{
+		soundManager.PlaySoundWithName(sound::LOBBY_SCENE, -1);
+		soundManager.SetVolume(sound::LOBBY_SCENE, m_fBGMVolume);
+
 		m_pScene = make_shared<CLobbyScene>(m_hWnd, m_pCamera);
 		m_pScene->SetNumOfSwapChainBuffers(m_nSwapChainBuffers);
 		m_pScene->SetRTVDescriptorHeap(m_d3dRtvDescriptorHeap);
@@ -905,6 +942,10 @@ void CGameFramework::BuildObjects()
 	}
 	else if (m_nGameState == GAME_STATE::IN_GAME)
 	{
+		soundManager.StopSound(sound::LOBBY_SCENE);
+		soundManager.PlaySoundWithName(sound::MAIN_SCENE, -1);
+		soundManager.SetVolume(sound::MAIN_SCENE, m_fBGMVolume);
+
 		g_collisionManager.CreateCollision(SPACE_FLOOR, SPACE_WIDTH, SPACE_DEPTH);
 
 		m_pScene = make_shared<CMainScene>();
@@ -928,31 +969,10 @@ void CGameFramework::BuildObjects()
 			m_nMainClientId = nMainClientId;
 			m_pMainPlayer = m_apPlayer[nMainClientId];
 			m_pScene->SetMainPlayer(m_pMainPlayer);
+			
+			m_pMainPlayer->SetPlayerVolume(1.0f);
 		}
 
-		//for (int i = 0; i < MAX_CLIENT; ++i)
-		//{
-		//	m_apPlayer[i] = m_pScene->m_apPlayer[i];
-		//	m_pTcpClient->SetPlayer(m_pScene->m_apPlayer[i], i);
-		//}
-
-		////[0626] 포스트 프로세싱 셰이더가 Scene으로 오면서 옮김
-		//m_pScene->m_pPostProcessingShader = new CPostProcessingShader();
-		//m_pScene->m_pPostProcessingShader->CreateShader(m_d3d12Device.Get(), m_d3dCommandList.Get(), m_pScene->GetGraphicsRootSignature().Get(), 1, NULL, DXGI_FORMAT_D24_UNORM_S8_UINT);
-		//
-		//D3D12_CPU_DESCRIPTOR_HANDLE d3dRtvCPUDescriptorHandle = m_d3dRtvDescriptorHeap->GetCPUDescriptorHandleForHeapStart();
-		//d3dRtvCPUDescriptorHandle.ptr += (::gnRtvDescriptorIncrementSize * m_nSwapChainBuffers);
-		//
-		//DXGI_FORMAT pdxgiResourceFormats[ADD_RENDERTARGET_COUNT] = { DXGI_FORMAT_R8G8B8A8_UNORM,  DXGI_FORMAT_R8G8B8A8_UNORM, DXGI_FORMAT_R32_FLOAT ,DXGI_FORMAT_R32G32B32A32_FLOAT };
-		//m_pScene->m_pPostProcessingShader->CreateResourcesAndRtvsSrvs(m_d3d12Device.Get(), m_d3dCommandList.Get(), ADD_RENDERTARGET_COUNT, pdxgiResourceFormats, d3dRtvCPUDescriptorHandle); //SRV to (Render Targets) + (Depth Buffer)
-		//
-		//d3dRtvCPUDescriptorHandle.ptr += (::gnRtvDescriptorIncrementSize * ADD_RENDERTARGET_COUNT);
-		//m_pScene->m_pPostProcessingShader->CreateShadowMapResource(m_d3d12Device.Get(), m_d3dCommandList.Get(), m_pScene->m_nLights, d3dRtvCPUDescriptorHandle);
-		////D3D12_GPU_DESCRIPTOR_HANDLE d3dDsvGPUDescriptorHandle = CScene::CreateShaderResourceView(m_d3d12Device.Get(), m_d3dDepthStencilBuffer.Get(), DXGI_FORMAT_R32_FLOAT);
-		//m_pScene->m_pPostProcessingShader->CreateLightCamera(m_d3d12Device.Get(), m_d3dCommandList.Get(), m_pScene.get());
-		//
-		////[0523] 이제 좀비 플레이어 외에도 사용, COutLineShader 내부에서 m_pPostProcessingShader->GetDsvCPUDesctriptorHandle(0)을 사용하기위해서 필요
-		//dynamic_cast<COutLineShader*>(m_pScene->m_vForwardRenderShader[OUT_LINE_SHADER].get())->SetPostProcessingShader(m_pScene->m_pPostProcessingShader);
 		m_d3dCommandList->Close();
 		ID3D12CommandList* ppd3dCommandLists[] = { m_d3dCommandList.Get() };
 		m_d3dCommandQueue->ExecuteCommandLists(1, ppd3dCommandLists);
@@ -1164,15 +1184,20 @@ void CGameFramework::FrameAdvance()
 {
 	m_GameTimer.Tick(0.0f);
 
+	SoundManager& soundManager = SoundManager::GetInstance();
+	soundManager.UpdateSystem();
+
 	if (m_nGameState == GAME_STATE::IN_LOBBY)
 	{
 		ProcessInput();
 		AnimateObjects();
+		soundManager.SetVolume(sound::LOBBY_SCENE, m_fBGMVolume);
 	}
 	else if(m_nGameState == GAME_STATE::IN_GAME)
 	{
 		ProcessInput(); 
 		AnimateObjects();
+		soundManager.SetVolume(sound::MAIN_SCENE, m_fBGMVolume);
 	}
 	else
 	{

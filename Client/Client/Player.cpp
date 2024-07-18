@@ -7,6 +7,7 @@
 #include "Collision.h"
 #include "EnvironmentObject.h"
 #include "TeleportLocation.h"
+#include "Sound.h"
 //#define _WITH_DEBUG_CALLBACK_DATA
 
 void CSoundCallbackHandler::HandleCallback(void* pCallbackData, float fTrackPosition)
@@ -435,6 +436,12 @@ void CPlayer::Render(ID3D12GraphicsCommandList* pd3dCommandList)
 	}
 }
 
+void CPlayer::SetPlayerVolume(float fPlayerVolume)
+{
+	m_fPlayerVolume = fPlayerVolume;
+	m_pSkinnedAnimationController->SetPlayerVolume(fPlayerVolume);
+}
+
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 // 
 
@@ -607,6 +614,11 @@ void CBlueSuitPlayer::UpdateAnimation()
 				{
 					m_pSkinnedAnimationController->m_bTransition = true;
 					m_pSkinnedAnimationController->m_nNextState = PlayerState::DEATH;
+
+					//Á×´Â »ç¿îµå
+					SoundManager& soundManager = soundManager.GetInstance();
+					soundManager.SetVolume(sound::DEAD_BLUESUIT, m_fPlayerVolume);
+					if (m_fPlayerVolume - EPSILON >= 0.0f) soundManager.PlaySoundWithName(sound::DEAD_BLUESUIT);
 				}
 			}
 		}
@@ -1001,6 +1013,11 @@ void CBlueSuitPlayer::Teleport()
 
 void CBlueSuitPlayer::SetSlotItem(int nIndex, int nReferenceObjectNum)
 {
+	//if (!m_apSlotItems[nIndex]->IsObtained())
+	//{
+	//	SoundManager& soundManager = soundManager.GetInstance();
+	//	soundManager.PlaySoundWithName(sound::GET_ITEM_BLUESUIT);
+	//}
 	m_apSlotItems[nIndex]->SetObtain(true);
 	m_apSlotItems[nIndex]->SetReferenceNumber(nReferenceObjectNum);
 }
@@ -1013,6 +1030,11 @@ void CBlueSuitPlayer::SetSlotItemEmpty(int nIndex)
 
 void CBlueSuitPlayer::SetFuseItem(int nIndex, int nReferenceObjectNum)
 {
+	//if (!m_apFuseItems[nIndex]->IsObtained())
+	//{
+	//	SoundManager& soundManager = soundManager.GetInstance();
+	//	soundManager.PlaySoundWithName(sound::GET_ITEM_BLUESUIT);
+	//}
 	m_apFuseItems[nIndex]->SetObtain(true);
 	m_apFuseItems[nIndex]->SetReferenceNumber(nReferenceObjectNum);
 }
@@ -1315,6 +1337,7 @@ void CZombiePlayer::SetEectricShock()
 	m_pcbMappedTime->time = 0.0f;
 	m_bElectricBlend = true;
 	m_pcbMappedTime->usePattern = 1.0f;
+
 }
 
 void CZombiePlayer::Render(ID3D12GraphicsCommandList* pd3dCommandList)
