@@ -136,7 +136,7 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
 	
 	// 기본 메시지 루프입니다:
 	while (gGameFramework.IsConnected())
-	{
+	{ 
 		if (::PeekMessage(&msg, NULL, 0, 0, PM_REMOVE))
 		{
 			if (msg.message == WM_QUIT)

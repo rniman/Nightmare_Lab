@@ -249,7 +249,7 @@ shared_ptr<CCamera> CPlayer::ChangeCamera(DWORD nNewCameraMode, float fElapsedTi
 		m_pCamera = OnChangeCamera(FIRST_PERSON_CAMERA, nCurrentCameraMode);
 		m_pCamera->SetTimeLag(0.01f);
 		m_pCamera->SetOffset(XMFLOAT3(0.0f, 1.54f, 0.0f));
-		m_pCamera->GenerateProjectionMatrix(0.01f, 100.0f, ASPECT_RATIO, 60.0f);
+		m_pCamera->GenerateProjectionMatrix(0.01f, 100.0f, ASPECT_RATIO,70.0f);
 		m_pCamera->SetViewport(0, 0, FRAME_BUFFER_WIDTH, FRAME_BUFFER_HEIGHT, 0.0f, 1.0f);
 		m_pCamera->SetScissorRect(0, 0, FRAME_BUFFER_WIDTH, FRAME_BUFFER_HEIGHT);
 		break;
@@ -1469,7 +1469,7 @@ shared_ptr<CCamera> CZombiePlayer::ChangeCamera(DWORD nNewCameraMode, float fEla
 	shared_ptr<CCamera> camera = CPlayer::ChangeCamera(nNewCameraMode, fElapsedTime);
 	if (camera->GetMode() != THIRD_PERSON_CAMERA) {		
 
-		m_pCamera->GenerateProjectionMatrix(0.01f, 100.0f, ASPECT_RATIO, 60.0f);
+		//m_pCamera->GenerateProjectionMatrix(0.01f, 100.0f, ASPECT_RATIO, 60.0f);
 		int index = dynamic_pointer_cast<CZombieAnimationController>(m_pSkinnedAnimationController)->GetBoneFrameIndex((char*)"EyesSock");
 		XMFLOAT3 offset = m_pSkinnedAnimationController->GetBoneFramePositionVector(index);
 		//offset.x = 0.0f; offset.z = 0.0f;

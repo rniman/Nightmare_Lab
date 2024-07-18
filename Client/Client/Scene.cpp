@@ -546,7 +546,7 @@ void CLobbyScene::BuildObjects(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandLi
 			XMFLOAT3 xmf3Scale = XMFLOAT3(0.3f, 0.5f, 0.3f);
 			m_apPlayer[i]->SetWorldPostion(xmf3Position);
 			m_apPlayer[i]->SetScale(xmf3Scale);
-			m_apPlayer[i]->Rotate(0.0f, 135.0f, .0f);
+			m_apPlayer[i]->Rotate(0.0f, 135.0f, 0.0f);
 			m_apPlayer[i]->OnUpdateToParent();
 		}
 		else

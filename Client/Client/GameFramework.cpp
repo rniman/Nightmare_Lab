@@ -766,10 +766,12 @@ void CGameFramework::OnProcessingEndGameMessage(WPARAM& wParam)
 		if (m_nMainClientId == ZOMBIEPLAYER)
 		{
 			soundManager.PlaySoundWithName(sound::GAME_OVER, -1);
+			soundManager.SetVolume(sound::GAME_OVER, 0.25f);
 		}
 		else
 		{
 			soundManager.PlaySoundWithName(sound::GAME_WIN, -1);
+			soundManager.SetVolume(sound::GAME_WIN, 0.25f);
 		}
 	}
 	else if (LOWORD(wParam) == 1)	// ZOMBIE WIN
@@ -783,10 +785,12 @@ void CGameFramework::OnProcessingEndGameMessage(WPARAM& wParam)
 		if (m_nMainClientId == ZOMBIEPLAYER)
 		{
 			soundManager.PlaySoundWithName(sound::GAME_WIN, -1);
+			soundManager.SetVolume(sound::GAME_WIN, 0.25f);
 		}
 		else
 		{
 			soundManager.PlaySoundWithName(sound::GAME_OVER, -1);
+			soundManager.SetVolume(sound::GAME_OVER, 0.25f);
 		}
 	}
 
@@ -916,6 +920,7 @@ void CGameFramework::BuildObjects()
 	m_d3dCommandList->Reset(m_d3dCommandAllocator[m_nSwapChainBufferIndex].Get(), NULL);
 	if (m_nGameState == GAME_STATE::IN_LOBBY)
 	{
+		m_fBGMVolume = 0.25f;
 		soundManager.PlaySoundWithName(sound::LOBBY_SCENE, -1);
 		soundManager.SetVolume(sound::LOBBY_SCENE, m_fBGMVolume);
 
@@ -946,6 +951,7 @@ void CGameFramework::BuildObjects()
 	}
 	else if (m_nGameState == GAME_STATE::IN_GAME)
 	{
+		m_fBGMVolume = 0.07f;
 		soundManager.StopSound(sound::LOBBY_SCENE);
 		soundManager.PlaySoundWithName(sound::MAIN_SCENE, -1);
 		soundManager.SetVolume(sound::MAIN_SCENE, m_fBGMVolume);
@@ -1223,13 +1229,13 @@ void CGameFramework::FrameAdvance()
 	{
 		ProcessInput();
 		AnimateObjects();
-		soundManager.SetVolume(sound::LOBBY_SCENE, m_fBGMVolume);
+		//soundManager.SetVolume(sound::LOBBY_SCENE, m_fBGMVolume);
 	}
 	else if (m_nGameState == GAME_STATE::IN_GAME)
 	{
 		ProcessInput();
 		AnimateObjects();
-		soundManager.SetVolume(sound::MAIN_SCENE, m_fBGMVolume);
+		//soundManager.SetVolume(sound::MAIN_SCENE, m_fBGMVolume);
 	}
 	else
 	{

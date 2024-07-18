@@ -188,6 +188,6 @@ private:
 	ComPtr<ID3D12Resource> m_d3dFramework_info_Resource;
 	CB_FRAMEWORK_INFO* m_cbFramework_info;
 
-	float m_fBGMVolume = 0.1f;
+	float m_fBGMVolume = 0.5f;
 };
 
