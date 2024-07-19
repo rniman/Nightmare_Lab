@@ -97,68 +97,136 @@ bool SoundManager::LoadSound(const char* name, const char* filename, bool loop)
     return true;
 }
 
-void SoundManager::PlaySoundWithName(const char* name, int loopCount)
+FMOD::Channel* SoundManager::PlaySoundWithName(const char* name, float fVolume, int nLoopCount)
 {
+    FMOD::Channel* channel = nullptr;
     auto it = m_pSounds.find(name);
     if (it != m_pSounds.end())
     {
-        FMOD::Channel* channel = nullptr;
         m_pSystem->playSound(m_pSounds[name], nullptr, false, &channel);
-        if (channel && loopCount != 0) 
+        if (channel)
         {
-            channel->setLoopCount(loopCount);  // 반복 횟수 설정
+            if (nLoopCount != 0)
+            {
+                channel->setLoopCount(nLoopCount);  // 반복 횟수 설정
+            }
+            channel->setVolume(fVolume);  // 볼륨 설정
+            m_vpChannels[name].push_back(channel);  // 채널 추가
         }
-        m_pChannels[name] = channel;
     }
+    return channel;
 }
 
-void SoundManager::PauseSound(const char* name)
-{
-    auto it = m_pChannels.find(name);
-    if (it != m_pChannels.end() && it->second) 
-    {
-        it->second->setPaused(true);
-    }
-}
-
-void SoundManager::ResumeSound(const char* name)
-{
-    auto it = m_pChannels.find(name);
-    if (it != m_pChannels.end() && it->second)
-    {
-        it->second->setPaused(false);
-    }
-}
+//void SoundManager::PauseSound(const char* name)
+//{
+//    auto it = m_vpChannels.find(name);
+//    if (it != m_vpChannels.end())
+//    {
+//        for (auto& channel : it->second)
+//        {
+//            if (channel)
+//            {
+//                channel->setPaused(true);
+//            }
+//        }
+//    }
+//}
+//
+//void SoundManager::ResumeSound(const char* name)
+//{
+//    auto it = m_vpChannels.find(name);
+//    if (it != m_vpChannels.end())
+//    {
+//        for (auto& channel : it->second)
+//        {
+//            if (channel)
+//            {
+//                channel->setPaused(false);
+//            }
+//        }
+//    }
+//}
 
 void SoundManager::StopSound(const char* name)
 {
-    auto it = m_pChannels.find(name);
-    if (it != m_pChannels.end() && it->second)
+    auto it = m_vpChannels.find(name);
+    if (it != m_vpChannels.end())
     {
-        it->second->stop();
+        for (auto& channel : it->second)
+        {
+            if (channel)
+            {
+                channel->stop();
+            }
+        }
+        it->second.clear();  // 채널 목록 초기화
     }
 }
 
-void SoundManager::SetVolume(const char* name, float volume)
+void SoundManager::SetVolume(const char* name, float fVolume)
 {
-    auto it = m_pChannels.find(name);
-    if (it != m_pChannels.end() && it->second)
+    auto it = m_vpChannels.find(name);
+    if (it != m_vpChannels.end())
     {
-        it->second->setVolume(volume);  // 음량 설정
+        for (auto& channel : it->second)
+        {
+            if (channel)
+            {
+                channel->setVolume(fVolume);  // 음량 설정
+            }
+        }
     }
 }
 
-void SoundManager::UpdateSystem() 
+void SoundManager::SetVolume(FMOD::Channel* pChannel, float fVolume)
+{
+    if (pChannel)
+    {
+        pChannel->setVolume(fVolume);
+    }
+}
+
+void SoundManager::UpdateSystem()
 {
     if (m_pSystem)
     {
         m_pSystem->update();
     }
+
+    // 채널 정리
+    for (auto& pair : m_vpChannels)
+    {
+        auto& channels = pair.second;
+        channels.erase(std::remove_if(channels.begin(), channels.end(), [](FMOD::Channel* channel){
+            bool isPlaying = false;
+            if (channel && channel->isPlaying(&isPlaying) == FMOD_OK && !isPlaying)
+            {
+                return true; // 채널 삭제
+            }
+            return false;
+            }), channels.end());
+    }
 }
 
 bool SoundManager::IsPlaying(const char* name)
-{ 
+{
     bool bPlaying = false;
-    m_pChannels[name]->isPlaying(&bPlaying);
+    auto it = m_vpChannels.find(name);
+    if (it != m_vpChannels.end())
+    {
+        for (auto& channel : it->second)
+        {
+            if (channel)
+            {
+                bool isPlaying = false;
+                channel->isPlaying(&isPlaying);
+                if (isPlaying)
+                {
+                    bPlaying = true;
+                    break;
+                }
+            }
+        }
+    }
     return bPlaying;
 }

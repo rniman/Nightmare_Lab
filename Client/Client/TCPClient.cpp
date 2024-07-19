@@ -301,9 +301,9 @@ void CTcpClient::UpdateDataFromServer()
 						pZombiePlayer->SetEectricShock();
 					}
 
+					float fVolume = m_apPlayers[i]->GetPlayerVolume();
 					SoundManager& soundManager = soundManager.GetInstance();
-					soundManager.SetVolume(sound::ACTIVE_MINE, m_apPlayers[i]->GetPlayerVolume());
-					if (m_apPlayers[i]->GetPlayerVolume() - EPSILON >= 0.0f) soundManager.PlaySoundWithName(sound::ACTIVE_MINE);
+					if (m_apPlayers[i]->GetPlayerVolume() - EPSILON >= 0.0f) soundManager.PlaySoundWithName(sound::ACTIVE_MINE, fVolume);
 				}
 			}
 		}
@@ -321,7 +321,6 @@ void CTcpClient::UpdateDataFromServer()
 		for (int j = 0; j < nNumOfGameObject; ++j)
 		{
 			int nObjectNum = m_aClientInfo[i].m_anObjectNum[j];
-
 
 			if (nObjectNum <= -1 || nObjectNum >= g_collisionManager.GetNumOfCollisionObject())
 			{

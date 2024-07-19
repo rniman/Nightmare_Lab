@@ -1285,8 +1285,8 @@ void TCPServer::CreateSendObject()
 				continue;
 			}
 			if (nIndex >= MAX_SEND_OBJECT_INFO) {
-				//std::cout << "nIndex 가 Max 치를 넘은 오류\n";
-				assert(0);
+				std::cout << "CreateSendObject GetOutSpaceObject의 nIndex 가 Max 치를 넘은 오류\n";
+				//assert(0);
 			}
 			m_aUpdateInfo[nId].m_anObjectNum[nIndex] = pGameObject->GetCollisionNum();
 			if (m_aUpdateInfo[nId].m_anObjectNum[nIndex] >= m_pCollisionManager->GetNumberOfCollisionObject()) {
@@ -1295,8 +1295,6 @@ void TCPServer::CreateSendObject()
 			m_aUpdateInfo[nId].m_axmf4x4World[nIndex] = pGameObject->GetWorldMatrix();
 			nIndex++;
 		}
-		m_pCollisionManager->GetOutSpaceObject().clear();
-
 
 		// 층은 나중에 계단쪽에서만 추가할수있도록해야할듯
 		// if(계단 쪽이면 위층 or 아래층범위 검사)
@@ -1334,10 +1332,12 @@ void TCPServer::CreateSendObject()
 						break;
 					}
 				}
-				m_aUpdateInfo[nId].m_nNumOfObject = nIndex;
 			}
 		}
+		m_aUpdateInfo[nId].m_nNumOfObject = nIndex;
 	}
+	m_pCollisionManager->GetOutSpaceObject().clear();
+
 }
 
 void TCPServer::InitPlayerPosition(shared_ptr<CServerPlayer>& pServerPlayer, int nIndex)

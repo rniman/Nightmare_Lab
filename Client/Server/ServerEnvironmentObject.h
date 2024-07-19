@@ -168,6 +168,8 @@ public:
 	virtual void Update(float fElapsedTime, shared_ptr<CServerCollisionManager>& pCollisionManager);
 	virtual void UpdateUsing(const shared_ptr<CServerGameObject>& pGameObject, shared_ptr<CServerCollisionManager>& pCollisionManager) override;
 
+	virtual void SetRandomPosition(shared_ptr<CServerCollisionManager>& pCollisionManager) override;
+
 	bool IsInstall() { return m_bInstall; }
 	void SetInstall(bool val) { m_bInstall = val; }
 	void SetExplosionTime(float val) { m_fExplosionTime = val; }

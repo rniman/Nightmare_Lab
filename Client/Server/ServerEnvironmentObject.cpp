@@ -395,7 +395,7 @@ void CServerTeleportObject::SetRandomPosition(shared_ptr<CServerCollisionManager
 		}
 		pCollisionManager->ReplaceCollisionObject(shared_from_this());
 
-		//printf("%d New Pos: %f %f %f\n", m_nCollisionNum, m_xmf4x4World._41, m_xmf4x4World._42, m_xmf4x4World._43);
+		printf("%d New Pos: %f %f %f\n", m_nCollisionNum, m_xmf4x4World._41, m_xmf4x4World._42, m_xmf4x4World._43);
 		break;
 	}
 }
@@ -493,6 +493,64 @@ void CServerMineObject::UpdateUsing(const shared_ptr<CServerGameObject>& pGameOb
 	}
 	SetPosition(position);
 	pCollisionManager->ReplaceCollisionObject(shared_from_this());
+}
+
+void CServerMineObject::SetRandomPosition(shared_ptr<CServerCollisionManager>& pCollisionManager)
+{
+	dynamic_pointer_cast<CServerDrawerObject>(pCollisionManager->GetCollisionObjectWithNumber(m_nDrawerNumber))->m_pStoredItem.reset();
+
+	uniform_int_distribution<int> dis(0, m_vDrawerId.size() - 1);
+	uniform_int_distribution<int> rotation_dis(1, 360);
+	uniform_real_distribution<float> pos_dis(-0.2f, 0.2f);
+	while (true)
+	{
+		int rd_num = dis(TCPServer::m_mt19937Gen);
+		int nDrawerNum = m_vDrawerId[rd_num].first;
+		shared_ptr<CServerDrawerObject> pDrawerObject = dynamic_pointer_cast<CServerDrawerObject>(pCollisionManager->GetCollisionObjectWithNumber(nDrawerNum));
+
+		if (!pDrawerObject) //error
+			assert(0);
+		//exit(1);
+
+		if (pDrawerObject->m_pStoredItem)	// 이미 다른 아이템이 들어왔음
+		{
+			continue;
+		}
+		m_bObtained = false;
+		m_bCollision = true;
+
+		XMFLOAT4X4 xmf4x4World = pCollisionManager->GetCollisionObjectWithNumber(nDrawerNum)->GetWorldMatrix();
+
+		XMFLOAT3 xmf3RandOffset = XMFLOAT3(pos_dis(TCPServer::m_mt19937Gen), 0.0f, pos_dis(TCPServer::m_mt19937Gen));
+		XMFLOAT3 xmf3RandRotation = XMFLOAT3(90.0f, 0.0f, 0.0f);
+
+		SetDrawerNumber(nDrawerNum);
+		SetDrawer(pDrawerObject);
+		SetDrawerType(m_vDrawerId[rd_num].second);
+		
+		pDrawerObject->m_pStoredItem = dynamic_pointer_cast<CServerMineObject>(shared_from_this());
+
+		SetRandomRotation(xmf3RandRotation);
+		SetRandomOffset(xmf3RandOffset);
+		SetWorldMatrix(xmf4x4World);
+
+		// 공간의 위치를 다시 놓는다.
+		auto iter = pCollisionManager->GetSpaceGameObjects(m_nFloor, m_nWidth, m_nDepth).begin();
+		int i = 0;
+		for (auto pGameObject : pCollisionManager->GetSpaceGameObjects(m_nFloor, m_nWidth, m_nDepth))
+		{
+			if (pGameObject->GetCollisionNum() == m_nCollisionNum)	// 동일한 
+			{
+				pCollisionManager->GetSpaceGameObjects(m_nFloor, m_nWidth, m_nDepth).erase(iter + i);
+				break;
+			}
+			++i;
+		}
+		pCollisionManager->ReplaceCollisionObject(shared_from_this());
+
+		printf("%d New Pos: %f %f %f\n", m_nCollisionNum, m_xmf4x4World._41, m_xmf4x4World._42, m_xmf4x4World._43);
+		break;
+	}
 }
 
 

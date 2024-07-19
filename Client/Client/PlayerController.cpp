@@ -166,19 +166,19 @@ void CBlueSuitAnimationController::AdvanceTime(float fElapsedTime, CGameObject* 
 void CBlueSuitAnimationController::RunSoundProcess()
 {
 	SoundManager& soundManager = soundManager.GetInstance();
-	soundManager.SetVolume(sound::RUN01_BLUESUIT, m_fPlayerVolume);
-	soundManager.SetVolume(sound::RUN02_BLUESUIT, m_fPlayerVolume);
+	//soundManager.SetVolume(sound::RUN01_BLUESUIT, m_fPlayerVolume);
+	//soundManager.SetVolume(sound::RUN02_BLUESUIT, m_fPlayerVolume);
 
 	shared_ptr<CAnimationSet> pAnimationSet = m_pAnimationSets->m_vpAnimationSets[m_vAnimationTracks[3].m_nAnimationSet];
 
 	if (m_vAnimationTracks[3].m_fPosition >= SUIT_RUN_FOOT[0] * pAnimationSet->m_fLength && m_nRunSound == 0)
 	{
-		if (m_fPlayerVolume - EPSILON >= 0.0f) soundManager.PlaySoundWithName(sound::RUN01_BLUESUIT);
+		if (m_fPlayerVolume - EPSILON >= 0.0f) soundManager.PlaySoundWithName(sound::RUN01_BLUESUIT, m_fPlayerVolume);
 		m_nRunSound = 1;
 	}
 	else if (m_vAnimationTracks[3].m_fPosition >= SUIT_RUN_FOOT[1] * pAnimationSet->m_fLength && m_nRunSound == 1)
 	{
-		if (m_fPlayerVolume - EPSILON >= 0.0f) soundManager.PlaySoundWithName(sound::RUN02_BLUESUIT);
+		if (m_fPlayerVolume - EPSILON >= 0.0f) soundManager.PlaySoundWithName(sound::RUN02_BLUESUIT, m_fPlayerVolume);
 		m_nRunSound = 2;
 	}
 	else if (m_vAnimationTracks[3].m_fPosition <= 0.0f && m_nRunSound == 2)
@@ -190,8 +190,8 @@ void CBlueSuitAnimationController::RunSoundProcess()
 void CBlueSuitAnimationController::WalkSoundProcess()
 {
 	SoundManager& soundManager = soundManager.GetInstance();
-	soundManager.SetVolume(sound::WALK01_BLUESUIT, m_fPlayerVolume);
-	soundManager.SetVolume(sound::WALK02_BLUESUIT, m_fPlayerVolume);
+	//soundManager.SetVolume(sound::RUN01_BLUESUIT, m_fPlayerVolume);
+	//soundManager.SetVolume(sound::RUN02_BLUESUIT, m_fPlayerVolume);
 
 	if (m_vfBlendWeight[0] < 0.1f)
 	{
@@ -201,12 +201,12 @@ void CBlueSuitAnimationController::WalkSoundProcess()
 		{
 			if (m_vAnimationTracks[1].m_fPosition >= SUIT_WALK_FOOT[0] * pAnimationSet->m_fLength && m_nWalkSound == 0) // PlayLeftSound
 			{
-				if (m_fPlayerVolume - EPSILON >= 0.0f) soundManager.PlaySoundWithName(sound::WALK01_BLUESUIT);
+				if (m_fPlayerVolume - EPSILON >= 0.0f) soundManager.PlaySoundWithName(sound::WALK01_BLUESUIT, m_fPlayerVolume);
 				m_nWalkSound = 1;
 			}
 			else if (m_vAnimationTracks[1].m_fPosition >= SUIT_WALK_FOOT[1] * pAnimationSet->m_fLength && m_nWalkSound == 1) // PlayRightSound
 			{
-				if (m_fPlayerVolume - EPSILON >= 0.0f) soundManager.PlaySoundWithName(sound::WALK02_BLUESUIT);
+				if (m_fPlayerVolume - EPSILON >= 0.0f) soundManager.PlaySoundWithName(sound::WALK02_BLUESUIT, m_fPlayerVolume);
 				m_nWalkSound = 2;
 			}
 			else if (m_vAnimationTracks[1].m_fPosition <= 0.0f)
@@ -218,12 +218,12 @@ void CBlueSuitAnimationController::WalkSoundProcess()
 		{
 			if (m_vAnimationTracks[1].m_fPosition <= SUIT_WALK_FOOT[1] * pAnimationSet->m_fLength && m_nWalkSound == 0) // PlayRightSound
 			{
-				if (m_fPlayerVolume - EPSILON >= 0.0f) soundManager.PlaySoundWithName(sound::WALK01_BLUESUIT);
+				if (m_fPlayerVolume - EPSILON >= 0.0f) soundManager.PlaySoundWithName(sound::WALK01_BLUESUIT, m_fPlayerVolume);
 				m_nWalkSound = 1;
 			}
 			else if (m_vAnimationTracks[1].m_fPosition <= SUIT_WALK_FOOT[0] * pAnimationSet->m_fLength && m_nWalkSound == 1) // PlayLeftSound
 			{
-				if (m_fPlayerVolume - EPSILON >= 0.0f) soundManager.PlaySoundWithName(sound::WALK02_BLUESUIT);
+				if (m_fPlayerVolume - EPSILON >= 0.0f) soundManager.PlaySoundWithName(sound::WALK02_BLUESUIT, m_fPlayerVolume);
 				m_nWalkSound = 2;
 			}
 			else if (m_vAnimationTracks[1].m_fPosition >= pAnimationSet->m_fLength - EPSILON)
@@ -240,12 +240,12 @@ void CBlueSuitAnimationController::WalkSoundProcess()
 		{
 			if (m_vAnimationTracks[2].m_fPosition >= SUIT_WALK_FOOT[0] * pAnimationSet->m_fLength && m_nSideWalKSound == 0)
 			{
-				if (m_fPlayerVolume - EPSILON >= 0.0f) soundManager.PlaySoundWithName(sound::WALK01_BLUESUIT);
+				if (m_fPlayerVolume - EPSILON >= 0.0f) soundManager.PlaySoundWithName(sound::WALK01_BLUESUIT, m_fPlayerVolume);
 				m_nSideWalKSound = 1;
 			}
 			else if (m_vAnimationTracks[2].m_fPosition >= SUIT_WALK_FOOT[1] * pAnimationSet->m_fLength && m_nSideWalKSound == 1)
 			{
-				if (m_fPlayerVolume - EPSILON >= 0.0f) soundManager.PlaySoundWithName(sound::WALK02_BLUESUIT);
+				if (m_fPlayerVolume - EPSILON >= 0.0f) soundManager.PlaySoundWithName(sound::WALK02_BLUESUIT, m_fPlayerVolume);
 				m_nSideWalKSound = 2;
 			}
 			else if (m_vAnimationTracks[2].m_fPosition <= 0.0f)
@@ -257,12 +257,12 @@ void CBlueSuitAnimationController::WalkSoundProcess()
 		{
 			if (m_vAnimationTracks[2].m_fPosition <= SUIT_WALK_FOOT[1] * pAnimationSet->m_fLength && m_nSideWalKSound == 0)
 			{
-				if (m_fPlayerVolume - EPSILON >= 0.0f) soundManager.PlaySoundWithName(sound::WALK01_BLUESUIT);
+				if (m_fPlayerVolume - EPSILON >= 0.0f) soundManager.PlaySoundWithName(sound::WALK01_BLUESUIT, m_fPlayerVolume);
 				m_nSideWalKSound = 1;
 			}
 			else if (m_vAnimationTracks[2].m_fPosition <= SUIT_WALK_FOOT[0] * pAnimationSet->m_fLength && m_nSideWalKSound == 1)
 			{
-				if (m_fPlayerVolume - EPSILON >= 0.0f) soundManager.PlaySoundWithName(sound::WALK02_BLUESUIT);
+				if (m_fPlayerVolume - EPSILON >= 0.0f) soundManager.PlaySoundWithName(sound::WALK02_BLUESUIT, m_fPlayerVolume);
 				m_nSideWalKSound = 2;
 			}
 			else if (m_vAnimationTracks[2].m_fPosition >= pAnimationSet->m_fLength - EPSILON)
@@ -279,12 +279,12 @@ void CBlueSuitAnimationController::WalkSoundProcess()
 
 			if (m_vAnimationTracks[1].m_fPosition >= SUIT_WALK_FOOT[0] * pAnimationSet->m_fLength && m_nWalkSound == 0) // PlayLeftSound
 			{
-				if (m_fPlayerVolume - EPSILON >= 0.0f) soundManager.PlaySoundWithName(sound::WALK01_BLUESUIT);
+				if (m_fPlayerVolume - EPSILON >= 0.0f) soundManager.PlaySoundWithName(sound::WALK01_BLUESUIT, m_fPlayerVolume);
 				m_nWalkSound = 1;
 			}
 			else if (m_vAnimationTracks[1].m_fPosition >= SUIT_WALK_FOOT[1] * pAnimationSet->m_fLength && m_nWalkSound == 1) // PlayRightSound
 			{
-				if (m_fPlayerVolume - EPSILON >= 0.0f) soundManager.PlaySoundWithName(sound::WALK02_BLUESUIT);
+				if (m_fPlayerVolume - EPSILON >= 0.0f) soundManager.PlaySoundWithName(sound::WALK02_BLUESUIT, m_fPlayerVolume);
 				m_nWalkSound = 2;
 			}
 			else if (m_vAnimationTracks[1].m_fPosition <= 0.0f && m_nWalkSound == 2)
@@ -298,12 +298,12 @@ void CBlueSuitAnimationController::WalkSoundProcess()
 
 			if (m_vAnimationTracks[1].m_fPosition <= SUIT_WALK_FOOT[1] * pAnimationSet->m_fLength && m_nWalkSound == 0) // PlayRightSound
 			{
-				if (m_fPlayerVolume - EPSILON >= 0.0f) soundManager.PlaySoundWithName(sound::WALK01_BLUESUIT);
+				if (m_fPlayerVolume - EPSILON >= 0.0f) soundManager.PlaySoundWithName(sound::WALK01_BLUESUIT, m_fPlayerVolume);
 				m_nWalkSound = 1;
 			}
 			else if (m_vAnimationTracks[1].m_fPosition <= SUIT_WALK_FOOT[0] * pAnimationSet->m_fLength && m_nWalkSound == 1) // PlayLeftSound
 			{
-				if (m_fPlayerVolume - EPSILON >= 0.0f) soundManager.PlaySoundWithName(sound::WALK02_BLUESUIT);
+				if (m_fPlayerVolume - EPSILON >= 0.0f) soundManager.PlaySoundWithName(sound::WALK02_BLUESUIT, m_fPlayerVolume);
 				m_nWalkSound = 2;
 			}
 			else if (m_vAnimationTracks[1].m_fPosition >= pAnimationSet->m_fLength - EPSILON && m_nWalkSound == 2)
@@ -857,15 +857,15 @@ void CZombieAnimationController::AdvanceTime(float fElapsedTime, CGameObject* pR
 			
 			{
 				SoundManager& soundManager = soundManager.GetInstance();
-				soundManager.SetVolume(sound::ATTACK_ZOMBIE, m_fPlayerVolume);
+				//soundManager.SetVolume(sound::ATTACK_ZOMBIE, m_fPlayerVolume);
 				if (m_vAnimationTracks[2].m_fPosition >= ZOMBIE_ATTACK[0] * pAnimationSet->m_fLength && m_nAttackSound == 0) // PlayLeftSound
 				{
-					if (m_fPlayerVolume - EPSILON >= 0.0f) soundManager.PlaySoundWithName(sound::ATTACK_ZOMBIE);
+					if (m_fPlayerVolume - EPSILON >= 0.0f) soundManager.PlaySoundWithName(sound::ATTACK_ZOMBIE, m_fPlayerVolume);
 					m_nAttackSound = 1;
 				}
 				else if (m_vAnimationTracks[2].m_fPosition >= ZOMBIE_ATTACK[1] * pAnimationSet->m_fLength && m_nAttackSound == 1) // PlayRightSound
 				{
-					if (m_fPlayerVolume - EPSILON >= 0.0f) soundManager.PlaySoundWithName(sound::ATTACK_ZOMBIE);
+					if (m_fPlayerVolume - EPSILON >= 0.0f) soundManager.PlaySoundWithName(sound::ATTACK_ZOMBIE, m_fPlayerVolume);
 					m_nAttackSound = 2;
 				}
 				else if (fPosition >= pAnimationSet->m_fLength - EPSILON)
@@ -907,25 +907,25 @@ void CZombieAnimationController::AdvanceTime(float fElapsedTime, CGameObject* pR
 void CZombieAnimationController::WalkSoundProcess(int k, std::shared_ptr<CAnimationSet>& pAnimationSet, float fPosition)
 {
 	SoundManager& soundManager = soundManager.GetInstance();
-	soundManager.SetVolume(sound::WALK_ZOMBIE, m_fPlayerVolume);
+	//soundManager.SetVolume(sound::WALK_ZOMBIE, m_fPlayerVolume);
 	if (m_vAnimationTracks[k].m_fPosition >= ZOMBIE_LFET_FOOT[0] * pAnimationSet->m_fLength && m_nWalkSound == 0) // PlayLeftSound
 	{
-		if (m_fPlayerVolume - EPSILON >= 0.0f) soundManager.PlaySoundWithName(sound::WALK_ZOMBIE);
+		if (m_fPlayerVolume - EPSILON >= 0.0f) soundManager.PlaySoundWithName(sound::WALK_ZOMBIE, m_fPlayerVolume);
 		m_nWalkSound = 1;
 	}
 	else if (m_vAnimationTracks[k].m_fPosition >= ZOMBIE_LFET_FOOT[1] * pAnimationSet->m_fLength && m_nWalkSound == 2) // PlayLeftSound
 	{
-		if (m_fPlayerVolume - EPSILON >= 0.0f) soundManager.PlaySoundWithName(sound::WALK_ZOMBIE);
+		if (m_fPlayerVolume - EPSILON >= 0.0f) soundManager.PlaySoundWithName(sound::WALK_ZOMBIE, m_fPlayerVolume);
 		m_nWalkSound = 3;
 	}
 	else if (m_vAnimationTracks[k].m_fPosition >= ZOMBIE_RIGHT_FOOT[0] * pAnimationSet->m_fLength && m_nWalkSound == 1) // PlayRightSound
 	{
-		if (m_fPlayerVolume - EPSILON >= 0.0f) soundManager.PlaySoundWithName(sound::WALK_ZOMBIE);
+		if (m_fPlayerVolume - EPSILON >= 0.0f) soundManager.PlaySoundWithName(sound::WALK_ZOMBIE, m_fPlayerVolume);
 		m_nWalkSound = 2;
 	}
 	else if (m_vAnimationTracks[k].m_fPosition >= ZOMBIE_RIGHT_FOOT[1] * pAnimationSet->m_fLength && m_nWalkSound == 3) // PlayRightSound
 	{
-		if (m_fPlayerVolume - EPSILON >= 0.0f) soundManager.PlaySoundWithName(sound::WALK_ZOMBIE);
+		if (m_fPlayerVolume - EPSILON >= 0.0f) soundManager.PlaySoundWithName(sound::WALK_ZOMBIE, m_fPlayerVolume);
 		m_nWalkSound = 4;
 	}
 	else if (fPosition == pAnimationSet->m_fLength - EPSILON)

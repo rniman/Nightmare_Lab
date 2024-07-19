@@ -47,11 +47,12 @@ public:
     void Shutdown();
 
     bool LoadSound(const char* name, const char* filename, bool loop = false);
-    void PlaySoundWithName(const char* name, int loopCount = 0);
-    void PauseSound(const char* name);
-    void ResumeSound(const char* name);
+    FMOD::Channel* PlaySoundWithName(const char* name, float fVolume = 1.0f, int nLoopCount = 0);
+    //void PauseSound(const char* name);
+    //void ResumeSound(const char* name);
     void StopSound(const char* name);
-    void SetVolume(const char* name, float volume); 
+    void SetVolume(const char* name, float fVolume);
+    void SetVolume(FMOD::Channel* pChannel, float fVolume);
 
     void UpdateSystem();
 
@@ -65,7 +66,7 @@ private:
 
     FMOD::System* m_pSystem;
     std::map<const char*, FMOD::Sound*, cmp_str> m_pSounds;
-    std::map<const char*, FMOD::Channel*, cmp_str> m_pChannels;
+    std::map<const char*, std::vector<FMOD::Channel*>, cmp_str> m_vpChannels;
 
     char m_pErrBuffer[256];
 };
