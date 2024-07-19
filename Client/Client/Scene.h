@@ -34,6 +34,8 @@ constexpr UINT WM_CHANGE_SLOT{ WM_USER + 5 };
 #define SPOT_LIGHT						2
 #define DIRECTIONAL_LIGHT				3
 
+#define WALK_SOUND_DISTANCE 16.0f
+
 struct LIGHT
 {
 	XMFLOAT4X4							m_xmf4x4ViewProjection = Matrix4x4::Identity();
@@ -115,6 +117,8 @@ protected:
 
 	ComPtr<ID3D12RootSignature>	m_pd3dGraphicsRootSignature;
 	//루트 시그너처를 나타내는 인터페이스 포인터
+	
+	// 씬 배경음 이름
 
 protected:
 	static ComPtr<ID3D12DescriptorHeap> m_pd3dCbvSrvDescriptorHeap;

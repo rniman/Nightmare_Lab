@@ -107,6 +107,9 @@ public:
 	bool IsTracking()const { return m_bTracking; }
 	bool IsInterruption() const { return m_bInterruption; }
 	bool IsRunning() const { return m_bRunning; }
+
+	void SetPlayerVolume(float fPlayerVolume);;
+	float GetPlayerVolume()const { return m_fPlayerVolume; }
 protected:
 	INT8 m_nClientId = -1;
 
@@ -154,6 +157,7 @@ protected:
 	bool m_ShadowRender;
 	bool m_SelfShadowRender;
 
+	float m_fPlayerVolume = 0.0f;
 public:
 	void SetShadowRender(bool val) { m_ShadowRender = val; }
 	void SetSelfShadowRender(bool val) { m_SelfShadowRender = val; }
@@ -189,6 +193,9 @@ public:
 	virtual void UseItem(int nSlot) override;
 	void UseFuse();
 	void Teleport();
+
+	bool IsSlotItemObtain(int nIndex) { return m_apSlotItems[nIndex]->IsObtained(); }
+	bool IsFuseObtain(int nIndex) { return m_apFuseItems[nIndex]->IsObtained(); }
 
 	void SetSlotItem(int nIndex, int nReferenceObjectNum);
 	void SetSlotItemEmpty(int nIndex);

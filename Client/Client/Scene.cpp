@@ -546,7 +546,7 @@ void CLobbyScene::BuildObjects(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandLi
 			XMFLOAT3 xmf3Scale = XMFLOAT3(0.3f, 0.5f, 0.3f);
 			m_apPlayer[i]->SetWorldPostion(xmf3Position);
 			m_apPlayer[i]->SetScale(xmf3Scale);
-			m_apPlayer[i]->Rotate(0.0f, 135.0f, .0f);
+			m_apPlayer[i]->Rotate(0.0f, 135.0f, 0.0f);
 			m_apPlayer[i]->OnUpdateToParent();
 		}
 		else
@@ -1605,6 +1605,39 @@ void CMainScene::AnimateObjects(float fElapsedTime, float fCurTime)
 			if (player->GetClientId() == -1) {
 				cm->m_pLight->m_bEnable = false;
 			}
+		}
+	}
+
+	// 플레이어간 사운드 조정
+	for (auto& pPlayer : m_apPlayer)
+	{
+		if (pPlayer->GetClientId() == m_pMainPlayer->GetClientId())
+		{
+			continue;
+		}
+
+		XMFLOAT3 xmf3MainPos = m_pMainPlayer->GetPosition();
+		XMFLOAT3 xmf3OtherPos = pPlayer->GetPosition();
+
+		if (abs(xmf3MainPos.y - xmf3OtherPos.y) > 4.0f) // 층이 다르면 안들림
+		{
+			pPlayer->SetPlayerVolume(0.0f);
+			continue;
+		}
+
+		float fWeight = (4.0f - abs(xmf3MainPos.y - xmf3OtherPos.y)) / 4.0f;
+
+		xmf3MainPos.y = 0.0f;
+		xmf3OtherPos.y = 0.0f;
+		float fDistance = Vector3::Distance(xmf3MainPos, xmf3OtherPos);
+		if (fDistance > WALK_SOUND_DISTANCE)
+		{
+			pPlayer->SetPlayerVolume(0.0f);
+		}
+		else
+		{
+			float fVolume = ((WALK_SOUND_DISTANCE - fDistance) / WALK_SOUND_DISTANCE) * fWeight ;
+			pPlayer->SetPlayerVolume(fVolume);
 		}
 	}
 }

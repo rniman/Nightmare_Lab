@@ -21,6 +21,14 @@ class CServerGameObject;
 class CServerPlayer;
 class CServerCollisionManager;
 
+enum SOUND_MESSAGE
+{
+	OPEN_DRAWER,
+	CLOSE_DRAWER,
+	OPEN_DOOR,
+	CLOSE_DOOR,
+};
+
 enum GAME_STATE
 {
 	IN_LOBBY = 0,
@@ -78,7 +86,12 @@ enum class SOCKET_STATE
 	SEND_BLUE_SUIT_WIN,
 	SEND_ZOMBIE_WIN,
 	SEND_GAME_START,
-	SEND_CHANGE_SLOT
+	SEND_CHANGE_SLOT,
+
+	SEND_OPEN_DRAWER_SOUND,
+	SEND_CLOSE_DRAWER_SOUND,
+	SEND_OPEN_DOOR_SOUND,
+	SEND_CLOSE_DOOR_SOUND,
 };
 
 enum RECV_HEAD
@@ -167,11 +180,12 @@ public:
 	shared_ptr<CServerPlayer> GetPlayer(int nIndex) { return m_apPlayers[nIndex]; }
 
 	static default_random_engine m_mt19937Gen;
+	static HWND m_hWnd;
 private:
 	int m_nGameState;
 	CTimer m_timer;
 	static INT8 m_nClient;
-	HWND m_hWnd;
+	
 	bool m_bSend = true;
 
 	// 접속한 클라이언트들의 정보를 저장.

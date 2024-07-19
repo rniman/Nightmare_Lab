@@ -11,6 +11,7 @@
 #include "ParticleShader.h"
 #include "SharedObject.h"
 
+#include "Sound.h"
 //#define _WITH_DEBUG_CALLBACK_DATA
 
 void CSoundCallbackHandler::HandleCallback(void* pCallbackData, float fTrackPosition)
@@ -248,7 +249,7 @@ shared_ptr<CCamera> CPlayer::ChangeCamera(DWORD nNewCameraMode, float fElapsedTi
 		m_pCamera = OnChangeCamera(FIRST_PERSON_CAMERA, nCurrentCameraMode);
 		m_pCamera->SetTimeLag(0.01f);
 		m_pCamera->SetOffset(XMFLOAT3(0.0f, 1.54f, 0.0f));
-		m_pCamera->GenerateProjectionMatrix(0.01f, 100.0f, ASPECT_RATIO, 60.0f);
+		m_pCamera->GenerateProjectionMatrix(0.01f, 100.0f, ASPECT_RATIO,70.0f);
 		m_pCamera->SetViewport(0, 0, FRAME_BUFFER_WIDTH, FRAME_BUFFER_HEIGHT, 0.0f, 1.0f);
 		m_pCamera->SetScissorRect(0, 0, FRAME_BUFFER_WIDTH, FRAME_BUFFER_HEIGHT);
 		break;
@@ -439,6 +440,12 @@ void CPlayer::Render(ID3D12GraphicsCommandList* pd3dCommandList)
 	}
 }
 
+void CPlayer::SetPlayerVolume(float fPlayerVolume)
+{
+	m_fPlayerVolume = fPlayerVolume;
+	m_pSkinnedAnimationController->SetPlayerVolume(fPlayerVolume);
+}
+
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 // 
 
@@ -621,6 +628,11 @@ void CBlueSuitPlayer::UpdateAnimation()
 				{
 					m_pSkinnedAnimationController->m_bTransition = true;
 					m_pSkinnedAnimationController->m_nNextState = PlayerState::DEATH;
+
+					//Á×´Â »ç¿îµå
+					SoundManager& soundManager = soundManager.GetInstance();
+					soundManager.SetVolume(sound::DEAD_BLUESUIT, m_fPlayerVolume * 0.1f);
+					if (m_fPlayerVolume - EPSILON >= 0.0f) soundManager.PlaySoundWithName(sound::DEAD_BLUESUIT);
 				}
 			}
 		}
@@ -1013,6 +1025,10 @@ void CBlueSuitPlayer::Teleport()
 			return;
 		}
 	}
+	SoundManager& soundManager = soundManager.GetInstance();
+	soundManager.SetVolume(sound::USE_TP_BLUESUIT, m_fPlayerVolume);
+	if (m_fPlayerVolume - EPSILON >= 0.0f) soundManager.PlaySoundWithName(sound::USE_TP_BLUESUIT);
+
 	m_fCreateParticleTime = gGameTimer.GetTotalTime();
 
 	XMFLOAT3 position = GetPosition();
@@ -1025,6 +1041,11 @@ void CBlueSuitPlayer::Teleport()
 
 void CBlueSuitPlayer::SetSlotItem(int nIndex, int nReferenceObjectNum)
 {
+	//if (!m_apSlotItems[nIndex]->IsObtained())
+	//{
+	//	SoundManager& soundManager = soundManager.GetInstance();
+	//	soundManager.PlaySoundWithName(sound::GET_ITEM_BLUESUIT);
+	//}
 	m_apSlotItems[nIndex]->SetObtain(true);
 	m_apSlotItems[nIndex]->SetReferenceNumber(nReferenceObjectNum);
 }
@@ -1037,6 +1058,11 @@ void CBlueSuitPlayer::SetSlotItemEmpty(int nIndex)
 
 void CBlueSuitPlayer::SetFuseItem(int nIndex, int nReferenceObjectNum)
 {
+	//if (!m_apFuseItems[nIndex]->IsObtained())
+	//{
+	//	SoundManager& soundManager = soundManager.GetInstance();
+	//	soundManager.PlaySoundWithName(sound::GET_ITEM_BLUESUIT);
+	//}
 	m_apFuseItems[nIndex]->SetObtain(true);
 	m_apFuseItems[nIndex]->SetReferenceNumber(nReferenceObjectNum);
 }
@@ -1334,6 +1360,7 @@ void CZombiePlayer::SetEectricShock()
 	m_pcbMappedTime->time = 0.0f;
 	m_bElectricBlend = true;
 	m_pcbMappedTime->usePattern = 1.0f;
+
 }
 
 void CZombiePlayer::Render(ID3D12GraphicsCommandList* pd3dCommandList)
@@ -1442,7 +1469,7 @@ shared_ptr<CCamera> CZombiePlayer::ChangeCamera(DWORD nNewCameraMode, float fEla
 	shared_ptr<CCamera> camera = CPlayer::ChangeCamera(nNewCameraMode, fElapsedTime);
 	if (camera->GetMode() != THIRD_PERSON_CAMERA) {		
 
-		m_pCamera->GenerateProjectionMatrix(0.01f, 100.0f, ASPECT_RATIO, 60.0f);
+		//m_pCamera->GenerateProjectionMatrix(0.01f, 100.0f, ASPECT_RATIO, 60.0f);
 		int index = dynamic_pointer_cast<CZombieAnimationController>(m_pSkinnedAnimationController)->GetBoneFrameIndex((char*)"EyesSock");
 		XMFLOAT3 offset = m_pSkinnedAnimationController->GetBoneFramePositionVector(index);
 		//offset.x = 0.0f; offset.z = 0.0f;

@@ -6,6 +6,7 @@
 #include "Player.h"
 #include "Collision.h"
 #include "SharedObject.h"
+#include "Sound.h"
 
  extern UINT gnCbvSrvDescriptorIncrementSize;
  extern UINT gnRtvDescriptorIncrementSize;
@@ -57,6 +58,9 @@ bool CGameFramework::OnCreate(HINSTANCE hInstance, HWND hMainWnd)
 #endif
 
 	CoInitialize(NULL);
+	
+	SoundManager& soundManager = SoundManager::GetInstance();
+	soundManager.Initialize();
 
 	//m_pTcpClient = make_shared<CTcpClient>(hMainWnd);
 
@@ -552,6 +556,14 @@ void CGameFramework::OnProcessingKeyboardMessage(HWND hWnd, UINT nMessageID, WPA
 			sharedobject.AddParticle(CParticleMesh::FOOTPRINT, XMFLOAT3());
 			//m_pScene->SetParticleTest(gGameTimer.GetTotalTime());
 			break;
+		case '+':
+			m_fBGMVolume += 0.1f;
+			if (m_fBGMVolume > 1.0f) m_fBGMVolume = 1.0f;
+			break;
+		case '-':
+			m_fBGMVolume -= 0.1f;
+			if (m_fBGMVolume < 0.0f) m_fBGMVolume = 0.0f;
+			break;
 		case VK_ESCAPE:
 			::PostQuitMessage(0);
 			break;
@@ -693,7 +705,7 @@ void CGameFramework::OnProcessingWindowMessage(HWND hWnd, UINT nMessageID, WPARA
 			pScene->UpdateShaderMainPlayer(m_nMainClientId);
 		}
 	}
-	break;
+		break;
 	case WM_CREATE_TCP:
 		m_bTcpClient = true;
 		break;
@@ -745,9 +757,22 @@ void CGameFramework::OnProcessingWindowMessage(HWND hWnd, UINT nMessageID, WPARA
 
 void CGameFramework::OnProcessingEndGameMessage(WPARAM& wParam)
 {
+	SoundManager& soundManager = soundManager.GetInstance();
+	
 	if (LOWORD(wParam) == 0)	// BLUESUIT WIN
 	{
 		m_nGameState = GAME_STATE::BLUE_SUIT_WIN;
+
+		if (m_nMainClientId == ZOMBIEPLAYER)
+		{
+			soundManager.PlaySoundWithName(sound::GAME_OVER, -1);
+			soundManager.SetVolume(sound::GAME_OVER, 0.25f);
+		}
+		else
+		{
+			soundManager.PlaySoundWithName(sound::GAME_WIN, -1);
+			soundManager.SetVolume(sound::GAME_WIN, 0.25f);
+		}
 	}
 	else if (LOWORD(wParam) == 1)	// ZOMBIE WIN
 	{
@@ -755,6 +780,17 @@ void CGameFramework::OnProcessingEndGameMessage(WPARAM& wParam)
 		for (int i = ZOMBIEPLAYER + 1; i < ZOMBIEPLAYER + 1 + 4; ++i)
 		{
 			m_apPlayer[i]->SetAlive(false);
+		}
+
+		if (m_nMainClientId == ZOMBIEPLAYER)
+		{
+			soundManager.PlaySoundWithName(sound::GAME_WIN, -1);
+			soundManager.SetVolume(sound::GAME_WIN, 0.25f);
+		}
+		else
+		{
+			soundManager.PlaySoundWithName(sound::GAME_OVER, -1);
+			soundManager.SetVolume(sound::GAME_OVER, 0.25f);
 		}
 	}
 
@@ -879,9 +915,15 @@ void CGameFramework::BuildObjects()
 {
 	gGameTimer.Reset();
 
+	SoundManager& soundManager = soundManager.GetInstance();
+	
 	m_d3dCommandList->Reset(m_d3dCommandAllocator[m_nSwapChainBufferIndex].Get(), NULL);
 	if (m_nGameState == GAME_STATE::IN_LOBBY)
 	{
+		m_fBGMVolume = 0.25f;
+		soundManager.PlaySoundWithName(sound::LOBBY_SCENE, -1);
+		soundManager.SetVolume(sound::LOBBY_SCENE, m_fBGMVolume);
+
 		m_pScene = make_shared<CLobbyScene>(m_hWnd, m_pCamera);
 		m_pScene->SetNumOfSwapChainBuffers(m_nSwapChainBuffers);
 		m_pScene->SetRTVDescriptorHeap(m_d3dRtvDescriptorHeap);
@@ -909,6 +951,11 @@ void CGameFramework::BuildObjects()
 	}
 	else if (m_nGameState == GAME_STATE::IN_GAME)
 	{
+		m_fBGMVolume = 0.07f;
+		soundManager.StopSound(sound::LOBBY_SCENE);
+		soundManager.PlaySoundWithName(sound::MAIN_SCENE, -1);
+		soundManager.SetVolume(sound::MAIN_SCENE, m_fBGMVolume);
+
 		g_collisionManager.CreateCollision(SPACE_FLOOR, SPACE_WIDTH, SPACE_DEPTH);
 
 		m_pScene = make_shared<CMainScene>();
@@ -932,6 +979,8 @@ void CGameFramework::BuildObjects()
 			m_nMainClientId = nMainClientId;
 			m_pMainPlayer = m_apPlayer[nMainClientId];
 			m_pScene->SetMainPlayer(m_pMainPlayer);
+			
+			m_pMainPlayer->SetPlayerVolume(1.0f);
 		}
 
 		UINT ncbElementBytes = ((sizeof(CB_FRAMEWORK_INFO) + 255) & ~255); //256ÀÇ ¹è¼ö
@@ -1173,15 +1222,20 @@ void CGameFramework::FrameAdvance()
 {
 	gGameTimer.Tick(0.0f);
 
+	SoundManager& soundManager = SoundManager::GetInstance();
+	soundManager.UpdateSystem();
+
 	if (m_nGameState == GAME_STATE::IN_LOBBY)
 	{
 		ProcessInput();
 		AnimateObjects();
+		//soundManager.SetVolume(sound::LOBBY_SCENE, m_fBGMVolume);
 	}
 	else if (m_nGameState == GAME_STATE::IN_GAME)
 	{
 		ProcessInput();
 		AnimateObjects();
+		//soundManager.SetVolume(sound::MAIN_SCENE, m_fBGMVolume);
 	}
 	else
 	{

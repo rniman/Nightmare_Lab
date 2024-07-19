@@ -123,18 +123,23 @@ void CServerDrawerObject::Update(float fElapsedTime, shared_ptr<CServerCollision
 	}
 }
 
-void CServerDrawerObject::UpdatePicking()
+void CServerDrawerObject::UpdatePicking(INT8 nClientId)
 {
 	if (m_bOpened)
 	{
 		m_bOpened = false;
 		m_bAnimate = true;
+		PostMessage(TCPServer::m_hWnd, WM_SOUND, (WPARAM)SOUND_MESSAGE::CLOSE_DRAWER, (LPARAM)nClientId);
 	}
 	else
 	{
 		m_bOpened = true;
 		m_bAnimate = true;
+		PostMessage(TCPServer::m_hWnd, WM_SOUND, (WPARAM)SOUND_MESSAGE::OPEN_DRAWER, (LPARAM)nClientId);
 	}
+	
+	//소리를 알려야함
+	
 }
 
 /// <CGameObject - CDrawerObject>
@@ -174,18 +179,21 @@ void CServerDoorObject::Update(float fElapsedTime, shared_ptr<CServerCollisionMa
 
 }
 
-void CServerDoorObject::UpdatePicking()
+void CServerDoorObject::UpdatePicking(INT8 nClientId)
 {
 	if (m_bOpened)
 	{
 		m_bOpened = false;
 		m_fDoorAngle = 0.0f;
+		PostMessage(TCPServer::m_hWnd, WM_SOUND, (WPARAM)SOUND_MESSAGE::CLOSE_DOOR, (LPARAM)nClientId);
 	}
 	else
 	{
 		m_bOpened = true;
 		m_fDoorAngle = 150.0f;
+		PostMessage(TCPServer::m_hWnd, WM_SOUND, (WPARAM)SOUND_MESSAGE::OPEN_DOOR, (LPARAM)nClientId);
 	}
+
 }
 
 /// <CGameObject - CDrawerObject>
@@ -248,12 +256,11 @@ void CServerElevatorDoorObject::Update(float fElapsedTime, shared_ptr<CServerCol
 
 }
 
-void CServerElevatorDoorObject::UpdatePicking()
+void CServerElevatorDoorObject::UpdatePicking(INT8 nClientId)
 {
-	
 }
 
-void CServerElevatorDoorObject::EscapeDoorOpen()
+void CServerElevatorDoorObject::EscapeDoorOpen(INT8 nClientId)
 {
 	if (!IsEscape()) {
 		return;
@@ -313,7 +320,7 @@ void CServerTeleportObject::Update(float fElapsedTime, shared_ptr<CServerCollisi
 	CServerItemObject::SetWorldMatrix(xmf4x4FuseWorld);
 }
 
-void CServerTeleportObject::UpdatePicking()
+void CServerTeleportObject::UpdatePicking(INT8 nClientId)
 {
 	m_bObtained = true;
 	m_bCollision = false;
@@ -345,8 +352,7 @@ void CServerTeleportObject::SetRandomPosition(shared_ptr<CServerCollisionManager
 	{
 		int rd_num = dis(TCPServer::m_mt19937Gen);
 		int nDrawerNum = m_vDrawerId[rd_num].first;
-		shared_ptr<CServerDrawerObject> pDrawerObject = dynamic_pointer_cast<CServerDrawerObject>(
-			pCollisionManager->GetCollisionObjectWithNumber(nDrawerNum));
+		shared_ptr<CServerDrawerObject> pDrawerObject = dynamic_pointer_cast<CServerDrawerObject>(pCollisionManager->GetCollisionObjectWithNumber(nDrawerNum));
 
 		if (!pDrawerObject) //error
 			assert(0);
@@ -527,7 +533,7 @@ void CServerFuseObject::Update(float fElapsedTime, shared_ptr<CServerCollisionMa
 	CServerItemObject::SetWorldMatrix(xmf4x4FuseWorld);
 }
 
-void CServerFuseObject::UpdatePicking()
+void CServerFuseObject::UpdatePicking(INT8 nClientId)
 {
 	m_bObtained = true;
 	m_bCollision = false;
@@ -560,7 +566,10 @@ void CServerFuseObject::SetRandomPosition(shared_ptr<CServerCollisionManager>& p
 		shared_ptr<CServerDrawerObject> pDrawerObject = dynamic_pointer_cast<CServerDrawerObject>(pCollisionManager->GetCollisionObjectWithNumber(nDrawerNum));
 
 		if (!pDrawerObject) //error
-			exit(1);
+		{
+			//exit(1);
+			assert(10);
+		}
 
 		if (pDrawerObject->m_pStoredItem)	// 이미 다른 아이템이 들어왔음
 		{

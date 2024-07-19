@@ -187,5 +187,7 @@ private:
 	D3D12_GPU_DESCRIPTOR_HANDLE m_d3dFramework_info_CbvGPUDescriptorHandle;
 	ComPtr<ID3D12Resource> m_d3dFramework_info_Resource;
 	CB_FRAMEWORK_INFO* m_cbFramework_info;
+
+	float m_fBGMVolume = 0.5f;
 };
 

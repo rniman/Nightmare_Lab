@@ -1,8 +1,8 @@
-﻿
-#include "stdafx.h"
+﻿#include "stdafx.h"
 #include "Client.h"
 #include "GameFramework.h"
 
+#include "Sound.h"
 
 #define MAX_LOADSTRING 100
 
@@ -18,6 +18,42 @@ ATOM                MyRegisterClass(HINSTANCE hInstance);
 BOOL                InitInstance(HINSTANCE, int, HWND&);
 LRESULT CALLBACK    WndProc(HWND, UINT, WPARAM, LPARAM);
 INT_PTR CALLBACK    About(HWND, UINT, WPARAM, LPARAM);
+
+int Test()
+{
+	SoundManager& soundManager = SoundManager::GetInstance();
+	if (!soundManager.Initialize()) 
+	{
+		return -1;
+	}
+
+	// 사운드 로드
+	soundManager.LoadSound("sound1", "Sound/singing.wav", true);
+	soundManager.LoadSound("sound2", "Sound/wave.mp3");
+
+	// 사운드 재생
+	soundManager.PlaySoundWithName("sound1", -1);
+	
+	Sleep(1000);
+	soundManager.PlaySoundWithName("sound1", -1);
+	
+	Sleep(1000);
+	soundManager.PlaySoundWithName("sound1", -1);
+	//soundManager.PlaySoundWithName("sound2", -1);
+
+	while (true)
+	{
+		soundManager.UpdateSystem();
+
+		if (!soundManager.IsPlaying("sound1"))
+		{
+			break;
+		}
+	}
+
+	soundManager.Shutdown();
+	return 0;
+}
 
 int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
 	_In_opt_ HINSTANCE hPrevInstance,
@@ -44,6 +80,8 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
 	}
 
 	HACCEL hAccelTable = LoadAccelerators(hInstance, MAKEINTRESOURCE(IDC_CLIENT));
+
+	//Test();
 
 	MSG msg;
 	gGameFramework.CreateEntryWindow(hWnd);
@@ -98,7 +136,7 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
 	
 	// 기본 메시지 루프입니다:
 	while (gGameFramework.IsConnected())
-	{
+	{ 
 		if (::PeekMessage(&msg, NULL, 0, 0, PM_REMOVE))
 		{
 			if (msg.message == WM_QUIT)
