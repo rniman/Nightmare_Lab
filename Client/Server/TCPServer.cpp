@@ -63,12 +63,20 @@ void TCPServer::OnProcessingWindowMessage(HWND hWnd, UINT nMessageID, WPARAM wPa
 	case WM_SOUND:
 		switch (wParam)
 		{
-		case SOUND_MESSAGE::DRAWER:
-			m_vSocketInfoList[(int)lParam].m_socketState = SOCKET_STATE::SEND_DRAWER_SOUND;
+		case SOUND_MESSAGE::OPEN_DRAWER:
+			m_vSocketInfoList[(int)lParam].m_socketState = SOCKET_STATE::SEND_OPEN_DRAWER_SOUND;
 			PostMessage(m_hWnd, WM_SOCKET, (WPARAM)m_vSocketInfoList[(int)lParam].m_sock, MAKELPARAM(FD_WRITE, 0));
 			break;
-		case SOUND_MESSAGE::DOOR:
-			m_vSocketInfoList[(int)lParam].m_socketState = SOCKET_STATE::SEND_DOOR_SOUND;
+		case SOUND_MESSAGE::CLOSE_DRAWER:
+			m_vSocketInfoList[(int)lParam].m_socketState = SOCKET_STATE::SEND_CLOSE_DRAWER_SOUND;
+			PostMessage(m_hWnd, WM_SOCKET, (WPARAM)m_vSocketInfoList[(int)lParam].m_sock, MAKELPARAM(FD_WRITE, 0));
+			break;
+		case SOUND_MESSAGE::OPEN_DOOR:
+			m_vSocketInfoList[(int)lParam].m_socketState = SOCKET_STATE::SEND_OPEN_DOOR_SOUND;
+			PostMessage(m_hWnd, WM_SOCKET, (WPARAM)m_vSocketInfoList[(int)lParam].m_sock, MAKELPARAM(FD_WRITE, 0));
+			break;
+		case SOUND_MESSAGE::CLOSE_DOOR:
+			m_vSocketInfoList[(int)lParam].m_socketState = SOCKET_STATE::SEND_CLOSE_DOOR_SOUND;
 			PostMessage(m_hWnd, WM_SOCKET, (WPARAM)m_vSocketInfoList[(int)lParam].m_sock, MAKELPARAM(FD_WRITE, 0));
 			break;
 		default:
@@ -516,7 +524,7 @@ void TCPServer::OnProcessingWriteMessage(HWND hWnd, UINT nMessageID, WPARAM wPar
 		cout << "ZOMBIE WIN" << endl;
 		m_vSocketInfoList[nSocketIndex].m_socketState = SOCKET_STATE::SEND_UPDATE_DATA;
 		break;
-	case SOCKET_STATE::SEND_DRAWER_SOUND:
+	case SOCKET_STATE::SEND_OPEN_DRAWER_SOUND:
 		nHead = 7;
 		nRetval = SendData(m_vSocketInfoList[nSocketIndex].m_sock, nBufferSize, nHead);
 		if (nRetval == -1 && WSAGetLastError() == WSAEWOULDBLOCK)
@@ -524,8 +532,24 @@ void TCPServer::OnProcessingWriteMessage(HWND hWnd, UINT nMessageID, WPARAM wPar
 		}
 		m_vSocketInfoList[nSocketIndex].m_socketState = SOCKET_STATE::SEND_UPDATE_DATA;
 		break;
-	case SOCKET_STATE::SEND_DOOR_SOUND:
+	case SOCKET_STATE::SEND_CLOSE_DRAWER_SOUND:
 		nHead = 8;
+		nRetval = SendData(m_vSocketInfoList[nSocketIndex].m_sock, nBufferSize, nHead);
+		if (nRetval == -1 && WSAGetLastError() == WSAEWOULDBLOCK)
+		{
+		}
+		m_vSocketInfoList[nSocketIndex].m_socketState = SOCKET_STATE::SEND_UPDATE_DATA;
+		break;
+	case SOCKET_STATE::SEND_OPEN_DOOR_SOUND:
+		nHead = 9;
+		nRetval = SendData(m_vSocketInfoList[nSocketIndex].m_sock, nBufferSize, nHead);
+		if (nRetval == -1 && WSAGetLastError() == WSAEWOULDBLOCK)
+		{
+		}
+		m_vSocketInfoList[nSocketIndex].m_socketState = SOCKET_STATE::SEND_UPDATE_DATA;
+		break;
+	case SOCKET_STATE::SEND_CLOSE_DOOR_SOUND:
+		nHead = 10;
 		nRetval = SendData(m_vSocketInfoList[nSocketIndex].m_sock, nBufferSize, nHead);
 		if (nRetval == -1 && WSAGetLastError() == WSAEWOULDBLOCK)
 		{
@@ -1276,7 +1300,6 @@ void TCPServer::CreateSendObject()
 
 		// 층은 나중에 계단쪽에서만 추가할수있도록해야할듯
 		// if(계단 쪽이면 위층 or 아래층범위 검사)
-
 		for (int j = pPlayer->GetWidth() - 1; j <= pPlayer->GetWidth() + 1 && nIndex < MAX_SEND_OBJECT_INFO; ++j)
 		{
 			if (j < 0 || j > m_pCollisionManager->GetWidth() - 1)

@@ -11,17 +11,22 @@ namespace sound
     constexpr char WALK_ZOMBIE[]{ "WalkZombie" };
     constexpr char ATTACK_ZOMBIE[]{ "AttackZombie" };
 
-    constexpr char WALK_BLUESUIT[]{ "WalkBlueSuit" };
-    constexpr char RUN_BLUESUIT[]{ "RunBlueSuit" };
+    constexpr char WALK01_BLUESUIT[]{ "Walk01BlueSuit" };
+    constexpr char WALK02_BLUESUIT[]{ "Walk02BlueSuit" };
+
+    constexpr char RUN01_BLUESUIT[]{ "Run01BlueSuit" };
+    constexpr char RUN02_BLUESUIT[]{ "Run02BlueSuit" };
+
     constexpr char DEAD_BLUESUIT[]{ "DeadBlueSuit" };
 
     constexpr char GET_ITEM_BLUESUIT[]{ "GetItemBlueSuit" };
     constexpr char USE_TP_BLUESUIT[]{ "UseTpBlueSuit" };
     constexpr char ACTIVE_MINE[]{ "UseMineBlueSuit" };
     
-    constexpr char USE_DRAWER[]{ "UseDrawer" };
-    constexpr char USE_DOOR[]{ "UseDoor" };
-    constexpr char USE_EXIT_DOOR[]{ "UseExitDoor" };
+    constexpr char OPEN_DRAWER[]{ "OpenDrawer" };
+    constexpr char CLOSE_DRAWER[]{ "CloseDrawer" };
+    constexpr char OPEN_DOOR[]{ "OpenDoor" };
+    constexpr char CLOSE_DOOR[]{ "CloseDoor" };
 }
 
 // 문자열 키값 비교를 위함

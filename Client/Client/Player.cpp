@@ -631,7 +631,7 @@ void CBlueSuitPlayer::UpdateAnimation()
 
 					//Á×´Â »ç¿îµå
 					SoundManager& soundManager = soundManager.GetInstance();
-					soundManager.SetVolume(sound::DEAD_BLUESUIT, m_fPlayerVolume);
+					soundManager.SetVolume(sound::DEAD_BLUESUIT, m_fPlayerVolume * 0.1f);
 					if (m_fPlayerVolume - EPSILON >= 0.0f) soundManager.PlaySoundWithName(sound::DEAD_BLUESUIT);
 				}
 			}

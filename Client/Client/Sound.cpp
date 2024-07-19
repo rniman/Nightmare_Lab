@@ -45,19 +45,23 @@ bool SoundManager::Initialize()
     LoadSound(sound::GAME_OVER, "Sound/resource/game_fail.wav", false);
 
     LoadSound(sound::WALK_ZOMBIE, "Sound/resource/Zombie_Walk.wav");
-    LoadSound(sound::ATTACK_ZOMBIE, "Sound/resource/chord.wav");
+    LoadSound(sound::ATTACK_ZOMBIE, "Sound/resource/Zombie_Attack.wav");
     
-    LoadSound(sound::WALK_BLUESUIT, "Sound/resource/Footstep01.wav");
-    LoadSound(sound::RUN_BLUESUIT, "Sound/resource/Footstep01.wav");
-    LoadSound(sound::DEAD_BLUESUIT, "Sound/resource/singing.wav");
+    LoadSound(sound::WALK01_BLUESUIT, "Sound/resource/Walk01_BlueSuit.wav");
+    LoadSound(sound::WALK02_BLUESUIT, "Sound/resource/Walk02_BlueSuit.wav");
+    LoadSound(sound::RUN01_BLUESUIT, "Sound/resource/Walk01_BlueSuit.wav");
+    LoadSound(sound::RUN02_BLUESUIT, "Sound/resource/Walk02_BlueSuit.wav");
+
+    LoadSound(sound::DEAD_BLUESUIT, "Sound/resource/BlueSuit_Dead.wav");
     
-    LoadSound(sound::GET_ITEM_BLUESUIT, "Sound/resource/singing.wav");
+    LoadSound(sound::GET_ITEM_BLUESUIT, "Sound/resource/Get_Item.wav");
     LoadSound(sound::USE_TP_BLUESUIT, "Sound//resource/Teleport.wav");
-    LoadSound(sound::ACTIVE_MINE, "Sound/resource/Ding.wav");
+    LoadSound(sound::ACTIVE_MINE, "Sound/resource/Mine.wav");
     
-    LoadSound(sound::USE_DRAWER, "Sound/resource/chord.wav");
-    LoadSound(sound::USE_DOOR, "Sound/resource/chord.wav");
-   // LoadSound(sound::USE_EXIT_DOOR, "Sound/Ding.wav");
+    LoadSound(sound::OPEN_DRAWER, "Sound/resource/Open_Drawer.wav");
+    LoadSound(sound::CLOSE_DRAWER, "Sound/resource/Close_Drawer (mp3cut.net).wav");
+    LoadSound(sound::OPEN_DOOR, "Sound/resource/Open_Door.wav");
+    LoadSound(sound::CLOSE_DOOR, "Sound/resource/Close_Door.wav");
 
     return true;
 }

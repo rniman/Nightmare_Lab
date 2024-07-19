@@ -42,7 +42,7 @@ public:
 
 	static int GetNumberOfCollisionObject() { return CServerCollisionManager::m_nCollisionObject; }
 	shared_ptr<CServerGameObject> GetCollisionObjectWithNumber(int nCollisionNum) { return m_vpCollisionObject[nCollisionNum]; }
-	vector<shared_ptr<CServerGameObject>> GetOutSpaceObject() { return m_vpOutSpaceObject; }
+	vector<shared_ptr<CServerGameObject>>& GetOutSpaceObject() { return m_vpOutSpaceObject; }
 
 	int GetHeight() const { return m_nHeight; }
 	int GetWidth() const { return m_nWidth; }

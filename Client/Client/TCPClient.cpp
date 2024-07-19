@@ -214,18 +214,30 @@ void CTcpClient::OnProcessingReadMessage(HWND hWnd, UINT nMessageID, WPARAM wPar
 	case HEAD_ZOMBIE_WIN:
 		PostMessage(hWnd, WM_END_GAME, 1, 0);
 		break;
-	case HEAD_DRAWER_SOUND:
+	case HEAD_OPEN_DRAWER_SOUND:
 	{
 		SoundManager& soundManager = soundManager.GetInstance();
-		soundManager.PlaySoundWithName(sound::USE_DRAWER);
+		soundManager.PlaySoundWithName(sound::OPEN_DRAWER);
 	}
 		break;
-	case HEAD_DOOR_SOUND:
+	case HEAD_CLOSE_DRAWER_SOUND:
 	{
 		SoundManager& soundManager = soundManager.GetInstance();
-		soundManager.PlaySoundWithName(sound::USE_DOOR);
+		soundManager.PlaySoundWithName(sound::CLOSE_DRAWER);
+	}
+	break;
+	case HEAD_OPEN_DOOR_SOUND:
+	{
+		SoundManager& soundManager = soundManager.GetInstance();
+		soundManager.PlaySoundWithName(sound::OPEN_DOOR);
 	}
 		break;
+	case HEAD_CLOSE_DOOR_SOUND:
+	{
+		SoundManager& soundManager = soundManager.GetInstance();
+		soundManager.PlaySoundWithName(sound::CLOSE_DOOR);
+	}
+	break;
 	default:
 		break;
 	}
