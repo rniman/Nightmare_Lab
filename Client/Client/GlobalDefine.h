@@ -86,6 +86,11 @@ enum RightItem {
 	FUSE,
 };
 
+struct SC_SPACEOUT_OBJECT {
+	int			m_iObjectId;
+	XMFLOAT4X4	m_xmf4x4World;
+};
+
 inline std::string HrToString(HRESULT hr)
 {
 	char s_str[64] = {};

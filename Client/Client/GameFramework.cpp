@@ -1040,6 +1040,11 @@ void CGameFramework::BuildObjects()
 		m_pCamera = m_pMainPlayer->GetCamera();
 
 		PrepareDrawText();// Scene이 초기화 되고 나서 수행해야함 SRV를 Scene이 가지고 있음.
+
+		int x = g_collisionManager.GetNumOfCollisionObject();
+		if (x != 0) {
+			x = x;
+		}
 	}
 }
 

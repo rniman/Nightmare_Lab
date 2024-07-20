@@ -466,6 +466,7 @@ public:
 
 	bool IsAlive() const { return m_bAlive; }
 	void SetAlive(bool bAlive) { m_bAlive = bAlive; }
+	virtual void SetObtain(bool bObtained) {}
 	bool CheckPicking(const weak_ptr<CGameObject>& pGameObject, const XMFLOAT3& xmf3PickPosition, const XMFLOAT4X4& mxf4x4ViewMatrix, float& fDistance);
 	virtual void UpdatePicking() {};
 	virtual void UpdateUsing(const shared_ptr<CGameObject>& pGameObject) {};

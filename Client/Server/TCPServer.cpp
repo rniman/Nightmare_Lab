@@ -79,6 +79,10 @@ void TCPServer::OnProcessingWindowMessage(HWND hWnd, UINT nMessageID, WPARAM wPa
 			m_vSocketInfoList[(int)lParam].m_socketState = SOCKET_STATE::SEND_CLOSE_DOOR_SOUND;
 			PostMessage(m_hWnd, WM_SOCKET, (WPARAM)m_vSocketInfoList[(int)lParam].m_sock, MAKELPARAM(FD_WRITE, 0));
 			break;
+		case SOUND_MESSAGE::BLUE_SUIT_DEAD:
+			m_vSocketInfoList[(int)lParam].m_socketState = SOCKET_STATE::SEND_BLUE_SUIT_DEAD;
+			PostMessage(m_hWnd, WM_SOCKET, (WPARAM)m_vSocketInfoList[(int)lParam].m_sock, MAKELPARAM(FD_WRITE, 0));
+			break;
 		default:
 			break;
 		}
@@ -556,6 +560,21 @@ void TCPServer::OnProcessingWriteMessage(HWND hWnd, UINT nMessageID, WPARAM wPar
 		}
 		m_vSocketInfoList[nSocketIndex].m_socketState = SOCKET_STATE::SEND_UPDATE_DATA;
 		break;
+	case SOCKET_STATE::SEND_BLUE_SUIT_DEAD: {
+		nHead = 11;
+		char deadUser_id = (char)nSocketIndex;
+		nBufferSize += sizeof(deadUser_id);
+		for (int i = 0; i < m_nClient; ++i)
+		{
+			if (m_vSocketInfoList[i].m_bUsed)
+			{
+				nRetval = SendData(m_vSocketInfoList[i].m_sock, nBufferSize, nHead, deadUser_id);
+				if (nRetval == -1 && WSAGetLastError() == WSAEWOULDBLOCK) {}
+			}
+		}
+		m_vSocketInfoList[nSocketIndex].m_socketState = SOCKET_STATE::SEND_UPDATE_DATA;
+		break;
+	}
 	default:
 		break;
 	}
@@ -1266,6 +1285,42 @@ void TCPServer::CreateItemObject()
 
 void TCPServer::CreateSendObject()
 {
+	vector<SC_SPACEOUT_OBJECT> vSO_obejcts;
+	vSO_obejcts.reserve(m_pCollisionManager->GetOutSpaceObject().size());
+
+	for (auto& pGameObject : m_pCollisionManager->GetOutSpaceObject())
+	{
+		if (!pGameObject)
+		{
+			continue;
+		}
+		vSO_obejcts.emplace_back(SC_SPACEOUT_OBJECT(pGameObject->GetCollisionNum(), pGameObject->GetWorldMatrix()));
+	}
+	m_pCollisionManager->GetOutSpaceObject().clear();
+
+	if (vSO_obejcts.size() != 0) {
+		vector<BYTE> buffer; // 데이터 전송을 위한 버퍼
+		//데이터 사이즈는 65,535를 안넘을것.
+		INT8 nHead = static_cast<INT8>(SOCKET_STATE::SEND_SPACEOUT_OBJECTS);
+
+		unsigned short bufferSize = sizeof(SC_SPACEOUT_OBJECT) * vSO_obejcts.size();
+		buffer.reserve(sizeof(INT8) + sizeof(unsigned short) + bufferSize); // size[2] + data size[?..]
+
+		buffer.push_back(nHead);
+		PushBufferData(buffer, &bufferSize, sizeof(unsigned short));
+		PushBufferData(buffer, vSO_obejcts.data(), bufferSize);
+
+		//cout << "공간 외에 업데이트가 필요한 오브젝트 => " << vSO_obejcts.size() << "개 입니다." << endl;
+		//cout << "총 보낼 사이즈 => " << buffer.size() << endl;
+		for (const auto& pPlayer : m_apPlayers)
+		{
+			if (!pPlayer) continue;
+			INT8 pl_id = pPlayer->GetPlayerId();
+			if (pl_id == -1) continue;
+			SendBufferData(m_vSocketInfoList[pl_id].m_sock, buffer);
+		}
+	}
+
 	for (const auto& pPlayer : m_apPlayers)
 	{
 		int nIndex = 0;
@@ -1275,28 +1330,6 @@ void TCPServer::CreateSendObject()
 		}
 
 		INT8 nId = pPlayer->GetPlayerId();
-
-		// 공간 외에 업데이트가 필요한 경우의 오브젝트
-		// EX) 아이템 사용 후 다시 맵에 리젠 되어야하는 아이템 오브젝트
-		for (auto& pGameObject : m_pCollisionManager->GetOutSpaceObject())
-		{
-			if (!pGameObject)
-			{
-				continue;
-			}
-			if (nIndex >= MAX_SEND_OBJECT_INFO) {
-				//std::cout << "nIndex 가 Max 치를 넘은 오류\n";
-				assert(0);
-			}
-			m_aUpdateInfo[nId].m_anObjectNum[nIndex] = pGameObject->GetCollisionNum();
-			if (m_aUpdateInfo[nId].m_anObjectNum[nIndex] >= m_pCollisionManager->GetNumberOfCollisionObject()) {
-				//std::cout << "index 범위를 넘어서는 오브젝트를 담았습니다.\n";
-			}
-			m_aUpdateInfo[nId].m_axmf4x4World[nIndex] = pGameObject->GetWorldMatrix();
-			nIndex++;
-		}
-		m_pCollisionManager->GetOutSpaceObject().clear();
-
 
 		// 층은 나중에 계단쪽에서만 추가할수있도록해야할듯
 		// if(계단 쪽이면 위층 or 아래층범위 검사)
@@ -1338,6 +1371,7 @@ void TCPServer::CreateSendObject()
 			}
 		}
 	}
+
 }
 
 void TCPServer::InitPlayerPosition(shared_ptr<CServerPlayer>& pServerPlayer, int nIndex)
@@ -1385,6 +1419,27 @@ int TCPServer::SendData(SOCKET socket, size_t nBufferSize, Args&&... args)
 	nRetval = send(socket, (char*)pBuffer, nBufferSize, 0);
 	delete[] pBuffer;
 	
+	if (nRetval == SOCKET_ERROR)
+	{
+		err_display("send()");
+		return SOCKET_ERROR;
+	}
+	return 0;
+}
+
+void TCPServer::PushBufferData(vector<BYTE>& buffer, void* data, size_t size)
+{
+	for (int i = 0; i < size;++i) {
+		buffer.push_back(((BYTE*)data)[i]);
+	}
+}
+
+int TCPServer::SendBufferData(SOCKET socket,vector<BYTE>& buffer)
+{
+	int nRetval;
+
+	nRetval = send(socket, (char*)buffer.data(), buffer.size(), 0);
+
 	if (nRetval == SOCKET_ERROR)
 	{
 		err_display("send()");

@@ -27,7 +27,9 @@ enum SOUND_MESSAGE
 	CLOSE_DRAWER,
 	OPEN_DOOR,
 	CLOSE_DOOR,
+	BLUE_SUIT_DEAD,
 };
+
 
 enum GAME_STATE
 {
@@ -92,6 +94,9 @@ enum class SOCKET_STATE
 	SEND_CLOSE_DRAWER_SOUND,
 	SEND_OPEN_DOOR_SOUND,
 	SEND_CLOSE_DOOR_SOUND,
+
+	SEND_BLUE_SUIT_DEAD,
+	SEND_SPACEOUT_OBJECTS
 };
 
 enum RECV_HEAD
@@ -157,6 +162,8 @@ public:
 	template<class... Args>	
 	int SendData(SOCKET socket, size_t nBufferSize, Args&&... args);	
 	int RecvData(int nSocketIndex, size_t nBufferSize);
+	int SendBufferData(SOCKET socket, vector<BYTE>& buffer);
+	void PushBufferData(vector<BYTE>& buffer, void* data, size_t size);
 
 	void LoadScene();
 	void CreateSceneObject(char* pstrFrameName, const XMFLOAT4X4& xmf4x4World, const vector<BoundingOrientedBox>& voobb);

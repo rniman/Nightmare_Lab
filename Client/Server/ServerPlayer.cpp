@@ -665,6 +665,8 @@ void CServerBlueSuitPlayer::Hit()
 		m_bCollision = false;
 		m_bAlive = false;
 		m_xmf3OldPosition = m_xmf3Position;
+
+		//PostMessage(TCPServer::m_hWnd, WM_SOUND, (WPARAM)SOUND_MESSAGE::BLUE_SUIT_DEAD, (LPARAM)m_nPlayerId);
 	}
 }
 
