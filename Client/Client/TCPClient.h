@@ -28,7 +28,8 @@ enum class SOCKET_STATE
 {
 	SEND_KEY_BUFFER,
 	SEND_GAME_START,
-	SEND_CHANGE_SLOT
+	SEND_CHANGE_SLOT,
+	SEND_LOADING_COMPLETE
 };
 
 enum RECV_HEAD
@@ -47,7 +48,8 @@ enum RECV_HEAD
 	HEAD_CLOSE_DOOR_SOUND,
 
 	HEAD_BLUE_SUIT_DEAD,
-	SEND_SPACEOUT_OBJECTS
+	SEND_SPACEOUT_OBJECTS,
+	HEAD_LOADING_COMPLETE
 };
 
 struct CS_ANIMATION_INFO {
@@ -114,6 +116,8 @@ private:
 	std::array<shared_ptr<CPlayer>, MAX_CLIENT> m_apPlayers;
 
 	int m_nEscapeDoor = -1;
+
+	bool m_bRecvLoadComplete = false;
 public:
 	SOCKET m_sock;
 	bool m_bSend = true;
@@ -157,5 +161,8 @@ public:
 
 	void SetSelectedSlot(INT8 nSelectedSlot) { m_nSelectedSlot = nSelectedSlot; }
 	void SetSocketState(SOCKET_STATE sockState) { m_socketState = sockState; }
+
+	void LoadCompleteSend();
+	bool GetRecvLoadComplete() { return m_bRecvLoadComplete; }
 };
 

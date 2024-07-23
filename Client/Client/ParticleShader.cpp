@@ -129,10 +129,12 @@ D3D12_DEPTH_STENCIL_DESC ParticleShader::CreateDepthStencilState()
 D3D12_SHADER_BYTECODE ParticleShader::CreateVertexShader()
 {
 	if (m_PipeLineIndex == 0) {
-		return(CShader::CompileShaderFromFile(L"ParticleShader.hlsl", "VSParticleStreamOutput", "vs_5_1", m_pd3dVertexShaderBlob.GetAddressOf()));
+		return CShader::ReadCompiledShaderFromFile(L"cso/VSParticleStreamOutput.cso", m_pd3dVertexShaderBlob.GetAddressOf());
+		//return(CShader::CompileShaderFromFile(L"ParticleShader.hlsl", "VSParticleStreamOutput", "vs_5_1", m_pd3dVertexShaderBlob.GetAddressOf()));
 	}
 	else {
-		return(CShader::CompileShaderFromFile(L"ParticleShader.hlsl", "VSParticleDraw", "vs_5_1", m_pd3dVertexShaderBlob.GetAddressOf()));
+		return CShader::ReadCompiledShaderFromFile(L"cso/VSParticleDraw.cso", m_pd3dVertexShaderBlob.GetAddressOf());
+		//return(CShader::CompileShaderFromFile(L"ParticleShader.hlsl", "VSParticleDraw", "vs_5_1", m_pd3dVertexShaderBlob.GetAddressOf()));
 	}
 }
 
@@ -142,17 +144,20 @@ D3D12_SHADER_BYTECODE ParticleShader::CreatePixelShader()
 		return(CShader::CreatePixelShader());
 	}
 	else {
-		return(CShader::CompileShaderFromFile(L"ParticleShader.hlsl", "PSParticleDraw", "ps_5_1", m_pd3dPixelShaderBlob.GetAddressOf()));
+		return CShader::ReadCompiledShaderFromFile(L"cso/PSParticleDraw.cso", m_pd3dPixelShaderBlob.GetAddressOf());
+		//return(CShader::CompileShaderFromFile(L"ParticleShader.hlsl", "PSParticleDraw", "ps_5_1", m_pd3dPixelShaderBlob.GetAddressOf()));
 	}
 }
 
 D3D12_SHADER_BYTECODE ParticleShader::CreateGeometryShader()
 {
 	if (m_PipeLineIndex == 0) {
-		return(CShader::CompileShaderFromFile(L"ParticleShader.hlsl", "GSParticleStreamOutput", "gs_5_1", m_pd3dGeometryShaderBlob.GetAddressOf()));
+		return CShader::ReadCompiledShaderFromFile(L"cso/GSParticleStreamOutput.cso", m_pd3dGeometryShaderBlob.GetAddressOf());
+		//return(CShader::CompileShaderFromFile(L"ParticleShader.hlsl", "GSParticleStreamOutput", "gs_5_1", m_pd3dGeometryShaderBlob.GetAddressOf()));
 	}
 	else {
-		return(CShader::CompileShaderFromFile(L"ParticleShader.hlsl", "GSParticleDraw", "gs_5_1", m_pd3dGeometryShaderBlob.GetAddressOf()));
+		return CShader::ReadCompiledShaderFromFile(L"cso/GSParticleDraw.cso", m_pd3dGeometryShaderBlob.GetAddressOf());
+		//return(CShader::CompileShaderFromFile(L"ParticleShader.hlsl", "GSParticleDraw", "gs_5_1", m_pd3dGeometryShaderBlob.GetAddressOf()));
 	}
 }
 

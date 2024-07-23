@@ -36,7 +36,8 @@ enum GAME_STATE
 	IN_LOBBY = 0,
 	IN_GAME,
 	BLUE_SUIT_WIN,
-	ZOMBIE_WIN
+	ZOMBIE_WIN,
+	IN_LODING
 };
 
 struct SC_ANIMATION_INFO
@@ -96,14 +97,16 @@ enum class SOCKET_STATE
 	SEND_CLOSE_DOOR_SOUND,
 
 	SEND_BLUE_SUIT_DEAD,
-	SEND_SPACEOUT_OBJECTS
+	SEND_SPACEOUT_OBJECTS,
+	SEND_LOADING_COMPLETE
 };
 
 enum RECV_HEAD
 {
 	HEAD_KEYS_BUFFER = 0,
 	HEAD_GAME_START,
-	HEAD_CHANGE_SLOT
+	HEAD_CHANGE_SLOT,
+	HEAD_LOADING_COMPLETE
 };
 
 struct SOCKETINFO
@@ -126,6 +129,8 @@ struct SOCKETINFO
 
 	int SendNum = 0;
 	int RecvNum = 0;
+
+	bool m_bLoadComplete = false;
 };
 
 void ConvertCharToLPWSTR(const char* pstr, LPWSTR dest, int destSize);

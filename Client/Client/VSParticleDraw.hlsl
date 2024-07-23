@@ -1,32 +1,5 @@
 #include "Common.hlsl"
 
-struct PARTICLE_INS_INFO
-{
-    float start_Time;
-    float3 padding;
-};
-
-// cbuffer 4byte * 4096 max
-#define PARITICLE_INSTANCE_COUNT 1024
-
-#define TP 0
-#define SPARK 1
-#define BUBBLE 2
-#define BUBBLE_C 11
-#define FOOTPRINT 3
-
-cbuffer cbParticleInfo : register(b3)
-{
-    PARTICLE_INS_INFO particle_ins_info[PARITICLE_INSTANCE_COUNT];
-}
-
-//Texture2D gtxtParticleTexture : register(t1); => Albedo
-Buffer<float4> gRandomBuffer : register(t10);
-Buffer<float4> gRandomSphereBuffer : register(t11);
-
-//SamplerState gWrapSamplerState : register(s0); => gssWrap
-
-
 struct VS_PARTICLE_INPUT
 {
     float3 position : POSITION;
@@ -40,83 +13,6 @@ struct VS_PARTICLE_INPUT
     float iStartTime : ISTARTTIME;
 };
 
-VS_PARTICLE_INPUT VSParticleStreamOutput(VS_PARTICLE_INPUT input)
-{
-    return (input);
-}
-
-float3 GetParticleColor(float fAge, float fLifetime)
-{
-    float3 cColor = float3(1.0f, 1.0f, 1.0f);
-
-    if (fAge == 0.0f)
-        cColor = float3(0.0f, 1.0f, 0.0f);
-    else if (fLifetime == 0.0f) 
-        cColor = float3(1.0f, 1.0f, 0.0f);
-    else
-    {
-        float t = fAge / fLifetime;
-        cColor = lerp(float3(1.0f, 0.0f, 0.0f), float3(0.0f, 0.0f, 1.0f), t * 1.0f);
-    }
-
-    return (cColor);
-}
-
-float4 RandomDirection(float fOffset)
-{
-    int u = uint(gfCurrentTime + fOffset + frac(gfCurrentTime) * 1000.0f) % 1024;
-    return (normalize(gRandomBuffer.Load(u)));
-}
-
-float4 RandomDirectionOnSphere(float fOffset)
-{
-    int u = uint(gfCurrentTime + fOffset + frac(gfCurrentTime) * 1000.0f) % 256;
-    return (normalize(gRandomSphereBuffer.Load(u)));
-}
-
-void BubbleCreate(VS_PARTICLE_INPUT input, inout PointStream<VS_PARTICLE_INPUT> output, int amount)
-{
-    VS_PARTICLE_INPUT particle = input;
-    particle.type = BUBBLE_C; // dummy type
-    for (int j = 0; j < amount; j++)
-    {
-        float4 f4Random = RandomDirection(particle.type + particle.lifetime + length(particle.velocity) + j);
-        particle.velocity = f4Random.xyz * 0.1f;
-        particle.velocity.y = abs(particle.velocity.y);
-        particle.lifetime = 3.0f + length(f4Random.x) * 3.f;
-        particle.startTime = gfCurrentTime;
-        output.Append(particle);
-    }
-}
-
-[maxvertexcount(64)]
-void GSParticleStreamOutput(point VS_PARTICLE_INPUT input[1], inout PointStream<VS_PARTICLE_INPUT> output)
-{
-    VS_PARTICLE_INPUT particle = input[0];
-    particle.lifetime -= gfElapsedTime;
-    
-    if (particle.lifetime > 0.0f)
-    {
-        if (input[0].type == BUBBLE)
-        {
-            BubbleCreate(particle, output, 64);
-        }
-        else if (input[0].type == BUBBLE_C)
-        {
-            particle.position.xyz = (particle.velocity * frac((gfCurrentTime - particle.startTime) / 10) * 10);
-		
-            output.Append(particle);
-        }
-    }
-    else
-    {
-        BubbleCreate(particle, output, 1);
-    }
-}
-
-
-/////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-//
 struct VS_PARTICLE_DRAW_OUTPUT
 {
     float3 position : POSITION;
@@ -126,13 +22,6 @@ struct VS_PARTICLE_DRAW_OUTPUT
     uint id : PARTICLEID;
 };
 
-struct GS_PARTICLE_DRAW_OUTPUT
-{
-    float4 position : SV_Position;
-    float4 color : COLOR;
-    float2 uv : TEXTURE;
-    uint type : PARTICLETYPE;
-};
 
 static float3 g_Gravity = float3(0.f, -0.9f, 0.f);
 
@@ -154,7 +43,7 @@ VS_PARTICLE_DRAW_OUTPUT Velocity(VS_PARTICLE_INPUT input)
         float attractValue = frac(t2 / (particle.lifetime));
         
         float speed = lerp(3.0f, 100.0f, attractValue);
-        t += lerp(0.0f,speed, attractValue);
+        t += lerp(0.0f, speed, attractValue);
     }
     
     if (t > particle.lifetime)
@@ -186,7 +75,7 @@ VS_PARTICLE_DRAW_OUTPUT Velocity(VS_PARTICLE_INPUT input)
     return output;
 }
 
-VS_PARTICLE_DRAW_OUTPUT Explosion(VS_PARTICLE_INPUT input,float fTime)
+VS_PARTICLE_DRAW_OUTPUT Explosion(VS_PARTICLE_INPUT input, float fTime)
 {
     // 시간에 따라 위치 업데이트
     input.velocity = normalize(input.velocity);
@@ -277,32 +166,4 @@ VS_PARTICLE_DRAW_OUTPUT VSParticleDraw(VS_PARTICLE_INPUT input)
     output.size = 0.04f;
 	
     return (output);
-}
-
-static float3 gViewPosition2[4] = { float3(-1.0f, +1.0f, 0.5f), float3(+1.0f, +1.0f, 0.5f), float3(-1.0f, -1.0f, 0.5f), float3(+1.0f, -1.0f, 0.5f) };
-static float2 gRectUVs[4] = { float2(0.0f, 0.0f), float2(1.0f, 0.0f), float2(0.0f, 1.0f), float2(1.0f, 1.0f) };
-
-[maxvertexcount(4)]
-void GSParticleDraw(point VS_PARTICLE_DRAW_OUTPUT input[1], inout TriangleStream<GS_PARTICLE_DRAW_OUTPUT> outputStream)
-{
-    GS_PARTICLE_DRAW_OUTPUT output;
-
-    output.type = input[0].type;
-    output.color = input[0].color;
-    for (int i = 0; i < 4; i++)
-    {
-        float3 positionW = mul(gViewPosition2[i] * input[0].size, (float3x3) gmtxInverseView) + input[0].position;
-        output.position = mul(mul(float4(positionW, 1.0f), gmtxView), gmtxProjection);
-        output.uv = gRectUVs[i];
-
-        outputStream.Append(output);
-    }
-}
-
-float4 PSParticleDraw(GS_PARTICLE_DRAW_OUTPUT input) : SV_TARGET
-{
-    float4 cColor = AlbedoTexture.Sample(gssWrap, input.uv);
-    cColor *= input.color;
-
-    return (cColor);
 }

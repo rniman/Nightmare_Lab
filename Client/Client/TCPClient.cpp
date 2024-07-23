@@ -266,7 +266,11 @@ void CTcpClient::OnProcessingReadMessage(HWND hWnd, UINT nMessageID, WPARAM wPar
 		vSO_obejcts.reserve(objCount);
 		vSO_obejcts.resize(objCount);
 
-		RecvData(wParam, usBufferSize);
+		nRetval = RecvData(wParam, usBufferSize);
+		if (nRetval != 0)
+		{
+			break;
+		}
 		memcpy(vSO_obejcts.data(), m_pCurrentBuffer, usBufferSize);
 		for(const auto& obj : vSO_obejcts){
 			shared_ptr<CGameObject> pGameObject = g_collisionManager.GetCollisionObjectWithNumber(obj.m_iObjectId).lock();
@@ -277,6 +281,10 @@ void CTcpClient::OnProcessingReadMessage(HWND hWnd, UINT nMessageID, WPARAM wPar
 				pGameObject->SetObtain(false);
 			}
 		}
+		break;
+	}
+	case HEAD_LOADING_COMPLETE: {
+		m_bRecvLoadComplete = true;
 		break;
 	}
 	default:
@@ -362,7 +370,6 @@ void CTcpClient::UpdateDataFromServer()
 		for (int j = 0; j < nNumOfGameObject; ++j)
 		{
 			int nObjectNum = m_aClientInfo[i].m_anObjectNum[j];
-
 
 			if (nObjectNum <= -1 || nObjectNum >= g_collisionManager.GetNumOfCollisionObject())
 			{
@@ -706,6 +713,17 @@ void CTcpClient::UpdatePlayer(int nIndex)
 
 	if (m_aClientInfo[nIndex].m_playerInfo.m_bTeleportItemUse) {
 		pBlueSuitPlayer->Teleport();
+	}
+}
+
+void CTcpClient::LoadCompleteSend()
+{
+	INT8 nHead = static_cast<INT8>(SOCKET_STATE::SEND_LOADING_COMPLETE);
+	size_t nBufferSize = sizeof(INT8);
+	int nRetval = SendData(m_sock, nBufferSize, nHead);
+
+	if (nRetval == -1 && WSAGetLastError() == WSAEWOULDBLOCK)
+	{
 	}
 }
 

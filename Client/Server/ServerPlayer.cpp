@@ -892,6 +892,9 @@ CServerZombiePlayer::CServerZombiePlayer()
 
 void CServerZombiePlayer::UseItem(shared_ptr<CServerCollisionManager>& pCollisionManager)
 {
+	if (m_bGameStartWait) {
+		return;
+	}
 	//else printf("%f \n", m_fCoolTimeRunning);
 
 	if ((m_wKeyBuffer & KEY_1) && m_fCoolTimeTracking <= 0.0f)	// 추적
@@ -914,6 +917,14 @@ void CServerZombiePlayer::UseItem(shared_ptr<CServerCollisionManager>& pCollisio
 
 void CServerZombiePlayer::Update(float fElapsedTime, shared_ptr<CServerCollisionManager>& pCollisionManager)
 {
+	if (m_bGameStartWait) {
+		m_fGameStartWait -= fElapsedTime;
+		if (m_fGameStartWait <= 0.0f) {
+			m_bGameStartWait = false;
+		}
+		return;
+	}
+
 	m_fCoolTimeAttack -= fElapsedTime;
 	m_fExplosionDelay += fElapsedTime;
 	if (m_fNoStopTime > 0.0f) { // 움직임 제한 쿨타임
@@ -1029,4 +1040,10 @@ void CServerZombiePlayer::CollisionMine(int ref)
 	m_bCollisionMine = true;
 	m_fNoStopTime = 3.0f;
 	m_iCollideMineRef = ref;
+}
+
+void CServerZombiePlayer::GameStartLogic()
+{
+	m_fGameStartWait = 10.0f;
+	m_bGameStartWait = ZOMBIEMOVELIMIT;
 }

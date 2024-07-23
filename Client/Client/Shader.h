@@ -8,7 +8,8 @@ enum GAME_STATE
 	IN_LOBBY = 0,
 	IN_GAME,
 	BLUE_SUIT_WIN,
-	ZOMBIE_WIN
+	ZOMBIE_WIN,
+	IN_LOADING
 };
 
 class CShader
@@ -46,7 +47,8 @@ public:
 
 	virtual void ReleaseUploadBuffers();
 
-	virtual void BuildObjects(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dCommandList, ID3D12RootSignature* pd3dGraphicsRootSignature) { }
+	virtual void BuildObjects(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dCommandList, ID3D12RootSignature* pd3dGraphicsRootSignatureconst) { }
+
 	virtual void AnimateObjects(float fElapsedTime);
 	virtual void ParticleUpdate(float fCurTime){}
 	virtual void ReleaseObjects() { }
@@ -477,4 +479,23 @@ private:
 	bool m_bChangeButtonPressed = false;
 	array<shared_ptr<CMaterial>, 4> m_apmatChangeButton;
 	shared_ptr<CGameObject> m_pChangeButton;
+};
+
+class CFullScreenProcessingShader : public CShader
+{
+public:
+	CFullScreenProcessingShader() {};
+	virtual ~CFullScreenProcessingShader() {};
+
+	D3D12_SHADER_BYTECODE CreateVertexShader() override;
+	D3D12_SHADER_BYTECODE CreatePixelShader() override;
+	D3D12_BLEND_DESC CreateBlendState() override;
+	D3D12_DEPTH_STENCIL_DESC CreateDepthStencilState() override;
+
+	void CreateShader(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dCommandList, ID3D12RootSignature* pd3dGraphicsRootSignature, UINT nRenderTargets = 1,
+		DXGI_FORMAT* pdxgiRtvFormats = nullptr, DXGI_FORMAT dxgiDsvFormat = DXGI_FORMAT_D24_UNORM_S8_UINT) override;
+	void BuildObjects(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dCommandList, ID3D12RootSignature* pd3dGraphicsRootSignature,
+		const WCHAR* strGameState, shared_ptr<CPlayer>& mainPlayer);
+	void Render(ID3D12GraphicsCommandList* pd3dCommandList, const shared_ptr<CCamera>& pCamera, const shared_ptr<CPlayer>& pPlayer, int nPipelineState = 0) override;
+
 };

@@ -99,6 +99,7 @@ public:
 	virtual void AnimateObjects(float fElapsedTime, float fCurTime) {}
 	virtual void PrepareRender(ID3D12GraphicsCommandList* pd3dCommandList, const shared_ptr<CCamera>& pCamera) {}
 	virtual void Render(ID3D12GraphicsCommandList* pd3dCommandList, const shared_ptr<CCamera>& pCamera, int nPipelineState) {}
+	virtual void LoadingRender(ID3D12GraphicsCommandList* pd3dCommandList) {}
 
 	// Interface
 	void SetPlayer(shared_ptr<CPlayer> pPlayer, int nIndex) { m_apPlayer[nIndex] = pPlayer; }
@@ -180,6 +181,7 @@ public:
 	virtual bool ProcessInput(UCHAR* pKeysBuffer) override;
 	virtual void PrepareRender(ID3D12GraphicsCommandList* pd3dCommandList, const shared_ptr<CCamera>& pCamera) override;
 	virtual void Render(ID3D12GraphicsCommandList* pd3dCommandList, const shared_ptr<CCamera>& pCamera, int nPipelineState) override;
+	void LoadingRender(ID3D12GraphicsCommandList* pd3dCommandList) override;
 
 	bool CheckCursor(POINT ptCursor, float fCenterX, float fCenterY, float fWidth, float fHeight);
 
@@ -202,6 +204,9 @@ private:
 	POINT m_ptCursor;
 	int m_nClientSlot = -1;
 	int m_nSelectedSlot = -1;
+
+private:
+	unique_ptr<CFullScreenProcessingShader> m_vFullScreenProcessingShader;
 };
 
 /// <CScene - CLobbyScene>
@@ -284,6 +289,7 @@ public:
 
 	float m_fElapsedTime = 0.0f;
 
+	unique_ptr<CFullScreenProcessingShader> m_vFullScreenProcessingShader;
 private:
 	// FrameInfo Time 
 	D3D12_GPU_DESCRIPTOR_HANDLE m_d3dTimeCbvGPUDescriptorHandle;
@@ -292,5 +298,6 @@ private:
 public:
 	void SetParticleTest(float fCurTime);
 	void ParticleReadByteTask();
+	void FullScreenProcessingRender(ID3D12GraphicsCommandList* pd3dCommandList);
 };
 

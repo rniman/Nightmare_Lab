@@ -567,6 +567,10 @@ void CLobbyScene::BuildObjects(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandLi
 	}
 
 	m_vpShader[LOBBY_UI_SHADER]->BuildObjects(pd3dDevice, pd3dCommandList, m_pd3dGraphicsRootSignature.Get());
+
+	m_vFullScreenProcessingShader = make_unique<CFullScreenProcessingShader>();
+	m_vFullScreenProcessingShader->CreateShader(pd3dDevice, pd3dCommandList, m_pd3dGraphicsRootSignature.Get());
+	m_vFullScreenProcessingShader->BuildObjects(pd3dDevice, pd3dCommandList, m_pd3dGraphicsRootSignature.Get(), L"Lobby", m_apPlayer[mainPlayerId]);
 }
 
 void CLobbyScene::AnimateObjects(float fElapsedTime, float fCurTime)
@@ -639,6 +643,13 @@ void CLobbyScene::Render(ID3D12GraphicsCommandList* pd3dCommandList, const share
 	{
 		pShader->Render(pd3dCommandList, pCamera, m_pMainPlayer, 0);
 	}
+}
+
+void CLobbyScene::LoadingRender(ID3D12GraphicsCommandList* pd3dCommandList)
+{
+	PrepareRender(pd3dCommandList, m_pCamera);
+
+	m_vFullScreenProcessingShader->Render(pd3dCommandList, m_pCamera, m_pMainPlayer);
 }
 
 bool CLobbyScene::CheckCursor(POINT ptCursor, float fCenterX, float fCenterY, float fWidth, float fHeight)
@@ -913,6 +924,12 @@ void CMainScene::BuildObjects(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandLis
 
 
 	//[0626] 
+
+	//[0721] FullScreen
+	m_vFullScreenProcessingShader = make_unique<CFullScreenProcessingShader>();
+	m_vFullScreenProcessingShader->CreateShader(pd3dDevice, pd3dCommandList, m_pd3dGraphicsRootSignature.Get());
+	m_vFullScreenProcessingShader->BuildObjects(pd3dDevice, pd3dCommandList, m_pd3dGraphicsRootSignature.Get(), L"Main", m_apPlayer[mainPlayerId]);
+
 }
 
 
@@ -1831,4 +1848,11 @@ void CMainScene::ParticleReadByteTask()
 	for (auto& ob : sharedobject.m_vParticleObjects) {
 		ob->ReadByteTask();
 	}
+}
+
+void CMainScene::FullScreenProcessingRender(ID3D12GraphicsCommandList* pd3dCommandList)
+{
+	PrepareRender(pd3dCommandList, m_pMainPlayer->GetCamera());
+
+	m_vFullScreenProcessingShader->Render(pd3dCommandList, m_pMainPlayer->GetCamera(), m_pMainPlayer);
 }

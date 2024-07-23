@@ -24,14 +24,14 @@ D3D12_INPUT_LAYOUT_DESC CTrailShader::CreateInputLayout()
 
 D3D12_SHADER_BYTECODE CTrailShader::CreateVertexShader()
 {
-	return(CShader::CompileShaderFromFile(L"Trail.hlsl", "VS_TRAIL", "vs_5_1", m_pd3dVertexShaderBlob.GetAddressOf()));
-
+	return CShader::ReadCompiledShaderFromFile(L"cso/VS_TRAIL.cso", m_pd3dVertexShaderBlob.GetAddressOf());
+	//return(CShader::CompileShaderFromFile(L"Trail.hlsl", "VS_TRAIL", "vs_5_1", m_pd3dVertexShaderBlob.GetAddressOf()));
 }
 
 D3D12_SHADER_BYTECODE CTrailShader::CreatePixelShader()
 {
-	return(CShader::CompileShaderFromFile(L"Trail.hlsl", "PS_TRAIL", "ps_5_1", m_pd3dPixelShaderBlob.GetAddressOf()));
-
+	return CShader::ReadCompiledShaderFromFile(L"cso/PS_TRAIL.cso", m_pd3dPixelShaderBlob.GetAddressOf());
+	//return(CShader::CompileShaderFromFile(L"Trail.hlsl", "PS_TRAIL", "ps_5_1", m_pd3dPixelShaderBlob.GetAddressOf()));
 }
 
 D3D12_RASTERIZER_DESC CTrailShader::CreateRasterizerState()

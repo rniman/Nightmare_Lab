@@ -237,6 +237,7 @@ void TCPServer::OnProcessingReadMessage(HWND hWnd, UINT nMessageID, WPARAM wPara
 			}
 			InitPlayerPosition(m_apPlayers[i], i);
 			m_pCollisionManager->AddCollisionPlayer(m_apPlayers[i], i);
+
 			m_vSocketInfoList[i].m_socketState = SOCKET_STATE::SEND_GAME_START;
 
 			if (i == nSocketIndex)
@@ -407,6 +408,28 @@ void TCPServer::OnProcessingReadMessage(HWND hWnd, UINT nMessageID, WPARAM wPara
 		pPlayer->SetRightClick(playerInfo.m_bRightClick);
 	}
 		break;
+	case HEAD_LOADING_COMPLETE: {
+		cout << "[" << nSocketIndex << "] => LoadComplete!!\n";
+		m_vSocketInfoList[nSocketIndex].m_bLoadComplete = true;
+		int connectCount = 0;
+		for (auto& sock_info : m_vSocketInfoList) {
+			if (!sock_info.m_bUsed) continue;
+			connectCount++;
+		}
+		int loadCompleteCount = 0;
+		for (auto& sock_info : m_vSocketInfoList) {
+			if (!sock_info.m_bUsed) continue;
+			if (!sock_info.m_bLoadComplete) continue;
+
+			loadCompleteCount++;
+		}
+
+		if (loadCompleteCount == connectCount) {
+			m_vSocketInfoList[nSocketIndex].m_socketState = SOCKET_STATE::SEND_LOADING_COMPLETE;
+			PostMessage(m_hWnd, WM_SOCKET, (WPARAM)m_vSocketInfoList[nSocketIndex].m_sock, MAKELPARAM(FD_WRITE, 0));
+		}
+		break;
+	}
 	default:
 		break;
 	}
@@ -564,12 +587,28 @@ void TCPServer::OnProcessingWriteMessage(HWND hWnd, UINT nMessageID, WPARAM wPar
 		nHead = 11;
 		char deadUser_id = (char)nSocketIndex;
 		nBufferSize += sizeof(deadUser_id);
-		for (int i = 0; i < m_nClient; ++i)
+		for (int i = 0; i < MAX_CLIENT; ++i)
 		{
 			if (m_vSocketInfoList[i].m_bUsed)
 			{
 				nRetval = SendData(m_vSocketInfoList[i].m_sock, nBufferSize, nHead, deadUser_id);
 				if (nRetval == -1 && WSAGetLastError() == WSAEWOULDBLOCK) {}
+			}
+		}
+		m_vSocketInfoList[nSocketIndex].m_socketState = SOCKET_STATE::SEND_UPDATE_DATA;
+		break;
+	}
+	case SOCKET_STATE::SEND_LOADING_COMPLETE: {
+		nHead = 13;
+		nBufferSize = sizeof(nHead);
+		for (int i = 0; i < MAX_CLIENT; ++i)
+		{
+			if (m_vSocketInfoList[i].m_bUsed)
+			{
+				nRetval = SendData(m_vSocketInfoList[i].m_sock, nBufferSize, nHead);
+				if (nRetval == -1 && WSAGetLastError() == WSAEWOULDBLOCK) {}
+
+				m_apPlayers[i]->GameStartLogic();
 			}
 		}
 		m_vSocketInfoList[nSocketIndex].m_socketState = SOCKET_STATE::SEND_UPDATE_DATA;
@@ -976,10 +1015,10 @@ void TCPServer::UpdateInformation()
 				// 지뢰충돌에 대한 데이터 로직
 				if (m_aUpdateInfo[nPlayerId].m_playerInfo.m_iMineobjectNum == -1) {
 					m_aUpdateInfo[nPlayerId].m_playerInfo.m_iMineobjectNum = pZombiePlayer->GetCollideMineRef();
-					pZombiePlayer->m_fExplosionDelay = 0.0f;
+					pZombiePlayer->SetExplosionDelay(0.0f);
 				} 
 				else {
-					if (pZombiePlayer->m_fExplosionDelay > 0.05f) {
+					if (pZombiePlayer->GetExplosionDelay() > 0.05f) {
 						pZombiePlayer->SetCollideMineRef(-1);
 						m_aUpdateInfo[nPlayerId].m_playerInfo.m_iMineobjectNum = pZombiePlayer->GetCollideMineRef();
 					}
@@ -1285,8 +1324,8 @@ void TCPServer::CreateItemObject()
 
 void TCPServer::CreateSendObject()
 {
-	vector<SC_SPACEOUT_OBJECT> vSO_obejcts;
-	vSO_obejcts.reserve(m_pCollisionManager->GetOutSpaceObject().size());
+	vector<SC_SPACEOUT_OBJECT> vSO_objects;
+	vSO_objects.reserve(m_pCollisionManager->GetOutSpaceObject().size());
 
 	for (auto& pGameObject : m_pCollisionManager->GetOutSpaceObject())
 	{
@@ -1294,23 +1333,23 @@ void TCPServer::CreateSendObject()
 		{
 			continue;
 		}
-		vSO_obejcts.emplace_back(SC_SPACEOUT_OBJECT(pGameObject->GetCollisionNum(), pGameObject->GetWorldMatrix()));
+		vSO_objects.emplace_back(SC_SPACEOUT_OBJECT(pGameObject->GetCollisionNum(), pGameObject->GetWorldMatrix()));
 	}
 	m_pCollisionManager->GetOutSpaceObject().clear();
 
-	if (vSO_obejcts.size() != 0) {
+	if (vSO_objects.size() != 0) {
 		vector<BYTE> buffer; // 데이터 전송을 위한 버퍼
 		//데이터 사이즈는 65,535를 안넘을것.
 		INT8 nHead = static_cast<INT8>(SOCKET_STATE::SEND_SPACEOUT_OBJECTS);
 
-		unsigned short bufferSize = sizeof(SC_SPACEOUT_OBJECT) * vSO_obejcts.size();
-		buffer.reserve(sizeof(INT8) + sizeof(unsigned short) + bufferSize); // size[2] + data size[?..]
+		unsigned short bufferSize = sizeof(SC_SPACEOUT_OBJECT) * vSO_objects.size();
+		buffer.reserve(sizeof(INT8) + sizeof(unsigned short) + bufferSize); // 1 + size[2] + data size[?.. < 65,535]
 
 		buffer.push_back(nHead);
 		PushBufferData(buffer, &bufferSize, sizeof(unsigned short));
-		PushBufferData(buffer, vSO_obejcts.data(), bufferSize);
+		PushBufferData(buffer, vSO_objects.data(), bufferSize);
 
-		//cout << "공간 외에 업데이트가 필요한 오브젝트 => " << vSO_obejcts.size() << "개 입니다." << endl;
+		//cout << "공간 외에 업데이트가 필요한 오브젝트 => " << vSO_objects.size() << "개 입니다." << endl;
 		//cout << "총 보낼 사이즈 => " << buffer.size() << endl;
 		for (const auto& pPlayer : m_apPlayers)
 		{

@@ -12,7 +12,7 @@ enum PlayerState
 class CAnimationController;
 
 constexpr float SUIT_WALK_FOOT[2]{ 0.3f, 0.7f };
-constexpr float SUIT_RUN_FOOT[2]{ 0.3f, 0.7f };
+constexpr float SUIT_RUN_FOOT[2]{ 0.3f, 0.8f };
 
 class CBlueSuitAnimationController : public CAnimationController
 {

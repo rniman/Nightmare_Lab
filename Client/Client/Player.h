@@ -110,6 +110,21 @@ public:
 
 	void SetPlayerVolume(float fPlayerVolume);;
 	float GetPlayerVolume()const { return m_fPlayerVolume; }
+
+	void SetShadowRender(bool val) { m_ShadowRender = val; }
+	void SetSelfShadowRender(bool val) { m_SelfShadowRender = val; }
+
+	void SetHitDamageScreenObject(shared_ptr<CFullScreenTextureObject>& object) {
+		m_pHitDamageScreenObject = object;
+	}
+	void SetHitRender(bool val) { 
+		if (m_pHitDamageScreenObject) {
+			m_pHitDamageScreenObject->SetRender(val);
+		}
+	}
+	virtual void RenderTextUI(ComPtr<ID2D1DeviceContext2>& d2dDeviceContext, ComPtr<IDWriteTextFormat>& textFormat, ComPtr<ID2D1SolidColorBrush>& brush) { }
+	//게임시작에 필요한 작업 수행
+	virtual void SetGameStart() {}
 protected:
 	INT8 m_nClientId = -1;
 
@@ -158,10 +173,9 @@ protected:
 	bool m_SelfShadowRender;
 
 	float m_fPlayerVolume = 0.0f;
-public:
-	void SetShadowRender(bool val) { m_ShadowRender = val; }
-	void SetSelfShadowRender(bool val) { m_SelfShadowRender = val; }
 
+	shared_ptr<CFullScreenTextureObject> m_pHitDamageScreenObject;
+	
 };
 
 constexpr float BLUESUIT_STAMINA_MAX{ 5.0f };
@@ -248,13 +262,15 @@ public:
 
 	XMFLOAT4X4* RaderUpdate(float fElapsedTime);
 	bool PlayRaiderUI() { return m_fOpenRaderTime == 0.0f && m_bRightClick && m_selectItem == RADAR; }
+	XMFLOAT2 GetRadarWindowScreenPos() const { return m_xmf2RadarUIPos; }
 	float GetEscapeLength();
 private:
 	// 레이더 아이템 행렬
 	XMFLOAT4X4 m_xmf4x4Rader;
 	float m_fOpenRaderTime;
 	bool m_bRightClick = false;
-	
+	XMFLOAT2 m_xmf2RadarUIPos;
+
 	//피격 텍스쳐링을 위한 재질
 	shared_ptr<CMaterial> m_pHitEffectMaterial;
 	FrameTimeInfo* m_pcbMappedTime;
@@ -268,6 +284,8 @@ private:
 
 public:
 	void SetHitEvent();
+
+	void RenderTextUI(ComPtr<ID2D1DeviceContext2>& d2dDeviceContext, ComPtr<IDWriteTextFormat>& textFormat, ComPtr<ID2D1SolidColorBrush>& brush) override;
 private:
 	float m_fStopMoving = 0.0f;
 	int m_iMineobjectNum = -1;
@@ -327,14 +345,20 @@ private:
 
 	shared_ptr<CGameObject> m_pBodyObject;
 	shared_ptr<CGameObject> m_pEyesObject;
+
+	
+	float m_fGameStartCount = 10.f;
+	bool m_bGameStartWait = false;
 public:
 	void SetEectricShock();
 	void SetElectiricMt(shared_ptr<CMaterial> mt) { m_pElectircaterial = mt; }
-
+	
 	virtual shared_ptr<CCamera> ChangeCamera(DWORD nNewCameraMode, float fElapsedTime);
 
 	shared_ptr<Trail> m_pRightHandTrail;
 	shared_ptr<Trail> m_pLeftHandTrail;
-
 	void SetAttackTrail(shared_ptr<Trail> trail);
+
+	void SetGameStart() override;
+	void RenderTextUI(ComPtr<ID2D1DeviceContext2>& d2dDeviceContext, ComPtr<IDWriteTextFormat>& textFormat, ComPtr<ID2D1SolidColorBrush>& brush) override;
 };

@@ -12,8 +12,18 @@
  extern UINT gnRtvDescriptorIncrementSize;
  extern UINT gnDsvDescriptorIncrementSize;
 
+ int CGameFramework::m_nWndClientWidth;
+ int CGameFramework::m_nWndClientHeight;
+ ComPtr<IDWriteTextFormat> CGameFramework::m_idwGameCountTextFormat;
+
  UCHAR CGameFramework::m_pKeysBuffer[256] = {};
  int CGameFramework::m_nMainClientId = -1;
+
+ float textX = 0.0f, textY = 0.0f;
+ /////////////////////////////////////////////////////////
+ //어디서든 참조할수 있도록한다.
+ std::shared_ptr<CPlayer> CGameFramework::m_pMainPlayer;
+ /////////////////////////////////////////////////////////
 
  CGameFramework::CGameFramework()
 {
@@ -331,6 +341,7 @@ void CGameFramework::ChangeSwapChainState()
 
 		m_textBrush.Reset();
 		m_textFormat.Reset();
+		m_idwGameCountTextFormat.Reset();
 	}
 
 	hResult = m_dxgiSwapChain->ResizeBuffers(2, m_nWndClientWidth, m_nWndClientHeight, dxgiSwapChainDesc.BufferDesc.Format, dxgiSwapChainDesc.Flags);
@@ -417,6 +428,7 @@ void CGameFramework::PrepareDrawText()
 
 	{
 		ThrowIfFailed(m_d2dDeviceContext->CreateSolidColorBrush(D2D1::ColorF(D2D1::ColorF::Cyan), &m_textBrush));
+
 		ThrowIfFailed(m_dWriteFactory->CreateTextFormat(
 			L"Verdana",
 			NULL,
@@ -429,6 +441,22 @@ void CGameFramework::PrepareDrawText()
 		));
 		ThrowIfFailed(m_textFormat->SetTextAlignment(DWRITE_TEXT_ALIGNMENT_CENTER));
 		ThrowIfFailed(m_textFormat->SetParagraphAlignment(DWRITE_PARAGRAPH_ALIGNMENT_CENTER));
+
+		ThrowIfFailed(m_dWriteFactory->CreateTextFormat(
+			L"Verdana",
+			NULL,
+			DWRITE_FONT_WEIGHT_NORMAL,
+			DWRITE_FONT_STYLE_NORMAL,
+			DWRITE_FONT_STRETCH_NORMAL,
+			400,
+			L"en-us",
+			&m_idwGameCountTextFormat
+		));
+		ThrowIfFailed(m_idwGameCountTextFormat->SetTextAlignment(DWRITE_TEXT_ALIGNMENT_CENTER));
+		ThrowIfFailed(m_idwGameCountTextFormat->SetParagraphAlignment(DWRITE_PARAGRAPH_ALIGNMENT_CENTER));
+
+
+		
 	}
 
 	m_bPrepareDrawText = true;
@@ -436,7 +464,7 @@ void CGameFramework::PrepareDrawText()
 
 //float uiX{}, uiY{};
 
-void CGameFramework::RenderUI()
+void CGameFramework::RenderTextUI()
 {
 	if (m_nGameState != GAME_STATE::IN_GAME)
 	{
@@ -444,50 +472,18 @@ void CGameFramework::RenderUI()
 	}
 
 	D2D1_SIZE_F rtSize = m_d2dRenderTargets[m_nSwapChainBufferIndex]->GetSize();
-	D2D1_RECT_F textRect = D2D1::RectF(0, 0, rtSize.width, rtSize.height);
 
 	auto player = dynamic_pointer_cast<CBlueSuitPlayer>(m_pMainPlayer);
-	if (!player) { //좀비 플레이어라면 레이더 텍스트 렌더링 X
-		m_d3d11On12Device->AcquireWrappedResources(m_wrappedBackBuffers[m_nSwapChainBufferIndex].GetAddressOf(), 1);
-		m_d3d11On12Device->ReleaseWrappedResources(m_wrappedBackBuffers[m_nSwapChainBufferIndex].GetAddressOf(), 1);
-		m_d3d11DeviceContext->Flush();
-		return;
-	}
-	float escapelength = player->GetEscapeLength();
-
-	wchar_t text[20]; // 변환된 유니코드 문자열을 저장할 버퍼
-
-	// 부동 소수점 값을 문자열로 변환 후 유니코드 문자열로 저장
-	int len = swprintf(text, 20, L"%d", (int)escapelength);
-	text[len] = 'M'; 
-	len += 1;
-	text[len+1] = '\0';
-	
-	//static const WCHAR text[] = buffer;
-	
 	// 현재 백 버퍼에 대한 래핑된 렌더 타겟 자원을 획득합니다.
 	m_d3d11On12Device->AcquireWrappedResources(m_wrappedBackBuffers[m_nSwapChainBufferIndex].GetAddressOf(), 1);
 	m_d2dDeviceContext->SetTarget(m_d2dRenderTargets[m_nSwapChainBufferIndex].Get());
 	m_d2dDeviceContext->BeginDraw();
-	if (dynamic_pointer_cast<CBlueSuitPlayer>(m_pMainPlayer)->PlayRaiderUI()) {
 
-		D2D1::Matrix3x2F mat = D2D1::Matrix3x2F::Identity();
-		static D2D1_POINT_2F point = { 455.f,180.f };
-		mat = mat.Translation(point.x, point.y);
-		m_d2dDeviceContext->SetTransform(mat);
-		m_d2dDeviceContext->DrawText(
-			text,
-			/*_countof(text)*/len,
-			m_textFormat.Get(),
-			&textRect,
-			m_textBrush.Get()
-		);
+	m_pMainPlayer->RenderTextUI(m_d2dDeviceContext, m_textFormat, m_textBrush);
 
-	}
 	ThrowIfFailed(m_d2dDeviceContext->EndDraw());
 	// 래핑된 렌더 타겟 자원을 해제합니다. 해제하면 래핑된 자원이 생성될 때 지정된 OutState로 백 버퍼 자원이 전환됩니다
 	m_d3d11On12Device->ReleaseWrappedResources(m_wrappedBackBuffers[m_nSwapChainBufferIndex].GetAddressOf(), 1);
-
 	//명령 목록을 공유 명령 큐에 제출하기 위해 플러시합니다.
 	m_d3d11DeviceContext->Flush();
 }
@@ -522,7 +518,7 @@ void CGameFramework::OnProcessingMouseMessage(HWND hWnd, UINT nMessageID, WPARAM
 		break;
 	}
 }
-
+bool TESTBOOL = true;
 void CGameFramework::OnProcessingKeyboardMessage(HWND hWnd, UINT nMessageID, WPARAM wParam, LPARAM lParam)
 {
 	if (!m_bConnected)
@@ -552,16 +548,24 @@ void CGameFramework::OnProcessingKeyboardMessage(HWND hWnd, UINT nMessageID, WPA
 	case WM_KEYUP:
 		switch (wParam)
 		{
-		case VK_UP:
-			sharedobject.AddParticle(CParticleMesh::FOOTPRINT, XMFLOAT3());
+		case VK_UP: {
+			//sharedobject.AddParticle(CParticleMesh::FOOTPRINT, XMFLOAT3());
 			//m_pScene->SetParticleTest(gGameTimer.GetTotalTime());
+			//m_pMainPlayer->SetHitRender(true);
+			//textX += 10.f;
+			TESTBOOL = false;
 			break;
+		}
+		case VK_DOWN: {
+			textY += 10.f;
+			break;
+		}
 		case '+':
-			m_fBGMVolume += 0.1f;
+			//m_fBGMVolume += 0.1f;
 			if (m_fBGMVolume > 1.0f) m_fBGMVolume = 1.0f;
 			break;
 		case '-':
-			m_fBGMVolume -= 0.1f;
+			//m_fBGMVolume -= 0.1f;
 			if (m_fBGMVolume < 0.0f) m_fBGMVolume = 0.0f;
 			break;
 		case VK_ESCAPE:
@@ -711,7 +715,11 @@ void CGameFramework::OnProcessingWindowMessage(HWND hWnd, UINT nMessageID, WPARA
 		break;
 	case WM_START_GAME:
 	{
-		m_nGameState = GAME_STATE::IN_GAME;
+		m_nGameState = GAME_STATE::IN_LOADING;
+
+		//// 로딩화면
+		LoadingRender();
+		////
 		BuildObjects();
 
 		//::SetCursor(NULL);
@@ -723,6 +731,11 @@ void CGameFramework::OnProcessingWindowMessage(HWND hWnd, UINT nMessageID, WPARA
 		ClientToScreen(hWnd, &center);
 		//SetCursorPos(center.x, center.y);
 		SetMousePoint(center);
+		
+		m_apPlayer[m_nMainClientId]->SetGameStart();
+
+		//로드 완료 메시지 Send
+		m_pTcpClient->LoadCompleteSend();
 	}
 	break;
 	case WM_END_GAME:
@@ -829,6 +842,11 @@ void CGameFramework::OnButtonClick(HWND hWnd)
 	{
 		SendMessage(hWnd, WM_CREATE_TCP, NULL, NULL);
 	}
+}
+
+POINT CGameFramework::GetClientWindowSize()
+{
+	return POINT(m_nWndClientWidth, m_nWndClientHeight);
 }
 
 void CGameFramework::OnDestroy()
@@ -949,7 +967,7 @@ void CGameFramework::BuildObjects()
 
 		WaitForGpuComplete();
 	}
-	else if (m_nGameState == GAME_STATE::IN_GAME)
+	else if (m_nGameState == GAME_STATE::IN_LOADING)
 	{
 		m_fBGMVolume = 0.07f;
 		soundManager.StopSound(sound::LOBBY_SCENE);
@@ -1206,7 +1224,42 @@ void CGameFramework::PreRenderTasks(shared_ptr<CMainScene>& pMainScene)
 	D3D12_CPU_DESCRIPTOR_HANDLE d3dRtvCPUDescriptorHandle = m_d3dRtvDescriptorHeap->GetCPUDescriptorHandleForHeapStart();
 	d3dRtvCPUDescriptorHandle.ptr += (m_nSwapChainBufferIndex * ::gnRtvDescriptorIncrementSize);
 
+	/*FLOAT ClearValue[4] = { 1.0f, 1.0f, 1.0f, 1.0f };
+	m_d3dCommandList->ClearRenderTargetView(d3dRtvCPUDescriptorHandle, ClearValue, 0, NULL);*/
+
 	pMainScene->PrevRenderTask(m_d3dCommandList.Get());
+
+	SynchronizeResourceTransition(m_d3dCommandList.Get(), m_d3dSwapChainBackBuffers[m_nSwapChainBufferIndex].Get(), D3D12_RESOURCE_STATE_RENDER_TARGET, D3D12_RESOURCE_STATE_PRESENT);
+
+	hResult = m_d3dCommandList->Close();
+
+	ID3D12CommandList* ppd3dCommandLists[] = { m_d3dCommandList.Get() };
+	m_d3dCommandQueue->ExecuteCommandLists(1, ppd3dCommandLists);
+
+	WaitForGpuComplete();
+
+	//m_dxgiSwapChain->Present(0, 0); // 사전 렌더링은 프레임으로 사용할 일이 없으므로 화면전환 x
+
+	MoveToNextFrame();
+}
+
+void CGameFramework::LoadingRender()
+{
+	HRESULT hResult = m_d3dCommandAllocator[m_nSwapChainBufferIndex]->Reset();
+	hResult = m_d3dCommandList->Reset(m_d3dCommandAllocator[m_nSwapChainBufferIndex].Get(), NULL);
+	
+	SynchronizeResourceTransition(m_d3dCommandList.Get(), m_d3dSwapChainBackBuffers[m_nSwapChainBufferIndex].Get(), D3D12_RESOURCE_STATE_PRESENT, D3D12_RESOURCE_STATE_RENDER_TARGET);
+
+	D3D12_CPU_DESCRIPTOR_HANDLE d3dDsvCPUDescriptorHandle = m_d3dDsvDescriptorHeap->GetCPUDescriptorHandleForHeapStart();
+	D3D12_CPU_DESCRIPTOR_HANDLE d3dRtvCPUDescriptorHandle = m_d3dRtvDescriptorHeap->GetCPUDescriptorHandleForHeapStart();
+	d3dRtvCPUDescriptorHandle.ptr += (m_nSwapChainBufferIndex * ::gnRtvDescriptorIncrementSize);
+
+	FLOAT ClearValue[4] = { 0.0f, 0.0f, 0.0f, 1.0f };
+	m_d3dCommandList->ClearDepthStencilView(d3dDsvCPUDescriptorHandle, D3D12_CLEAR_FLAG_DEPTH | D3D12_CLEAR_FLAG_STENCIL, 1.0f, 0, 0, NULL);
+	m_d3dCommandList->ClearRenderTargetView(d3dRtvCPUDescriptorHandle, ClearValue, 0, NULL);
+	m_d3dCommandList->OMSetRenderTargets(1, &d3dRtvCPUDescriptorHandle, TRUE, &d3dDsvCPUDescriptorHandle);
+
+	m_pScene->LoadingRender(m_d3dCommandList.Get());
 
 	SynchronizeResourceTransition(m_d3dCommandList.Get(), m_d3dSwapChainBackBuffers[m_nSwapChainBufferIndex].Get(), D3D12_RESOURCE_STATE_RENDER_TARGET, D3D12_RESOURCE_STATE_PRESENT);
 
@@ -1220,6 +1273,12 @@ void CGameFramework::PreRenderTasks(shared_ptr<CMainScene>& pMainScene)
 	m_dxgiSwapChain->Present(0, 0);
 
 	MoveToNextFrame();
+
+	gGameTimer.GetFrameRate(m_pszFrameRate + 15, 37);
+	size_t nLength = _tcslen(m_pszFrameRate);
+	XMFLOAT3 xmf3Position = xmf3Position = m_pMainPlayer->GetPosition();
+	_stprintf_s(m_pszFrameRate + nLength, 200 - nLength, _T("ID:%d %d, NumOfClient: %d, (%4f, %4f, %4f), %d"), m_pTcpClient->GetMainClientId(), m_nMainClientId, m_pTcpClient->GetNumOfClient(), xmf3Position.x, xmf3Position.y, xmf3Position.z, g_collisionManager.GetNumOfCollisionObject());
+	::SetWindowText(m_hWnd, m_pszFrameRate);
 }
 
 //#define _WITH_PLAYER_TOP
@@ -1230,17 +1289,25 @@ void CGameFramework::FrameAdvance()
 	SoundManager& soundManager = SoundManager::GetInstance();
 	soundManager.UpdateSystem();
 
-	if (m_nGameState == GAME_STATE::IN_LOBBY)
+	if (m_nGameState == GAME_STATE::IN_GAME)
 	{
 		ProcessInput();
 		AnimateObjects();
 		//soundManager.SetVolume(sound::LOBBY_SCENE, m_fBGMVolume);
 	}
-	else if (m_nGameState == GAME_STATE::IN_GAME)
+	else if (m_nGameState == GAME_STATE::IN_LOBBY)
 	{
 		ProcessInput();
 		AnimateObjects();
+
 		//soundManager.SetVolume(sound::MAIN_SCENE, m_fBGMVolume);
+	}
+	else if (m_nGameState == GAME_STATE::IN_LOADING) {
+		//LoadingRender();
+		if (m_pTcpClient->GetRecvLoadComplete()) {
+			m_nGameState = GAME_STATE::IN_GAME;
+		}
+		return;
 	}
 	else
 	{
@@ -1303,12 +1370,12 @@ void CGameFramework::FrameAdvance()
 		UpdateFrameworkShaderVariable();
 		pMainScene->FinalRender(m_d3dCommandList.Get(), m_pCamera.lock(), d3dRtvCPUDescriptorHandle, m_nGameState);
 
+		pMainScene->FullScreenProcessingRender(m_d3dCommandList.Get());
 	}
 	break;
 	default:
 		break;
 	}
-
 	//SynchronizeResourceTransition(m_d3dCommandList.Get(), m_d3dSwapChainBackBuffers[m_nSwapChainBufferIndex].Get(), D3D12_RESOURCE_STATE_RENDER_TARGET, D3D12_RESOURCE_STATE_PRESENT);
 	//[CJI 0411] -> RenderUI에서 렌더타겟 사용이 끝나면 m_wrappedBackBuffers가 자원을 해제할때 자동적으로 상태를 D3D12_RESOURCE_STATE_PRESENT으로 되돌리기 때문에 불필요
 
@@ -1317,7 +1384,7 @@ void CGameFramework::FrameAdvance()
 	ID3D12CommandList* ppd3dCommandLists[] = { m_d3dCommandList.Get() };
 	m_d3dCommandQueue->ExecuteCommandLists(1, ppd3dCommandLists);
 
-	RenderUI();
+	RenderTextUI();
 
 	WaitForGpuComplete();
 

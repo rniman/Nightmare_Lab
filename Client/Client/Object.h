@@ -2,6 +2,7 @@
 #include "Mesh.h"
 #include "Camera.h"
 #include "Collision.h"
+#include "Component.h"
 
 enum class MeshType {
 	Standard = 0,
@@ -16,9 +17,16 @@ struct MATERIAL
 	XMFLOAT4 Emissive;
 };
 
+struct OPTION
+{
+	float alphaValue;
+	XMFLOAT3 padding;
+};
+
 struct VS_CB_OBJECT_INFO {
 	XMFLOAT4X4 xmf4x4world;
 	MATERIAL material;
+	OPTION option;
 	UINT gnTexturesMask;
 };
 
@@ -558,3 +566,29 @@ public:
 	vector<shared_ptr<CGameObject>> m_vInstanceObjectInfo;
 	int m_nInstanceNumber = 0;
 };
+
+
+class CFullScreenTextureObject : public CGameObject
+{
+public:
+	CFullScreenTextureObject(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dCommandList,shared_ptr<CMaterial>& material);
+	virtual ~CFullScreenTextureObject() {};
+
+	virtual void Render(ID3D12GraphicsCommandList* pd3dCommandList);
+
+	void SetAlphaValue(float val);
+	void SetRender(bool val) { 
+		m_bRender = val; 
+		if (m_Component) {
+			m_Component->Init();
+		}
+	}
+	bool& GetBoolRender() { return m_bRender; }
+	void SetComponent(shared_ptr<Component> component);
+private:
+	float m_fSetAlpha;
+	bool m_bRender;
+
+	shared_ptr<Component> m_Component;
+};
+

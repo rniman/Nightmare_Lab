@@ -14,6 +14,14 @@
 
 #define MAX_LIGHTS			28
 
+//Particle
+#define TP 0
+#define SPARK 1
+#define BUBBLE 2
+#define BUBBLE_C 11
+#define FOOTPRINT 3
+
+
 struct MATERIAL
 {
     float4 m_cAmbient;
@@ -33,11 +41,18 @@ cbuffer cbCameraInfo : register(b0)
     float4 gvfFogInfo : packoffset(c18); // START, RANGE, Density, MOD
 };
 
+struct OPTION
+{
+    float alphaValue;
+    float3 padding;
+};
+
 cbuffer cbGameObjectInfo : register(b1)
 {
     matrix gmtxGameObject : packoffset(c0);
     MATERIAL gMaterial : packoffset(c4);
-    uint gnTexturesMask : packoffset(c8);
+    OPTION option : packoffset(c8);
+    uint gnTexturesMask : packoffset(c9);
 };
 
 cbuffer cbBoneOffsets : register(b3)
