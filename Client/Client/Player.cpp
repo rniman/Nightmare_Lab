@@ -452,6 +452,7 @@ void CPlayer::SetPlayerVolume(float fPlayerVolume)
 CBlueSuitPlayer::CBlueSuitPlayer(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dCommandList, ID3D12RootSignature* pd3dGraphicsRootSignature, void* pContext)
 	:CPlayer(pd3dDevice, pd3dCommandList, pd3dGraphicsRootSignature, pContext)
 {
+	m_xmf2RadarUIPos = XMFLOAT2{ 0.0f,0.0f };
 
 	m_pCamera->SetFogColor(XMFLOAT4(0.1f, 0.1f, 0.1f, 0.1f));
 	m_pCamera->SetFogInfo(XMFLOAT4(0.0f, 10.0f, 0.05f, 1.0f));
@@ -803,10 +804,11 @@ void CBlueSuitPlayer::Animate(float fElapsedTime)
 	{
 	case RightItem::NONE:
 		break;
-	case RightItem::RADAR:
+	case RightItem::RADAR: {
 		m_pRader->SetObtain(false);
 		m_pRader->UpdateTransform(RaderUpdate(fElapsedTime));
 		break;
+	}
 	case RightItem::TELEPORT:
 		m_pTeleport->SetObtain(false);
 		m_pTeleport->UpdateTransform(GetRightHandItemTeleportItemModelTransform());
@@ -1087,6 +1089,36 @@ void CBlueSuitPlayer::SetHitEvent()
 		m_pcbMappedTime->localTime = 0.0f;
 		m_pcbMappedTime->usePattern = 1.0f;
 		m_bHitEffectBlend = true;
+
+		SetHitRender(true);
+	}
+}
+
+void CBlueSuitPlayer::RenderTextUI(ComPtr<ID2D1DeviceContext2>& d2dDeviceContext, ComPtr<IDWriteTextFormat>& textFormat, ComPtr<ID2D1SolidColorBrush>& brush)
+{
+	wchar_t text[20]; // 변환된 유니코드 문자열을 저장할 버퍼
+
+	if (PlayRaiderUI()) {
+		float escapelength = GetEscapeLength();
+		// 부동 소수점 값을 문자열로 변환 후 유니코드 문자열로 저장
+		int len = swprintf(text, 20, L"%d", (int)escapelength);
+		text[len] = 'm';
+		len += 1;
+		text[len + 1] = '\0';
+		//D2D1::Matrix3x2F mat = D2D1::Matrix3x2F::Identity();
+		//mat = mat.Translation(point.x,point.y);
+		//m_d2dDeviceContext->SetTransform(mat);
+		static XMFLOAT2 RadarOffset = { 80.0f,30.0f };
+		XMFLOAT2 point = GetRadarWindowScreenPos();
+		//윈도우 좌표 주의.
+		D2D1_RECT_F textRect = D2D1::RectF(30.0f + point.x - RadarOffset.x, point.y - RadarOffset.y, point.x + RadarOffset.x, point.y + RadarOffset.y);
+		d2dDeviceContext->DrawText(
+			text,
+			/*_countof(text)*/len,
+			textFormat.Get(),
+			&textRect,
+			brush.Get()
+		);
 	}
 }
 
@@ -1109,7 +1141,6 @@ XMFLOAT4X4* CBlueSuitPlayer::GetRightHandItemTeleportItemModelTransform() const
 
 XMFLOAT4X4* CBlueSuitPlayer::RaderUpdate(float fElapsedTime)
 {
-	//우클릭을 누를시에 아이템 확대(시점을 내려다보면 아이템이 확인되고 우클릭을 누르면 확대되어 확인가능)
 	if (m_bRightClick) {
 		if (m_fOpenRaderTime > 0.0f) {
 			m_fOpenRaderTime -= fElapsedTime;
@@ -1149,6 +1180,22 @@ XMFLOAT4X4* CBlueSuitPlayer::RaderUpdate(float fElapsedTime)
 			(XMMatrixRotationZ(XMConvertToRadians(175.0f)) * XMMatrixRotationX(XMConvertToRadians(90.0f)))
 			* XMLoadFloat4x4(&m_xmf4x4Rader)
 			* XMMatrixTranslationFromVector(translation + pos));
+
+		// 레이더의 스크린 좌표 계산
+		XMVECTOR radarWorld = XMVECTOR{ m_xmf4x4Rader._41, m_xmf4x4Rader._42, m_xmf4x4Rader._43, 1.0f };
+		m_pCamera->MultiplyViewProjection();
+		XMFLOAT4X4 xmf4x4viewprojection = m_pCamera->GetViewProjection();
+		XMMATRIX viewprojection = XMLoadFloat4x4(&xmf4x4viewprojection);
+		radarWorld = XMVector4Transform(radarWorld, viewprojection);
+		XMFLOAT4 temp;
+		XMStoreFloat4(&temp, radarWorld);
+		float x = temp.x / temp.w;
+		float y = temp.y / temp.w;
+		POINT windowSize = CGameFramework::GetClientWindowSize();
+		m_xmf2RadarUIPos.x = (x + 1.0f) * 0.5f * windowSize.x;
+		m_xmf2RadarUIPos.y = (1.0f - y) * 0.5f * windowSize.y;
+		//screenPos.x	1165.60400
+		//screenPos.y	658.242798
 	}
 	else {
 		m_xmf4x4Rader = GetRightHandItemRaderModelTransform();
@@ -1360,7 +1407,9 @@ void CZombiePlayer::SetEectricShock()
 	m_pcbMappedTime->time = 0.0f;
 	m_bElectricBlend = true;
 	m_pcbMappedTime->usePattern = 1.0f;
-
+	if (m_pHitDamageScreenObject) {
+		m_pHitDamageScreenObject->SetRender(true);
+	}
 }
 
 void CZombiePlayer::Render(ID3D12GraphicsCommandList* pd3dCommandList)
@@ -1507,5 +1556,92 @@ void CZombiePlayer::SetAttackTrail(shared_ptr<Trail> trail)
 		// 좀비 모델의 손에 트레일 생성되도록한다.
 		m_pLeftHandTrail->SetObject(zombieAnimationController->GetBoneFrameObject(LeftHandThumb4index));
 		//m_pLeftHandTrail->TrailStart();
+	}
+}
+
+void CZombiePlayer::SetGameStart()
+{
+	m_bGameStartWait = true;
+	m_fGameStartCount = 10.f;
+}
+
+void CZombiePlayer::RenderTextUI(ComPtr<ID2D1DeviceContext2>& d2dDeviceContext, ComPtr<IDWriteTextFormat>& textFormat, ComPtr<ID2D1SolidColorBrush>& brush)
+{
+	wchar_t text[20]; // 변환된 유니코드 문자열을 저장할 버퍼
+	// 부동 소수점 값을 문자열로 변환 후 유니코드 문자열로 저장
+	if (m_bGameStartWait) {
+		static int iPrevCount = 10;
+		// 카운트 투명도 조절
+		static float opacity = 1.0f;
+
+		m_fGameStartCount -= gGameTimer.GetTimeElapsed();
+		opacity -= gGameTimer.GetTimeElapsed();
+
+		if (m_fGameStartCount <= 0.1f) {
+			m_bGameStartWait = false;
+
+			// 기본으로 되돌림.
+			m_bInterruption = false;
+			m_pCamera->SetFogColor(XMFLOAT4(0.5f, 0.5f, 0.5f, 0.5f));
+			m_pCamera->SetFogInfo(XMFLOAT4(1.0f, 10.0f, 0.05f, 1.0f));
+		}
+		int iCeilGameStartCount = ceil(m_fGameStartCount);
+		if (iPrevCount > iCeilGameStartCount) {
+			iPrevCount = iCeilGameStartCount;
+			opacity = 1.0f;
+		}
+
+		int len = swprintf(text, 20, L"%d", iCeilGameStartCount);
+		text[len + 1] = '\0';
+
+		// 화면 중앙에 숫자 렌더링
+		POINT windowSize = CGameFramework::GetClientWindowSize();
+		//윈도우 좌표 주의.
+		D2D1_RECT_F textRect = D2D1::RectF(0.f, 0.f, windowSize.x, windowSize.y);
+		auto color = brush->GetColor();
+		brush->SetColor(D2D1::ColorF(D2D1::ColorF::Tomato));
+		brush->SetOpacity(opacity);
+		d2dDeviceContext->DrawText(
+			text,
+			/*_countof(text)*/len,
+			CGameFramework::m_idwGameCountTextFormat.Get(),
+			&textRect,
+			brush.Get()
+		);
+
+		brush->SetColor(color);
+		brush->SetOpacity(1.0f);
+
+		// 시야 차단 작업
+		if (m_fGameStartCount > 2.5f) {
+			m_bInterruption = true;
+		}
+		else {
+			m_bInterruption = false;
+		}
+
+		float fogColorValue = 0.1f;
+
+		if (m_bInterruption)
+		{
+			m_fInterruption = 2.0f;
+		}
+		else
+		{
+			m_fInterruption -= gGameTimer.GetTimeElapsed();
+
+			fogColorValue += gGameTimer.GetTimeElapsed();
+
+			if (m_fInterruption <= 0.0f)
+			{
+				m_fInterruption = 0.0f;
+			}
+			fogColorValue = (1.0f - m_fInterruption / 2.0f) * 0.5f;
+			if (fogColorValue < 0.1f) {
+				fogColorValue = 0.1f;
+			}
+		}
+		m_pCamera->SetFogColor(XMFLOAT4(fogColorValue, fogColorValue, fogColorValue, fogColorValue));
+		m_pCamera->SetFogInfo(XMFLOAT4(1.0f, 10.0f, 0.05f + m_fInterruption / 8, 1.0f));
 	}
 }

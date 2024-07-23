@@ -2083,3 +2083,60 @@ void CInstanceObject::Render(ID3D12GraphicsCommandList* pd3dCommandList)
 {
 	CGameObject::Render(pd3dCommandList);
 }
+
+CFullScreenTextureObject::CFullScreenTextureObject(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dCommandList, shared_ptr<CMaterial>& material)
+	: CGameObject(pd3dDevice,pd3dCommandList)
+{
+	// 메테리얼을 넘겨받아서 크기를 할당한다.
+	m_nMaterials = 1;
+	m_vpMaterials.reserve(m_nMaterials);
+	m_vpMaterials.emplace_back();
+	m_vpMaterials[0] = material;
+
+	m_cbMappedObject->option.alphaValue = 1.0f;
+	m_fSetAlpha = 1.0f;
+
+	m_bRender = false;
+}
+
+void CFullScreenTextureObject::Render(ID3D12GraphicsCommandList* pd3dCommandList)
+{
+	if (!m_bRender) {
+		return;
+	}
+
+	if (m_Component) {
+
+		switch (m_Component->GetComponentType())
+		{
+		case Component::TIMEONOFF: {
+			float fTime = static_pointer_cast<ComponentTimeOnOff>(m_Component)->GetTime();
+			float fSetTime = static_pointer_cast<ComponentTimeOnOff>(m_Component)->GetSetTime();
+			m_cbMappedObject->option.alphaValue = (fTime / fSetTime) * m_fSetAlpha;
+			break;
+		}
+		default:
+			assert(0);
+		}
+
+		m_Component->Update();
+	}
+
+	m_vpMaterials[0]->UpdateShaderVariable(pd3dCommandList, m_cbMappedObject);
+
+	UpdateShaderVariable(pd3dCommandList, &m_xmf4x4World);
+
+	pd3dCommandList->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
+	pd3dCommandList->DrawInstanced(6, 1, 0, 0);
+}
+
+void CFullScreenTextureObject::SetAlphaValue(float val)
+{
+	m_cbMappedObject->option.alphaValue = val;
+	m_fSetAlpha = val;
+}
+
+void CFullScreenTextureObject::SetComponent(shared_ptr<Component> component)
+{
+	m_Component = component;
+}

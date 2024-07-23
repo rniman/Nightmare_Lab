@@ -56,6 +56,7 @@ public:
 	//void ProcessCollide();
 	void PreRenderTasks(shared_ptr<CMainScene>& pMainScene);
 	void FrameAdvance();
+	void LoadingRender();
 
 	void WaitForGpuComplete();
 	void MoveToNextFrame();
@@ -85,6 +86,9 @@ public:
 	static int GetSwapChainNum() { return m_nSwapChainBuffers; }
 
 	void SetGameState(int nGameState) { m_nGameState = nGameState; }
+
+	//x == WIDTH , y == HEIGHT
+	static POINT GetClientWindowSize();
 private:
 
 	D3D12_VIEWPORT m_d3dViewport;
@@ -94,8 +98,9 @@ private:
 	HINSTANCE							m_hInstance;
 	HWND								m_hWnd;
 
-	int									m_nWndClientWidth;
-	int									m_nWndClientHeight;
+	//[0723] 윈도우의 사이즈를 참조가능하도록 변경
+	static int									m_nWndClientWidth;
+	static int									m_nWndClientHeight;
 
 	ComPtr<IDXGIFactory4>				m_dxgiFactory;
 	ComPtr<IDXGISwapChain3>				m_dxgiSwapChain;
@@ -129,7 +134,6 @@ private:
 	
 	shared_ptr<CScene>					m_pScene;
 
-	std::shared_ptr<CPlayer>					m_pMainPlayer;	// 클라이언트ID에 해당하는 인덱스가 해당 클라이언트의 Main플레이어로 설정된다
 	std::array<shared_ptr<CPlayer>, MAX_CLIENT>	m_apPlayer;		// 클라이언트ID와 인덱스는 동일하다.
 	weak_ptr<CCamera>							m_pCamera;
 
@@ -143,8 +147,13 @@ private:
 	static int							m_nMainClientId;	// TcpClient에서 받게 된다. -> 플레이어 1인칭으로 그릴때 비교해서 그려주게 하기위해
 public:
 	void PrepareDrawText();
-	void RenderUI();
+	void RenderTextUI();
 
+	static std::shared_ptr<CPlayer>					m_pMainPlayer;	// 클라이언트ID에 해당하는 인덱스가 해당 클라이언트의 Main플레이어로 설정된다
+
+	static shared_ptr<CPlayer>& GetMainPlayer() {
+		return m_pMainPlayer;
+	}
 private:
 	//DrawText
 	ComPtr<ID3D11DeviceContext> m_d3d11DeviceContext;
@@ -162,6 +171,8 @@ private:
 	//unique_ptr<TextObject> m_pTextobject;
 	bool m_bPrepareDrawText = false;
 public:
+	static ComPtr<IDWriteTextFormat> m_idwGameCountTextFormat;
+
 	//// Time 
 	//D3D12_GPU_DESCRIPTOR_HANDLE m_d3dTimeCbvGPUDescriptorHandle;
 	//ComPtr<ID3D12Resource>		m_pd3dcbTime;

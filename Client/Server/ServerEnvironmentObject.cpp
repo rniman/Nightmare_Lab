@@ -376,7 +376,7 @@ void CServerTeleportObject::SetRandomPosition(shared_ptr<CServerCollisionManager
 		m_bObtained = false;
 		m_bCollision = true;
 
-		SetRandomRotation(xmf3RandRotation);
+		//SetRandomRotation(xmf3RandRotation);
 		SetRandomOffset(xmf3RandOffset);
 
 		SetWorldMatrix(xmf4x4World);

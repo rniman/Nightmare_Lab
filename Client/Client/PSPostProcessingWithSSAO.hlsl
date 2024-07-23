@@ -20,12 +20,12 @@ float doAmbientOcclusion(float2 tcoord, float2 uv, float3 p, float3 cnorm)
 }
 
 // »ùÇÃ¸µ º¤ÅÍ ¹è¿­
-const float2 vec[8] =
+const float2 vec[16] =
 {
     float2(1, 0), float2(-1, 0), float2(0, 1), float2(0, -1),
     float2(0.707, 0.707), float2(-0.707, -0.707), float2(-0.707, 0.707), float2(0.707, -0.707),
-    //normalize(float2(0.25, 0.75)), normalize(float2(0.25, -0.75)), normalize(float2(-0.25, -0.75)), normalize(float2(-0.25, 0.75)),
-    //normalize(float2(0.75, 0.25)), normalize(float2(0.75, -0.25)), normalize(float2(-0.75, -0.25)), normalize(float2(-0.75, 0.25))
+    normalize(float2(0.25, 0.75)), normalize(float2(0.25, -0.75)), normalize(float2(-0.25, -0.75)), normalize(float2(-0.25, 0.75)),
+    normalize(float2(0.75, 0.25)), normalize(float2(0.75, -0.25)), normalize(float2(-0.75, -0.25)), normalize(float2(-0.75, 0.25))
 };
 
 #include "NoiseData.hlsl"
@@ -59,7 +59,7 @@ float4 PSPostProcessingWithSSAO(PS_POSTPROCESSING_OUT input) : SV_Target
     float rad = 0.5f / positionV.z;
     
     //**SSAO Calculation**//
-    int numSamples = 8;
+    int numSamples = 16;
     [unroll(numSamples)]
     for(int j = 0; j < numSamples; ++j)
     {

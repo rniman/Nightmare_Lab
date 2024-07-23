@@ -238,6 +238,55 @@ void CTcpClient::OnProcessingReadMessage(HWND hWnd, UINT nMessageID, WPARAM wPar
 		soundManager.PlaySoundWithName(sound::CLOSE_DOOR);
 	}
 	break;
+	case HEAD_BLUE_SUIT_DEAD:
+	{
+		nRetval = RecvData(wParam, sizeof(char)); // 1¹ÙÀÌÆ® deaduser_id
+		if (nRetval != 0)
+		{
+			break;
+		}
+		char deadUser_id;
+		memcpy(&deadUser_id, m_pCurrentBuffer, sizeof(char));
+		
+		SoundManager& soundManager = soundManager.GetInstance();
+		soundManager.PlaySoundWithName(sound::DEAD_BLUESUIT);
+		soundManager.SetVolume(sound::DEAD_BLUESUIT, m_apPlayers[(int)deadUser_id]->GetPlayerVolume());
+	}
+	break;
+	case SEND_SPACEOUT_OBJECTS: {
+		nRetval = RecvData(wParam, sizeof(unsigned short));
+		if (nRetval != 0)
+		{
+			break;
+		}
+		unsigned short usBufferSize;
+		memcpy(&usBufferSize, m_pCurrentBuffer, sizeof(unsigned short));
+		int objCount = usBufferSize / sizeof(SC_SPACEOUT_OBJECT);
+		vector<SC_SPACEOUT_OBJECT> vSO_obejcts;
+		vSO_obejcts.reserve(objCount);
+		vSO_obejcts.resize(objCount);
+
+		nRetval = RecvData(wParam, usBufferSize);
+		if (nRetval != 0)
+		{
+			break;
+		}
+		memcpy(vSO_obejcts.data(), m_pCurrentBuffer, usBufferSize);
+		for(const auto& obj : vSO_obejcts){
+			shared_ptr<CGameObject> pGameObject = g_collisionManager.GetCollisionObjectWithNumber(obj.m_iObjectId).lock();
+			if (pGameObject)
+			{
+				pGameObject->m_xmf4x4World = obj.m_xmf4x4World;
+				pGameObject->m_xmf4x4ToParent = obj.m_xmf4x4World;
+				pGameObject->SetObtain(false);
+			}
+		}
+		break;
+	}
+	case HEAD_LOADING_COMPLETE: {
+		m_bRecvLoadComplete = true;
+		break;
+	}
 	default:
 		break;
 	}
@@ -664,6 +713,17 @@ void CTcpClient::UpdatePlayer(int nIndex)
 
 	if (m_aClientInfo[nIndex].m_playerInfo.m_bTeleportItemUse) {
 		pBlueSuitPlayer->Teleport();
+	}
+}
+
+void CTcpClient::LoadCompleteSend()
+{
+	INT8 nHead = static_cast<INT8>(SOCKET_STATE::SEND_LOADING_COMPLETE);
+	size_t nBufferSize = sizeof(INT8);
+	int nRetval = SendData(m_sock, nBufferSize, nHead);
+
+	if (nRetval == -1 && WSAGetLastError() == WSAEWOULDBLOCK)
+	{
 	}
 }
 

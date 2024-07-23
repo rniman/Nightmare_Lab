@@ -17,6 +17,7 @@
 #define ZOMBIEPLAYER 0
 #define DEBUGFLOOR 4
 #define ITEM_COUNT 80
+#define ZOMBIEMOVELIMIT true
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 //OBJECT
@@ -84,6 +85,11 @@ enum RightItem {
 	RADAR,
 	LANDMINE,
 	FUSE,
+};
+
+struct SC_SPACEOUT_OBJECT {
+	int			m_iObjectId;
+	XMFLOAT4X4	m_xmf4x4World;
 };
 
 inline std::string HrToString(HRESULT hr)

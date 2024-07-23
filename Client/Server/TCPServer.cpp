@@ -79,6 +79,10 @@ void TCPServer::OnProcessingWindowMessage(HWND hWnd, UINT nMessageID, WPARAM wPa
 			m_vSocketInfoList[(int)lParam].m_socketState = SOCKET_STATE::SEND_CLOSE_DOOR_SOUND;
 			PostMessage(m_hWnd, WM_SOCKET, (WPARAM)m_vSocketInfoList[(int)lParam].m_sock, MAKELPARAM(FD_WRITE, 0));
 			break;
+		case SOUND_MESSAGE::BLUE_SUIT_DEAD:
+			m_vSocketInfoList[(int)lParam].m_socketState = SOCKET_STATE::SEND_BLUE_SUIT_DEAD;
+			PostMessage(m_hWnd, WM_SOCKET, (WPARAM)m_vSocketInfoList[(int)lParam].m_sock, MAKELPARAM(FD_WRITE, 0));
+			break;
 		default:
 			break;
 		}
@@ -233,6 +237,7 @@ void TCPServer::OnProcessingReadMessage(HWND hWnd, UINT nMessageID, WPARAM wPara
 			}
 			InitPlayerPosition(m_apPlayers[i], i);
 			m_pCollisionManager->AddCollisionPlayer(m_apPlayers[i], i);
+
 			m_vSocketInfoList[i].m_socketState = SOCKET_STATE::SEND_GAME_START;
 
 			if (i == nSocketIndex)
@@ -403,6 +408,28 @@ void TCPServer::OnProcessingReadMessage(HWND hWnd, UINT nMessageID, WPARAM wPara
 		pPlayer->SetRightClick(playerInfo.m_bRightClick);
 	}
 		break;
+	case HEAD_LOADING_COMPLETE: {
+		cout << "[" << nSocketIndex << "] => LoadComplete!!\n";
+		m_vSocketInfoList[nSocketIndex].m_bLoadComplete = true;
+		int connectCount = 0;
+		for (auto& sock_info : m_vSocketInfoList) {
+			if (!sock_info.m_bUsed) continue;
+			connectCount++;
+		}
+		int loadCompleteCount = 0;
+		for (auto& sock_info : m_vSocketInfoList) {
+			if (!sock_info.m_bUsed) continue;
+			if (!sock_info.m_bLoadComplete) continue;
+
+			loadCompleteCount++;
+		}
+
+		if (loadCompleteCount == connectCount) {
+			m_vSocketInfoList[nSocketIndex].m_socketState = SOCKET_STATE::SEND_LOADING_COMPLETE;
+			PostMessage(m_hWnd, WM_SOCKET, (WPARAM)m_vSocketInfoList[nSocketIndex].m_sock, MAKELPARAM(FD_WRITE, 0));
+		}
+		break;
+	}
 	default:
 		break;
 	}
@@ -556,6 +583,37 @@ void TCPServer::OnProcessingWriteMessage(HWND hWnd, UINT nMessageID, WPARAM wPar
 		}
 		m_vSocketInfoList[nSocketIndex].m_socketState = SOCKET_STATE::SEND_UPDATE_DATA;
 		break;
+	case SOCKET_STATE::SEND_BLUE_SUIT_DEAD: {
+		nHead = 11;
+		char deadUser_id = (char)nSocketIndex;
+		nBufferSize += sizeof(deadUser_id);
+		for (int i = 0; i < MAX_CLIENT; ++i)
+		{
+			if (m_vSocketInfoList[i].m_bUsed)
+			{
+				nRetval = SendData(m_vSocketInfoList[i].m_sock, nBufferSize, nHead, deadUser_id);
+				if (nRetval == -1 && WSAGetLastError() == WSAEWOULDBLOCK) {}
+			}
+		}
+		m_vSocketInfoList[nSocketIndex].m_socketState = SOCKET_STATE::SEND_UPDATE_DATA;
+		break;
+	}
+	case SOCKET_STATE::SEND_LOADING_COMPLETE: {
+		nHead = 13;
+		nBufferSize = sizeof(nHead);
+		for (int i = 0; i < MAX_CLIENT; ++i)
+		{
+			if (m_vSocketInfoList[i].m_bUsed)
+			{
+				nRetval = SendData(m_vSocketInfoList[i].m_sock, nBufferSize, nHead);
+				if (nRetval == -1 && WSAGetLastError() == WSAEWOULDBLOCK) {}
+
+				m_apPlayers[i]->GameStartLogic();
+			}
+		}
+		m_vSocketInfoList[nSocketIndex].m_socketState = SOCKET_STATE::SEND_UPDATE_DATA;
+		break;
+	}
 	default:
 		break;
 	}
@@ -957,10 +1015,10 @@ void TCPServer::UpdateInformation()
 				// 지뢰충돌에 대한 데이터 로직
 				if (m_aUpdateInfo[nPlayerId].m_playerInfo.m_iMineobjectNum == -1) {
 					m_aUpdateInfo[nPlayerId].m_playerInfo.m_iMineobjectNum = pZombiePlayer->GetCollideMineRef();
-					pZombiePlayer->m_fExplosionDelay = 0.0f;
+					pZombiePlayer->SetExplosionDelay(0.0f);
 				} 
 				else {
-					if (pZombiePlayer->m_fExplosionDelay > 0.05f) {
+					if (pZombiePlayer->GetExplosionDelay() > 0.05f) {
 						pZombiePlayer->SetCollideMineRef(-1);
 						m_aUpdateInfo[nPlayerId].m_playerInfo.m_iMineobjectNum = pZombiePlayer->GetCollideMineRef();
 					}
@@ -1266,6 +1324,42 @@ void TCPServer::CreateItemObject()
 
 void TCPServer::CreateSendObject()
 {
+	vector<SC_SPACEOUT_OBJECT> vSO_objects;
+	vSO_objects.reserve(m_pCollisionManager->GetOutSpaceObject().size());
+
+	for (auto& pGameObject : m_pCollisionManager->GetOutSpaceObject())
+	{
+		if (!pGameObject)
+		{
+			continue;
+		}
+		vSO_objects.emplace_back(SC_SPACEOUT_OBJECT(pGameObject->GetCollisionNum(), pGameObject->GetWorldMatrix()));
+	}
+	m_pCollisionManager->GetOutSpaceObject().clear();
+
+	if (vSO_objects.size() != 0) {
+		vector<BYTE> buffer; // 데이터 전송을 위한 버퍼
+		//데이터 사이즈는 65,535를 안넘을것.
+		INT8 nHead = static_cast<INT8>(SOCKET_STATE::SEND_SPACEOUT_OBJECTS);
+
+		unsigned short bufferSize = sizeof(SC_SPACEOUT_OBJECT) * vSO_objects.size();
+		buffer.reserve(sizeof(INT8) + sizeof(unsigned short) + bufferSize); // 1 + size[2] + data size[?.. < 65,535]
+
+		buffer.push_back(nHead);
+		PushBufferData(buffer, &bufferSize, sizeof(unsigned short));
+		PushBufferData(buffer, vSO_objects.data(), bufferSize);
+
+		//cout << "공간 외에 업데이트가 필요한 오브젝트 => " << vSO_objects.size() << "개 입니다." << endl;
+		//cout << "총 보낼 사이즈 => " << buffer.size() << endl;
+		for (const auto& pPlayer : m_apPlayers)
+		{
+			if (!pPlayer) continue;
+			INT8 pl_id = pPlayer->GetPlayerId();
+			if (pl_id == -1) continue;
+			SendBufferData(m_vSocketInfoList[pl_id].m_sock, buffer);
+		}
+	}
+
 	for (const auto& pPlayer : m_apPlayers)
 	{
 		int nIndex = 0;
@@ -1275,26 +1369,6 @@ void TCPServer::CreateSendObject()
 		}
 
 		INT8 nId = pPlayer->GetPlayerId();
-
-		// 공간 외에 업데이트가 필요한 경우의 오브젝트
-		// EX) 아이템 사용 후 다시 맵에 리젠 되어야하는 아이템 오브젝트
-		for (auto& pGameObject : m_pCollisionManager->GetOutSpaceObject())
-		{
-			if (!pGameObject)
-			{
-				continue;
-			}
-			if (nIndex >= MAX_SEND_OBJECT_INFO) {
-				std::cout << "CreateSendObject GetOutSpaceObject의 nIndex 가 Max 치를 넘은 오류\n";
-				//assert(0);
-			}
-			m_aUpdateInfo[nId].m_anObjectNum[nIndex] = pGameObject->GetCollisionNum();
-			if (m_aUpdateInfo[nId].m_anObjectNum[nIndex] >= m_pCollisionManager->GetNumberOfCollisionObject()) {
-				//std::cout << "index 범위를 넘어서는 오브젝트를 담았습니다.\n";
-			}
-			m_aUpdateInfo[nId].m_axmf4x4World[nIndex] = pGameObject->GetWorldMatrix();
-			nIndex++;
-		}
 
 		// 층은 나중에 계단쪽에서만 추가할수있도록해야할듯
 		// if(계단 쪽이면 위층 or 아래층범위 검사)
@@ -1336,7 +1410,6 @@ void TCPServer::CreateSendObject()
 		}
 		m_aUpdateInfo[nId].m_nNumOfObject = nIndex;
 	}
-	m_pCollisionManager->GetOutSpaceObject().clear();
 
 }
 
@@ -1385,6 +1458,27 @@ int TCPServer::SendData(SOCKET socket, size_t nBufferSize, Args&&... args)
 	nRetval = send(socket, (char*)pBuffer, nBufferSize, 0);
 	delete[] pBuffer;
 	
+	if (nRetval == SOCKET_ERROR)
+	{
+		err_display("send()");
+		return SOCKET_ERROR;
+	}
+	return 0;
+}
+
+void TCPServer::PushBufferData(vector<BYTE>& buffer, void* data, size_t size)
+{
+	for (int i = 0; i < size;++i) {
+		buffer.push_back(((BYTE*)data)[i]);
+	}
+}
+
+int TCPServer::SendBufferData(SOCKET socket,vector<BYTE>& buffer)
+{
+	int nRetval;
+
+	nRetval = send(socket, (char*)buffer.data(), buffer.size(), 0);
+
 	if (nRetval == SOCKET_ERROR)
 	{
 		err_display("send()");

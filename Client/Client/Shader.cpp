@@ -1,7 +1,10 @@
+#pragma once
 #include "stdafx.h"
 #include "Shader.h"
 #include "Scene.h"
 #include "Player.h"
+#include "GameFramework.h"
+#include "Component.h"
 
 CShader::CShader()
 {
@@ -883,7 +886,7 @@ void CPostProcessingShader::CreateShadowMapResource(ID3D12Device* pd3dDevice, ID
 	}
 	D3D12_DESCRIPTOR_HEAP_DESC d3dDescriptorHeapDesc;
 	::ZeroMemory(&d3dDescriptorHeapDesc, sizeof(D3D12_DESCRIPTOR_HEAP_DESC));
-	d3dDescriptorHeapDesc.NumDescriptors = nLight; // 빛의 개수만큼 렌더타겟을 생성
+	d3dDescriptorHeapDesc.NumDescriptors = nLight; // 빛의 개수만큼 렌더타겟을 생성?
 	d3dDescriptorHeapDesc.Type = D3D12_DESCRIPTOR_HEAP_TYPE_RTV;
 	d3dDescriptorHeapDesc.Flags = D3D12_DESCRIPTOR_HEAP_FLAG_NONE;
 	d3dDescriptorHeapDesc.NodeMask = 0;
@@ -2411,5 +2414,128 @@ void CLobbyUserInterfaceShader::UpdateShaderMainPlayer(int nMainClientID)
 		{
 			m_apLobbyBorderObjects[i]->SetMaterial(0, m_apmatLobbyBorder[0]);
 		}
+	}
+}
+
+D3D12_SHADER_BYTECODE CFullScreenProcessingShader::CreateVertexShader()
+{
+	return CShader::ReadCompiledShaderFromFile(L"cso/VSPostProcessing.cso", m_pd3dVertexShaderBlob.GetAddressOf());
+}
+
+D3D12_SHADER_BYTECODE CFullScreenProcessingShader::CreatePixelShader()
+{
+	return CShader::ReadCompiledShaderFromFile(L"cso/PSFullScreen.cso", m_pd3dPixelShaderBlob.GetAddressOf());
+	//return(CShader::CompileShaderFromFile(L"PSFullScreen.hlsl", "PSPostProcessing", "ps_5_1", m_pd3dPixelShaderBlob.GetAddressOf()));
+}
+
+void CFullScreenProcessingShader::CreateShader(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dCommandList, ID3D12RootSignature* pd3dGraphicsRootSignature, UINT nRenderTargets, DXGI_FORMAT* pdxgiRtvFormats, DXGI_FORMAT dxgiDsvFormat)
+{
+	m_nPipelineState = 1;
+	m_vpd3dPipelineState.reserve(m_nPipelineState);
+	for (int i = 0; i < m_nPipelineState; ++i)
+	{
+		m_vpd3dPipelineState.emplace_back();
+		CShader::CreateShader(pd3dDevice, pd3dCommandList, pd3dGraphicsRootSignature, nRenderTargets, pdxgiRtvFormats, dxgiDsvFormat);
+	}
+}
+
+D3D12_BLEND_DESC CFullScreenProcessingShader::CreateBlendState()
+{
+	D3D12_BLEND_DESC d3dBlendDesc;
+	::ZeroMemory(&d3dBlendDesc, sizeof(D3D12_BLEND_DESC));
+	d3dBlendDesc.AlphaToCoverageEnable = FALSE;
+	d3dBlendDesc.IndependentBlendEnable = FALSE;
+	d3dBlendDesc.RenderTarget[0].BlendEnable = TRUE;
+	d3dBlendDesc.RenderTarget[0].LogicOpEnable = FALSE;
+	d3dBlendDesc.RenderTarget[0].SrcBlend = D3D12_BLEND_SRC_ALPHA;
+	d3dBlendDesc.RenderTarget[0].DestBlend = D3D12_BLEND_ONE;
+	d3dBlendDesc.RenderTarget[0].BlendOp = D3D12_BLEND_OP_ADD;
+	d3dBlendDesc.RenderTarget[0].SrcBlendAlpha = D3D12_BLEND_ONE;
+	d3dBlendDesc.RenderTarget[0].DestBlendAlpha = D3D12_BLEND_ZERO;
+	d3dBlendDesc.RenderTarget[0].BlendOpAlpha = D3D12_BLEND_OP_ADD;
+	d3dBlendDesc.RenderTarget[0].LogicOp = D3D12_LOGIC_OP_NOOP;
+	d3dBlendDesc.RenderTarget[0].RenderTargetWriteMask = D3D12_COLOR_WRITE_ENABLE_ALL;
+
+	return(d3dBlendDesc);
+}
+
+D3D12_DEPTH_STENCIL_DESC CFullScreenProcessingShader::CreateDepthStencilState()
+{
+	D3D12_DEPTH_STENCIL_DESC d3dDepthStencilDesc;
+	::ZeroMemory(&d3dDepthStencilDesc, sizeof(D3D12_DEPTH_STENCIL_DESC));
+	d3dDepthStencilDesc.DepthEnable = false;
+	d3dDepthStencilDesc.DepthWriteMask = D3D12_DEPTH_WRITE_MASK_ZERO;
+	d3dDepthStencilDesc.DepthFunc = D3D12_COMPARISON_FUNC_LESS;
+	d3dDepthStencilDesc.StencilEnable = FALSE;
+	d3dDepthStencilDesc.StencilReadMask = 0x00;
+	d3dDepthStencilDesc.StencilWriteMask = 0x00;
+	d3dDepthStencilDesc.FrontFace.StencilFailOp = D3D12_STENCIL_OP_KEEP;
+	d3dDepthStencilDesc.FrontFace.StencilDepthFailOp = D3D12_STENCIL_OP_KEEP;
+	d3dDepthStencilDesc.FrontFace.StencilPassOp = D3D12_STENCIL_OP_KEEP;
+	d3dDepthStencilDesc.FrontFace.StencilFunc = D3D12_COMPARISON_FUNC_NEVER;
+	d3dDepthStencilDesc.BackFace.StencilFailOp = D3D12_STENCIL_OP_KEEP;
+	d3dDepthStencilDesc.BackFace.StencilDepthFailOp = D3D12_STENCIL_OP_KEEP;
+	d3dDepthStencilDesc.BackFace.StencilPassOp = D3D12_STENCIL_OP_KEEP;
+	d3dDepthStencilDesc.BackFace.StencilFunc = D3D12_COMPARISON_FUNC_NEVER;
+
+	return(d3dDepthStencilDesc);
+}
+
+void CFullScreenProcessingShader::BuildObjects(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dCommandList, ID3D12RootSignature* pd3dGraphicsRootSignature,
+	const WCHAR* strGameState,shared_ptr<CPlayer>& mainPlayer)
+{
+	if (!StrCmpW(strGameState, L"Lobby")) {
+		shared_ptr<CMaterial> pMaterial = make_shared<CMaterial>(1);
+
+		shared_ptr<CTexture> pTexture;
+		if (!pTexture) {
+			pTexture = make_shared<CTexture>(1, RESOURCE_TEXTURE2D, 0, 1);
+			pTexture->LoadTextureFromDDSFile(pd3dDevice, pd3dCommandList, (wchar_t*)L"Asset/Textures/loading.dds", RESOURCE_TEXTURE2D, 0);
+		}
+		pMaterial->SetMaterialType(MATERIAL_ALBEDO_MAP);
+		pMaterial->SetTexture(pTexture, 0);
+
+		CScene::CreateShaderResourceViews(pd3dDevice, pTexture, 0, 3); // 3 : Albedo
+
+		shared_ptr<CFullScreenTextureObject> pObject = make_shared<CFullScreenTextureObject>(pd3dDevice, pd3dCommandList, pMaterial);
+		pObject->SetAlphaValue(1.0f);
+		pObject->SetRender(true);
+
+		AddGameObject(pObject);
+	}
+	else if (!StrCmpW(strGameState, L"Main")) {
+		shared_ptr<CMaterial> pMaterial = make_shared<CMaterial>(1);
+
+		shared_ptr<CTexture> pTexture;
+		if (!pTexture) {
+			pTexture = make_shared<CTexture>(1, RESOURCE_TEXTURE2D, 0, 1);
+			pTexture->LoadTextureFromDDSFile(pd3dDevice, pd3dCommandList, (wchar_t*)L"Asset/Textures/redColor.dds", RESOURCE_TEXTURE2D, 0);
+		}
+		pMaterial->SetMaterialType(MATERIAL_ALBEDO_MAP);
+		pMaterial->SetTexture(pTexture, 0);
+
+		CScene::CreateShaderResourceViews(pd3dDevice, pTexture, 0, 3); // 3 : Albedo
+
+		shared_ptr<CFullScreenTextureObject> pObject = make_shared<CFullScreenTextureObject>(pd3dDevice, pd3dCommandList, pMaterial);
+		pObject->SetAlphaValue(0.3f);
+		shared_ptr<ComponentTimeOnOff> timeonoffComponent = make_shared<ComponentTimeOnOff>();
+		timeonoffComponent->RegisterVariable(&pObject->GetBoolRender());
+		timeonoffComponent->SetLimitTime(2.0f);
+		pObject->SetComponent(timeonoffComponent);
+		//Main클라이언트 플레이어에게 스크린 객체 공유
+		mainPlayer->SetHitDamageScreenObject(pObject);
+
+		AddGameObject(pObject);
+
+	}
+
+}
+
+void CFullScreenProcessingShader::Render(ID3D12GraphicsCommandList* pd3dCommandList, const shared_ptr<CCamera>& pCamera, const shared_ptr<CPlayer>& pPlayer, int nPipelineState)
+{
+	UpdatePipeLineState(pd3dCommandList, 0);
+
+	for (auto& ob : m_vGameObjects) {
+		ob->Render(pd3dCommandList);
 	}
 }

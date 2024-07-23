@@ -92,6 +92,7 @@ public:
 	//void SetWinner(bool bWinner) { m_bWinner = bWinner; }
 	bool IsWinner() const { return m_bWinner; }
 
+	virtual void GameStartLogic() {}
 protected:
 	// 첫 데이터를 받기 시작
 	bool m_bRecvData = false;
@@ -234,14 +235,23 @@ private:
 	float m_fStopMove = 0.0f;
 	float m_fNoStopTime = 0.0f;
 	int m_iCollideMineRef = -1;
+	float m_fExplosionDelay = 0.0f;
+
+	float m_fGameStartWait = 0.0f;
+	bool m_bGameStartWait = false;
 public:
 	bool GetCollisionMine() { return m_bCollisionMine; }
 	float GetNoStopTime() { return m_fNoStopTime; }
 	int GetCollideMineRef() { return m_iCollideMineRef; }
+	float GetExplosionDelay() { return m_fExplosionDelay; }
 
 	void SetCollideMineRef(int val) { m_iCollideMineRef = val; }
 	void SetStopMove(float val) { m_fStopMove = val; }
+	void SetExplosionDelay(float val) { m_fExplosionDelay = val; }
 	void CollisionMine(int ref);
+	
 
-	float m_fExplosionDelay = 0.0f;
+	void GameStartLogic() override;
+
+	
 };
