@@ -446,6 +446,12 @@ void CPlayer::SetPlayerVolume(float fPlayerVolume)
 	m_pSkinnedAnimationController->SetPlayerVolume(fPlayerVolume);
 }
 
+void CPlayer::SetGameStart()
+{
+	m_bGameStartWait = true;
+	m_fGameStartCount = 10.f;
+}
+
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 // 
 
@@ -806,7 +812,7 @@ void CBlueSuitPlayer::Animate(float fElapsedTime)
 		break;
 	case RightItem::RADAR: {
 		m_pRader->SetObtain(false);
-		m_pRader->UpdateTransform(RaderUpdate(fElapsedTime));
+		m_pRader->UpdateTransform(RadarUpdate(fElapsedTime));
 		break;
 	}
 	case RightItem::TELEPORT:
@@ -912,7 +918,7 @@ void CBlueSuitPlayer::RightClickProcess(float fCurTime)
 		break;
 	case RightItem::RADAR:
 		m_bRightClick = !m_bRightClick;
-		m_fOpenRaderTime = 0.3f;
+		m_fOpenRadarTime = 0.3f;
 		break;
 	case RightItem::TELEPORT:
 		break;
@@ -1096,9 +1102,41 @@ void CBlueSuitPlayer::SetHitEvent()
 
 void CBlueSuitPlayer::RenderTextUI(ComPtr<ID2D1DeviceContext2>& d2dDeviceContext, ComPtr<IDWriteTextFormat>& textFormat, ComPtr<ID2D1SolidColorBrush>& brush)
 {
-	wchar_t text[20]; // 변환된 유니코드 문자열을 저장할 버퍼
+	wchar_t text[128]; // 변환된 유니코드 문자열을 저장할 버퍼
 
-	if (PlayRaiderUI()) {
+	if (m_bGameStartWait) {
+		m_fGameStartCount -= gGameTimer.GetTimeElapsed();
+		if (m_fGameStartCount <= 0.0f) {
+			m_bGameStartWait = false;
+		}
+		int len = swprintf(text, 43, L"잠시후 적대자가 행동을 시작합니다.\n퓨즈를 모아 탈출구를 찾으세요.");
+		text[len + 1] = '\0';
+
+		POINT pos = CGameFramework::GetClientWindowSize();
+		D2D1_RECT_F textRect = D2D1::RectF(0, 0, pos.x, pos.y / 2);
+
+		auto color = brush->GetColor();
+		brush->SetColor(D2D1::ColorF(D2D1::ColorF::DarkGray));
+
+		if (m_fGameStartCount <= 3.0f) {
+			float curTime = gGameTimer.GetTotalTime();
+			brush->SetOpacity(curTime - floor(curTime));
+		}
+
+		d2dDeviceContext->DrawText(
+			text,
+			/*_countof(text)*/len,
+			CGameFramework::m_idwSpeakerTextFormat.Get(),
+			&textRect,
+			brush.Get()
+		);
+		brush->SetColor(color);
+		brush->SetOpacity(1.0f);
+	}
+
+
+
+	if (PlayRadarUI()) {
 		float escapelength = GetEscapeLength();
 		// 부동 소수점 값을 문자열로 변환 후 유니코드 문자열로 저장
 		int len = swprintf(text, 20, L"%d", (int)escapelength);
@@ -1119,6 +1157,7 @@ void CBlueSuitPlayer::RenderTextUI(ComPtr<ID2D1DeviceContext2>& d2dDeviceContext
 			&textRect,
 			brush.Get()
 		);
+		//textFormat->set
 	}
 }
 
@@ -1139,13 +1178,13 @@ XMFLOAT4X4* CBlueSuitPlayer::GetRightHandItemTeleportItemModelTransform() const
 }
 
 
-XMFLOAT4X4* CBlueSuitPlayer::RaderUpdate(float fElapsedTime)
+XMFLOAT4X4* CBlueSuitPlayer::RadarUpdate(float fElapsedTime)
 {
 	if (m_bRightClick) {
-		if (m_fOpenRaderTime > 0.0f) {
-			m_fOpenRaderTime -= fElapsedTime;
-			if (m_fOpenRaderTime < 0.0f) {
-				m_fOpenRaderTime = 0.0f;
+		if (m_fOpenRadarTime > 0.0f) {
+			m_fOpenRadarTime -= fElapsedTime;
+			if (m_fOpenRadarTime < 0.0f) {
+				m_fOpenRadarTime = 0.0f;
 			}
 		}
 		m_xmf4x4Rader = Matrix4x4::Identity();
@@ -1167,7 +1206,7 @@ XMFLOAT4X4* CBlueSuitPlayer::RaderUpdate(float fElapsedTime)
 		// 카메라가 바라보는 방향으로 이동할 벡터 계산
 		XMVECTOR translation = XMVectorScale(look, 0.5f);
 		right = XMVectorScale(right, 0.25f);
-		up = XMVectorScale(up, m_fOpenRaderTime + 0.1f);
+		up = XMVectorScale(up, m_fOpenRadarTime + 0.1f);
 		translation += right - up;
 
 		// Right, Up, Look 벡터로 m_xmf4x4Rader 행렬 업데이트
@@ -1561,13 +1600,13 @@ void CZombiePlayer::SetAttackTrail(shared_ptr<Trail> trail)
 
 void CZombiePlayer::SetGameStart()
 {
-	m_bGameStartWait = true;
-	m_fGameStartCount = 10.f;
+	CPlayer::SetGameStart();
 }
 
 void CZombiePlayer::RenderTextUI(ComPtr<ID2D1DeviceContext2>& d2dDeviceContext, ComPtr<IDWriteTextFormat>& textFormat, ComPtr<ID2D1SolidColorBrush>& brush)
 {
-	wchar_t text[20]; // 변환된 유니코드 문자열을 저장할 버퍼
+	wchar_t text[128]; // 변환된 유니코드 문자열을 저장할 버퍼
+	
 	// 부동 소수점 값을 문자열로 변환 후 유니코드 문자열로 저장
 	if (m_bGameStartWait) {
 		static int iPrevCount = 10;

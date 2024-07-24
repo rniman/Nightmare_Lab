@@ -15,6 +15,7 @@
  int CGameFramework::m_nWndClientWidth;
  int CGameFramework::m_nWndClientHeight;
  ComPtr<IDWriteTextFormat> CGameFramework::m_idwGameCountTextFormat;
+ ComPtr<IDWriteTextFormat> CGameFramework::m_idwSpeakerTextFormat;
 
  UCHAR CGameFramework::m_pKeysBuffer[256] = {};
  int CGameFramework::m_nMainClientId = -1;
@@ -330,7 +331,7 @@ void CGameFramework::ChangeSwapChainState()
 	{
 		m_d3d11DeviceContext.Reset();
 		m_d3d11On12Device.Reset();
-		m_dWriteFactory.Reset();
+		//m_dWriteFactory.Reset();
 		m_wrappedBackBuffers[0].Reset();
 		m_wrappedBackBuffers[1].Reset();
 		m_d2dFactory.Reset();
@@ -340,8 +341,8 @@ void CGameFramework::ChangeSwapChainState()
 		m_d2dDeviceContext.Reset();
 
 		m_textBrush.Reset();
-		m_textFormat.Reset();
-		m_idwGameCountTextFormat.Reset();
+		//m_textFormat.Reset();
+		//m_idwGameCountTextFormat.Reset();
 	}
 
 	hResult = m_dxgiSwapChain->ResizeBuffers(2, m_nWndClientWidth, m_nWndClientHeight, dxgiSwapChainDesc.BufferDesc.Format, dxgiSwapChainDesc.Flags);
@@ -385,7 +386,9 @@ void CGameFramework::PrepareDrawText()
 		ThrowIfFailed(m_d3d11On12Device.As(&dxgiDevice));
 		ThrowIfFailed(m_d2dFactory->CreateDevice(dxgiDevice.Get(), &m_d2dDevice));
 		ThrowIfFailed(m_d2dDevice->CreateDeviceContext(deviceOptions, &m_d2dDeviceContext));
-		ThrowIfFailed(DWriteCreateFactory(DWRITE_FACTORY_TYPE_SHARED, __uuidof(IDWriteFactory), &m_dWriteFactory));
+		if (!m_dWriteFactory) {
+			ThrowIfFailed(DWriteCreateFactory(DWRITE_FACTORY_TYPE_SHARED, __uuidof(IDWriteFactory), &m_dWriteFactory));
+		}
 	}
 
 	float dpiX;
@@ -429,33 +432,47 @@ void CGameFramework::PrepareDrawText()
 	{
 		ThrowIfFailed(m_d2dDeviceContext->CreateSolidColorBrush(D2D1::ColorF(D2D1::ColorF::Cyan), &m_textBrush));
 
-		ThrowIfFailed(m_dWriteFactory->CreateTextFormat(
-			L"Verdana",
-			NULL,
-			DWRITE_FONT_WEIGHT_NORMAL,
-			DWRITE_FONT_STYLE_NORMAL,
-			DWRITE_FONT_STRETCH_NORMAL,
-			50,
-			L"en-us",
-			&m_textFormat
-		));
-		ThrowIfFailed(m_textFormat->SetTextAlignment(DWRITE_TEXT_ALIGNMENT_CENTER));
-		ThrowIfFailed(m_textFormat->SetParagraphAlignment(DWRITE_PARAGRAPH_ALIGNMENT_CENTER));
+		if (m_dWriteFactory && !m_textFormat) {
+			ThrowIfFailed(m_dWriteFactory->CreateTextFormat(
+				L"Verdana",
+				NULL,
+				DWRITE_FONT_WEIGHT_NORMAL,
+				DWRITE_FONT_STYLE_NORMAL,
+				DWRITE_FONT_STRETCH_NORMAL,
+				50,
+				L"ko-KR",
+				&m_textFormat
+			));
+			ThrowIfFailed(m_textFormat->SetTextAlignment(DWRITE_TEXT_ALIGNMENT_CENTER));
+			ThrowIfFailed(m_textFormat->SetParagraphAlignment(DWRITE_PARAGRAPH_ALIGNMENT_CENTER));
 
-		ThrowIfFailed(m_dWriteFactory->CreateTextFormat(
-			L"Verdana",
-			NULL,
-			DWRITE_FONT_WEIGHT_NORMAL,
-			DWRITE_FONT_STYLE_NORMAL,
-			DWRITE_FONT_STRETCH_NORMAL,
-			400,
-			L"en-us",
-			&m_idwGameCountTextFormat
-		));
-		ThrowIfFailed(m_idwGameCountTextFormat->SetTextAlignment(DWRITE_TEXT_ALIGNMENT_CENTER));
-		ThrowIfFailed(m_idwGameCountTextFormat->SetParagraphAlignment(DWRITE_PARAGRAPH_ALIGNMENT_CENTER));
+			ThrowIfFailed(m_dWriteFactory->CreateTextFormat(
+				L"Verdana",
+				NULL,
+				DWRITE_FONT_WEIGHT_NORMAL,
+				DWRITE_FONT_STYLE_NORMAL,
+				DWRITE_FONT_STRETCH_NORMAL,
+				400,
+				L"ko-KR",
+				&m_idwGameCountTextFormat
+			));
+			ThrowIfFailed(m_idwGameCountTextFormat->SetTextAlignment(DWRITE_TEXT_ALIGNMENT_CENTER));
+			ThrowIfFailed(m_idwGameCountTextFormat->SetParagraphAlignment(DWRITE_PARAGRAPH_ALIGNMENT_CENTER));
 
+			ThrowIfFailed(m_dWriteFactory->CreateTextFormat(
+				L"±Ã¼­",
+				NULL,
+				DWRITE_FONT_WEIGHT_NORMAL,
+				DWRITE_FONT_STYLE_NORMAL,
+				DWRITE_FONT_STRETCH_NORMAL,
+				35,
+				L"ko-KR",
+				&m_idwSpeakerTextFormat
+			));
+			ThrowIfFailed(m_idwSpeakerTextFormat->SetTextAlignment(DWRITE_TEXT_ALIGNMENT_CENTER));
+			ThrowIfFailed(m_idwSpeakerTextFormat->SetParagraphAlignment(DWRITE_PARAGRAPH_ALIGNMENT_CENTER));
 
+		}
 		
 	}
 

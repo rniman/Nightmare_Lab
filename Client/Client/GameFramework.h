@@ -172,6 +172,7 @@ private:
 	bool m_bPrepareDrawText = false;
 public:
 	static ComPtr<IDWriteTextFormat> m_idwGameCountTextFormat;
+	static ComPtr<IDWriteTextFormat> m_idwSpeakerTextFormat;
 
 	//// Time 
 	//D3D12_GPU_DESCRIPTOR_HANDLE m_d3dTimeCbvGPUDescriptorHandle;
