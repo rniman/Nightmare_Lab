@@ -40,6 +40,12 @@
     <Filter Include="SwordTrail">
       <UniqueIdentifier>{e1bc8f89-06e7-4fb1-a7a5-86f73ec0613f}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Sound">
+      <UniqueIdentifier>{88d05910-f00c-4241-b1b2-f0ac04178e32}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Bloom">
+      <UniqueIdentifier>{426b7ff6-3aa6-4ab4-a1fa-5ecd573bc93c}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="targetver.h">
@@ -130,7 +136,10 @@
       <Filter>SwordTrail</Filter>
     </ClInclude>
     <ClInclude Include="Sound.h">
-      <Filter>헤더 파일</Filter>
+      <Filter>Sound</Filter>
+    </ClInclude>
+    <ClInclude Include="BlurComputeShader.h">
+      <Filter>Bloom</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
@@ -207,7 +216,10 @@
       <Filter>SwordTrail</Filter>
     </ClCompile>
     <ClCompile Include="Sound.cpp">
-      <Filter>소스 파일</Filter>
+      <Filter>Sound</Filter>
+    </ClCompile>
+    <ClCompile Include="BlurComputeShader.cpp">
+      <Filter>Bloom</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
@@ -306,6 +318,18 @@
     </FxCompile>
     <FxCompile Include="Trail.hlsl">
       <Filter>SwordTrail</Filter>
+    </FxCompile>
+    <FxCompile Include="CSBloom.hlsl">
+      <Filter>Bloom</Filter>
+    </FxCompile>
+    <FxCompile Include="PSTextureToScreen.hlsl">
+      <Filter>Bloom</Filter>
+    </FxCompile>
+    <FxCompile Include="VSTextureToScreen.hlsl">
+      <Filter>Bloom</Filter>
+    </FxCompile>
+    <FxCompile Include="CSBloomOff.hlsl">
+      <Filter>Bloom</Filter>
     </FxCompile>
   </ItemGroup>
   <ItemGroup>

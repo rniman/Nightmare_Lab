@@ -11,7 +11,7 @@
 #define SINGLE_PLAY // define시 싱글로 진행
 #define LOADSCENE
 
-#define ADD_RENDERTARGET_COUNT 4  
+#define ADD_RENDERTARGET_COUNT 6 
 #define ADD_DEPTH_MAP_COUNT 1
 
 #define ZOMBIEPLAYER 0

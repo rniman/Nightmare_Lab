@@ -121,39 +121,49 @@ protected:
 	// 씬 배경음 이름
 
 protected:
-	static ComPtr<ID3D12DescriptorHeap> m_pd3dCbvSrvDescriptorHeap;
+	static ComPtr<ID3D12DescriptorHeap> m_pd3dCbvSrvUavDescriptorHeap;
 
 	static D3D12_CPU_DESCRIPTOR_HANDLE	m_d3dCbvCPUDescriptorStartHandle;
 	static D3D12_GPU_DESCRIPTOR_HANDLE	m_d3dCbvGPUDescriptorStartHandle;
 	static D3D12_CPU_DESCRIPTOR_HANDLE	m_d3dSrvCPUDescriptorStartHandle;
 	static D3D12_GPU_DESCRIPTOR_HANDLE	m_d3dSrvGPUDescriptorStartHandle;
+	static D3D12_CPU_DESCRIPTOR_HANDLE	m_d3dUavCPUDescriptorStartHandle;
+	static D3D12_GPU_DESCRIPTOR_HANDLE	m_d3dUavGPUDescriptorStartHandle;
 
 	static D3D12_CPU_DESCRIPTOR_HANDLE	m_d3dCbvCPUDescriptorNextHandle;
 	static D3D12_GPU_DESCRIPTOR_HANDLE	m_d3dCbvGPUDescriptorNextHandle;
 	static D3D12_CPU_DESCRIPTOR_HANDLE	m_d3dSrvCPUDescriptorNextHandle;
 	static D3D12_GPU_DESCRIPTOR_HANDLE	m_d3dSrvGPUDescriptorNextHandle;
-
+	static D3D12_CPU_DESCRIPTOR_HANDLE	m_d3dUavCPUDescriptorNextHandle;
+	static D3D12_GPU_DESCRIPTOR_HANDLE	m_d3dUavGPUDescriptorNextHandle;
 public:
 	// Cbv Count
 	static int m_nCntCbv;
 	static int m_nCntSrv;
+	static int m_nCntUav;
 
-	static void CreateCbvSrvDescriptorHeaps(ID3D12Device* pd3dDevice, int nConstantBufferViews, int nShaderResourceViews);
+	static void CreateCbvSrvUavDescriptorHeaps(ID3D12Device* pd3dDevice, int nConstantBufferViews, int nShaderResourceViews, int nUnorderedAccessViews);
 
 	static D3D12_GPU_DESCRIPTOR_HANDLE CreateConstantBufferViews(ID3D12Device* pd3dDevice, int nConstantBufferViews, ID3D12Resource* pd3dConstantBuffers, UINT nStride);
 	static void CreateShaderResourceViews(ID3D12Device* pd3dDevice, const shared_ptr<CTexture>& pTexture, UINT nDescriptorHeapIndex, UINT nRootParameterStartIndex);
 	static D3D12_GPU_DESCRIPTOR_HANDLE CreateShaderResourceView(ID3D12Device* pd3dDevice, ID3D12Resource* pd3dResource, DXGI_FORMAT dxgiSrvFormat);
+	
+	static void CreateUnorderedAccessViews(ID3D12Device* pd3dDevice, const shared_ptr<CTexture>& pTexture, UINT nDescriptorHeapIndex, UINT nRootParameterStartIndex);
+
 
 	D3D12_CPU_DESCRIPTOR_HANDLE GetCPUCbvDescriptorStartHandle() { return(m_d3dCbvCPUDescriptorStartHandle); }
 	D3D12_GPU_DESCRIPTOR_HANDLE GetGPUCbvDescriptorStartHandle() { return(m_d3dCbvGPUDescriptorStartHandle); }
 	D3D12_CPU_DESCRIPTOR_HANDLE GetCPUSrvDescriptorStartHandle() { return(m_d3dSrvCPUDescriptorStartHandle); }
 	D3D12_GPU_DESCRIPTOR_HANDLE GetGPUSrvDescriptorStartHandle() { return(m_d3dSrvGPUDescriptorStartHandle); }
+	D3D12_CPU_DESCRIPTOR_HANDLE GetCPUUavDescriptorStartHandle() { return(m_d3dUavCPUDescriptorStartHandle); }
+	D3D12_GPU_DESCRIPTOR_HANDLE GetGPUUavDescriptorStartHandle() { return(m_d3dUavGPUDescriptorStartHandle); }
 
 	D3D12_CPU_DESCRIPTOR_HANDLE GetCPUCbvDescriptorNextHandle() { return(m_d3dCbvCPUDescriptorNextHandle); }
 	D3D12_GPU_DESCRIPTOR_HANDLE GetGPUCbvDescriptorNextHandle() { return(m_d3dCbvGPUDescriptorNextHandle); }
 	D3D12_CPU_DESCRIPTOR_HANDLE GetCPUSrvDescriptorNextHandle() { return(m_d3dSrvCPUDescriptorNextHandle); }
 	D3D12_GPU_DESCRIPTOR_HANDLE GetGPUSrvDescriptorNextHandle() { return(m_d3dSrvGPUDescriptorNextHandle); }
-
+	D3D12_CPU_DESCRIPTOR_HANDLE GetCPUUavDescriptorNextHandle() { return(m_d3dUavCPUDescriptorNextHandle); }
+	D3D12_GPU_DESCRIPTOR_HANDLE GetGPUUavDescriptorNextHandle() { return(m_d3dUavGPUDescriptorNextHandle); }
 public:
 	virtual void SetParticleTest(float fCurTime) {}
 	virtual void ParticleReadByteTask() {}
@@ -208,6 +218,9 @@ private:
 /////////////////////////////////////////////////////////////////////
 /// <CScene - CMainScene>
 
+class CBlurComputeShader;
+class CTextureToScreenShader;
+
 class CMainScene : public CScene
 {
 public:
@@ -242,6 +255,10 @@ public:
 	//[0626] 포스트 프로세싱 셰이더가 씬내로 오면서 gameframework의 frame advance 코드 정리
 	void ShadowRender(ID3D12GraphicsCommandList* pd3dCommandList, const shared_ptr<CCamera>& pCamera, int nPipelineState);
 	void FinalRender(ID3D12GraphicsCommandList* pd3dCommandList, const shared_ptr<CCamera>& pCamera, D3D12_CPU_DESCRIPTOR_HANDLE d3dRtvCPUDescriptorHandle, int nGameState);
+
+	void ForwardRender(int nGameState, ID3D12GraphicsCommandList* pd3dCommandList, const std::shared_ptr<CCamera>& pCamera);
+
+	void BlurDispatch(ID3D12GraphicsCommandList* pd3dCommandList, const shared_ptr<CCamera>& pCamera, D3D12_CPU_DESCRIPTOR_HANDLE d3dRtvCPUDescriptorHandle);
 	
 	void AddDefaultObject(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dCommandList, ObjectType type, XMFLOAT3 position,int shader, int mesh);
 	
@@ -284,11 +301,20 @@ public:
 
 	float m_fElapsedTime = 0.0f;
 
+	float GetScale() { return m_pcbMappedTime->gfScale; }
+	float GetIntesity() { return m_pcbMappedTime->gfIntesity; }
+	float GetBias() { return m_pcbMappedTime->gfBias; }
+	//void CreateComputeRootSignature(ID3D12Device* pd3dDevice);
+
+	shared_ptr<CBlurComputeShader> m_pBlurComputeShader;
+	shared_ptr<CTextureToScreenShader> m_pTextureToScreenShaderShader;
 private:
 	// FrameInfo Time 
 	D3D12_GPU_DESCRIPTOR_HANDLE m_d3dTimeCbvGPUDescriptorHandle;
 	ComPtr<ID3D12Resource>		m_pd3dcbTime;
 	FrameTimeInfo* m_pcbMappedTime;
+
+	//ComPtr<ID3D12RootSignature> m_pd3dComputeRootSignature;
 public:
 	void SetParticleTest(float fCurTime);
 	void ParticleReadByteTask();

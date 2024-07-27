@@ -2,28 +2,30 @@
 #include "Light.hlsl"
 
 float4 PSPostProcessing(PS_POSTPROCESSING_OUT input) : SV_Target
-{
+{    
     float4 cColor = DFTextureTexture.Sample(gssWrap, input.uv);
-    float3 normal = DFNormalTexture.Sample(gssWrap, input.uv).rgb;
-    float4 position = DFPositionTexture.Sample(gssWrap, input.uv);
-    //return float4(normalize(position.xyz) * 0.5f + 0.5f, 1.0f);
-
-    //return cColor;
-    //float2 uvP = input.position.xy / float2(FRAME_BUFFER_WIDTH, FRAME_BUFFER_HEIGHT);
-    //float depth = DFzDepthTexture.Sample(gssWrap, uvP);
-    //return float4(depth, depth, depth, 1.0f);
-    //return ShadowMapTexture[4].Sample(gssWrap, input.uv); // 뎁스 저장되는지 확인
+    float4 cEmissiveColor = DFTextureEmissive.Sample(gssWrap, input.uv);
+        
+    float4 positionW = DFPositionTexture.Sample(gssWrap, input.uv);
     
-    // (0~ 1 -> -1~1)
-    normal = (normal.xyz - 0.5f) * 2.0f; // 노말 렌더링으로 확인해볼수 있는 문제가 있으므로 일단 최종렌더링에서 변환작업함.
-    //return float4(normal,1.0f);
-    float4 light = Lighting(position, normal);
+    float3 normal = DFNormalTexture.Sample(gssWrap, input.uv).xyz;
+    normal = normalize((normal * 2.0f) - 1.0f);
     
-    float3 vCameraPosition = gvCameraPosition.xyz;
-    float3 vPostionToCamera = vCameraPosition - position.xyz;
-    float fDistanceToCamera = length(vPostionToCamera);
-    float fFogFactor = saturate(1.0f / pow(gvfFogInfo.y + gvfFogInfo.x, pow(fDistanceToCamera * gvfFogInfo.z, 2))) * gvfFogInfo.w;
-    cColor = lerp(gvFogColor, cColor * light, fFogFactor);
+    float3x3 viewMatrixRotation = (float3x3) gmtxView;
+    float3 normalV = normalize(mul(normal, viewMatrixRotation)); // 뷰 공간 노말
     
-    return (cColor);
+    //**Light Calculation**//
+    float4 light = Lighting(positionW.xyz, normal);
+    cColor = cColor * light; // SSAO와 라이트를 곱하여 최종 색상 계산
+    
+    cColor += cEmissiveColor;
+    
+    //**FOG Calculation**//
+    //float3 vCameraPosition = gvCameraPosition.xyz;
+    //float3 vPostionToCamera = vCameraPosition - positionW.xyz;
+    //float fDistanceToCamera = length(vPostionToCamera);
+    //float fFogFactor = saturate(1.0f / pow(gvfFogInfo.y + gvfFogInfo.x, pow(fDistanceToCamera * gvfFogInfo.z, 2))) * gvfFogInfo.w;
+    //cColor = lerp(gvFogColor, cColor, fFogFactor);
+    
+    return cColor;
 }

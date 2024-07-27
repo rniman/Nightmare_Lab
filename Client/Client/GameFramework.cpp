@@ -8,7 +8,7 @@
 #include "SharedObject.h"
 #include "Sound.h"
 
- extern UINT gnCbvSrvDescriptorIncrementSize;
+ extern UINT gnCbvSrvUavDescriptorIncrementSize;
  extern UINT gnRtvDescriptorIncrementSize;
  extern UINT gnDsvDescriptorIncrementSize;
 
@@ -180,7 +180,7 @@ void CGameFramework::CreateDirect3DDevice()
 
 	m_hFenceEvent = ::CreateEvent(NULL, FALSE, FALSE, NULL);
 
-	::gnCbvSrvDescriptorIncrementSize = m_d3d12Device->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
+	::gnCbvSrvUavDescriptorIncrementSize = m_d3d12Device->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
 	::gnRtvDescriptorIncrementSize = m_d3d12Device->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_RTV);
 
 	if (pd3dAdapter) pd3dAdapter->Release();
@@ -556,14 +556,6 @@ void CGameFramework::OnProcessingKeyboardMessage(HWND hWnd, UINT nMessageID, WPA
 			sharedobject.AddParticle(CParticleMesh::FOOTPRINT, XMFLOAT3());
 			//m_pScene->SetParticleTest(gGameTimer.GetTotalTime());
 			break;
-		case '+':
-			m_fBGMVolume += 0.1f;
-			if (m_fBGMVolume > 1.0f) m_fBGMVolume = 1.0f;
-			break;
-		case '-':
-			m_fBGMVolume -= 0.1f;
-			if (m_fBGMVolume < 0.0f) m_fBGMVolume = 0.0f;
-			break;
 		case VK_ESCAPE:
 			::PostQuitMessage(0);
 			break;
@@ -596,32 +588,6 @@ void CGameFramework::OnProcessingKeyboardMessage(HWND hWnd, UINT nMessageID, WPA
 		case VK_F9:
 			ChangeSwapChainState();
 			break;
-			//case VK_PRIOR:
-			//{
-			//	if (!m_pMainPlayer)
-			//	{
-			//		break;
-			//	}
-			//	XMFLOAT3 xmf3Shift = XMFLOAT3(0, 0, 0);
-			//	XMFLOAT3 xmf3Up = m_pMainPlayer->GetUpVector();
-			//	if (m_pMainPlayer->GetPosition().y < 13.5f + FLT_EPSILON) xmf3Shift = Vector3::Add(xmf3Shift, xmf3Up, 4.5f);
-
-			//	m_pMainPlayer->SetPosition(Vector3::Add(m_pMainPlayer->GetPosition(), xmf3Shift));
-			//}
-			//	break;
-			//case VK_NEXT:
-			//{
-			//	if (!m_pMainPlayer)
-			//	{
-			//		break;
-			//	}
-			//	XMFLOAT3 xmf3Shift = XMFLOAT3(0, 0, 0);
-			//	XMFLOAT3 xmf3Up = m_pMainPlayer->GetUpVector();
-			//	if (m_pMainPlayer->GetPosition().y > 0.0f + FLT_EPSILON) xmf3Shift = Vector3::Add(xmf3Shift, xmf3Up, -4.5f);
-
-			//	m_pMainPlayer->SetPosition(Vector3::Add(m_pMainPlayer->GetPosition(), xmf3Shift));
-			//}
-			//	break;
 		default:
 			break;
 		}
@@ -988,29 +954,6 @@ void CGameFramework::BuildObjects()
 		m_d3dFramework_info_Resource->Map(0, NULL, (void**)&m_cbFramework_info);
 		m_d3dFramework_info_CbvGPUDescriptorHandle = CScene::CreateConstantBufferViews(m_d3d12Device.Get(), 1, m_d3dFramework_info_Resource.Get(), ncbElementBytes);
 
-		//for (int i = 0; i < MAX_CLIENT; ++i)
-		//{
-		//	m_apPlayer[i] = m_pScene->m_apPlayer[i];
-		//	m_pTcpClient->SetPlayer(m_pScene->m_apPlayer[i], i);
-		//}
-
-		////[0626] 포스트 프로세싱 셰이더가 Scene으로 오면서 옮김
-		//m_pScene->m_pPostProcessingShader = new CPostProcessingShader();
-		//m_pScene->m_pPostProcessingShader->CreateShader(m_d3d12Device.Get(), m_d3dCommandList.Get(), m_pScene->GetGraphicsRootSignature().Get(), 1, NULL, DXGI_FORMAT_D24_UNORM_S8_UINT);
-		//
-		//D3D12_CPU_DESCRIPTOR_HANDLE d3dRtvCPUDescriptorHandle = m_d3dRtvDescriptorHeap->GetCPUDescriptorHandleForHeapStart();
-		//d3dRtvCPUDescriptorHandle.ptr += (::gnRtvDescriptorIncrementSize * m_nSwapChainBuffers);
-		//
-		//DXGI_FORMAT pdxgiResourceFormats[ADD_RENDERTARGET_COUNT] = { DXGI_FORMAT_R8G8B8A8_UNORM,  DXGI_FORMAT_R8G8B8A8_UNORM, DXGI_FORMAT_R32_FLOAT ,DXGI_FORMAT_R32G32B32A32_FLOAT };
-		//m_pScene->m_pPostProcessingShader->CreateResourcesAndRtvsSrvs(m_d3d12Device.Get(), m_d3dCommandList.Get(), ADD_RENDERTARGET_COUNT, pdxgiResourceFormats, d3dRtvCPUDescriptorHandle); //SRV to (Render Targets) + (Depth Buffer)
-		//
-		//d3dRtvCPUDescriptorHandle.ptr += (::gnRtvDescriptorIncrementSize * ADD_RENDERTARGET_COUNT);
-		//m_pScene->m_pPostProcessingShader->CreateShadowMapResource(m_d3d12Device.Get(), m_d3dCommandList.Get(), m_pScene->m_nLights, d3dRtvCPUDescriptorHandle);
-		////D3D12_GPU_DESCRIPTOR_HANDLE d3dDsvGPUDescriptorHandle = CScene::CreateShaderResourceView(m_d3d12Device.Get(), m_d3dDepthStencilBuffer.Get(), DXGI_FORMAT_R32_FLOAT);
-		//m_pScene->m_pPostProcessingShader->CreateLightCamera(m_d3d12Device.Get(), m_d3dCommandList.Get(), m_pScene.get());
-		//
-		////[0523] 이제 좀비 플레이어 외에도 사용, COutLineShader 내부에서 m_pPostProcessingShader->GetDsvCPUDesctriptorHandle(0)을 사용하기위해서 필요
-		//dynamic_cast<COutLineShader*>(m_pScene->m_vForwardRenderShader[OUT_LINE_SHADER].get())->SetPostProcessingShader(m_pScene->m_pPostProcessingShader);
 		m_d3dCommandList->Close();
 		ID3D12CommandList* ppd3dCommandLists[] = { m_d3dCommandList.Get() };
 		m_d3dCommandQueue->ExecuteCommandLists(1, ppd3dCommandLists);
@@ -1297,7 +1240,8 @@ void CGameFramework::FrameAdvance()
 		pMainScene->PrepareRender(m_d3dCommandList.Get(), m_pCamera.lock());
 		UpdateFrameworkShaderVariable();
 		pMainScene->FinalRender(m_d3dCommandList.Get(), m_pCamera.lock(), d3dRtvCPUDescriptorHandle, m_nGameState);
-
+		pMainScene->BlurDispatch(m_d3dCommandList.Get(), m_pCamera.lock(), d3dRtvCPUDescriptorHandle);
+		pMainScene->ForwardRender(m_nGameState, m_d3dCommandList.Get(), m_pCamera.lock());
 	}
 	break;
 	default:

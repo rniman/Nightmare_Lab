@@ -26,6 +26,7 @@ class CTexture
 {
 public:
 	CTexture(int nTextureResources, UINT nResourceType, int nSamplers, int nRootParameters);
+	CTexture(int nTextures, UINT nResourceType, int nSamplers, int nRootParameters, int nSrvGpuHandles, int nUavGpuHandles);
 	virtual ~CTexture();
 
 private:
@@ -44,6 +45,7 @@ private:
 	int m_nRootParameters = 0;
 	vector<UINT> m_vnRootParameterIndices;
 	vector<D3D12_GPU_DESCRIPTOR_HANDLE> m_vd3dSrvGpuDescriptorHandles;
+	vector<D3D12_GPU_DESCRIPTOR_HANDLE> m_vd3dUavGpuDescriptorHandles;
 
 	int	m_nSamplers = 0;
 	vector<D3D12_GPU_DESCRIPTOR_HANDLE> m_vd3dSamplerGpuDescriptorHandles;
@@ -66,7 +68,12 @@ public:
 	ID3D12Resource* CreateTexture(ID3D12Device* pd3dDevice, UINT nIndex, UINT nResourceType, UINT nWidth, UINT nHeight, UINT nElements, UINT nMipLevels, DXGI_FORMAT dxgiFormat, D3D12_RESOURCE_FLAGS d3dResourceFlags, D3D12_RESOURCE_STATES d3dResourceStates, D3D12_CLEAR_VALUE* pd3dClearValue);
 
 	void SetRootParameterIndex(int nIndex, UINT nRootParameterIndex);
-	void SetGpuDescriptorHandle(int nIndex, D3D12_GPU_DESCRIPTOR_HANDLE d3dSrvGpuDescriptorHandle);
+	void SetSrvGpuDescriptorHandle(int nIndex, D3D12_GPU_DESCRIPTOR_HANDLE d3dSrvGpuDescriptorHandle);
+	void SetUavGpuDescriptorHandle(int nIndex, D3D12_GPU_DESCRIPTOR_HANDLE d3dUavGpuDescriptorHandle);
+
+
+	void UpdateSrvShaderVariable(ID3D12GraphicsCommandList* pd3dCommandList, int nRootParameterIndex, int nDescriptorHandlesIndex);
+	void UpdateUavShaderVariable(ID3D12GraphicsCommandList* pd3dCommandList, int nRootParameterIndex, int nDescriptorHandlesIndex);
 
 	//리소스를 넘겨받고 리소스를 저장함.
 	void SetTextures(UINT nResourceType, ID3D12Resource* pResource, int idx);
@@ -81,6 +88,7 @@ public:
 	int GetBufferElements(int nIndex) { return(m_vnBufferElements[nIndex]); }
 
 	D3D12_SHADER_RESOURCE_VIEW_DESC GetShaderResourceViewDesc(int nIndex);
+	D3D12_UNORDERED_ACCESS_VIEW_DESC GetUnorderedAccessViewDesc(int nIndex);
 
 	void ReleaseUploadBuffers();
 

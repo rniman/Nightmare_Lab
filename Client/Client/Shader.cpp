@@ -456,7 +456,7 @@ D3D12_RASTERIZER_DESC TransparentShader::CreateRasterizerState()
 	::ZeroMemory(&d3dRasterizerDesc, sizeof(D3D12_RASTERIZER_DESC));
 	d3dRasterizerDesc.FillMode = D3D12_FILL_MODE_SOLID;
 	d3dRasterizerDesc.CullMode = D3D12_CULL_MODE_NONE;
-	d3dRasterizerDesc.FrontCounterClockwise = FALSE;
+	d3dRasterizerDesc.FrontCounterClockwise = TRUE;
 	d3dRasterizerDesc.DepthBias = 0;
 	d3dRasterizerDesc.DepthBiasClamp = 0.0f;
 	d3dRasterizerDesc.SlopeScaledDepthBias = 0.0f;
@@ -777,6 +777,22 @@ void CPostProcessingShader::OnPrepareRenderTarget(ID3D12GraphicsCommandList* pd3
 	if (pd3dAllRtvCPUHandles) delete[] pd3dAllRtvCPUHandles;
 }
 
+void CPostProcessingShader::OnPrepareRenderTargetForLight(ID3D12GraphicsCommandList* pd3dCommandList, int nRenderTargets, D3D12_CPU_DESCRIPTOR_HANDLE* pd3dRtvCPUHandles, D3D12_CPU_DESCRIPTOR_HANDLE* pd3dDsvCPUHandle)
+{
+	int nResources = m_pTexture->GetTextures();
+	D3D12_CPU_DESCRIPTOR_HANDLE* pd3dAllRtvCPUHandles = new D3D12_CPU_DESCRIPTOR_HANDLE[1];
+
+	for(int i = nResources - 1; i < nResources; ++i)
+	{
+		D3D12_CPU_DESCRIPTOR_HANDLE d3dRtvCPUDescriptorHandle = GetRtvCPUDescriptorHandle(i);
+
+		pd3dAllRtvCPUHandles[i - nResources + 1] = d3dRtvCPUDescriptorHandle;
+	}
+	pd3dCommandList->OMSetRenderTargets(1, pd3dAllRtvCPUHandles, FALSE, pd3dDsvCPUHandle);
+
+	if (pd3dAllRtvCPUHandles) delete[] pd3dAllRtvCPUHandles;
+}
+
 void CPostProcessingShader::OnPrepareRenderTarget2(ID3D12GraphicsCommandList* pd3dCommandList, int nRenderTargets, D3D12_CPU_DESCRIPTOR_HANDLE* pd3dRtvCPUHandles,
 	D3D12_CPU_DESCRIPTOR_HANDLE* pd3dDsvCPUHandle, D3D12_CPU_DESCRIPTOR_HANDLE* pd3dshadowRTVDescriptorHandle)
 {
@@ -813,7 +829,16 @@ void CPostProcessingShader::OnPrepareRenderTarget2(ID3D12GraphicsCommandList* pd
 void CPostProcessingShader::TransitionRenderTargetToCommon(ID3D12GraphicsCommandList* pd3dCommandList)
 {
 	int nResources = m_pTexture->GetTextures();
-	for (int i = 0; i < nResources; i++)
+	for (int i = 0; i < nResources - 1; i++) // 뒤에 1개 제외
+	{
+		::SynchronizeResourceTransition(pd3dCommandList, GetTextureResource(i), D3D12_RESOURCE_STATE_RENDER_TARGET, D3D12_RESOURCE_STATE_COMMON);
+	}
+}
+
+void CPostProcessingShader::TransitionRenderTargetToCommonForLight(ID3D12GraphicsCommandList* pd3dCommandList)
+{
+	int nResources = m_pTexture->GetTextures();
+	for (int i = nResources - 1; i < nResources; i++) // 뒤에 1개 제외
 	{
 		::SynchronizeResourceTransition(pd3dCommandList, GetTextureResource(i), D3D12_RESOURCE_STATE_RENDER_TARGET, D3D12_RESOURCE_STATE_COMMON);
 	}

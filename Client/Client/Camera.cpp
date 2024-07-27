@@ -161,6 +161,36 @@ void CCamera::UpdateShaderVariables(ID3D12GraphicsCommandList* pd3dCommandList)
 	pd3dCommandList->SetGraphicsRootDescriptorTable(0, GetDescriptorHandle());
 }
 
+void CCamera::UpdateComputeShaderVariables(ID3D12GraphicsCommandList* pd3dCommandList)
+{
+	XMFLOAT4X4 xmf4x4View;
+	XMStoreFloat4x4(&xmf4x4View, XMMatrixTranspose(XMLoadFloat4x4(&m_xmf4x4View)));
+	::memcpy(&m_pcbMappedCamera->m_xmf4x4View, &xmf4x4View, sizeof(XMFLOAT4X4));
+
+	XMFLOAT4X4 xmf4x4Projection;
+	XMStoreFloat4x4(&xmf4x4Projection, XMMatrixTranspose(XMLoadFloat4x4(&m_xmf4x4Projection)));
+	::memcpy(&m_pcbMappedCamera->m_xmf4x4Projection, &xmf4x4Projection, sizeof(XMFLOAT4X4));
+
+	XMFLOAT4X4 xmf4x4InverseView;
+	XMStoreFloat4x4(&xmf4x4InverseView, XMMatrixTranspose(XMMatrixInverse(nullptr, XMLoadFloat4x4(&m_xmf4x4View))));
+	::memcpy(&m_pcbMappedCamera->m_xmf4x4InverseView, &xmf4x4InverseView, sizeof(XMFLOAT4X4));
+
+	XMMATRIX xmmtxInverseViewProjection;
+	xmmtxInverseViewProjection = XMMatrixTranspose(XMMatrixInverse(nullptr, XMLoadFloat4x4(&m_xmf4x4ViewProjection)));
+	XMFLOAT4X4 xmf4x4InverseViewProjection;
+	XMStoreFloat4x4(&xmf4x4InverseViewProjection, xmmtxInverseViewProjection);
+	::memcpy(&m_pcbMappedCamera->m_xmf4x4InverseViewProjection, &xmf4x4InverseViewProjection, sizeof(XMFLOAT4X4));
+
+	XMFLOAT4 xmf4Position = XMFLOAT4(m_xmf3Position.x, m_xmf3Position.y, m_xmf3Position.z, 0.0f);
+	::memcpy(&m_pcbMappedCamera->m_xmf4Position, &xmf4Position, sizeof(XMFLOAT4));
+
+	::memcpy(&m_pcbMappedCamera->m_xmf4FogColor, &m_xmf4FogColor, sizeof(XMFLOAT4));
+	::memcpy(&m_pcbMappedCamera->m_xmf4FogInfo, &m_xmf4FogInfo, sizeof(XMFLOAT4));
+
+	pd3dCommandList->SetComputeRootDescriptorTable(0, GetDescriptorHandle());
+}
+
+
 void CCamera::ReleaseShaderVariables()
 {
 	if (m_pd3dcbCamera.Get()) { // ComPtr을 사용하더라도 Unmap을 해주어야 메모리 누수 x

@@ -53,7 +53,7 @@ Texture2D DFNormalTexture : register(t6);
 Texture2D<float> DFzDepthTexture : register(t7);
 Texture2D DFPositionTexture : register(t8);
 
-Texture2D PatternTexture : register(t9);
+Texture2D PatternTexture : register(t11);
 
 
 #define MATERIAL_ALBEDO_MAP			0x01

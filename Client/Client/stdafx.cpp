@@ -5,7 +5,7 @@
 //#include "WICTextureLoader12.h"
 
 // DescriptorIncrementSize
-UINT gnCbvSrvDescriptorIncrementSize = 0;
+UINT gnCbvSrvUavDescriptorIncrementSize = 0;
 UINT gnRtvDescriptorIncrementSize = 0;
 UINT gnDsvDescriptorIncrementSize = 0;
 

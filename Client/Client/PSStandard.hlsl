@@ -3,20 +3,17 @@
 struct PS_MULTIPLE_RENDER_TARGETS_OUTPUT
 {
     float4 cTexture : SV_TARGET0;
-    float4 normal : SV_TARGET1;
+    float4 cNormal : SV_Target1;
     float zDepth : SV_TARGET2;
     float4 position : SV_Target3;
+    float4 cEmissive : SV_Target4;
+    float4 cLight : SV_Target5;
 };
 
 PS_MULTIPLE_RENDER_TARGETS_OUTPUT PSStandard(VS_STANDARD_OUTPUT input)
 {
     PS_MULTIPLE_RENDER_TARGETS_OUTPUT output;
-    
-    //float4 cAlbedoColor = float4(0.0f, 0.0f, 0.0f, 1.0f);
-    //float4 cSpecularColor = float4(0.0f, 0.0f, 0.0f, 1.0f);
-    //float4 cNormalColor = float4(0.0f, 0.0f, 0.0f, 1.0f);
-    //float4 cMetallicColor = float4(0.0f, 0.0f, 0.0f, 1.0f);
-    //float4 cEmissionColor = float4(0.0f, 0.0f, 0.0f, 1.0f);
+
     float4 cAlbedoColor = gMaterial.m_cAlbedo;
     float4 cSpecularColor = gMaterial.m_cSpecular;
     float4 cNormalColor = float4(0.0f, 0.0f, 0.0f, 1.0f);
@@ -41,7 +38,7 @@ PS_MULTIPLE_RENDER_TARGETS_OUTPUT PSStandard(VS_STANDARD_OUTPUT input)
     if(gnTexturesMask & MATERIAL_EMISSION_MAP)
         cEmissionColor = EmissionTexture.Sample(gssWrap, input.uv);
     
-    float4 cColor = (cAlbedoColor * 0.7f) + (cSpecularColor * 0.2f) + (cMetallicColor * 0.05f) + (cEmissionColor * 0.5f);
+    float4 cColor = (cAlbedoColor * 0.7f) + (cSpecularColor * 0.2f) + (cMetallicColor * 0.05f)/* + (cEmissionColor)*/;
     
     if(usePattern > 0.0f)
     {
@@ -57,9 +54,10 @@ PS_MULTIPLE_RENDER_TARGETS_OUTPUT PSStandard(VS_STANDARD_OUTPUT input)
     }
     
     output.cTexture = cColor;
-    output.normal = float4(input.normalW.xyz * 0.5f + 0.5f, 1.0f);
+    output.cNormal = float4(input.normalW.xyz * 0.5f + 0.5f, 1.0f);
     output.zDepth = input.position.z;
     output.position = float4(input.positionW, 1.0f);
-    
+    output.cEmissive = cEmissionColor;
+
     return output;
 }
