@@ -28,6 +28,7 @@ public:
 	virtual void CreateShaderVariables(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dCommandList);
 	virtual void ReleaseShaderVariables();
 	virtual void UpdateShaderVariables(ID3D12GraphicsCommandList* pd3dCommandList);
+	void UpdateComputeShaderVariables(ID3D12GraphicsCommandList* pd3dCommandList);
 
 	void GenerateViewMatrix();
 	void GenerateViewMatrix(XMFLOAT3 xmf3Position, XMFLOAT3 xmf3LookAt, XMFLOAT3 xmf3Up);

@@ -59,6 +59,72 @@ CTexture::CTexture(int nTextures, UINT nTextureType, int nSamplers, int nRootPar
 	}
 }
 
+CTexture::CTexture(int nTextures, UINT nResourceType, int nSamplers, int nRootParameters, int nSrvGpuHandles, int nUavGpuHandles)
+{
+	m_nTextures = nTextures;
+	if (m_nTextures > 0)
+	{
+		m_vpd3dTextureUploadBuffers.reserve(m_nTextures);
+		m_vpd3dTextures.reserve(m_nTextures);
+
+		m_vnResourceTypes.reserve(m_nTextures);
+		m_vdxgiBufferFormats.reserve(m_nTextures);
+		m_vnBufferElements.reserve(m_nTextures);
+		m_vnBufferStrides.reserve(m_nTextures);
+
+		for (int i = 0; i < m_nTextures; ++i)
+		{
+			m_vpd3dTextureUploadBuffers.emplace_back();
+			m_vpd3dTextures.emplace_back();
+
+			m_vnResourceTypes.emplace_back();
+			m_vdxgiBufferFormats.emplace_back();
+			m_vnBufferElements.emplace_back();
+			m_vnBufferStrides.emplace_back();
+		}
+	}
+
+	if (nSrvGpuHandles > 0)
+	{
+		m_vd3dSrvGpuDescriptorHandles.reserve(nSrvGpuHandles);
+		for (int i = 0; i < nSrvGpuHandles; ++i)
+		{
+			m_vd3dSrvGpuDescriptorHandles.emplace_back();
+		}
+	}
+
+	if (nUavGpuHandles > 0)
+	{
+		m_vd3dUavGpuDescriptorHandles.reserve(nUavGpuHandles);
+		for (int i = 0; i < nUavGpuHandles; ++i)
+		{
+			m_vd3dUavGpuDescriptorHandles.emplace_back();
+		}
+	}
+
+	m_nRootParameters = nRootParameters;
+	if (nRootParameters > 0)
+	{
+		m_vnRootParameterIndices.reserve(m_nRootParameters);
+		for (int i = 0; i < m_nRootParameters; ++i)
+		{
+			m_vnRootParameterIndices.emplace_back();
+		}
+	}
+
+	m_nSamplers = nSamplers;
+	if (m_nSamplers > 0)
+	{
+		m_vd3dSamplerGpuDescriptorHandles.reserve(m_nSamplers);
+		for (int i = 0; i < m_nSamplers; ++i)
+		{
+			m_vd3dSamplerGpuDescriptorHandles.emplace_back();
+		}
+	}
+}
+
+
+
 CTexture::~CTexture()
 {
 	if (!m_vpd3dTextures.empty())
@@ -83,9 +149,24 @@ void CTexture::SetRootParameterIndex(int nIndex, UINT nRootParameterIndex)
 	m_vnRootParameterIndices[nIndex] = nRootParameterIndex;
 }
 
-void CTexture::SetGpuDescriptorHandle(int nIndex, D3D12_GPU_DESCRIPTOR_HANDLE d3dSrvGpuDescriptorHandle)
+void CTexture::SetSrvGpuDescriptorHandle(int nIndex, D3D12_GPU_DESCRIPTOR_HANDLE d3dSrvGpuDescriptorHandle)
 {
 	m_vd3dSrvGpuDescriptorHandles[nIndex] = d3dSrvGpuDescriptorHandle;
+}
+
+void CTexture::SetUavGpuDescriptorHandle(int nIndex, D3D12_GPU_DESCRIPTOR_HANDLE d3dUavGpuDescriptorHandle)
+{
+	m_vd3dUavGpuDescriptorHandles[nIndex] = d3dUavGpuDescriptorHandle;
+}
+
+void CTexture::UpdateSrvShaderVariable(ID3D12GraphicsCommandList* pd3dCommandList, int nRootParameterIndex, int nDescriptorHandlesIndex)
+{
+	pd3dCommandList->SetComputeRootDescriptorTable(m_vnRootParameterIndices[0], m_vd3dSrvGpuDescriptorHandles[0]);
+}
+
+void CTexture::UpdateUavShaderVariable(ID3D12GraphicsCommandList* pd3dCommandList, int nRootParameterIndex, int nDescriptorHandlesIndex)
+{
+	pd3dCommandList->SetComputeRootDescriptorTable(nRootParameterIndex, m_vd3dUavGpuDescriptorHandles[nDescriptorHandlesIndex]);
 }
 
 void CTexture::SetSampler(int nIndex, D3D12_GPU_DESCRIPTOR_HANDLE d3dSamplerGpuDescriptorHandle)
@@ -220,6 +301,44 @@ D3D12_SHADER_RESOURCE_VIEW_DESC CTexture::GetShaderResourceViewDesc(int nIndex)
 		break;
 	}
 	return(d3dShaderResourceViewDesc);
+}
+
+D3D12_UNORDERED_ACCESS_VIEW_DESC CTexture::GetUnorderedAccessViewDesc(int nIndex)
+{
+	ID3D12Resource* pShaderResource = GetResource(nIndex);
+	D3D12_RESOURCE_DESC d3dResourceDesc = pShaderResource->GetDesc();
+
+	D3D12_UNORDERED_ACCESS_VIEW_DESC d3dUnorderedAccessViewDesc;
+
+	int nTextureType = GetTextureType(nIndex);
+	switch (nTextureType)
+	{
+	case RESOURCE_TEXTURE2D: //(d3dResourceDesc.Dimension == D3D12_RESOURCE_DIMENSION_TEXTURE2D)(d3dResourceDesc.DepthOrArraySize == 1)
+	case RESOURCE_TEXTURE2D_ARRAY: //[]
+		d3dUnorderedAccessViewDesc.Format = d3dResourceDesc.Format;
+		d3dUnorderedAccessViewDesc.ViewDimension = D3D12_UAV_DIMENSION_TEXTURE2D;
+		d3dUnorderedAccessViewDesc.Texture2D.MipSlice = 0;
+		d3dUnorderedAccessViewDesc.Texture2D.PlaneSlice = 0;
+		break;
+	case RESOURCE_TEXTURE2DARRAY: //(d3dResourceDesc.Dimension == D3D12_RESOURCE_DIMENSION_TEXTURE2D)(d3dResourceDesc.DepthOrArraySize != 1)
+		d3dUnorderedAccessViewDesc.Format = d3dResourceDesc.Format;
+		d3dUnorderedAccessViewDesc.ViewDimension = D3D12_UAV_DIMENSION_TEXTURE2DARRAY;
+		d3dUnorderedAccessViewDesc.Texture2DArray.MipSlice = 0;
+		d3dUnorderedAccessViewDesc.Texture2DArray.FirstArraySlice = 0;
+		d3dUnorderedAccessViewDesc.Texture2DArray.ArraySize = d3dResourceDesc.DepthOrArraySize;
+		d3dUnorderedAccessViewDesc.Texture2DArray.PlaneSlice = 0;
+		break;
+	case RESOURCE_BUFFER: //(d3dResourceDesc.Dimension == D3D12_RESOURCE_DIMENSION_BUFFER)
+		d3dUnorderedAccessViewDesc.Format = m_vdxgiBufferFormats[nIndex];
+		d3dUnorderedAccessViewDesc.ViewDimension = D3D12_UAV_DIMENSION_BUFFER;
+		d3dUnorderedAccessViewDesc.Buffer.FirstElement = 0;
+		d3dUnorderedAccessViewDesc.Buffer.NumElements = 0;
+		d3dUnorderedAccessViewDesc.Buffer.StructureByteStride = 0;
+		d3dUnorderedAccessViewDesc.Buffer.CounterOffsetInBytes = 0;
+		d3dUnorderedAccessViewDesc.Buffer.Flags = D3D12_BUFFER_UAV_FLAG_NONE;
+		break;
+	}
+	return(d3dUnorderedAccessViewDesc);
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////

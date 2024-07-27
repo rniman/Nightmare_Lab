@@ -196,9 +196,11 @@ public:
 	virtual void CreateResourcesAndRtvsSrvs(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dCommandList, UINT nRenderTargets, DXGI_FORMAT* pdxgiFormats, D3D12_CPU_DESCRIPTOR_HANDLE d3dRtvCPUDescriptorHandle);
 
 	virtual void OnPrepareRenderTarget(ID3D12GraphicsCommandList* pd3dCommandList, int nRenderTargets, D3D12_CPU_DESCRIPTOR_HANDLE* pd3dRtvCPUHandles, D3D12_CPU_DESCRIPTOR_HANDLE* pd3dDsvCPUHandle);
+	void OnPrepareRenderTargetForLight(ID3D12GraphicsCommandList* pd3dCommandList, int nRenderTargets, D3D12_CPU_DESCRIPTOR_HANDLE* pd3dRtvCPUHandles, D3D12_CPU_DESCRIPTOR_HANDLE* pd3dDsvCPUHandle);
 	virtual void OnPrepareRenderTarget2(ID3D12GraphicsCommandList* pd3dCommandList, int nRenderTargets, 
 		D3D12_CPU_DESCRIPTOR_HANDLE* pd3dRtvCPUHandles, D3D12_CPU_DESCRIPTOR_HANDLE* pd3dDsvCPUHandle, D3D12_CPU_DESCRIPTOR_HANDLE* pd3dshadowRTVDescriptorHandle);
 	virtual void TransitionRenderTargetToCommon(ID3D12GraphicsCommandList* pd3dCommandList);
+	virtual void TransitionRenderTargetToCommonForLight(ID3D12GraphicsCommandList* pd3dCommandList);
 	virtual void TransitionCommonToRenderTarget(ID3D12GraphicsCommandList* pd3dCommandList);
 
 	virtual void Render(ID3D12GraphicsCommandList* pd3dCommandList, const shared_ptr<CCamera>& pCamera, const shared_ptr<CPlayer>& pPlayer);
@@ -215,7 +217,7 @@ protected:
 	vector<unique_ptr<D3D12_CPU_DESCRIPTOR_HANDLE>> m_vpDsvDescriptorCPUHandles;
 
 public:
-	shared_ptr<CTexture> GetTexture() { return(m_pTexture); }
+	shared_ptr<CTexture>& GetTexture() { return(m_pTexture); }
 	ID3D12Resource* GetTextureResource(UINT nIndex) { return(m_pTexture->GetResource(nIndex)); }
 
 	D3D12_CPU_DESCRIPTOR_HANDLE GetRtvCPUDescriptorHandle(UINT nIndex) { return(*m_vpRtvCPUDescriptorHandles[nIndex]); }

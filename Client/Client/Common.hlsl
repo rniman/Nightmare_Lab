@@ -102,8 +102,10 @@ Texture2D DFTextureTexture : register(t5);
 Texture2D DFNormalTexture : register(t6);
 Texture2D<float> DFzDepthTexture : register(t7);
 Texture2D DFPositionTexture : register(t8);
+Texture2D DFTextureEmissive : register(t9);
+Texture2D DFLightTexture : register(t10);
 
-Texture2D PatternTexture : register(t9);
+Texture2D PatternTexture : register(t11);
 
 struct VS_STANDARD_OUTPUT
 {

@@ -3,10 +3,6 @@
 
 float doAmbientOcclusion(float2 tcoord, float2 uv, float3 p, float3 cnorm)
 {
-    //float scale = 2.0f;
-    //float bias = 0.01f;
-    //float intesity = 5.0f;
-    
     // 샘플링 위치 계산
     float3 samplePos = mul(DFPositionTexture.Sample(gssWrap, tcoord + uv), gmtxView).xyz;
     float3 diff = samplePos - p;
@@ -31,17 +27,19 @@ const float2 vec[16] =
 #include "NoiseData.hlsl"
 
 float4 PSPostProcessingWithSSAO(PS_POSTPROCESSING_OUT input) : SV_Target
-{
+{   
     float4 cColor = DFTextureTexture.Sample(gssWrap, input.uv);
+    float4 cEmissiveColor = DFTextureEmissive.Sample(gssWrap, input.uv);
+           
     float4 positionW = DFPositionTexture.Sample(gssWrap, input.uv);
-    float4 positionV = mul(positionW, gmtxView);    // 뷰 공간 위치
+    float4 positionV = mul(positionW, gmtxView); // 뷰 공간 위치
     
     float3 normal = DFNormalTexture.Sample(gssWrap, input.uv).xyz;
     normal = normalize((normal * 2.0f) - 1.0f);
-
-    float3x3 viewMatrixRotation = (float3x3) gmtxView;
-    float3 normalV = normalize(mul(normal, viewMatrixRotation));    // 뷰 공간 노말
     
+    float3x3 viewMatrixRotation = (float3x3) gmtxView;
+    float3 normalV = normalize(mul(normal, viewMatrixRotation)); // 뷰 공간 노말
+
     // 노이즈 텍스쳐 UV
     float2 vFrameBuffer = float2((float) FRAME_BUFFER_WIDTH, (float) FRAME_BUFFER_HEIGHT);
     float2 vNoiseSize = float2(8, 8);
@@ -71,25 +69,20 @@ float4 PSPostProcessingWithSSAO(PS_POSTPROCESSING_OUT input) : SV_Target
         ssao += doAmbientOcclusion(input.uv, coord2, positionV.xyz, normalV);
     }
     ssao /= (float) numSamples * 4.0;
-    ssao = 1.0f - ssao * 0.5f; // [0.5 ~ 1.0]
-    
-    // 깊이에 기반한 감쇠 적용
-    float depth = DFzDepthTexture.Sample(gssWrap, input.uv);
-    float4 positionP = mul(positionV, gmtxProjection);
-    depth = saturate(depth / positionP.w);
-    float attenuation = saturate(pow(depth, 2.f)) * 0.3f;
-    ssao = saturate(ssao + attenuation);
+    ssao = ssao * 0.15f;
     
     //**Light Calculation**//
     float4 light = Lighting(positionW.xyz, normal, float4(ssao, ssao, ssao, 1.0f));
     cColor = cColor * light; // SSAO와 라이트를 곱하여 최종 색상 계산
     
-    //**FOG Calculation**//
-    float3 vCameraPosition = gvCameraPosition.xyz;
-    float3 vPostionToCamera = vCameraPosition - positionW.xyz;
-    float fDistanceToCamera = length(vPostionToCamera);
-    float fFogFactor = saturate(1.0f / pow(gvfFogInfo.y + gvfFogInfo.x, pow(fDistanceToCamera * gvfFogInfo.z, 2))) * gvfFogInfo.w;
-    cColor = lerp(gvFogColor, cColor, fFogFactor);
+    cColor += cEmissiveColor;
     
-    return (cColor);
+    //**FOG Calculation**//
+    //float3 vCameraPosition = gvCameraPosition.xyz;
+    //float3 vPostionToCamera = vCameraPosition - positionW.xyz;
+    //float fDistanceToCamera = length(vPostionToCamera);
+    //float fFogFactor = saturate(1.0f / pow(gvfFogInfo.y + gvfFogInfo.x, pow(fDistanceToCamera * gvfFogInfo.z, 2))) * gvfFogInfo.w;
+    //cColor = lerp(gvFogColor, cColor, fFogFactor);
+            
+    return cColor;
 }

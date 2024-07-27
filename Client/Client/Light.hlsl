@@ -176,7 +176,11 @@ float4 SpotLight(int nIndex, float3 vPosition, float3 vNormal, float3 vToCamera)
 		
         float distanceAttenuation = 1 - (fDistance / gLights[nIndex].m_fRange);
 		
-        return (((gLights[nIndex].m_cAmbient * gMaterial.m_cAmbient + 0.0f) + (gLights[nIndex].m_cAlbedo * fDiffuseFactor * gMaterial.m_cAlbedo) + (gLights[nIndex].m_cSpecular * fSpecularFactor * gMaterial.m_cSpecular)) * fAttenuationFactor * distanceAttenuation * fSpotFactor);
+        float4 ambient = gLights[nIndex].m_cAmbient * gMaterial.m_cAmbient;
+        float4 diffuse = gLights[nIndex].m_cAlbedo * fDiffuseFactor * gMaterial.m_cAlbedo;
+        float4 specular = gLights[nIndex].m_cSpecular * fSpecularFactor * gMaterial.m_cSpecular;
+
+        return (ambient + diffuse + specular) * fAttenuationFactor * distanceAttenuation * fSpotFactor;
     }
     return (float4(0.0f, 0.0f, 0.0f, 0.0f));
 }
@@ -222,7 +226,7 @@ float4 Lighting(float3 vPosition, float3 vNormal, float4 ssao)
     float3 vToCamera = normalize(vCameraPosition - vPosition);
     
     float4 cColor = float4(0.0f, 0.0f, 0.0f, 0.0f);
-    cColor += (gcGlobalAmbientLight * ssao);
+    cColor += gcGlobalAmbientLight - ssao;
 	[unroll(MAX_LIGHTS)]
     for(int i = 0; i < gnLights; i++)
     {
