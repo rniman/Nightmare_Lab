@@ -1330,9 +1330,9 @@ void CGameFramework::FrameAdvance()
 		UpdateFrameworkShaderVariable();
 		pMainScene->FinalRender(m_d3dCommandList.Get(), m_pCamera.lock(), d3dRtvCPUDescriptorHandle, m_nGameState);
 
-		pMainScene->FullScreenProcessingRender(m_d3dCommandList.Get());
 		pMainScene->BlurDispatch(m_d3dCommandList.Get(), m_pCamera.lock(), d3dRtvCPUDescriptorHandle);
 		pMainScene->ForwardRender(m_nGameState, m_d3dCommandList.Get(), m_pCamera.lock());
+		pMainScene->FullScreenProcessingRender(m_d3dCommandList.Get());
 	}
 	break;
 	default:
