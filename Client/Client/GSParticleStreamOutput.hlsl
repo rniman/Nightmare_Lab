@@ -13,7 +13,7 @@ struct VS_PARTICLE_INPUT
     float iStartTime : ISTARTTIME;
 };
 
-Buffer<float4> gRandomBuffer : register(t10);
+Buffer<float4> gRandomBuffer : register(t12);
 
 float4 RandomDirection(float fOffset)
 {

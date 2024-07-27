@@ -3,11 +3,11 @@
 struct PS_MULTIPLE_RENDER_TARGETS_OUTPUT
 {
     float4 cTexture : SV_TARGET0;
-    float4 cNormal : SV_Target1;
+    float4 cNormal : SV_TARGET1;
     float zDepth : SV_TARGET2;
-    float4 position : SV_Target3;
-    float4 cEmissive : SV_Target4;
-    float4 cLight : SV_Target5;
+    float4 position : SV_TARGET3;
+    float4 cEmissive : SV_TARGET4;
+    float4 cLight : SV_TARGET5;
 };
 
 PS_MULTIPLE_RENDER_TARGETS_OUTPUT PSStandard(VS_STANDARD_OUTPUT input)

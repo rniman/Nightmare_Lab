@@ -22,7 +22,7 @@ cbuffer cbParticleInfo : register(b3)
 
 //Texture2D gtxtParticleTexture : register(t1); => Albedo
 Buffer<float4> gRandomBuffer : register(t12);
-//Buffer<float4> gRandomSphereBuffer : register(t11);
+Buffer<float4> gRandomSphereBuffer : register(t13);
 
 //SamplerState gWrapSamplerState : register(s0); => gssWrap
 
@@ -68,11 +68,11 @@ float4 RandomDirection(float fOffset)
     return (normalize(gRandomBuffer.Load(u)));
 }
 
-//float4 RandomDirectionOnSphere(float fOffset)
-//{
-//    int u = uint(gfCurrentTime + fOffset + frac(gfCurrentTime) * 1000.0f) % 256;
-//    return (normalize(gRandomSphereBuffer.Load(u)));
-//}
+float4 RandomDirectionOnSphere(float fOffset)
+{
+    int u = uint(gfCurrentTime + fOffset + frac(gfCurrentTime) * 1000.0f) % 256;
+    return (normalize(gRandomSphereBuffer.Load(u)));
+}
 
 void BubbleCreate(VS_PARTICLE_INPUT input, inout PointStream<VS_PARTICLE_INPUT> output, int amount)
 {

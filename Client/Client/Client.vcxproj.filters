@@ -49,6 +49,9 @@
     <Filter Include="HLSL%28cso%29\Trail">
       <UniqueIdentifier>{57430c1a-be6a-45d7-a060-2c79ebdf9b2f}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Blur">
+      <UniqueIdentifier>{f9ad5bc5-4377-4948-8c23-c3874ba70eb3}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="targetver.h">
@@ -138,11 +141,14 @@
     <ClInclude Include="CTrailShader.h">
       <Filter>SwordTrail</Filter>
     </ClInclude>
-    <ClInclude Include="Sound.h">
-      <Filter>Sound</Filter>
-    </ClInclude>
     <ClInclude Include="Component.h">
       <Filter>Script</Filter>
+    </ClInclude>
+    <ClInclude Include="BlurComputeShader.h">
+      <Filter>Blur</Filter>
+    </ClInclude>
+    <ClInclude Include="Sound.h">
+      <Filter>헤더 파일</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
@@ -218,14 +224,14 @@
     <ClCompile Include="CTrailShader.cpp">
       <Filter>SwordTrail</Filter>
     </ClCompile>
-    <ClCompile Include="Sound.cpp">
-      <Filter>Sound</Filter>
-    </ClCompile>
-    <ClCompile Include="BlurComputeShader.cpp">
-      <Filter>Bloom</Filter>
-    </ClCompile>
     <ClCompile Include="Component.cpp">
       <Filter>Script</Filter>
+    </ClCompile>
+    <ClCompile Include="BlurComputeShader.cpp">
+      <Filter>Blur</Filter>
+    </ClCompile>
+    <ClCompile Include="Sound.cpp">
+      <Filter>소스 파일</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
@@ -346,17 +352,17 @@
     <FxCompile Include="PS_TRAIL.hlsl">
       <Filter>HLSL%28cso%29\Trail</Filter>
     </FxCompile>
-    <FxCompile Include="CSBloom.hlsl">
-      <Filter>Bloom</Filter>
-    </FxCompile>
-    <FxCompile Include="PSTextureToScreen.hlsl">
-      <Filter>Bloom</Filter>
-    </FxCompile>
     <FxCompile Include="VSTextureToScreen.hlsl">
-      <Filter>Bloom</Filter>
+      <Filter>Blur</Filter>
+    </FxCompile>
+    <FxCompile Include="CSBloom.hlsl">
+      <Filter>Blur</Filter>
     </FxCompile>
     <FxCompile Include="CSBloomOff.hlsl">
-      <Filter>Bloom</Filter>
+      <Filter>Blur</Filter>
+    </FxCompile>
+    <FxCompile Include="PSTextureToScreen.hlsl">
+      <Filter>Blur</Filter>
     </FxCompile>
   </ItemGroup>
   <ItemGroup>
