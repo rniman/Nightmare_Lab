@@ -24,16 +24,16 @@ bool SoundManager::Initialize()
     FMOD_RESULT result = FMOD::System_Create(&m_pSystem);
     if (result != FMOD_OK)
     {
-        sprintf(m_pErrBuffer, "FMOD 시스템 생성 실패!\n");
-        OutputDebugStringA(m_pErrBuffer);
+        //sprintf(m_pErrBuffer, "FMOD 시스템 생성 실패!\n");
+        //OutputDebugStringA(m_pErrBuffer);
         return false;
     }
 
     result = m_pSystem->init(512, FMOD_INIT_NORMAL, nullptr);
     if (result != FMOD_OK) 
     {
-        sprintf(m_pErrBuffer, "FMOD 시스템 초기화 실패!\n");
-        OutputDebugStringA(m_pErrBuffer);
+        //sprintf(m_pErrBuffer, "FMOD 시스템 초기화 실패!\n");
+        //OutputDebugStringA(m_pErrBuffer);
         return false;
     }
 
@@ -88,8 +88,8 @@ bool SoundManager::LoadSound(const char* name, const char* filename, bool loop)
     FMOD_RESULT result = m_pSystem->createSound(filename, loop ? FMOD_LOOP_NORMAL : FMOD_LOOP_OFF, nullptr, &sound);
     if (result != FMOD_OK)
     {
-        sprintf(m_pErrBuffer, "사운드 로드 실패 : %s \n", filename);
-        OutputDebugStringA(m_pErrBuffer);
+        //sprintf(m_pErrBuffer, "사운드 로드 실패 : %s \n", filename);
+        //OutputDebugStringA(m_pErrBuffer);
         return false;
     }
 

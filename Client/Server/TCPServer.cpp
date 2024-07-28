@@ -146,7 +146,7 @@ void TCPServer::OnProcessingAcceptMessage(HWND hWnd, UINT nMessageID, WPARAM wPa
 		return;
 	}
 
-	printf("\n[TCP 서버] 클라이언트 접속: IP 주소=%s, 포트 번호=%d\n", m_vSocketInfoList[nSocketIndex].m_pAddr, ntohs(m_vSocketInfoList[nSocketIndex].m_addrClient.sin_port));
+	//printf("\n[TCP 서버] 클라이언트 접속: IP 주소=%s, 포트 번호=%d\n", m_vSocketInfoList[nSocketIndex].m_pAddr, ntohs(m_vSocketInfoList[nSocketIndex].m_addrClient.sin_port));
 
 	int retval = WSAAsyncSelect(sockClient, hWnd, WM_SOCKET, FD_READ | FD_WRITE | FD_CLOSE);
 	if (retval == SOCKET_ERROR)
@@ -226,7 +226,7 @@ void TCPServer::OnProcessingReadMessage(HWND hWnd, UINT nMessageID, WPARAM wPara
 	switch (m_vSocketInfoList[nSocketIndex].m_nHead)
 	{
 	case HEAD_GAME_START:
-		cout << "GAME START" << endl;
+		//cout << "GAME START" << endl;
 		m_nGameState = GAME_STATE::IN_GAME;
 		m_nZombie = 0;
 		m_nBlueSuit = 0;
@@ -416,7 +416,7 @@ void TCPServer::OnProcessingReadMessage(HWND hWnd, UINT nMessageID, WPARAM wPara
 	}
 		break;
 	case HEAD_LOADING_COMPLETE: {
-		cout << "[" << nSocketIndex << "] => LoadComplete!!\n";
+		//cout << "[" << nSocketIndex << "] => LoadComplete!!\n";
 		m_vSocketInfoList[nSocketIndex].m_bLoadComplete = true;
 		int connectCount = 0;
 		for (auto& sock_info : m_vSocketInfoList) {
@@ -546,7 +546,7 @@ void TCPServer::OnProcessingWriteMessage(HWND hWnd, UINT nMessageID, WPARAM wPar
 		if (nRetval == -1 && WSAGetLastError() == WSAEWOULDBLOCK)
 		{
 		}
-		cout << "BLUE SUIT WIN" << endl;
+		//cout << "BLUE SUIT WIN" << endl;
 		m_vSocketInfoList[nSocketIndex].m_socketState = SOCKET_STATE::SEND_UPDATE_DATA;
 		break;
 	case SOCKET_STATE::SEND_ZOMBIE_WIN:
@@ -555,7 +555,7 @@ void TCPServer::OnProcessingWriteMessage(HWND hWnd, UINT nMessageID, WPARAM wPar
 		if (nRetval == -1 && WSAGetLastError() == WSAEWOULDBLOCK)
 		{
 		}
-		cout << "ZOMBIE WIN" << endl;
+		//cout << "ZOMBIE WIN" << endl;
 		m_vSocketInfoList[nSocketIndex].m_socketState = SOCKET_STATE::SEND_UPDATE_DATA;
 		break;
 	case SOCKET_STATE::SEND_OPEN_DRAWER_SOUND:
@@ -722,10 +722,10 @@ bool TCPServer::Init(HWND hWnd)
 		//pElevaterDoor->SetEscapeDoor(false); // 디버그를 위해서 모든 문을 잠금
 	}
 
-	std::cout << "생성된 충돌객체 = " << m_pCollisionManager->GetNumberOfCollisionObject() << std::endl;
+	//std::cout << "생성된 충돌객체 = " << m_pCollisionManager->GetNumberOfCollisionObject() << std::endl;
 	// 아이템 생성
 	CreateItemObject();
-	std::cout << "아이템 생성후 생성된 충돌객체 = " << m_pCollisionManager->GetNumberOfCollisionObject() << std::endl;
+	//std::cout << "아이템 생성후 생성된 충돌객체 = " << m_pCollisionManager->GetNumberOfCollisionObject() << std::endl;
 
 
 	return true;
@@ -932,7 +932,7 @@ INT8 TCPServer::RemoveSocketInfo(SOCKET sock)
 
 		if (sockInfo.m_sock == sock)
 		{
-			printf("[TCP 서버] 클라이언트 종료: IP 주소=%s, 포트 번호=%d\n", sockInfo.m_pAddr, ntohs(sockInfo.m_addrClient.sin_port));
+			//printf("[TCP 서버] 클라이언트 종료: IP 주소=%s, 포트 번호=%d\n", sockInfo.m_pAddr, ntohs(sockInfo.m_addrClient.sin_port));
 
 			SendMessage(m_hClientListBox, LB_DELETESTRING, (WPARAM)nListBoxIndex, 0);
 
@@ -1542,7 +1542,7 @@ void err_display(const char* msg)
 		NULL, WSAGetLastError(),
 		MAKELANGID(LANG_NEUTRAL, SUBLANG_DEFAULT),
 		(char*)&lpMsgBuf, 0, NULL);
-	printf("[%s] %s\n", msg, (char*)lpMsgBuf);
+	//printf("[%s] %s\n", msg, (char*)lpMsgBuf);
 	LocalFree(lpMsgBuf);
 }
 // 소켓 함수 오류 출력
@@ -1554,6 +1554,6 @@ void err_display(int errcode)
 		NULL, errcode,
 		MAKELANGID(LANG_NEUTRAL, SUBLANG_DEFAULT),
 		(char*)&lpMsgBuf, 0, NULL);
-	printf("[오류] %s\n", (char*)lpMsgBuf);
+	//printf("[오류] %s\n", (char*)lpMsgBuf);
 	LocalFree(lpMsgBuf);
 }

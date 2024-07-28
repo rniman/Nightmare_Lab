@@ -1921,9 +1921,9 @@ void CGameObject::PrintFrameInfo(const shared_ptr<CGameObject>& pGameObject, con
 {
 	TCHAR pstrDebug[256] = { 0 };
 	
-	_stprintf_s(pstrDebug, 256, _T("(Frame: %p) (Parent: %p)\n"), pGameObject, pParent);
-	OutputDebugString(pstrDebug);
-
+	//_stprintf_s(pstrDebug, 256, _T("(Frame: %p) (Parent: %p)\n"), pGameObject, pParent);
+	//OutputDebugString(pstrDebug);
+	
 	if (pGameObject->m_pSibling) CGameObject::PrintFrameInfo(pGameObject->m_pSibling, pParent);
 	if (pGameObject->m_pChild) CGameObject::PrintFrameInfo(pGameObject->m_pChild, pGameObject);
 }
