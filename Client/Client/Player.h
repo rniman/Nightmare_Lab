@@ -314,7 +314,7 @@ struct FrameTimeInfo;
 constexpr float TRACKING_DURATION{ 5.0f };
 constexpr float TRACKING_COOLTIME{ 10.0f };
 constexpr float INTERRUPTION_DURATION{ 5.0f };
-constexpr float INTERRUPTION_COOLTIME{ 10.0f };
+constexpr float INTERRUPTION_COOLTIME{ 30.0f };
 constexpr float ZOM_RUNNING_DURATION{ 6.0f };
 constexpr float ZOM_RUNNING_COOLTIME{ 10.0f };
 

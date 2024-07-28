@@ -5,15 +5,15 @@ constexpr WORD PRESS_LBUTTON = 0x10;
 constexpr WORD PRESS_RBUTTON = 0x20;
 constexpr FLOAT ASPECT_RATIO = 1600.0f / 1024.0f;
 
-constexpr float BLUESUIT_WALK_VELCOCITY{ 6.0f };
-constexpr float ZOMBIE_WALK_VELOCITY{ 7.0f };
+constexpr float BLUESUIT_WALK_VELCOCITY{ 5.0f };
+constexpr float ZOMBIE_WALK_VELOCITY{ 5.5f };
 constexpr float BLUESUIT_STAMINA_MAX{ 5.0f };
 constexpr float BLUESUIT_STAMINA_EXHAUSTION{ 3.0f };
 
 constexpr float TRACKING_DURATION{ 5.0f };
 constexpr float TRACKING_COOLTIME{ 10.0f };
 constexpr float INTERRUPTION_DURATION{ 5.0f };
-constexpr float INTERRUPTION_COOLTIME{ 10.0f };
+constexpr float INTERRUPTION_COOLTIME{ 30.0f };
 constexpr float ZOM_RUNNING_DURATION{ 6.0f };
 constexpr float ZOM_RUNNING_COOLTIME{ 10.0f };
 

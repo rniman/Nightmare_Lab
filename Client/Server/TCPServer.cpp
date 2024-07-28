@@ -228,13 +228,20 @@ void TCPServer::OnProcessingReadMessage(HWND hWnd, UINT nMessageID, WPARAM wPara
 	case HEAD_GAME_START:
 		cout << "GAME START" << endl;
 		m_nGameState = GAME_STATE::IN_GAME;
-
+		m_nZombie = 0;
+		m_nBlueSuit = 0;
 		for (int i = 0; i < MAX_CLIENT; ++i)
 		{
 			if (!m_vSocketInfoList[i].m_bUsed )
 			{
 				continue;
 			}
+
+			if (i == 0)
+				m_nZombie++;
+			else
+				m_nBlueSuit++;
+
 			InitPlayerPosition(m_apPlayers[i], i);
 			m_pCollisionManager->AddCollisionPlayer(m_apPlayers[i], i);
 
@@ -1262,7 +1269,7 @@ void TCPServer::CreateItemObject()
 		XMFLOAT3 xmf3RandOffset =  XMFLOAT3(pos_dis(m_mt19937Gen), 0.0f, pos_dis(m_mt19937Gen));
 		XMFLOAT3 xmf3RandRotation = XMFLOAT3(0.0f, 0.0f,(float)rotation_dis(m_mt19937Gen));
 
-		if(i < 10)		// Fuse
+		if(i < 9)		// Fuse
 		{
 			pItemObject = make_shared<CServerFuseObject>();
 			pItemObject->SetDrawerNumber(nDrawerNum);
@@ -1276,7 +1283,7 @@ void TCPServer::CreateItemObject()
 			pItemObject->SetWorldMatrix(xmf4x4World);
 			m_pCollisionManager->AddCollisionObject(pItemObject);
 		}
-		else if (i < 20)	// tp
+		else if (i < 24)	// tp
 		{
 			pItemObject = make_shared<CServerTeleportObject>();
 			pItemObject->SetDrawerNumber(nDrawerNum);
@@ -1289,7 +1296,7 @@ void TCPServer::CreateItemObject()
 			pItemObject->SetWorldMatrix(xmf4x4World);
 			m_pCollisionManager->AddCollisionObject(pItemObject);
 		}
-		else if (i < 30)	// Rader
+		else if (i < 26)	// Rader
 		{
 			xmf3RandRotation = XMFLOAT3(90.0f, 0.0f, 0.0f);
 			pItemObject = make_shared<CServerRadarObject>();
@@ -1303,7 +1310,7 @@ void TCPServer::CreateItemObject()
 			pItemObject->SetWorldMatrix(xmf4x4World);
 			m_pCollisionManager->AddCollisionObject(pItemObject);
 		}
-		else if (i < 80)	// Mine
+		else if (i < 76)	// Mine
 		{
 			xmf3RandRotation = XMFLOAT3(90.0f, 0.0f, 0.0f);
 

@@ -579,7 +579,7 @@ void CServerBlueSuitPlayer::Update(float fElapsedTime, shared_ptr<CServerCollisi
 	if ((m_wKeyBuffer & KEY_LSHIFT) && m_bAbleRun)
 	{
 		m_bRunning = true;
-		m_fMaxVelocityXZ = BLUESUIT_WALK_VELCOCITY * 2;
+		m_fMaxVelocityXZ = BLUESUIT_WALK_VELCOCITY * 2.7f;
 	}
 	else if (m_bRunning)
 	{
@@ -911,7 +911,7 @@ void CServerZombiePlayer::UseItem(shared_ptr<CServerCollisionManager>& pCollisio
 	{
 		m_fCoolTimeRunning = ZOM_RUNNING_COOLTIME;
 		m_bRunning = true;
-		m_fMaxVelocityXZ = ZOMBIE_WALK_VELOCITY * 2 - 1.0f;
+		m_fMaxVelocityXZ = BLUESUIT_WALK_VELCOCITY * 2.7f - 2.f;
 	}
 }
 
