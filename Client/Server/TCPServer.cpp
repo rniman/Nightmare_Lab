@@ -27,23 +27,36 @@ TCPServer::TCPServer()
 	m_axmf3Positions = {
 		XMFLOAT3(10.0f, 0.0f, 13.5),
 		XMFLOAT3(10.0f, 0.0f, -13.5),
-		XMFLOAT3(-12.0f, 0.0f, 13.5),
+		XMFLOAT3(-10.0f, 0.0f, 18.5),
 		XMFLOAT3(-10.0f, 0.0f, -13.5),
 
 		XMFLOAT3(10.0f, 4.5f, 13.5),
-		//XMFLOAT3(10.0f, 4.5f, -13.5),
-		//XMFLOAT3(-10.0f, 4.5f, 13.5),
-		//XMFLOAT3(-10.0f, 4.5f, -13.5),
+		XMFLOAT3(10.0f, 4.5f, -13.5),
+		XMFLOAT3(-10.0f, 4.5f, 13.5),
+		XMFLOAT3(-10.0f, 4.5f, -13.5),
 
-		//XMFLOAT3(10.0f, 9.0f, 13.5),
-		//XMFLOAT3(10.0f, 9.0f, -13.5),
-		//XMFLOAT3(-10.0f, 9.0f, 13.5),
-		//XMFLOAT3(-10.0f, 9.0f, -13.5),
+		XMFLOAT3(10.0f, 9.0f, 13.5),
+		XMFLOAT3(10.0f, 9.0f, -13.5),
+		XMFLOAT3(-10.0f, 9.0f, 13.5),
+		XMFLOAT3(-10.0f, 9.0f, -13.5),
 
-		//XMFLOAT3(10.0f, 13.5f, 13.5),
-		//XMFLOAT3(10.0f, 13.5f, -13.5),
-		//XMFLOAT3(-10.0f, 13.5f, 13.5),
-		//XMFLOAT3(-10.0f, 13.5f, -13.5)
+		XMFLOAT3(10.0f, 13.5f, 13.5),
+		XMFLOAT3(10.0f, 13.5f, -13.5),
+		XMFLOAT3(-10.0f, 13.5f, 13.5),
+		XMFLOAT3(-10.0f, 13.5f, -13.5),
+
+		XMFLOAT3(23.0f, 13.5f, -18.f),
+		XMFLOAT3(22.0f, 13.5f, -2.f),
+		XMFLOAT3(17.0f, 13.5f, 19.f),
+		XMFLOAT3(24.0f, 9.f, -3.f),
+		XMFLOAT3(-20.0f, 9.f, -20.f),
+		XMFLOAT3(23.0f, 9.f, 17.f),
+		XMFLOAT3(23.0f, 4.5f, 16.f),
+		XMFLOAT3(34.0f, 4.5f, -30.f),
+		XMFLOAT3(33.0f, 4.5f, -13.f),
+		XMFLOAT3(20.0f, 4.5f, -32.f),
+		XMFLOAT3(-20.0f, 4.5f, -20.f),
+		XMFLOAT3(-30.0f, 4.5f, 12.f),
 	};
 
 	m_anPlayerStartPosNum = { -1, -1, -1, -1, -1 };
@@ -704,7 +717,9 @@ bool TCPServer::Init(HWND hWnd)
 	}
 	int ELEVATORDOORCOUNT = vDoor.size();
 
-	int random_escape_index = rand() % ELEVATORDOORCOUNT;
+	uniform_int_distribution<int> disInt(0, ELEVATORDOORCOUNT - 1);
+
+	int random_escape_index = disInt(m_mt19937Gen);
 	for (int i = 0; i < ELEVATORDOORCOUNT;++i) {
 		shared_ptr<CServerGameObject> object = m_pCollisionManager->GetCollisionObjectWithNumber(vDoor[i]);
 		auto pElevaterDoor = dynamic_pointer_cast<CServerElevatorDoorObject>(object);
@@ -1423,7 +1438,7 @@ void TCPServer::CreateSendObject()
 void TCPServer::InitPlayerPosition(shared_ptr<CServerPlayer>& pServerPlayer, int nIndex)
 {
 	// 후보지를 두고 int 값에 따라 그곳에 가도록 해야할듯
-	uniform_int_distribution<int> disIntPosition(0, DEBUGFLOOR);
+	uniform_int_distribution<int> disIntPosition(0, m_axmf3Positions.size() - 1);
 
 	int nStartPosNum = disIntPosition(m_mt19937Gen);
 	bool bEmpty = false;

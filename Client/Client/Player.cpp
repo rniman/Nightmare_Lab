@@ -1125,6 +1125,20 @@ void CBlueSuitPlayer::RenderTextUI(ComPtr<ID2D1DeviceContext2>& d2dDeviceContext
 {
 	wchar_t text[128]; // 변환된 유니코드 문자열을 저장할 버퍼
 
+	//// 화면 중앙에 숫자 렌더링
+	//POINT windowSize = CGameFramework::GetClientWindowSize();
+	////윈도우 좌표 주의.
+	//D2D1_RECT_F TimetextRect = D2D1::RectF(0.f, 0.f, (float)windowSize.x, (float)windowSize.y);
+	//int length = swprintf(text, 43, L"%d:%d", ((int)gGameTimer.GetTotalTime()) / 60, ((int)gGameTimer.GetTotalTime()) % 60);
+	//text[length + 1] = '\0';
+	//d2dDeviceContext->DrawText(
+	//	text,
+	//	/*_countof(text)*/length,
+	//	CGameFramework::m_idwSpeakerTextFormat.Get(),
+	//	&TimetextRect,
+	//	brush.Get()
+	//);
+
 	if (m_bGameStartWait) {
 		m_fGameStartCount -= gGameTimer.GetTimeElapsed();
 		if (m_fGameStartCount <= 0.0f) {

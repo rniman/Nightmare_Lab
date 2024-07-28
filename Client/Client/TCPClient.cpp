@@ -684,6 +684,10 @@ void CTcpClient::UpdatePlayer(int nIndex)
 			shared_ptr<CGameObject> pGameObject = g_collisionManager.GetCollisionObjectWithNumber(m_aClientInfo[nIndex].m_nFuseObjectNum[j]).lock();
 			shared_ptr<CItemObject> pItemObject = dynamic_pointer_cast<CItemObject>(pGameObject);
 			if (pItemObject) {
+				if (!pItemObject->IsObtained()) {
+					// ¾ÆÀÌÅÛÀ» È¹µæÇÑ ¼ø°£
+					sharedobject.EnableItemGetParticle(pItemObject);
+				}
 				pItemObject->SetObtain(true);
 				if (nIndex == m_nMainClientId && !pBlueSuitPlayer->IsFuseObtain(j))
 				{

@@ -18,8 +18,13 @@ float4 PSTransparent(VS_STANDARD_OUTPUT input) : SV_Target
         cAlbedoColor = AlbedoTexture.Sample(gssWrap, input.uv);
     if(gnTexturesMask & MATERIAL_SPECULAR_MAP)
         cSpecularColor = SpecularTexture.Sample(gssWrap, input.uv);
-    if(gnTexturesMask & MATERIAL_NORMAL_MAP)
+    if (gnTexturesMask & MATERIAL_NORMAL_MAP)
+    {
         cNormalColor = NormalTexture.Sample(gssWrap, input.uv);
+        cNormalColor = (cNormalColor * 2.0f) - 1.0f;
+        input.normalW = (cNormalColor.x * input.tangentW) + (cNormalColor.y * input.bitangentW) + (cNormalColor.z * input.normalW);
+        input.normalW = normalize(input.normalW);
+    }
     if(gnTexturesMask & MATERIAL_METALLIC_MAP)
         cMetallicColor = MetallicTexture.Sample(gssWrap, input.uv);
     if(gnTexturesMask & MATERIAL_EMISSION_MAP)

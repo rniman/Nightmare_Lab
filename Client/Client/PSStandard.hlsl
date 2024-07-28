@@ -53,6 +53,8 @@ PS_MULTIPLE_RENDER_TARGETS_OUTPUT PSStandard(VS_STANDARD_OUTPUT input)
         {
             cColor *= patternColor;
         }
+        
+        cEmissionColor += (patternColor * 0.5f);
     }
     
     output.cTexture = cColor;

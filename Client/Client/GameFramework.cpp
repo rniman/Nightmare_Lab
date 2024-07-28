@@ -1235,11 +1235,11 @@ void CGameFramework::LoadingRender()
 
 	MoveToNextFrame();
 
-	gGameTimer.GetFrameRate(m_pszFrameRate + 15, 37);
+	/*gGameTimer.GetFrameRate(m_pszFrameRate + 15, 37);
 	size_t nLength = _tcslen(m_pszFrameRate);
 	XMFLOAT3 xmf3Position = xmf3Position = m_pMainPlayer->GetPosition();
 	_stprintf_s(m_pszFrameRate + nLength, 200 - nLength, _T("ID:%d %d, NumOfClient: %d, (%4f, %4f, %4f), %d"), m_pTcpClient->GetMainClientId(), m_nMainClientId, m_pTcpClient->GetNumOfClient(), xmf3Position.x, xmf3Position.y, xmf3Position.z, g_collisionManager.GetNumOfCollisionObject());
-	::SetWindowText(m_hWnd, m_pszFrameRate);
+	::SetWindowText(m_hWnd, m_pszFrameRate);*/
 }
 
 //#define _WITH_PLAYER_TOP

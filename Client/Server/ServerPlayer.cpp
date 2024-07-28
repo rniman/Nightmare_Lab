@@ -752,31 +752,50 @@ void CServerBlueSuitPlayer::UseFuse(shared_ptr<CServerCollisionManager>& pCollis
 
 void CServerBlueSuitPlayer::TeleportRandomPosition()
 {
-	
-	// 후보지를 두고 int 값에 따라 그곳에 가도록 해야할듯
-	uniform_int_distribution<int> disFloatPosition(0, 15);
 
-	array<XMFLOAT3, 16> axmf3Positions = {
+	array<XMFLOAT3, 34> axmf3Positions = {
 		XMFLOAT3(10.0f, 0.0f, 13.5),
 		XMFLOAT3(10.0f, 0.0f, -13.5),
-		XMFLOAT3(-12.0f, 0.0f, 13.5),
+		XMFLOAT3(-10.0f, 0.0f, 18.5),
 		XMFLOAT3(-10.0f, 0.0f, -13.5),
+		XMFLOAT3(34.0f, 4.5f, -30.f),
+		XMFLOAT3(33.0f, 4.5f, -13.f),
 
 		XMFLOAT3(10.0f, 4.5f, 13.5),
 		XMFLOAT3(10.0f, 4.5f, -13.5),
 		XMFLOAT3(-10.0f, 4.5f, 13.5),
 		XMFLOAT3(-10.0f, 4.5f, -13.5),
+		XMFLOAT3(34.0f, 4.5f, -30.f),
+		XMFLOAT3(33.0f, 4.5f, -13.f),
 
 		XMFLOAT3(10.0f, 9.0f, 13.5),
 		XMFLOAT3(10.0f, 9.0f, -13.5),
 		XMFLOAT3(-10.0f, 9.0f, 13.5),
 		XMFLOAT3(-10.0f, 9.0f, -13.5),
+		XMFLOAT3(34.0f, 4.5f, -30.f),
+		XMFLOAT3(33.0f, 4.5f, -13.f),
 
 		XMFLOAT3(10.0f, 13.5f, 13.5),
 		XMFLOAT3(10.0f, 13.5f, -13.5),
 		XMFLOAT3(-10.0f, 13.5f, 13.5),
-		XMFLOAT3(-10.0f, 13.5f, -13.5)
+		XMFLOAT3(-10.0f, 13.5f, -13.5),
+
+		XMFLOAT3(23.0f, 13.5f, -18.f),
+		XMFLOAT3(22.0f, 13.5f, -2.f),
+		XMFLOAT3(17.0f, 13.5f, 19.f),
+		XMFLOAT3(24.0f, 9.f, -3.f),
+		XMFLOAT3(-20.0f, 9.f, -20.f),
+		XMFLOAT3(23.0f, 9.f, 17.f),
+		XMFLOAT3(23.0f, 4.5f, 16.f),
+		XMFLOAT3(34.0f, 4.5f, -30.f),
+		XMFLOAT3(33.0f, 4.5f, -13.f),
+		XMFLOAT3(20.0f, 4.5f, -32.f),
+		XMFLOAT3(-20.0f, 4.5f, -20.f),
+		XMFLOAT3(-30.0f, 4.5f, 12.f),
 	};
+
+	// 후보지를 두고 int 값에 따라 그곳에 가도록 해야할듯
+	uniform_int_distribution<int> disFloatPosition(0, axmf3Positions.size() - 1);
 
 	m_xmf3Position = axmf3Positions[disFloatPosition(TCPServer::m_mt19937Gen)];
 	m_xmf3OldPosition = m_xmf3Position;

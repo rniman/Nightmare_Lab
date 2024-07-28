@@ -15,9 +15,9 @@
 #define ADD_DEPTH_MAP_COUNT 1
 
 #define ZOMBIEPLAYER 0
-#define DEBUGFLOOR 4
+#define DEBUGFLOOR 28
 #define ITEM_COUNT 76
-#define ZOMBIEMOVELIMIT false
+#define ZOMBIEMOVELIMIT true
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 //OBJECT
