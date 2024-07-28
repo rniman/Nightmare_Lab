@@ -246,6 +246,8 @@ void CGameFramework::CreateRenderTargetViews()
 
 	D3D12_CPU_DESCRIPTOR_HANDLE d3dRtvCPUDescriptorHandle = m_d3dRtvDescriptorHeap->GetCPUDescriptorHandleForHeapStart();
 
+	// 클리어 색상 값 설정
+	float clearColor[4] = { 0.0f, 0.0f, 0.0f, 1.0f }; // 검정색 (완전 불투명)
 	for (UINT i = 0; i < m_nSwapChainBuffers; i++)
 	{
 		hResult = m_dxgiSwapChain->GetBuffer(i, __uuidof(ID3D12Resource), (void**)m_d3dSwapChainBackBuffers[i].GetAddressOf());
@@ -447,12 +449,12 @@ void CGameFramework::PrepareDrawText()
 			ThrowIfFailed(m_textFormat->SetParagraphAlignment(DWRITE_PARAGRAPH_ALIGNMENT_CENTER));
 
 			ThrowIfFailed(m_dWriteFactory->CreateTextFormat(
-				L"Verdana",
+				L"궁서",
 				NULL,
 				DWRITE_FONT_WEIGHT_NORMAL,
 				DWRITE_FONT_STYLE_NORMAL,
 				DWRITE_FONT_STRETCH_NORMAL,
-				400,
+				400.f,
 				L"ko-KR",
 				&m_idwGameCountTextFormat
 			));
@@ -490,7 +492,6 @@ void CGameFramework::RenderTextUI()
 
 	D2D1_SIZE_F rtSize = m_d2dRenderTargets[m_nSwapChainBufferIndex]->GetSize();
 
-	auto player = dynamic_pointer_cast<CBlueSuitPlayer>(m_pMainPlayer);
 	// 현재 백 버퍼에 대한 래핑된 렌더 타겟 자원을 획득합니다.
 	m_d3d11On12Device->AcquireWrappedResources(m_wrappedBackBuffers[m_nSwapChainBufferIndex].GetAddressOf(), 1);
 	m_d2dDeviceContext->SetTarget(m_d2dRenderTargets[m_nSwapChainBufferIndex].Get());

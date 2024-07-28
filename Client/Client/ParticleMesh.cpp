@@ -188,7 +188,7 @@ void CSOParticleMesh::Render(ID3D12GraphicsCommandList* pd3dCommandList)
 }
 
 
-#define DEBUG_STREAM_OUTPUT_VERTEX
+//#define DEBUG_STREAM_OUTPUT_VERTEX
 
 void CSOParticleMesh::ReadByteTask()
 {

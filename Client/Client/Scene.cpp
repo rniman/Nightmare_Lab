@@ -847,6 +847,9 @@ void CMainScene::BuildObjects(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandLis
 			{
 				// ZOMBIE PLAYER가 아닐 경우 자신을 MainPlayer 설정
 				m_vForwardRenderShader[OUT_LINE_SHADER]->AddGameObject(m_apPlayer[i]);
+				auto pBSPlayer = dynamic_pointer_cast<CBlueSuitPlayer>(m_apPlayer[i]);
+				auto pZombie = dynamic_pointer_cast<CZombiePlayer>(m_apPlayer[ZOMBIEPLAYER]);
+				pBSPlayer->SetZombiePlayer(pZombie);
 			}
 		}
 
@@ -1096,7 +1099,10 @@ void CMainScene::BuildLights(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList
 		if (i >= MAX_SURVIVOR)
 		{
 			m_pLightCamera[i]->GenerateProjectionMatrix(1.01f, 5.0f, ASPECT_RATIO, 90.0f);	//[0513] 근평면이 있어야  그림자를 그림
-		}
+		}/*
+		else {
+			m_pLightCamera[i]->GenerateProjectionMatrix(0.01f, 5.0f, ASPECT_RATIO, 90.0f);
+		}*/
 		m_pLightCamera[i]->GenerateFrustum();
 		m_pLightCamera[i]->MultiplyViewProjection();
 
@@ -1107,6 +1113,8 @@ void CMainScene::BuildLights(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList
 	}
 
 	// 빛의 카메라 파티션 설정
+	// 파티션의 월드변환행렬은 0,0,0임을 유의하라.
+	// 바운딩 박스의 위치만 변경한것이다.
 	unique_ptr<PartitionInsStandardShader> PtShader(static_cast<PartitionInsStandardShader*>(m_vPreRenderShader[PARTITION_SHADER].release()));
 	auto vBB = PtShader->GetPartitionBB();
 
@@ -1864,7 +1872,7 @@ void CMainScene::ShadowRender(ID3D12GraphicsCommandList* pd3dCommandList, const 
 		{
 			int pl_id = m_pLightCamera[i]->GetPlayer().lock()->GetClientId();
 			if (pl_id == -1) continue;
-			m_apPlayer[pl_id]->SetSelfShadowRender(true);
+			m_apPlayer[pl_id]->SetSelfShadowRender(true); //자신의 손전등에 대해서 자신을 그리지 않음.
 			PrepareRender(pd3dCommandList, m_pLightCamera[i]);
 			Render(pd3dCommandList, m_pLightCamera[i], 1); // 카메라만 빛의 위치대로 설정해서 렌더링함.
 			m_apPlayer[pl_id]->SetSelfShadowRender(false);

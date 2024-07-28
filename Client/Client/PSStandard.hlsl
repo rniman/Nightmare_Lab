@@ -35,10 +35,12 @@ PS_MULTIPLE_RENDER_TARGETS_OUTPUT PSStandard(VS_STANDARD_OUTPUT input)
     }
     if(gnTexturesMask & MATERIAL_METALLIC_MAP)
         cMetallicColor = MetallicTexture.Sample(gssWrap, input.uv);
-    if(gnTexturesMask & MATERIAL_EMISSION_MAP)
-        cEmissionColor = EmissionTexture.Sample(gssWrap, input.uv);
+    if (gnTexturesMask & MATERIAL_EMISSION_MAP)
+    {
+        cEmissionColor = EmissionTexture.Sample(gssWrap, input.uv) * (cEmissionColor * 2.0f);
+    }
     
-    float4 cColor = (cAlbedoColor * 0.7f) + (cSpecularColor * 0.2f) + (cMetallicColor * 0.05f)/* + (cEmissionColor)*/;
+    float4 cColor = (cAlbedoColor * 0.795f) + (cSpecularColor * 0.2f) + (cMetallicColor * 0.05f)/* + (cEmissionColor)*/;
     
     if(usePattern > 0.0f)
     {

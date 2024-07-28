@@ -204,6 +204,7 @@ void CPlayer::Update(float fElapsedTime)
 {
 	m_pCamera->Update(m_xmf3Position, fElapsedTime);
 	if (m_pCameraUpdatedContext) OnCameraUpdateCallback(fElapsedTime);
+
 	m_pCamera->RegenerateViewMatrix();
 }
 
@@ -617,6 +618,26 @@ void CBlueSuitPlayer::Update(float fElapsedTime)
 			m_iTeleportParticleId = -1;
 		}
 	}
+
+	if (m_pZombiePlayer) {
+		XMFLOAT3 xmf3Zompos = m_pZombiePlayer->GetPosition();
+		if (abs(xmf3Zompos.y - m_xmf3Position.y) < 5.0f) { // 층차이 1층까지만
+			XMFLOAT3 xmf3betweenPos = Vector3::Subtract(xmf3Zompos, m_xmf3Position);
+
+			if (Vector3::Length(xmf3betweenPos) > 15.0f) {
+				m_bSense = false;
+			}
+			else {
+				m_bSense = true;
+			}
+		}
+		else {
+			m_bSense = false;
+		}
+	}
+
+	m_pCamera->GenerateProjectionMatrix(0.01f, 100.0f, ASPECT_RATIO, 60.0f);
+
 	// 카메라 위치 업데이트
 	CPlayer::Update(fElapsedTime);
 }
@@ -1636,10 +1657,11 @@ void CZombiePlayer::RenderTextUI(ComPtr<ID2D1DeviceContext2>& d2dDeviceContext, 
 		// 화면 중앙에 숫자 렌더링
 		POINT windowSize = CGameFramework::GetClientWindowSize();
 		//윈도우 좌표 주의.
-		D2D1_RECT_F textRect = D2D1::RectF(0.f, 0.f, windowSize.x, windowSize.y);
+		D2D1_RECT_F textRect = D2D1::RectF(0.f, 0.f, (float)windowSize.x, (float)windowSize.y);
 		auto color = brush->GetColor();
 		brush->SetColor(D2D1::ColorF(D2D1::ColorF::Tomato));
 		brush->SetOpacity(opacity);
+
 		d2dDeviceContext->DrawText(
 			text,
 			/*_countof(text)*/len,
@@ -1647,9 +1669,20 @@ void CZombiePlayer::RenderTextUI(ComPtr<ID2D1DeviceContext2>& d2dDeviceContext, 
 			&textRect,
 			brush.Get()
 		);
-
-		brush->SetColor(color);
 		brush->SetOpacity(1.0f);
+
+		textRect = D2D1::RectF(0.f, 0.f, (float)windowSize.x, (float)windowSize.y / 2);
+		len = swprintf(text, 20, L"모든 생존자를 제거하라");
+		text[len + 1] = '\0';
+		brush->SetColor(D2D1::ColorF(D2D1::ColorF::DarkGray));
+		d2dDeviceContext->DrawText(
+			text,
+			/*_countof(text)*/len,
+			CGameFramework::m_idwSpeakerTextFormat.Get(),
+			&textRect,
+			brush.Get()
+		);
+		brush->SetColor(color);
 
 		// 시야 차단 작업
 		if (m_fGameStartCount > 2.5f) {

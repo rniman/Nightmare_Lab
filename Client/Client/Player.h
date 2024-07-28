@@ -8,6 +8,7 @@ class CMainScene;
 class CCamera;
 class CRadarObject;
 class Trail;
+class CZombiePlayer;
 
 class CSoundCallbackHandler : public CAnimationCallbackHandler
 {
@@ -125,6 +126,10 @@ public:
 	virtual void RenderTextUI(ComPtr<ID2D1DeviceContext2>& d2dDeviceContext, ComPtr<IDWriteTextFormat>& textFormat, ComPtr<ID2D1SolidColorBrush>& brush) { }
 	//게임시작에 필요한 작업 수행
 	virtual void SetGameStart();
+
+	virtual bool ActiveSense() {
+		return m_bSense;
+	}
 protected:
 	INT8 m_nClientId = -1;
 
@@ -180,6 +185,8 @@ protected:
 	
 	float	m_fGameStartCount  = 10.f;
 	bool	m_bGameStartWait   = false;
+
+	bool	m_bSense = false;
 };
 
 constexpr float BLUESUIT_STAMINA_MAX{ 5.0f };
@@ -290,6 +297,7 @@ public:
 	void SetHitEvent();
 
 	void RenderTextUI(ComPtr<ID2D1DeviceContext2>& d2dDeviceContext, ComPtr<IDWriteTextFormat>& textFormat, ComPtr<ID2D1SolidColorBrush>& brush) override;
+	void SetZombiePlayer(shared_ptr<CZombiePlayer>& m_player) { m_pZombiePlayer = m_player; }
 private:
 	float m_fStopMoving = 0.0f;
 	int m_iMineobjectNum = -1;
@@ -297,6 +305,8 @@ private:
 	int m_iTeleportParticleId = -1;
 	bool m_bTeleportUse = false;
 	float m_fCreateParticleTime = 0.0f;
+
+	shared_ptr<CZombiePlayer> m_pZombiePlayer;
 };
 
 struct FrameTimeInfo;

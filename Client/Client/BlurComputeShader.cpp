@@ -233,7 +233,7 @@ void CBlurComputeShader::Dispatch(ID3D12GraphicsCommandList* pd3dCommandList, in
 		m_pTextureRtv->UpdateSrvShaderVariable(pd3dCommandList, 10, 0);
 	}
 
-	for (int i = 0; i < 3; i++)
+	for (int i = 0; i < 1; i++)
 	{
 		pd3dCommandList->Dispatch(m_cxThreadGroups, m_cyThreadGroups, m_czThreadGroups);
 

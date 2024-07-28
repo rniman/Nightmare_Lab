@@ -500,4 +500,6 @@ public:
 		const WCHAR* strGameState, shared_ptr<CPlayer>& mainPlayer);
 	void Render(ID3D12GraphicsCommandList* pd3dCommandList, const shared_ptr<CCamera>& pCamera, const shared_ptr<CPlayer>& pPlayer, int nPipelineState = 0) override;
 
+private:
+	shared_ptr<CPlayer> m_pMainPlayer;
 };

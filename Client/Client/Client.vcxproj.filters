@@ -15,10 +15,6 @@
     <Filter Include="Server">
       <UniqueIdentifier>{00acebcd-2466-497b-9b5c-bc3a509b7e9c}</UniqueIdentifier>
     </Filter>
-    <Filter Include="Server\리소스 파일">
-      <UniqueIdentifier>{67DA6AB6-F800-4c08-8B7A-83BB121AAD01}</UniqueIdentifier>
-      <Extensions>rc;ico;cur;bmp;dlg;rc2;rct;bin;rgs;gif;jpg;jpeg;jpe;resx;tiff;tif;png;wav;mfcribbon-ms</Extensions>
-    </Filter>
     <Filter Include="TextureBlendShader">
       <UniqueIdentifier>{b460d140-9be7-4706-b33a-96e7421f4a9c}</UniqueIdentifier>
     </Filter>
@@ -48,6 +44,10 @@
     </Filter>
     <Filter Include="HLSL%28cso%29\Trail">
       <UniqueIdentifier>{57430c1a-be6a-45d7-a060-2c79ebdf9b2f}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="리소스 파일">
+      <UniqueIdentifier>{67DA6AB6-F800-4c08-8B7A-83BB121AAD01}</UniqueIdentifier>
+      <Extensions>rc;ico;cur;bmp;dlg;rc2;rct;bin;rgs;gif;jpg;jpeg;jpe;resx;tiff;tif;png;wav;mfcribbon-ms</Extensions>
     </Filter>
     <Filter Include="Blur">
       <UniqueIdentifier>{f9ad5bc5-4377-4948-8c23-c3874ba70eb3}</UniqueIdentifier>
@@ -236,15 +236,15 @@
   </ItemGroup>
   <ItemGroup>
     <ResourceCompile Include="Client.rc">
-      <Filter>Server\리소스 파일</Filter>
+      <Filter>리소스 파일</Filter>
     </ResourceCompile>
   </ItemGroup>
   <ItemGroup>
     <Image Include="small.ico">
-      <Filter>Server\리소스 파일</Filter>
+      <Filter>리소스 파일</Filter>
     </Image>
     <Image Include="Client.ico">
-      <Filter>Server\리소스 파일</Filter>
+      <Filter>리소스 파일</Filter>
     </Image>
   </ItemGroup>
   <ItemGroup>
@@ -363,6 +363,9 @@
     </FxCompile>
     <FxCompile Include="PSTextureToScreen.hlsl">
       <Filter>Blur</Filter>
+    </FxCompile>
+    <FxCompile Include="PSFullScreenAnime.hlsl">
+      <Filter>HLSL%28cso%29</Filter>
     </FxCompile>
   </ItemGroup>
   <ItemGroup>

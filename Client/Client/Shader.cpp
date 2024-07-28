@@ -1680,7 +1680,7 @@ void CZombieUserInterfaceShader::AnimateObjectZombie(float fElapsedTime)
 {
 	switch (m_nGameState)
 	{
-	case GAME_STATE::IN_GAME:
+	case GAME_STATE::IN_GAME: {
 		if (m_pZombiePlayer->IsAbleTracking()) m_pTracking->SetMaterial(0, m_vpmatTracking[0]);
 		else if (m_pZombiePlayer->IsTracking()) m_pTracking->SetMaterial(0, m_vpmatTracking[1]);
 		else if (!m_pZombiePlayer->IsAbleTracking()) m_pTracking->SetMaterial(0, m_vpmatTracking[2]);
@@ -1689,10 +1689,25 @@ void CZombieUserInterfaceShader::AnimateObjectZombie(float fElapsedTime)
 		else if (m_pZombiePlayer->IsInterruption()) m_pInterruption->SetMaterial(0, m_vpmatInterruption[1]);
 		else if (!m_pZombiePlayer->IsAbleInterruption()) m_pInterruption->SetMaterial(0, m_vpmatInterruption[2]);
 
+		static bool switchRun = false;
+
 		if (m_pZombiePlayer->IsAbleRunning()) m_pRunning->SetMaterial(0, m_vpmatRunning[0]);
-		else if (m_pZombiePlayer->IsRunning()) m_pRunning->SetMaterial(0, m_vpmatRunning[1]);
-		else if (!m_pZombiePlayer->IsAbleRunning()) m_pRunning->SetMaterial(0, m_vpmatRunning[2]);
+		else if (m_pZombiePlayer->IsRunning()) {
+			m_pRunning->SetMaterial(0, m_vpmatRunning[1]);
+			if (!switchRun) {
+				m_pZombiePlayer->GetCamera()->GenerateProjectionMatrix(0.01f, 100.0f, ASPECT_RATIO, 80.0f);
+				switchRun = true;
+			}
+		}
+		else if (!m_pZombiePlayer->IsAbleRunning()) {
+			m_pRunning->SetMaterial(0, m_vpmatRunning[2]);
+			if (switchRun) {
+				m_pZombiePlayer->GetCamera()->GenerateProjectionMatrix(0.01f, 100.0f, ASPECT_RATIO, 70.0f);
+				switchRun = false;
+			}
+		}
 		break;
+	}
 	case GAME_STATE::BLUE_SUIT_WIN:
 		m_fEndingElapsedTime += fElapsedTime;
 		if (m_fEndingElapsedTime > 3.0) m_fEndingElapsedTime = 3.0f;
@@ -2449,13 +2464,18 @@ D3D12_SHADER_BYTECODE CFullScreenProcessingShader::CreateVertexShader()
 
 D3D12_SHADER_BYTECODE CFullScreenProcessingShader::CreatePixelShader()
 {
-	return CShader::ReadCompiledShaderFromFile(L"cso/PSFullScreen.cso", m_pd3dPixelShaderBlob.GetAddressOf());
+	if (m_PipeLineIndex == 0) {
+		return CShader::ReadCompiledShaderFromFile(L"cso/PSFullScreen.cso", m_pd3dPixelShaderBlob.GetAddressOf());
+	}
+	else if (m_PipeLineIndex == 1) {
+		return CShader::ReadCompiledShaderFromFile(L"cso/PSFullScreenAnime.cso", m_pd3dPixelShaderBlob.GetAddressOf());
+	}
 	//return(CShader::CompileShaderFromFile(L"PSFullScreen.hlsl", "PSPostProcessing", "ps_5_1", m_pd3dPixelShaderBlob.GetAddressOf()));
 }
 
 void CFullScreenProcessingShader::CreateShader(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dCommandList, ID3D12RootSignature* pd3dGraphicsRootSignature, UINT nRenderTargets, DXGI_FORMAT* pdxgiRtvFormats, DXGI_FORMAT dxgiDsvFormat)
 {
-	m_nPipelineState = 1;
+	m_nPipelineState = 2;
 	m_vpd3dPipelineState.reserve(m_nPipelineState);
 	for (int i = 0; i < m_nPipelineState; ++i)
 	{
@@ -2468,19 +2488,34 @@ D3D12_BLEND_DESC CFullScreenProcessingShader::CreateBlendState()
 {
 	D3D12_BLEND_DESC d3dBlendDesc;
 	::ZeroMemory(&d3dBlendDesc, sizeof(D3D12_BLEND_DESC));
-	d3dBlendDesc.AlphaToCoverageEnable = FALSE;
-	d3dBlendDesc.IndependentBlendEnable = FALSE;
-	d3dBlendDesc.RenderTarget[0].BlendEnable = TRUE;
-	d3dBlendDesc.RenderTarget[0].LogicOpEnable = FALSE;
-	d3dBlendDesc.RenderTarget[0].SrcBlend = D3D12_BLEND_SRC_ALPHA;
-	d3dBlendDesc.RenderTarget[0].DestBlend = D3D12_BLEND_ONE;
-	d3dBlendDesc.RenderTarget[0].BlendOp = D3D12_BLEND_OP_ADD;
-	d3dBlendDesc.RenderTarget[0].SrcBlendAlpha = D3D12_BLEND_ONE;
-	d3dBlendDesc.RenderTarget[0].DestBlendAlpha = D3D12_BLEND_ZERO;
-	d3dBlendDesc.RenderTarget[0].BlendOpAlpha = D3D12_BLEND_OP_ADD;
-	d3dBlendDesc.RenderTarget[0].LogicOp = D3D12_LOGIC_OP_NOOP;
-	d3dBlendDesc.RenderTarget[0].RenderTargetWriteMask = D3D12_COLOR_WRITE_ENABLE_ALL;
-
+	if (m_PipeLineIndex != 2) {
+		d3dBlendDesc.AlphaToCoverageEnable = FALSE;
+		d3dBlendDesc.IndependentBlendEnable = FALSE;
+		d3dBlendDesc.RenderTarget[0].BlendEnable = TRUE;
+		d3dBlendDesc.RenderTarget[0].LogicOpEnable = FALSE;
+		d3dBlendDesc.RenderTarget[0].SrcBlend = D3D12_BLEND_SRC_ALPHA;
+		d3dBlendDesc.RenderTarget[0].DestBlend = D3D12_BLEND_ONE;
+		d3dBlendDesc.RenderTarget[0].BlendOp = D3D12_BLEND_OP_ADD;
+		d3dBlendDesc.RenderTarget[0].SrcBlendAlpha = D3D12_BLEND_ONE;
+		d3dBlendDesc.RenderTarget[0].DestBlendAlpha = D3D12_BLEND_ZERO;
+		d3dBlendDesc.RenderTarget[0].BlendOpAlpha = D3D12_BLEND_OP_ADD;
+		d3dBlendDesc.RenderTarget[0].LogicOp = D3D12_LOGIC_OP_NOOP;
+		d3dBlendDesc.RenderTarget[0].RenderTargetWriteMask = D3D12_COLOR_WRITE_ENABLE_ALL;
+	}
+	else if (m_PipeLineIndex == 1) {
+		d3dBlendDesc.AlphaToCoverageEnable = FALSE;
+		d3dBlendDesc.IndependentBlendEnable = FALSE;
+		d3dBlendDesc.RenderTarget[0].BlendEnable = TRUE;
+		d3dBlendDesc.RenderTarget[0].LogicOpEnable = FALSE;
+		d3dBlendDesc.RenderTarget[0].SrcBlend = D3D12_BLEND_SRC_ALPHA;
+		d3dBlendDesc.RenderTarget[0].DestBlend = D3D12_BLEND_INV_SRC_COLOR;
+		d3dBlendDesc.RenderTarget[0].BlendOp = D3D12_BLEND_OP_ADD;
+		d3dBlendDesc.RenderTarget[0].SrcBlendAlpha = D3D12_BLEND_ONE;
+		d3dBlendDesc.RenderTarget[0].DestBlendAlpha = D3D12_BLEND_ZERO;
+		d3dBlendDesc.RenderTarget[0].BlendOpAlpha = D3D12_BLEND_OP_ADD;
+		d3dBlendDesc.RenderTarget[0].LogicOp = D3D12_LOGIC_OP_NOOP;
+		d3dBlendDesc.RenderTarget[0].RenderTargetWriteMask = D3D12_COLOR_WRITE_ENABLE_ALL;
+	}
 	return(d3dBlendDesc);
 }
 
@@ -2549,9 +2584,9 @@ void CFullScreenProcessingShader::BuildObjects(ID3D12Device* pd3dDevice, ID3D12G
 		pObject->SetComponent(timeonoffComponent);
 		//Main클라이언트 플레이어에게 스크린 객체 공유
 		mainPlayer->SetHitDamageScreenObject(pObject);
+		m_pMainPlayer = mainPlayer;
 
 		AddGameObject(pObject);
-
 	}
 
 }
@@ -2562,5 +2597,13 @@ void CFullScreenProcessingShader::Render(ID3D12GraphicsCommandList* pd3dCommandL
 
 	for (auto& ob : m_vGameObjects) {
 		ob->Render(pd3dCommandList);
+	}
+
+	if (m_pMainPlayer) {
+		if (m_pMainPlayer->ActiveSense()) {
+			UpdatePipeLineState(pd3dCommandList, 1);
+			pd3dCommandList->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
+			pd3dCommandList->DrawInstanced(6, 1, 0, 0);
+		}
 	}
 }
